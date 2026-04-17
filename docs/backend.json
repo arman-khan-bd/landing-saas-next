@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -7,25 +8,20 @@
       "description": "Stores additional profile information for users, linked to Firebase Authentication.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserProfile entity, typically matching the Firebase Auth user ID."
+          "type": "string"
         },
         "email": {
           "type": "string",
-          "description": "The user's primary email address.",
           "format": "email"
         },
         "fullName": {
-          "type": "string",
-          "description": "The user's full name."
+          "type": "string"
         },
         "phone": {
-          "type": "string",
-          "description": "The user's phone number."
+          "type": "string"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the user profile was created.",
           "format": "date-time"
         }
       },
@@ -40,27 +36,22 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Store",
       "type": "object",
-      "description": "Represents an individual e-commerce store (tenant).",
+      "description": "Represents an individual e-commerce store.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the Store entity."
+          "type": "string"
         },
         "name": {
-          "type": "string",
-          "description": "The public-facing name of the store."
+          "type": "string"
         },
         "subdomain": {
-          "type": "string",
-          "description": "The unique subdomain assigned to the store."
+          "type": "string"
         },
         "ownerId": {
-          "type": "string",
-          "description": "Reference to the UserProfile that owns this store."
+          "type": "string"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the store was created.",
           "format": "date-time"
         }
       },
@@ -75,45 +66,82 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
       "type": "object",
-      "description": "Represents a product available for sale.",
+      "description": "Represents a product available for sale with detailed attributes.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the Product entity."
+          "type": "string"
         },
         "storeId": {
-          "type": "string",
-          "description": "Reference to the Store this product belongs to."
+          "type": "string"
         },
         "ownerId": {
-          "type": "string",
-          "description": "Denormalized owner ID for authorization purposes."
+          "type": "string"
         },
         "name": {
-          "type": "string",
-          "description": "The name of the product."
+          "type": "string"
         },
-        "price": {
-          "type": "number",
-          "description": "The price of the product."
+        "slug": {
+          "type": "string"
         },
-        "stock": {
-          "type": "number",
-          "description": "The current stock quantity."
+        "shortDescription": {
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "description": "The detailed description of the product."
+          "type": "string"
         },
-        "images": {
+        "featuredImage": {
+          "type": "string"
+        },
+        "gallery": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metaKeywords": {
+          "type": "string"
+        },
+        "metaDescription": {
+          "type": "string"
+        },
+        "currentPrice": {
+          "type": "number"
+        },
+        "prevPrice": {
+          "type": "number"
+        },
+        "category": {
+          "type": "string"
+        },
+        "subCategory": {
+          "type": "string"
+        },
+        "childCategory": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "totalInStock": {
+          "type": "number"
+        },
+        "tax": {
+          "type": "string"
+        },
+        "sku": {
+          "type": "string"
+        },
+        "youtubeLink": {
+          "type": "string"
+        },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the product was created.",
           "format": "date-time"
         }
       },
@@ -121,8 +149,9 @@
         "storeId",
         "ownerId",
         "name",
-        "price",
-        "stock",
+        "slug",
+        "currentPrice",
+        "totalInStock",
         "createdAt"
       ]
     }
@@ -143,7 +172,7 @@
     },
     "/products/{productId}": {
       "schema": "Product",
-      "description": "Products across all stores, secured by ownerId."
+      "description": "Products across all stores."
     }
   }
 }
