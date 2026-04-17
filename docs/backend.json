@@ -1,0 +1,206 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Stores additional profile information for users, linked to Firebase Authentication. Each user can own multiple stores.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity, typically matching the Firebase Auth user ID."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's primary email address.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name or full name."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Store": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Store",
+      "type": "object",
+      "description": "Represents an individual e-commerce store (tenant) within the NexusCart platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Store entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The public-facing name of the store."
+        },
+        "subdomain": {
+          "type": "string",
+          "description": "The unique subdomain assigned to the store (e.g., 'mystore.nexuscart.com')."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to the UserProfile that owns this store. (Relationship: UserProfile 1:N Store)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the store was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the store was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "subdomain",
+        "ownerId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product available for sale within a specific e-commerce store.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Product entity."
+        },
+        "storeId": {
+          "type": "string",
+          "description": "Reference to the Store this product belongs to. (Relationship: Store 1:N Product)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the product."
+        },
+        "stock": {
+          "type": "number",
+          "description": "The current stock quantity of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "The detailed, AI-generated description of the product."
+        },
+        "imageUrls": {
+          "type": "array",
+          "description": "An array of URLs for product images, hosted on Cloudinary.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the product was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the product was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "storeId",
+        "name",
+        "price",
+        "stock",
+        "description",
+        "imageUrls",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores individual user profiles. Each document ID ({userId}) MUST match the Firebase Authentication UID, ensuring path-based ownership. Access is strictly limited to the authenticated user owning the profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user, also serving as the document ID for their profile."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/stores/{storeId}",
+        "definition": {
+          "entityName": "Store",
+          "schema": {
+            "$ref": "#/backend/entities/Store"
+          },
+          "description": "Represents individual e-commerce stores. Each document includes an 'ownerId' field which links to the UserProfile (UID) of the store owner. This 'ownerId' is crucial for authorization, enabling secure access control without needing to perform 'get()' operations on parent documents. Supports QAP-compliant listing of stores owned by the authenticated user.",
+          "params": [
+            {
+              "name": "storeId",
+              "description": "Unique identifier for the store, used as the document ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/stores/{storeId}/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Houses products for a specific store. Each product document MUST include a denormalized 'ownerId' field, copied from its parent 'Store' document. This 'ownerId' refers to the user who owns the store, thereby enabling atomic, authorization-independent security rules for products. This design is critical for secure 'list' operations (QAPs) and ensures simplified rule logic.",
+          "params": [
+            {
+              "name": "storeId",
+              "description": "The unique identifier of the parent store to which this product belongs."
+            },
+            {
+              "name": "productId",
+              "description": "The unique identifier for the product, used as the document ID."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure for NexusCart is designed to be secure, scalable, and highly debuggable, strictly adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC, QAPs, and Invariants. This design leverages a hierarchical collection model combined with strategic denormalization.\n\n**Authorization Independence (CRITICAL):**\nThis is achieved by ensuring that all authorization decisions can be made without requiring `get()` calls to retrieve parent document data within security rules. Each document contains the necessary authorization context directly:\n1.  **/users/{userId}**: The `UserProfile` document's ID (`{userId}`) directly matches `request.auth.uid`. Authorization is straightforward, as the authenticated user's UID is inherently part of the document path they are trying to access.\n2.  **/stores/{storeId}**: Each `Store` document explicitly contains an `ownerId` field. Security rules for stores will directly check `request.auth.uid == resource.data.ownerId`, avoiding any parent lookups.\n3.  **/stores/{storeId}/products/{productId}**: For `Product` documents, we apply the crucial denormalization mandate. While the `Product` schema naturally includes `storeId`, for authorization independence, each `Product` document **MUST** also contain a denormalized `ownerId` field (copied from its parent `Store` document). This means security rules for products can simply check `request.auth.uid == resource.data.ownerId`, eliminating the need to `get('/stores/$(storeId)')` to determine the store's owner. This significantly simplifies rule logic, improves performance by preventing expensive lookups, and ensures atomic operations.\n\n**QAPs (Rules are not Filters):**\nThis structure inherently supports QAP-compliant `list` operations:\n1.  Users can query and list their `UserProfile` directly by `request.auth.uid` as the document ID.\n2.  For `stores/{storeId}`, a user can list all stores they own by performing a collection group query on `stores` (if enabled) or a collection query with `where('ownerId', '==', request.auth.uid)`. The security rules will enforce this filter on the server side.\n3.  For `stores/{storeId}/products/{productId}`, a store owner can list all products within their specific store (e.g., `/stores/{theirStoreId}/products`) by leveraging the denormalized `ownerId` in each product document. The query `db.collection('stores').doc(storeId).collection('products').where('ownerId', '==', request.auth.uid)` will be efficiently secured by rules, preventing unauthorized listings. This demonstrates how structural segregation (products within a store) and denormalization enable secure and efficient list operations without filtering in rules.\n\n**Structural Segregation & Access Modeling:**\n*   **Private Data**: `/users/{userId}` uses path-based ownership for `UserProfile` data, ensuring it's private to the authenticated user.\n*   **User-Owned Data**: `/stores/{storeId}` represents a 1:N relationship from `UserProfile` to `Store`. The `ownerId` field makes ownership explicit and supports multi-tenancy.\n*   **Nested Data**: `/stores/{storeId}/products/{productId}` continues the hierarchical structure, ensuring products are tightly coupled to their respective stores. This maintains a homogeneous security posture within each collection/subcollection.\n\nThis robust design ensures that security rules are concise, easy to write, and highly performant, directly addressing the requirements for a secure, scalable, and debuggable Firestore structure for NexusCart."
+  }
+}
