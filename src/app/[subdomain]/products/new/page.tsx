@@ -24,14 +24,12 @@ export default function NewProductPage() {
     stock: "",
     description: "",
     image: "",
-    features: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      // 1. Get Store ID
       const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQuery);
       if (storeSnap.empty) return;
@@ -94,16 +92,6 @@ export default function NewProductPage() {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="features">Key Features (comma separated)</Label>
-                <Input
-                  id="features"
-                  placeholder="Waterproof, 2 year warranty, Italian leather"
-                  className="rounded-xl"
-                  value={formData.features}
-                  onChange={(e) => setFormData({ ...formData, features: e.target.value })}
-                />
-              </div>
             </CardContent>
           </Card>
 
@@ -144,7 +132,7 @@ export default function NewProductPage() {
           <Card className="rounded-3xl border-border/50">
             <CardHeader>
               <CardTitle className="font-headline font-bold">Product Image</CardTitle>
-              <CardDescription>Upload a high-quality photo of your product.</CardDescription>
+              <CardDescription>Upload via Cloudinary.</CardDescription>
             </CardHeader>
             <CardContent>
               <CloudinaryUpload 

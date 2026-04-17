@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
+import Image from "next/image";
 
 interface CloudinaryUploadProps {
   onUpload: (url: string) => void;
@@ -20,7 +21,7 @@ export function CloudinaryUpload({ onUpload, onRemove, value }: CloudinaryUpload
     setIsUploading(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "krishi-bazar"); // From instructions
+    formData.append("upload_preset", "krishi-bazar"); // Cloudinary preset
 
     try {
       const res = await fetch(`https://api.cloudinary.com/v1_1/dj7pg5slk/image/upload`, {
@@ -29,6 +30,9 @@ export function CloudinaryUpload({ onUpload, onRemove, value }: CloudinaryUpload
       });
       const data = await res.json();
       if (data.secure_url) {
+        // Extract just the public ID or relative path if using next/image loader
+        // For simplicity with the 'cloudinary' loader in next.config, 
+        // we might just need the relative path from the upload.
         onUpload(data.secure_url);
       }
     } catch (error) {
@@ -42,7 +46,11 @@ export function CloudinaryUpload({ onUpload, onRemove, value }: CloudinaryUpload
     <div className="space-y-4">
       {value ? (
         <div className="relative w-full aspect-video bg-muted rounded-2xl overflow-hidden border-2 border-dashed border-border group">
-          <img src={value} alt="Product" className="w-full h-full object-cover" />
+          <img
+            src={value}
+            alt="Uploaded content"
+            className="w-full h-full object-cover"
+          />
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <Button variant="destructive" size="icon" className="rounded-full" onClick={onRemove}>
               <X className="w-5 h-5" />
@@ -60,7 +68,7 @@ export function CloudinaryUpload({ onUpload, onRemove, value }: CloudinaryUpload
                   <Upload className="w-6 h-6 text-primary" />
                 </div>
                 <p className="mb-2 text-sm text-foreground font-bold">
-                  Click to upload product image
+                  Click to upload image
                 </p>
                 <p className="text-xs text-muted-foreground">PNG, JPG or WEBP (Max. 5MB)</p>
               </>
