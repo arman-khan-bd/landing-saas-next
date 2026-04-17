@@ -7,7 +7,7 @@ import { auth, db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool } from "lucide-react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -93,6 +93,17 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                   <Link href={`/${subdomain}`} className="flex items-center gap-3">
                     <LayoutDashboard className={`w-5 h-5 ${pathname === `/${subdomain}` ? 'text-primary' : 'text-muted-foreground'}`} />
                     <span className="font-medium">Overview</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === `/${subdomain}/builder`} className="rounded-xl h-11 px-4">
+                  <Link href={`/${subdomain}/builder`} className="flex items-center gap-3">
+                    <PenTool className={`w-5 h-5 ${pathname === `/${subdomain}/builder` ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <span className="font-medium">Page Builder</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

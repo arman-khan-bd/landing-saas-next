@@ -86,6 +86,18 @@
             "youtube": { "type": "string" }
           }
         },
+        "landingPageConfig": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string" },
+              "content": { "type": "object" },
+              "style": { "type": "object" }
+            }
+          }
+        },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": [
@@ -101,73 +113,20 @@
       "type": "object",
       "description": "Represents a product available for sale with detailed attributes.",
       "properties": {
-        "id": {
-          "type": "string"
-        },
-        "storeId": {
-          "type": "string"
-        },
-        "ownerId": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "slug": {
-          "type": "string"
-        },
-        "shortDescription": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "featuredImage": {
-          "type": "string"
-        },
-        "gallery": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "tags": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "currentPrice": {
-          "type": "number"
-        },
-        "prevPrice": {
-          "type": "number"
-        },
-        "category": {
-          "type": "string"
-        },
-        "subCategory": {
-          "type": "string"
-        },
-        "brand": {
-          "type": "string"
-        },
-        "totalInStock": {
-          "type": "number"
-        },
-        "tax": {
-          "type": "string"
-        },
-        "sku": {
-          "type": "string"
-        },
-        "youtubeLink": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "storeId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "shortDescription": { "type": "string" },
+        "description": { "type": "string" },
+        "featuredImage": { "type": "string" },
+        "gallery": { "type": "array", "items": { "type": "string" } },
+        "currentPrice": { "type": "number" },
+        "prevPrice": { "type": "number" },
+        "category": { "type": "string" },
+        "totalInStock": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": [
         "storeId",
