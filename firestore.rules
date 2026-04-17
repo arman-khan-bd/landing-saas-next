@@ -2,42 +2,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * NexusCart Security Rules
-     *
-     * CORE PHILOSOPHY:
-     * This ruleset implements a robust "Multi-Tenant Ownership" model. It prioritizes Authorization 
-     * Independence, ensuring that every security decision can be made using only the data present 
-     * on the document being accessed, without expensive cross-document lookups (get() calls).
-     *
-     * DATA STRUCTURE:
-     * 1. /users/{userId}: Private user profiles where the Document ID matches the Auth UID.
-     * 2. /stores/{storeId}: E-commerce stores owned by users.
-     * 3. /stores/{storeId}/products/{productId}: Products nested within stores.
-     */
-
     // --- Helper Functions ---
 
-    /** @description Checks if the user is authenticated with Firebase. */
+    /** @description Checks if the user is authenticated. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the user's UID matches the provided ID. */
+    /** @description Checks if the user is the owner of the document by UID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * @description Checks if the user owns the existing document being modified/deleted.
-     */
+    /** @description Checks if the user owns the existing document. */
     function isExistingOwner(docOwnerId) {
       return isSignedIn() && resource != null && docOwnerId == request.auth.uid;
     }
 
-    /**
-     * @description Checks if the user is setting themselves as the owner of a new document.
-     */
+    /** @description Checks if the user is assigning themselves as the owner of a new document. */
     function willBeOwner(proposedOwnerId) {
       return isSignedIn() && proposedOwnerId == request.auth.uid;
     }
@@ -45,35 +27,31 @@ service cloud.firestore {
     // --- Collection Rules ---
 
     /**
-     * @description Rules for user profiles. Only the owner can see or modify their own profile.
+     * @description Rules for user profiles.
      */
     match /users/{userId} {
       allow get, list: if isOwner(userId);
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
+      allow update: if isOwner(userId);
       allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Rules for stores. Publicly readable for shoppers; owner-only writes.
+     * @description Rules for stores. Publicly readable, owner-only writes.
      */
     match /stores/{storeId} {
       allow get, list: if true;
       allow create: if willBeOwner(request.resource.data.ownerId);
-      allow update: if isExistingOwner(resource.data.ownerId) && request.resource.data.ownerId == resource.data.ownerId;
-      allow delete: if isExistingOwner(resource.data.ownerId);
+      allow update, delete: if isExistingOwner(resource.data.ownerId);
+    }
 
-      /**
-       * @description Rules for products. Uses denormalized 'ownerId' for high-performance auth.
-       */
-      match /products/{productId} {
-        allow get, list: if true;
-        allow create: if willBeOwner(request.resource.data.ownerId) && request.resource.data.storeId == storeId;
-        allow update: if isExistingOwner(resource.data.ownerId) && 
-                      request.resource.data.ownerId == resource.data.ownerId && 
-                      request.resource.data.storeId == resource.data.storeId;
-        allow delete: if isExistingOwner(resource.data.ownerId);
-      }
+    /**
+     * @description Rules for products. Publicly readable, owner-only writes.
+     */
+    match /products/{productId} {
+      allow get, list: if true;
+      allow create: if willBeOwner(request.resource.data.ownerId);
+      allow update, delete: if isExistingOwner(resource.data.ownerId);
     }
   }
 }

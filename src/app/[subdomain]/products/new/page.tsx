@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function NewProductPage() {
   const { subdomain } = useParams();
@@ -32,24 +34,47 @@ export default function NewProductPage() {
     try {
       const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQuery);
-      if (storeSnap.empty) return;
+      if (storeSnap.empty) {
+        toast({ variant: "destructive", title: "Store not found" });
+        setLoading(false);
+        return;
+      }
       const storeId = storeSnap.docs[0].id;
+      const ownerId = auth.currentUser?.uid;
 
-      await addDoc(collection(db, "products"), {
+      if (!ownerId) {
+        toast({ variant: "destructive", title: "Authentication required" });
+        setLoading(false);
+        return;
+      }
+
+      const productData = {
         storeId,
+        ownerId,
         name: formData.name,
         price: Number(formData.price),
         stock: Number(formData.stock),
         description: formData.description,
         images: formData.image ? [formData.image] : [],
         createdAt: serverTimestamp(),
-      });
+      };
 
-      toast({ title: "Product Added!" });
-      router.push(`/${subdomain}/products`);
+      addDoc(collection(db, "products"), productData)
+        .then(() => {
+          toast({ title: "Product Added!" });
+          router.push(`/${subdomain}/products`);
+        })
+        .catch(async (error) => {
+          const permissionError = new FirestorePermissionError({
+            path: 'products',
+            operation: 'create',
+            requestResourceData: productData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        });
+
     } catch (error) {
-      toast({ variant: "destructive", title: "Error saving product" });
-    } finally {
+      toast({ variant: "destructive", title: "Error processing request" });
       setLoading(false);
     }
   };
