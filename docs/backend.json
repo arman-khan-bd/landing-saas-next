@@ -36,24 +36,57 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Store",
       "type": "object",
-      "description": "Represents an individual e-commerce store.",
+      "description": "Represents an individual e-commerce store with full configuration.",
       "properties": {
-        "id": {
-          "type": "string"
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "subdomain": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "homePageTitle": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "logo": { "type": "string" },
+        "favicon": { "type": "string" },
+        "pwaLogo": { "type": "string" },
+        "selectedTheme": { "type": "string" },
+        "googleAnalyticsId": { "type": "string" },
+        "facebookPixelId": { "type": "string" },
+        "googleMapEmbed": { "type": "string" },
+        "workingDays": { "type": "string" },
+        "paymentSettings": {
+          "type": "object",
+          "properties": {
+            "cod": { "type": "boolean" },
+            "manualEnabled": { "type": "boolean" },
+            "manualDetails": { "type": "string" }
+          }
         },
-        "name": {
-          "type": "string"
+        "seo": {
+          "type": "object",
+          "properties": {
+            "metaImage": { "type": "string" },
+            "keywords": { "type": "string" },
+            "description": { "type": "string" }
+          }
         },
-        "subdomain": {
-          "type": "string"
+        "shopConfig": {
+          "type": "object",
+          "properties": {
+            "showHeader": { "type": "boolean" },
+            "stickyHeader": { "type": "boolean" }
+          }
         },
-        "ownerId": {
-          "type": "string"
+        "socialLinks": {
+          "type": "object",
+          "properties": {
+            "facebook": { "type": "string" },
+            "twitter": { "type": "string" },
+            "instagram": { "type": "string" },
+            "youtube": { "type": "string" }
+          }
         },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        }
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": [
         "name",
