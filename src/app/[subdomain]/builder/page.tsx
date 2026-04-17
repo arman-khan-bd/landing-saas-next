@@ -20,7 +20,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Slider } from "@/components/ui/slider";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 type BlockType = 
@@ -61,6 +61,8 @@ export default function PageBuilder() {
   const [products, setProducts] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [activeParentId, setActiveParentId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStoreData();
@@ -111,13 +113,15 @@ export default function PageBuilder() {
     }
   };
 
-  const addBlock = (type: BlockType, parentId?: string) => {
+  const handleAddComponent = (type: BlockType) => {
     const newBlock = createBlock(type);
-    if (parentId) {
-      setBlocks(prev => addNestedBlock(prev, parentId, newBlock));
+    if (activeParentId) {
+      setBlocks(prev => addNestedBlock(prev, activeParentId, newBlock));
     } else {
       setBlocks([...blocks, newBlock]);
     }
+    setIsAddDialogOpen(false);
+    setActiveParentId(null);
   };
 
   const addNestedBlock = (items: Block[], parentId: string, newBlock: Block): Block[] => {
@@ -166,7 +170,6 @@ export default function PageBuilder() {
         }
         return newBlocks;
       }
-      // Handle nested movement (simplified for now to top-level)
       return newBlocks;
     });
   };
@@ -187,115 +190,116 @@ export default function PageBuilder() {
   if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="flex flex-col lg:flex-row h-full gap-8">
-      {/* Sidebar Controls */}
-      <div className="w-full lg:w-80 space-y-6">
-        <Card className="rounded-3xl border-border/50 sticky top-24">
-          <CardHeader>
-            <CardTitle className="text-lg">Components</CardTitle>
-            <CardDescription>Drag or click to add blocks</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-2">
-            <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("row")}>
-              <Columns className="w-5 h-5" /> <span className="text-xs">Row / Section</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("header")}>
-              <Type className="w-5 h-5" /> <span className="text-xs">Header</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("paragraph")}>
-              <List className="w-5 h-5" /> <span className="text-xs">Paragraph</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("image")}>
-              <ImageIcon className="w-5 h-5" /> <span className="text-xs">Image</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("carousel")}>
-              <Layout className="w-5 h-5" /> <span className="text-xs">Carousel</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("accordion")}>
-              <ChevronDown className="w-5 h-5" /> <span className="text-xs">Accordion</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("checked-list")}>
-              <CheckCircle className="w-5 h-5" /> <span className="text-xs">Checked List</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("button")}>
-              <Monitor className="w-5 h-5" /> <span className="text-xs">Button</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl bg-primary/10 border-primary/50 text-primary" onClick={() => addBlock("product-order-form")}>
-              <ShoppingCart className="w-5 h-5" /> <span className="text-xs font-bold">Checkout</span>
-            </Button>
-          </CardContent>
-          <div className="p-6 border-t space-y-3">
-            <Button className="w-full rounded-xl" onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}
-              Save Page
-            </Button>
-            <Button variant="outline" className="w-full rounded-xl" onClick={() => setIsPreviewOpen(true)}>
-              <Eye className="mr-2 w-4 h-4" /> Full Preview
-            </Button>
-          </div>
-        </Card>
+    <div className="flex flex-col h-full max-w-6xl mx-auto space-y-6">
+      {/* Top Header Controls */}
+      <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-3xl border border-border/50 shadow-sm gap-4">
+        <div className="flex gap-2 bg-muted/50 p-1 rounded-full">
+          <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" className="rounded-full h-8" onClick={() => setViewMode("desktop")}>
+            <Monitor className="w-4 h-4 mr-2" /> Desktop
+          </Button>
+          <Button variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" className="rounded-full h-8" onClick={() => setViewMode("mobile")}>
+            <Smartphone className="w-4 h-4 mr-2" /> Mobile
+          </Button>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" className="rounded-full h-9 px-4" onClick={() => setIsPreviewOpen(true)}>
+            <Eye className="mr-2 w-4 h-4" /> Full Preview
+          </Button>
+          <Button size="sm" className="rounded-full h-9 px-6 shadow-lg shadow-primary/20" onClick={handleSave} disabled={saving}>
+            {saving ? <Loader2 className="animate-spin mr-2 w-4 h-4" /> : <Save className="mr-2 w-4 h-4" />}
+            Save Page
+          </Button>
+        </div>
       </div>
 
       {/* Editor Surface */}
       <div className="flex-1 space-y-4">
-        <div className="flex justify-between items-center bg-muted/50 p-2 rounded-full max-w-2xl mx-auto mb-4 px-4">
-          <div className="flex gap-2">
-            <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" className="rounded-full" onClick={() => setViewMode("desktop")}>
-              <Monitor className="w-4 h-4 mr-2" /> Desktop
-            </Button>
-            <Button variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" className="rounded-full" onClick={() => setViewMode("mobile")}>
-              <Smartphone className="w-4 h-4 mr-2" /> Mobile
-            </Button>
-          </div>
-          <div className="text-xs text-muted-foreground font-bold uppercase tracking-widest hidden sm:block">Editor Mode</div>
-        </div>
-
-        <div className={`mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden transition-all duration-500 min-h-[600px] border-border/50 ${viewMode === "mobile" ? "max-w-[375px]" : "w-full"}`}>
+        <div className={`mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden transition-all duration-500 min-h-[700px] border border-border/50 flex flex-col ${viewMode === "mobile" ? "max-w-[375px]" : "w-full"}`}>
           <div className="p-4 bg-muted/20 border-b flex items-center justify-between">
             <div className="flex gap-1.5">
               <div className="w-3 h-3 rounded-full bg-red-400" />
               <div className="w-3 h-3 rounded-full bg-yellow-400" />
               <div className="w-3 h-3 rounded-full bg-green-400" />
             </div>
-            <div className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Live Editor Preview</div>
+            <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Canvas Editor</div>
             <div className="w-10" />
           </div>
 
-          <div className="p-8 space-y-8">
+          <div className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto">
             {blocks.length === 0 ? (
-              <div className="text-center py-20 border-2 border-dashed rounded-3xl opacity-20">
-                <Plus className="mx-auto w-12 h-12 mb-2" />
-                <p>Add components to build your page</p>
+              <div className="flex flex-col items-center justify-center py-40 border-2 border-dashed rounded-3xl opacity-30 gap-4">
+                <Layout className="w-16 h-16" />
+                <p className="font-headline font-bold">Your canvas is empty</p>
+                <Button variant="secondary" className="rounded-xl" onClick={() => { setActiveParentId(null); setIsAddDialogOpen(true); }}>
+                  <Plus className="mr-2 w-4 h-4" /> Add your first component
+                </Button>
               </div>
             ) : (
-              blocks.map((block, index) => (
-                <BlockEditorWrapper 
-                  key={block.id} 
-                  block={block} 
-                  index={index}
-                  products={products}
-                  onUpdate={updateBlock}
-                  onRemove={removeBlock}
-                  onMove={moveBlock}
-                  onAddNested={addBlock}
-                />
-              ))
+              <>
+                {blocks.map((block, index) => (
+                  <BlockEditorWrapper 
+                    key={block.id} 
+                    block={block} 
+                    index={index}
+                    products={products}
+                    onUpdate={updateBlock}
+                    onRemove={removeBlock}
+                    onMove={moveBlock}
+                    onOpenAddDialog={(parentId: string | null) => {
+                      setActiveParentId(parentId);
+                      setIsAddDialogOpen(true);
+                    }}
+                  />
+                ))}
+                
+                <div className="flex justify-center pt-8 border-t">
+                  <Button variant="outline" className="rounded-full border-dashed border-2 h-14 px-8 group hover:border-primary transition-all" onClick={() => { setActiveParentId(null); setIsAddDialogOpen(true); }}>
+                    <Plus className="mr-2 w-5 h-5 group-hover:scale-125 transition-transform" /> Add New Section
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Add Component Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if(!open) setActiveParentId(null); }}>
+        <DialogContent className="rounded-3xl max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-headline font-bold">Add Component</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 py-6">
+            <ComponentSelectButton icon={Columns} label="Row / Section" onClick={() => handleAddComponent("row")} />
+            <ComponentSelectButton icon={Type} label="Header" onClick={() => handleAddComponent("header")} />
+            <ComponentSelectButton icon={List} label="Paragraph" onClick={() => handleAddComponent("paragraph")} />
+            <ComponentSelectButton icon={ImageIcon} label="Image" onClick={() => handleAddComponent("image")} />
+            <ComponentSelectButton icon={Layout} label="Carousel" onClick={() => handleAddComponent("carousel")} />
+            <ComponentSelectButton icon={ChevronDown} label="Accordion" onClick={() => handleAddComponent("accordion")} />
+            <ComponentSelectButton icon={CheckCircle} label="Checked List" onClick={() => handleAddComponent("checked-list")} />
+            <ComponentSelectButton icon={Monitor} label="Button" onClick={() => handleAddComponent("button")} />
+            <ComponentSelectButton icon={ShoppingCart} label="Order Form" onClick={() => handleAddComponent("product-order-form")} isPrimary />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Full Preview Modal */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 rounded-none border-none bg-background flex flex-col overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b bg-white shrink-0 z-20 shadow-sm">
             <div className="flex items-center gap-4">
-              <DialogTitle className="text-xl font-headline font-bold">Live Landing Page Preview</DialogTitle>
-              <div className="flex gap-2 ml-4">
-                <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("desktop")}>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                  <Eye className="w-5 h-5" />
+                </div>
+                <DialogTitle className="text-lg font-headline font-bold">Live Preview</DialogTitle>
+              </div>
+              <div className="hidden sm:flex gap-2 ml-4 bg-muted/50 p-1 rounded-full">
+                <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" className="rounded-full h-8" onClick={() => setViewMode("desktop")}>
                   <Monitor className="w-4 h-4 mr-2" /> Desktop
                 </Button>
-                <Button variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("mobile")}>
+                <Button variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" className="rounded-full h-8" onClick={() => setViewMode("mobile")}>
                   <Smartphone className="w-4 h-4 mr-2" /> Mobile
                 </Button>
               </div>
@@ -305,8 +309,8 @@ export default function PageBuilder() {
             </Button>
           </div>
           
-          <div className="flex-1 overflow-y-auto bg-muted/10 p-4 md:p-8 scroll-smooth">
-            <div className={`mx-auto bg-white shadow-2xl transition-all duration-300 min-h-full ${viewMode === "mobile" ? "max-w-[375px]" : "max-w-6xl w-full"}`}>
+          <div className="flex-1 overflow-y-auto bg-muted/10 p-4 md:p-12 scroll-smooth">
+            <div className={`mx-auto bg-white shadow-2xl transition-all duration-300 min-h-full overflow-hidden ${viewMode === "mobile" ? "max-w-[375px] rounded-[40px] border-[8px] border-slate-900" : "max-w-6xl w-full rounded-3xl"}`}>
               <div className="py-12">
                 {blocks.map((block) => (
                   <BlockRenderer key={block.id} block={block} products={products} />
@@ -320,18 +324,31 @@ export default function PageBuilder() {
   );
 }
 
-function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove, onAddNested }: any) {
+function ComponentSelectButton({ icon: Icon, label, onClick, isPrimary = false }: any) {
+  return (
+    <Button 
+      variant="outline" 
+      className={`h-24 flex-col gap-2 rounded-2xl transition-all hover:scale-105 hover:border-primary hover:bg-primary/5 ${isPrimary ? 'border-primary/50 bg-primary/5 text-primary' : ''}`}
+      onClick={onClick}
+    >
+      <Icon className="w-6 h-6" />
+      <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
+    </Button>
+  );
+}
+
+function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove, onOpenAddDialog }: any) {
   return (
     <div className="group relative border-2 border-transparent hover:border-primary/20 rounded-2xl transition-all bg-muted/5 p-4 mb-4">
       {/* Block Toolbar */}
       <div className="absolute -left-12 top-0 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white" onClick={() => onMove(block.id, "up")}>
+        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white border-border/50 shadow-sm" onClick={() => onMove(block.id, "up")}>
           <ChevronUp className="w-4 h-4" />
         </Button>
-        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white" onClick={() => onMove(block.id, "down")}>
+        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white border-border/50 shadow-sm" onClick={() => onMove(block.id, "down")}>
           <ChevronDown className="w-4 h-4" />
         </Button>
-        <Button variant="destructive" size="icon" className="h-8 w-8 rounded-full" onClick={() => onRemove(block.id)}>
+        <Button variant="destructive" size="icon" className="h-8 w-8 rounded-full shadow-lg" onClick={() => onRemove(block.id)}>
           <Trash2 className="w-4 h-4" />
         </Button>
       </div>
@@ -341,29 +358,30 @@ function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove
           block={block} 
           products={products}
           onChange={(updates: any) => onUpdate(block.id, updates)}
-          onAddNested={onAddNested}
         />
         
         {block.type === "row" && (
-          <div className="mt-4 pl-4 border-l-2 border-primary/20 space-y-4">
+          <div className="mt-6 pl-6 border-l-2 border-primary/20 space-y-4 bg-white/50 rounded-r-3xl p-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-primary uppercase tracking-widest">Row Content</span>
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onAddNested("paragraph", block.id)}>
+              <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Row Children</span>
+              <Button size="sm" variant="ghost" className="h-7 text-xs rounded-full hover:bg-primary/10 text-primary" onClick={() => onOpenAddDialog(block.id)}>
                 <Plus className="w-3 h-3 mr-1" /> Add Component to Row
               </Button>
             </div>
-            {block.children?.map((child: any, idx: number) => (
-              <BlockEditorWrapper 
-                key={child.id} 
-                block={child} 
-                index={idx}
-                products={products}
-                onUpdate={onUpdate}
-                onRemove={onRemove}
-                onMove={onMove}
-                onAddNested={onAddNested}
-              />
-            ))}
+            <div className="space-y-4">
+              {block.children?.map((child: any, idx: number) => (
+                <BlockEditorWrapper 
+                  key={child.id} 
+                  block={child} 
+                  index={idx}
+                  products={products}
+                  onUpdate={onUpdate}
+                  onRemove={onRemove}
+                  onMove={onMove}
+                  onOpenAddDialog={onOpenAddDialog}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -428,7 +446,7 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
       
       return (
         <div style={style} className="px-6">
-          <Card className="rounded-3xl shadow-xl border-primary/10 overflow-hidden">
+          <Card className="rounded-3xl shadow-xl border-primary/10 overflow-hidden max-w-4xl mx-auto">
             <CardHeader className="bg-primary text-white p-8">
               <CardTitle className="text-2xl font-headline font-bold">Checkout & Order</CardTitle>
               <CardDescription className="text-white/80">Complete your purchase in seconds.</CardDescription>
@@ -451,13 +469,13 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
 
                   {subProds.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest px-1">Limited Time Extras</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Limited Time Extras</p>
                       <div className="grid gap-2">
                         {subProds.map(p => (
                           <div key={p.id} className="flex justify-between items-center p-4 bg-muted/30 rounded-2xl border">
                             <div className="flex items-center gap-3">
                               <ShoppingCart className="w-4 h-4 text-muted-foreground" />
-                              <span className="font-medium">{p.name}</span>
+                              <span className="font-medium text-sm">{p.name}</span>
                             </div>
                             <span className="font-bold text-sm">+${p.currentPrice}</span>
                           </div>
@@ -468,7 +486,7 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
                 <div className="space-y-4">
                   <h4 className="font-bold text-lg">Shipping Information</h4>
                   <div className="space-y-2">
@@ -508,7 +526,7 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
   }
 }
 
-function BlockSettingsEditor({ block, products, onChange, onAddNested }: any) {
+function BlockSettingsEditor({ block, products, onChange }: any) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
@@ -516,7 +534,7 @@ function BlockSettingsEditor({ block, products, onChange, onAddNested }: any) {
           <div className="bg-primary/10 text-primary p-1.5 rounded-lg">
             {getBlockIcon(block.type)}
           </div>
-          <span className="font-headline font-bold uppercase text-xs tracking-widest">{block.type}</span>
+          <span className="font-headline font-bold uppercase text-[10px] tracking-widest">{block.type}</span>
         </div>
         {block.type === "row" && (
           <Select 
@@ -545,7 +563,7 @@ function BlockSettingsEditor({ block, products, onChange, onAddNested }: any) {
           />
           <div className="flex gap-2">
             {["h1", "h2", "h3"].map(level => (
-              <Button key={level} size="sm" variant={block.content.level === level ? "default" : "outline"} onClick={() => onChange({ content: { ...block.content, level } })}>
+              <Button key={level} size="sm" variant={block.content.level === level ? "default" : "outline"} className="rounded-lg" onClick={() => onChange({ content: { ...block.content, level } })}>
                 {level.toUpperCase()}
               </Button>
             ))}
@@ -572,13 +590,13 @@ function BlockSettingsEditor({ block, products, onChange, onAddNested }: any) {
       {block.type === "checked-list" && (
         <div className="space-y-4">
           <div className="flex gap-2 mb-2">
-            <Button size="sm" variant={block.style.listType === "rounded" ? "default" : "outline"} onClick={() => onChange({ style: { ...block.style, listType: "rounded" } })}>
+            <Button size="sm" variant={block.style.listType === "rounded" ? "default" : "outline"} className="rounded-lg h-8 text-[10px]" onClick={() => onChange({ style: { ...block.style, listType: "rounded" } })}>
               <Circle className="w-3 h-3 mr-2" /> Rounded
             </Button>
-            <Button size="sm" variant={block.style.listType === "box" ? "default" : "outline"} onClick={() => onChange({ style: { ...block.style, listType: "box" } })}>
+            <Button size="sm" variant={block.style.listType === "box" ? "default" : "outline"} className="rounded-lg h-8 text-[10px]" onClick={() => onChange({ style: { ...block.style, listType: "box" } })}>
               <Square className="w-3 h-3 mr-2" /> Box
             </Button>
-            <Button size="sm" variant={block.style.listType === "arrow" ? "default" : "outline"} onClick={() => onChange({ style: { ...block.style, listType: "arrow" } })}>
+            <Button size="sm" variant={block.style.listType === "arrow" ? "default" : "outline"} className="rounded-lg h-8 text-[10px]" onClick={() => onChange({ style: { ...block.style, listType: "arrow" } })}>
               <ArrowRight className="w-3 h-3 mr-2" /> Arrow
             </Button>
           </div>
@@ -592,15 +610,16 @@ function BlockSettingsEditor({ block, products, onChange, onAddNested }: any) {
                   newItems[i] = e.target.value;
                   onChange({ content: { ...block.content, items: newItems } });
                 }} 
+                className="h-9 rounded-xl"
               />
-              <Button variant="ghost" size="icon" onClick={() => {
+              <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => {
                 const newItems = block.content.items.filter((_: any, idx: number) => idx !== i);
                 onChange({ content: { ...block.content, items: newItems } });
               }}><Trash2 className="w-4 h-4" /></Button>
             </div>
           ))}
-          <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => onChange({ content: { ...block.content, items: [...block.content.items, "New item"] } })}>
-            <Plus className="w-4 h-4 mr-2" /> Add Item
+          <Button variant="ghost" className="w-full border-dashed border-2 h-10 rounded-xl text-xs" onClick={() => onChange({ content: { ...block.content, items: [...block.content.items, "New item"] } })}>
+            <Plus className="w-3 h-3 mr-2" /> Add Item
           </Button>
         </div>
       )}
@@ -658,6 +677,7 @@ function BlockSettingsEditor({ block, products, onChange, onAddNested }: any) {
                     type="number" 
                     value={block.content.shippingCost} 
                     onChange={(e) => onChange({ content: { ...block.content, shippingCost: Number(e.target.value) } })} 
+                    className="rounded-xl"
                   />
                 </div>
               )}
@@ -668,8 +688,8 @@ function BlockSettingsEditor({ block, products, onChange, onAddNested }: any) {
 
       {/* Spacing Controls */}
       <div className="pt-4 border-t mt-8 space-y-4 opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="flex items-center justify-between text-xs text-muted-foreground font-bold uppercase tracking-wider">
-          <span>Layout & Style</span>
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+          <span>Block Styling</span>
           <GripVertical className="w-3 h-3" />
         </div>
         <div className="grid grid-cols-2 gap-4">
