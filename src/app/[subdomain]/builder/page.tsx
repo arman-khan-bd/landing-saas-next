@@ -190,9 +190,9 @@ export default function PageBuilder() {
   if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="flex flex-col h-full max-w-6xl mx-auto space-y-6">
+    <div className="flex flex-col h-full max-w-6xl mx-auto space-y-4">
       {/* Top Header Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-3xl border border-border/50 shadow-sm gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-3 rounded-2xl border border-border/50 shadow-sm gap-3">
         <div className="flex gap-2 bg-muted/50 p-1 rounded-full">
           <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" className="rounded-full h-8" onClick={() => setViewMode("desktop")}>
             <Monitor className="w-4 h-4 mr-2" /> Desktop
@@ -214,22 +214,22 @@ export default function PageBuilder() {
       </div>
 
       {/* Editor Surface */}
-      <div className="flex-1 space-y-4">
-        <div className={`mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden transition-all duration-500 min-h-[700px] border border-border/50 flex flex-col ${viewMode === "mobile" ? "max-w-[375px]" : "w-full"}`}>
-          <div className="p-4 bg-muted/20 border-b flex items-center justify-between">
+      <div className="flex-1">
+        <div className={`mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden transition-all duration-500 min-h-[600px] border border-border/50 flex flex-col ${viewMode === "mobile" ? "max-w-[375px]" : "w-full"}`}>
+          <div className="p-3 bg-muted/20 border-b flex items-center justify-between">
             <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-400" />
-              <div className="w-3 h-3 rounded-full bg-yellow-400" />
-              <div className="w-3 h-3 rounded-full bg-green-400" />
+              <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
             </div>
-            <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Canvas Editor</div>
-            <div className="w-10" />
+            <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Canvas Editor</div>
+            <div className="w-8" />
           </div>
 
-          <div className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto">
+          <div className="flex-1 p-4 md:p-6 space-y-4 overflow-y-auto">
             {blocks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-40 border-2 border-dashed rounded-3xl opacity-30 gap-4">
-                <Layout className="w-16 h-16" />
+              <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed rounded-3xl opacity-30 gap-4">
+                <Layout className="w-12 h-12" />
                 <p className="font-headline font-bold">Your canvas is empty</p>
                 <Button variant="secondary" className="rounded-xl" onClick={() => { setActiveParentId(null); setIsAddDialogOpen(true); }}>
                   <Plus className="mr-2 w-4 h-4" /> Add your first component
@@ -253,9 +253,9 @@ export default function PageBuilder() {
                   />
                 ))}
                 
-                <div className="flex justify-center pt-8 border-t">
-                  <Button variant="outline" className="rounded-full border-dashed border-2 h-14 px-8 group hover:border-primary transition-all" onClick={() => { setActiveParentId(null); setIsAddDialogOpen(true); }}>
-                    <Plus className="mr-2 w-5 h-5 group-hover:scale-125 transition-transform" /> Add New Section
+                <div className="flex justify-center pt-4 border-t">
+                  <Button variant="outline" className="rounded-full border-dashed border-2 h-12 px-6 group hover:border-primary transition-all" onClick={() => { setActiveParentId(null); setIsAddDialogOpen(true); }}>
+                    <Plus className="mr-2 w-4 h-4 group-hover:scale-110 transition-transform" /> Add New Section
                   </Button>
                 </div>
               </>
@@ -311,7 +311,7 @@ export default function PageBuilder() {
           
           <div className="flex-1 overflow-y-auto bg-muted/10 p-4 md:p-12 scroll-smooth">
             <div className={`mx-auto bg-white shadow-2xl transition-all duration-300 min-h-full overflow-hidden ${viewMode === "mobile" ? "max-w-[375px] rounded-[40px] border-[8px] border-slate-900" : "max-w-6xl w-full rounded-3xl"}`}>
-              <div className="py-12">
+              <div className="py-8">
                 {blocks.map((block) => (
                   <BlockRenderer key={block.id} block={block} products={products} />
                 ))}
@@ -339,21 +339,21 @@ function ComponentSelectButton({ icon: Icon, label, onClick, isPrimary = false }
 
 function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove, onOpenAddDialog }: any) {
   return (
-    <div className="group relative border-2 border-transparent hover:border-primary/20 rounded-2xl transition-all bg-muted/5 p-4 mb-4">
+    <div className="group relative border-2 border-transparent hover:border-primary/20 rounded-2xl transition-all bg-muted/5 p-2 mb-2">
       {/* Block Toolbar */}
-      <div className="absolute -left-12 top-0 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white border-border/50 shadow-sm" onClick={() => onMove(block.id, "up")}>
-          <ChevronUp className="w-4 h-4" />
+      <div className="absolute -left-10 top-0 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button variant="outline" size="icon" className="h-7 w-7 rounded-full bg-white border-border/50 shadow-sm" onClick={() => onMove(block.id, "up")}>
+          <ChevronUp className="w-3.5 h-3.5" />
         </Button>
-        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white border-border/50 shadow-sm" onClick={() => onMove(block.id, "down")}>
-          <ChevronDown className="w-4 h-4" />
+        <Button variant="outline" size="icon" className="h-7 w-7 rounded-full bg-white border-border/50 shadow-sm" onClick={() => onMove(block.id, "down")}>
+          <ChevronDown className="w-3.5 h-3.5" />
         </Button>
-        <Button variant="destructive" size="icon" className="h-8 w-8 rounded-full shadow-lg" onClick={() => onRemove(block.id)}>
-          <Trash2 className="w-4 h-4" />
+        <Button variant="destructive" size="icon" className="h-7 w-7 rounded-full shadow-lg" onClick={() => onRemove(block.id)}>
+          <Trash2 className="w-3.5 h-3.5" />
         </Button>
       </div>
 
-      <div className="p-2">
+      <div className="p-1">
         <BlockSettingsEditor 
           block={block} 
           products={products}
@@ -361,14 +361,14 @@ function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove
         />
         
         {block.type === "row" && (
-          <div className="mt-6 pl-6 border-l-2 border-primary/20 space-y-4 bg-white/50 rounded-r-3xl p-4">
+          <div className="mt-4 pl-4 border-l-2 border-primary/20 space-y-3 bg-white/50 rounded-r-2xl p-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Row Children</span>
-              <Button size="sm" variant="ghost" className="h-7 text-xs rounded-full hover:bg-primary/10 text-primary" onClick={() => onOpenAddDialog(block.id)}>
-                <Plus className="w-3 h-3 mr-1" /> Add Component to Row
+              <span className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">Row Children</span>
+              <Button size="sm" variant="ghost" className="h-6 text-[10px] rounded-full hover:bg-primary/10 text-primary" onClick={() => onOpenAddDialog(block.id)}>
+                <Plus className="w-3 h-3 mr-1" /> Add to Row
               </Button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {block.children?.map((child: any, idx: number) => (
                 <BlockEditorWrapper 
                   key={child.id} 
@@ -447,11 +447,11 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
       return (
         <div style={style} className="px-6">
           <Card className="rounded-3xl shadow-xl border-primary/10 overflow-hidden max-w-4xl mx-auto">
-            <CardHeader className="bg-primary text-white p-8">
+            <CardHeader className="bg-primary text-white p-6">
               <CardTitle className="text-2xl font-headline font-bold">Checkout & Order</CardTitle>
               <CardDescription className="text-white/80">Complete your purchase in seconds.</CardDescription>
             </CardHeader>
-            <CardContent className="p-8 space-y-8">
+            <CardContent className="p-6 space-y-6">
               {mainProd && (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-4 bg-primary/5 rounded-2xl border border-primary/20">
@@ -486,18 +486,18 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
                 <div className="space-y-4">
                   <h4 className="font-bold text-lg">Shipping Information</h4>
                   <div className="space-y-2">
-                    <Input placeholder="Full Name" className="rounded-xl h-12" />
-                    <Input placeholder="Phone Number" className="rounded-xl h-12" />
-                    <Textarea placeholder="Full Address" className="rounded-xl min-h-[100px]" />
+                    <Input placeholder="Full Name" className="rounded-xl h-11" />
+                    <Input placeholder="Phone Number" className="rounded-xl h-11" />
+                    <Textarea placeholder="Full Address" className="rounded-xl min-h-[80px]" />
                   </div>
                 </div>
                 <div className="space-y-4">
                   <h4 className="font-bold text-lg">Order Summary</h4>
-                  <div className="bg-muted/30 p-6 rounded-3xl space-y-4 border">
+                  <div className="bg-muted/30 p-5 rounded-2xl space-y-3 border">
                     <div className="flex justify-between text-sm">
                       <span>Subtotal</span>
                       <span>${mainProd?.currentPrice || 0}</span>
@@ -506,12 +506,12 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
                       <span>Shipping ({block.content.shippingType})</span>
                       <span>{block.content.shippingType === 'free' ? 'FREE' : `$${block.content.shippingCost}`}</span>
                     </div>
-                    <div className="flex justify-between pt-4 border-t font-bold text-xl text-primary">
+                    <div className="flex justify-between pt-3 border-t font-bold text-xl text-primary">
                       <span>Total</span>
                       <span>${(mainProd?.currentPrice || 0) + (block.content.shippingType === 'paid' ? block.content.shippingCost : 0)}</span>
                     </div>
                   </div>
-                  <Button className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20">
+                  <Button className="w-full h-12 rounded-xl text-lg font-bold shadow-lg shadow-primary/20">
                     Place Order Now
                   </Button>
                 </div>
@@ -528,42 +528,42 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
 
 function BlockSettingsEditor({ block, products, onChange }: any) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between mb-4">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <div className="bg-primary/10 text-primary p-1.5 rounded-lg">
             {getBlockIcon(block.type)}
           </div>
-          <span className="font-headline font-bold uppercase text-[10px] tracking-widest">{block.type}</span>
+          <span className="font-headline font-bold uppercase text-[9px] tracking-widest">{block.type}</span>
         </div>
         {block.type === "row" && (
           <Select 
             value={String(block.content.columns)} 
             onValueChange={(val) => onChange({ content: { ...block.content, columns: Number(val) } })}
           >
-            <SelectTrigger className="w-32 h-8 text-xs rounded-xl">
-              <SelectValue placeholder="Columns" />
+            <SelectTrigger className="w-28 h-7 text-[10px] rounded-lg">
+              <SelectValue placeholder="Cols" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">1 Column</SelectItem>
-              <SelectItem value="2">2 Columns</SelectItem>
-              <SelectItem value="3">3 Columns</SelectItem>
-              <SelectItem value="4">4 Columns</SelectItem>
+              <SelectItem value="1">1 Col</SelectItem>
+              <SelectItem value="2">2 Cols</SelectItem>
+              <SelectItem value="3">3 Cols</SelectItem>
+              <SelectItem value="4">4 Cols</SelectItem>
             </SelectContent>
           </Select>
         )}
       </div>
 
       {block.type === "header" && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Input 
             value={block.content.text} 
             onChange={(e) => onChange({ content: { ...block.content, text: e.target.value } })} 
-            className="text-2xl font-bold font-headline border-none px-0 focus-visible:ring-0 bg-transparent"
+            className="text-xl font-bold font-headline border-none px-0 focus-visible:ring-0 bg-transparent h-auto"
           />
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             {["h1", "h2", "h3"].map(level => (
-              <Button key={level} size="sm" variant={block.content.level === level ? "default" : "outline"} className="rounded-lg" onClick={() => onChange({ content: { ...block.content, level } })}>
+              <Button key={level} size="sm" variant={block.content.level === level ? "default" : "outline"} className="rounded-lg h-7 text-[10px]" onClick={() => onChange({ content: { ...block.content, level } })}>
                 {level.toUpperCase()}
               </Button>
             ))}
@@ -575,7 +575,7 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
         <Textarea 
           value={block.content.text} 
           onChange={(e) => onChange({ content: { ...block.content, text: e.target.value } })} 
-          className="border-none px-0 focus-visible:ring-0 min-h-[100px] resize-none bg-transparent"
+          className="border-none px-0 focus-visible:ring-0 min-h-[80px] resize-none bg-transparent"
         />
       )}
 
@@ -588,16 +588,16 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
       )}
 
       {block.type === "checked-list" && (
-        <div className="space-y-4">
-          <div className="flex gap-2 mb-2">
-            <Button size="sm" variant={block.style.listType === "rounded" ? "default" : "outline"} className="rounded-lg h-8 text-[10px]" onClick={() => onChange({ style: { ...block.style, listType: "rounded" } })}>
-              <Circle className="w-3 h-3 mr-2" /> Rounded
+        <div className="space-y-3">
+          <div className="flex gap-1.5 mb-2">
+            <Button size="sm" variant={block.style.listType === "rounded" ? "default" : "outline"} className="rounded-lg h-7 text-[9px]" onClick={() => onChange({ style: { ...block.style, listType: "rounded" } })}>
+              <Circle className="w-2.5 h-2.5 mr-1" /> Rounded
             </Button>
-            <Button size="sm" variant={block.style.listType === "box" ? "default" : "outline"} className="rounded-lg h-8 text-[10px]" onClick={() => onChange({ style: { ...block.style, listType: "box" } })}>
-              <Square className="w-3 h-3 mr-2" /> Box
+            <Button size="sm" variant={block.style.listType === "box" ? "default" : "outline"} className="rounded-lg h-7 text-[9px]" onClick={() => onChange({ style: { ...block.style, listType: "box" } })}>
+              <Square className="w-2.5 h-2.5 mr-1" /> Box
             </Button>
-            <Button size="sm" variant={block.style.listType === "arrow" ? "default" : "outline"} className="rounded-lg h-8 text-[10px]" onClick={() => onChange({ style: { ...block.style, listType: "arrow" } })}>
-              <ArrowRight className="w-3 h-3 mr-2" /> Arrow
+            <Button size="sm" variant={block.style.listType === "arrow" ? "default" : "outline"} className="rounded-lg h-7 text-[9px]" onClick={() => onChange({ style: { ...block.style, listType: "arrow" } })}>
+              <ArrowRight className="w-2.5 h-2.5 mr-1" /> Arrow
             </Button>
           </div>
           {block.content.items.map((item: string, i: number) => (
@@ -610,38 +610,38 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
                   newItems[i] = e.target.value;
                   onChange({ content: { ...block.content, items: newItems } });
                 }} 
-                className="h-9 rounded-xl"
+                className="h-8 text-sm rounded-lg"
               />
-              <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => {
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => {
                 const newItems = block.content.items.filter((_: any, idx: number) => idx !== i);
                 onChange({ content: { ...block.content, items: newItems } });
-              }}><Trash2 className="w-4 h-4" /></Button>
+              }}><Trash2 className="w-3.5 h-3.5" /></Button>
             </div>
           ))}
-          <Button variant="ghost" className="w-full border-dashed border-2 h-10 rounded-xl text-xs" onClick={() => onChange({ content: { ...block.content, items: [...block.content.items, "New item"] } })}>
+          <Button variant="ghost" className="w-full border-dashed border-2 h-8 rounded-lg text-[10px]" onClick={() => onChange({ content: { ...block.content, items: [...block.content.items, "New item"] } })}>
             <Plus className="w-3 h-3 mr-2" /> Add Item
           </Button>
         </div>
       )}
 
       {block.type === "product-order-form" && (
-        <Card className="bg-primary/5 border-primary/20 rounded-2xl">
-          <CardContent className="pt-6 space-y-6">
-            <div className="space-y-2">
-              <Label>Main Product (Required)</Label>
+        <Card className="bg-primary/5 border-primary/20 rounded-xl">
+          <CardContent className="pt-4 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">Main Product</Label>
               <Select value={block.content.mainProductId} onValueChange={(val) => onChange({ content: { ...block.content, mainProductId: val } })}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select primary product" /></SelectTrigger>
+                <SelectTrigger className="rounded-lg h-9 text-xs"><SelectValue placeholder="Select product" /></SelectTrigger>
                 <SelectContent>
                   {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Upsell / Sub Products (Optional)</Label>
-              <div className="grid grid-cols-1 gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">Upsell / Sub Products</Label>
+              <div className="grid grid-cols-1 gap-1.5">
                 {products.filter(p => p.id !== block.content.mainProductId).map(p => (
-                  <label key={p.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border cursor-pointer hover:border-primary transition-colors">
+                  <label key={p.id} className="flex items-center gap-2 p-2 bg-white rounded-lg border cursor-pointer hover:border-primary transition-colors">
                     <input 
                       type="checkbox" 
                       checked={block.content.subProductIds.includes(p.id)}
@@ -651,33 +651,33 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
                           : block.content.subProductIds.filter((id: string) => id !== p.id);
                         onChange({ content: { ...block.content, subProductIds: newIds } });
                       }}
-                      className="w-4 h-4 accent-primary"
+                      className="w-3.5 h-3.5 accent-primary"
                     />
-                    <span className="text-sm font-medium">{p.name}</span>
+                    <span className="text-[11px] font-medium truncate">{p.name}</span>
                   </label>
                 ))}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Shipping</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[10px]">Shipping</Label>
                 <Select value={block.content.shippingType} onValueChange={(val) => onChange({ content: { ...block.content, shippingType: val } })}>
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="free">Free Delivery</SelectItem>
-                    <SelectItem value="paid">Paid Delivery</SelectItem>
+                    <SelectItem value="free">Free</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               {block.content.shippingType === "paid" && (
-                <div className="space-y-2">
-                  <Label>Cost ($)</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px]">Cost ($)</Label>
                   <Input 
                     type="number" 
                     value={block.content.shippingCost} 
                     onChange={(e) => onChange({ content: { ...block.content, shippingCost: Number(e.target.value) } })} 
-                    className="rounded-xl"
+                    className="rounded-lg h-9 text-xs"
                   />
                 </div>
               )}
@@ -687,18 +687,18 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
       )}
 
       {/* Spacing Controls */}
-      <div className="pt-4 border-t mt-8 space-y-4 opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+      <div className="pt-3 border-t mt-4 space-y-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center justify-between text-[9px] text-muted-foreground font-bold uppercase tracking-wider">
           <span>Block Styling</span>
           <GripVertical className="w-3 h-3" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <Label className="text-[10px]">Padding ({block.style.padding})</Label>
+            <Label className="text-[9px]">Padding ({block.style.padding})</Label>
             <Slider defaultValue={[parseInt(block.style.padding || "20")]} max={100} step={4} onValueChange={([v]) => onChange({ style: { ...block.style, padding: `${v}px` } })} />
           </div>
           <div className="space-y-1">
-            <Label className="text-[10px]">Margin ({block.style.margin})</Label>
+            <Label className="text-[9px]">Margin ({block.style.margin})</Label>
             <Slider defaultValue={[parseInt(block.style.margin || "0")]} max={100} step={4} onValueChange={([v]) => onChange({ style: { ...block.style, margin: `${v}px` } })} />
           </div>
         </div>
@@ -709,23 +709,23 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
 
 function getBlockIcon(type: BlockType) {
   switch (type) {
-    case "header": return <Type className="w-4 h-4" />;
-    case "paragraph": return <List className="w-4 h-4" />;
-    case "image": return <ImageIcon className="w-4 h-4" />;
-    case "carousel": return <Layout className="w-4 h-4" />;
-    case "accordion": return <ChevronDown className="w-4 h-4" />;
-    case "checked-list": return <CheckCircle className="w-4 h-4" />;
-    case "product-order-form": return <ShoppingCart className="w-4 h-4" />;
-    case "row": return <Columns className="w-4 h-4" />;
-    default: return <Plus className="w-4 h-4" />;
+    case "header": return <Type className="w-3.5 h-3.5" />;
+    case "paragraph": return <List className="w-3.5 h-3.5" />;
+    case "image": return <ImageIcon className="w-3.5 h-3.5" />;
+    case "carousel": return <Layout className="w-3.5 h-3.5" />;
+    case "accordion": return <ChevronDown className="w-3.5 h-3.5" />;
+    case "checked-list": return <CheckCircle className="w-3.5 h-3.5" />;
+    case "product-order-form": return <ShoppingCart className="w-3.5 h-3.5" />;
+    case "row": return <Columns className="w-3.5 h-3.5" />;
+    default: return <Plus className="w-3.5 h-3.5" />;
   }
 }
 
 function ListIcon({ type }: { type?: string }) {
   switch (type) {
-    case "rounded": return <Circle className="w-4 h-4 fill-current" />;
-    case "box": return <Square className="w-4 h-4 fill-current" />;
-    case "arrow": return <ArrowRight className="w-4 h-4" />;
-    default: return <CheckCircle className="w-4 h-4" />;
+    case "rounded": return <Circle className="w-3.5 h-3.5 fill-current" />;
+    case "box": return <Square className="w-3.5 h-3.5 fill-current" />;
+    case "arrow": return <ArrowRight className="w-3.5 h-3.5" />;
+    default: return <CheckCircle className="w-3.5 h-3.5" />;
   }
 }
