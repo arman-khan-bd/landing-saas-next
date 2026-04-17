@@ -23,6 +23,7 @@ import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 type BlockType = 
   | "header" 
@@ -377,7 +378,8 @@ function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove
         <BlockSettingsEditor 
           block={block} 
           products={products}
-          onChange={(updates: any) => onUpdate(block.id, updates)}
+          onChange={(updates: any) => onChange(block.id, updates)}
+          onUpdate={onUpdate}
         />
         
         {block.type === "row" && (
@@ -407,6 +409,10 @@ function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove
       </div>
     </div>
   );
+
+  function onChange(id: string, updates: any) {
+    onUpdate(id, updates);
+  }
 }
 
 function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
@@ -663,86 +669,111 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
 
           <div className="space-y-2">
             <Label className="text-[10px] uppercase tracking-wider font-bold">Carousel Items</Label>
-            <div className="grid gap-2">
+            <Accordion type="single" collapsible className="w-full space-y-2">
               {(block.content.items || []).map((item: CarouselItemData, idx: number) => (
-                <div key={item.id} className="p-3 bg-white rounded-xl border border-border/50 space-y-3 shadow-sm group/item">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-muted-foreground">Item #{idx + 1}</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => {
-                      const newItems = block.content.items.filter((i: any) => i.id !== item.id);
-                      onChange({ content: { ...block.content, items: newItems } });
-                    }}><Trash2 className="w-3 h-3" /></Button>
-                  </div>
-                  <div className="grid gap-2">
-                    <CloudinaryUpload 
-                      value={item.image} 
-                      onUpload={(url) => {
-                        const newItems = [...block.content.items];
-                        newItems[idx] = { ...newItems[idx], image: url };
-                        onChange({ content: { ...block.content, items: newItems } });
-                      }}
-                      onRemove={() => {
-                        const newItems = [...block.content.items];
-                        newItems[idx] = { ...newItems[idx], image: "" };
-                        onChange({ content: { ...block.content, items: newItems } });
-                      }}
-                    />
-                    <Input 
-                      placeholder="Title (Optional)" 
-                      value={item.title || ""} 
-                      className="h-8 text-xs rounded-lg"
-                      onChange={(e) => {
-                        const newItems = [...block.content.items];
-                        newItems[idx] = { ...newItems[idx], title: e.target.value };
-                        onChange({ content: { ...block.content, items: newItems } });
-                      }}
-                    />
-                    <Textarea 
-                      placeholder="Subtitle (Optional)" 
-                      value={item.subtitle || ""} 
-                      className="text-xs rounded-lg min-h-[50px]"
-                      onChange={(e) => {
-                        const newItems = [...block.content.items];
-                        newItems[idx] = { ...newItems[idx], subtitle: e.target.value };
-                        onChange({ content: { ...block.content, items: newItems } });
-                      }}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input 
-                        placeholder="Btn Text" 
-                        value={item.buttonText || ""} 
-                        className="h-8 text-xs rounded-lg"
-                        onChange={(e) => {
-                          const newItems = [...block.content.items];
-                          newItems[idx] = { ...newItems[idx], buttonText: e.target.value };
-                          onChange({ content: { ...block.content, items: newItems } });
-                        }}
-                      />
-                      <Input 
-                        placeholder="Btn Link" 
-                        value={item.buttonLink || ""} 
-                        className="h-8 text-xs rounded-lg"
-                        onChange={(e) => {
-                          const newItems = [...block.content.items];
-                          newItems[idx] = { ...newItems[idx], buttonLink: e.target.value };
-                          onChange({ content: { ...block.content, items: newItems } });
-                        }}
-                      />
+                <AccordionItem key={item.id} value={item.id} className="border bg-white rounded-xl overflow-hidden shadow-sm">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-muted/30">
+                    <div className="flex items-center justify-between w-full text-left">
+                      <span className="text-[11px] font-bold text-muted-foreground truncate max-w-[150px]">
+                        {item.title || `Item #${idx + 1}`}
+                      </span>
                     </div>
-                  </div>
-                </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-3 pt-1 space-y-3">
+                    <div className="flex justify-end">
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={(e) => {
+                        e.stopPropagation();
+                        const newItems = block.content.items.filter((i: any) => i.id !== item.id);
+                        onChange({ content: { ...block.content, items: newItems } });
+                      }}><Trash2 className="w-3 h-3" /></Button>
+                    </div>
+                    <div className="grid gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-[10px]">Image</Label>
+                        <CloudinaryUpload 
+                          value={item.image} 
+                          onUpload={(url) => {
+                            const newItems = [...block.content.items];
+                            newItems[idx] = { ...newItems[idx], image: url };
+                            onChange({ content: { ...block.content, items: newItems } });
+                          }}
+                          onRemove={() => {
+                            const newItems = [...block.content.items];
+                            newItems[idx] = { ...newItems[idx], image: "" };
+                            onChange({ content: { ...block.content, items: newItems } });
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px]">Title</Label>
+                        <Input 
+                          placeholder="Title (Optional)" 
+                          value={item.title || ""} 
+                          className="h-8 text-xs rounded-lg"
+                          onChange={(e) => {
+                            const newItems = [...block.content.items];
+                            newItems[idx] = { ...newItems[idx], title: e.target.value };
+                            onChange({ content: { ...block.content, items: newItems } });
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px]">Subtitle</Label>
+                        <Textarea 
+                          placeholder="Subtitle (Optional)" 
+                          value={item.subtitle || ""} 
+                          className="text-xs rounded-lg min-h-[50px]"
+                          onChange={(e) => {
+                            const newItems = [...block.content.items];
+                            newItems[idx] = { ...newItems[idx], subtitle: e.target.value };
+                            onChange({ content: { ...block.content, items: newItems } });
+                          }}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Btn Text</Label>
+                          <Input 
+                            placeholder="e.g. Shop Now" 
+                            value={item.buttonText || ""} 
+                            className="h-8 text-xs rounded-lg"
+                            onChange={(e) => {
+                              const newItems = [...block.content.items];
+                              newItems[idx] = { ...newItems[idx], buttonText: e.target.value };
+                              onChange({ content: { ...block.content, items: newItems } });
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Btn Link</Label>
+                          <Input 
+                            placeholder="e.g. /products/..." 
+                            value={item.buttonLink || ""} 
+                            className="h-8 text-xs rounded-lg"
+                            onChange={(e) => {
+                              const newItems = [...block.content.items];
+                              newItems[idx] = { ...newItems[idx], buttonLink: e.target.value };
+                              onChange({ content: { ...block.content, items: newItems } });
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
               ))}
-              <Button 
-                variant="outline" 
-                className="w-full h-10 border-dashed border-2 rounded-xl text-xs hover:bg-primary/5 hover:border-primary transition-all"
-                onClick={() => {
-                  const newItem = { id: Math.random().toString(36).substr(2, 9), title: "New Item" };
-                  onChange({ content: { ...block.content, items: [...(block.content.items || []), newItem] } });
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" /> Add Carousel Card
-              </Button>
-            </div>
+            </Accordion>
+            
+            <Button 
+              variant="outline" 
+              className="w-full h-10 border-dashed border-2 rounded-xl text-xs hover:bg-primary/5 hover:border-primary transition-all mt-2"
+              onClick={() => {
+                const newItem = { id: Math.random().toString(36).substr(2, 9), title: "New Item" };
+                onChange({ content: { ...block.content, items: [...(block.content.items || []), newItem] } });
+              }}
+            >
+              <Plus className="w-4 h-4 mr-2" /> Add Carousel Card
+            </Button>
           </div>
         </div>
       )}
