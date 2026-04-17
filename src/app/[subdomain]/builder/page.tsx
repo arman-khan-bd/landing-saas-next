@@ -101,20 +101,30 @@ export default function PageBuilder() {
     }
   };
 
-  const createBlock = (type: BlockType): Block => ({
-    id: Math.random().toString(36).substr(2, 9),
-    type,
-    content: getInitialContent(type),
-    style: { 
-      padding: "20px", 
-      margin: "0px", 
-      textAlign: "left", 
-      columns: 2, 
-      listType: "rounded",
-      desktopColumns: type === "carousel" ? 3 : undefined
-    },
-    children: type === "row" ? [] : undefined
-  });
+  const createBlock = (type: BlockType): Block => {
+    const block: Block = {
+      id: Math.random().toString(36).substr(2, 9),
+      type,
+      content: getInitialContent(type),
+      style: { 
+        padding: "20px", 
+        margin: "0px", 
+        textAlign: "left", 
+        columns: 2, 
+        listType: "rounded",
+      },
+    };
+
+    if (type === "carousel") {
+      block.style.desktopColumns = 3;
+    }
+
+    if (type === "row") {
+      block.children = [];
+    }
+
+    return block;
+  };
 
   const getInitialContent = (type: BlockType) => {
     switch (type) {
@@ -200,7 +210,8 @@ export default function PageBuilder() {
       await updateDoc(doc(db, "stores", storeId), { landingPageConfig: blocks });
       toast({ title: "Page saved!", description: "Your changes are now live." });
     } catch (error) {
-      toast({ variant: "destructive", title: "Error saving", description: "Something went wrong." });
+      console.error("Firestore Save Error:", error);
+      toast({ variant: "destructive", title: "Error saving", description: "Something went wrong while saving your design." });
     } finally {
       setSaving(false);
     }
@@ -378,7 +389,7 @@ function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove
         <BlockSettingsEditor 
           block={block} 
           products={products}
-          onChange={(updates: any) => onChange(block.id, updates)}
+          onChange={(updates: any) => onUpdate(block.id, updates)}
           onUpdate={onUpdate}
         />
         
@@ -409,10 +420,6 @@ function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove
       </div>
     </div>
   );
-
-  function onChange(id: string, updates: any) {
-    onUpdate(id, updates);
-  }
 }
 
 function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
@@ -768,7 +775,14 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
               variant="outline" 
               className="w-full h-10 border-dashed border-2 rounded-xl text-xs hover:bg-primary/5 hover:border-primary transition-all mt-2"
               onClick={() => {
-                const newItem = { id: Math.random().toString(36).substr(2, 9), title: "New Item" };
+                const newItem = { 
+                  id: Math.random().toString(36).substr(2, 9), 
+                  title: "New Item",
+                  image: "",
+                  subtitle: "",
+                  buttonText: "",
+                  buttonLink: ""
+                };
                 onChange({ content: { ...block.content, items: [...(block.content.items || []), newItem] } });
               }}
             >
