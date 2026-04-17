@@ -14,21 +14,6 @@ service cloud.firestore {
      * 1. /users/{userId}: Private user profiles where the Document ID matches the Auth UID.
      * 2. /stores/{storeId}: E-commerce stores owned by users.
      * 3. /stores/{storeId}/products/{productId}: Products nested within stores.
-     *
-     * KEY SECURITY DECISIONS:
-     * - DENORMALIZATION: Following the architect's mandate, the 'ownerId' is denormalized from the 
-     *   Store document into every Product document. This allows Product access to be verified 
-     *   instantaneously by checking the 'ownerId' against the requester's UID.
-     * - PUBLIC ACCESS: Store and Product information is globally readable (get/list) to allow 
-     *   unauthenticated shoppers to browse the marketplace.
-     * - STRICT WRITES: All write operations (create, update, delete) are strictly restricted to 
-     *    the authenticated owner.
-     * - RELATIONAL INTEGRITY: Essential fields like 'ownerId' and 'storeId' are enforced as 
-     *   immutable during updates to prevent users from "transferring" data to other owners or stores.
-     *
-     * PROTOTYPING MODE:
-     * These rules enforce strict authorization and relational integrity but allow flexible data 
-     * schemas for non-authorization fields to support rapid development.
      */
 
     // --- Helper Functions ---
@@ -45,7 +30,6 @@ service cloud.firestore {
 
     /**
      * @description Checks if the user owns the existing document being modified/deleted.
-     *              Uses the provided 'docOwnerId' parameter, which should come from resource.data.ownerId.
      */
     function isExistingOwner(docOwnerId) {
       return isSignedIn() && resource != null && docOwnerId == request.auth.uid;
@@ -53,7 +37,6 @@ service cloud.firestore {
 
     /**
      * @description Checks if the user is setting themselves as the owner of a new document.
-     *              Uses the provided 'proposedOwnerId' parameter, which should come from request.resource.data.ownerId.
      */
     function willBeOwner(proposedOwnerId) {
       return isSignedIn() && proposedOwnerId == request.auth.uid;
@@ -63,25 +46,16 @@ service cloud.firestore {
 
     /**
      * @description Rules for user profiles. Only the owner can see or modify their own profile.
-     * @path /users/{userId}
-     * @allow (get) request.auth.uid == "user_123" accessing /users/user_123
-     * @deny (list) any user attempting to list the entire /users collection.
-     * @principle Path-based ownership and self-creation enforcement.
      */
     match /users/{userId} {
       allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && resource != null && request.resource.data.id == resource.data.id;
-      allow delete: if isOwner(userId) && resource != null;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(userId);
     }
 
     /**
      * @description Rules for stores. Publicly readable for shoppers; owner-only writes.
-     * @path /stores/{storeId}
-     * @allow (get) any unauthenticated user viewing a store page.
-     * @allow (update) owner of the store modifying the store name.
-     * @deny (delete) a user attempting to delete a store they do not own.
-     * @principle Public Read with Owner-Only Writes via field validation.
      */
     match /stores/{storeId} {
       allow get, list: if true;
@@ -91,16 +65,13 @@ service cloud.firestore {
 
       /**
        * @description Rules for products. Uses denormalized 'ownerId' for high-performance auth.
-       * @path /stores/{storeId}/products/{productId}
-       * @allow (list) any user browsing products in a specific store.
-       * @allow (create) owner of the parent store adding a new product.
-       * @deny (update) owner attempting to move a product to a different storeId.
-       * @principle Denormalization for Authorization Independence.
        */
       match /products/{productId} {
         allow get, list: if true;
         allow create: if willBeOwner(request.resource.data.ownerId) && request.resource.data.storeId == storeId;
-        allow update: if isExistingOwner(resource.data.ownerId) && request.resource.data.ownerId == resource.data.ownerId && request.resource.data.storeId == resource.data.storeId;
+        allow update: if isExistingOwner(resource.data.ownerId) && 
+                      request.resource.data.ownerId == resource.data.ownerId && 
+                      request.resource.data.storeId == resource.data.storeId;
         allow delete: if isExistingOwner(resource.data.ownerId);
       }
     }
