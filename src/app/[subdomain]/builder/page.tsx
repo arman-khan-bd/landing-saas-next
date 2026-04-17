@@ -19,10 +19,9 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Slider } from "@/components/ui/slider";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type BlockType = 
   | "header" 
@@ -272,15 +271,18 @@ export default function PageBuilder() {
                 <X className="w-5 h-5" />
               </Button>
             </div>
-            <div className="flex-1 overflow-auto bg-muted/10 p-4 md:p-8">
-              <div className={`mx-auto bg-white shadow-xl transition-all duration-300 min-h-full ${viewMode === "mobile" ? "max-w-[375px]" : "max-w-6xl w-full"}`}>
-                <div className="py-12">
-                  {blocks.map((block) => (
-                    <BlockRenderer key={block.id} block={block} products={products} />
-                  ))}
+            
+            <ScrollArea className="flex-1 bg-muted/10">
+              <div className="p-4 md:p-8">
+                <div className={`mx-auto bg-white shadow-xl transition-all duration-300 min-h-full ${viewMode === "mobile" ? "max-w-[375px]" : "max-w-6xl w-full"}`}>
+                  <div className="py-12">
+                    {blocks.map((block) => (
+                      <BlockRenderer key={block.id} block={block} products={products} />
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            </ScrollArea>
           </div>
         </DialogContent>
       </Dialog>
