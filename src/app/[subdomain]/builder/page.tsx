@@ -12,8 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  Plus, Save, Trash2, GripVertical, Image as ImageIcon, 
-  Type, Layout, List, CheckCircle, CreditCard, ShoppingCart, 
+  Plus, Save, Trash2, Image as ImageIcon, 
+  Type, Layout, List, CheckCircle, ShoppingCart, 
   Loader2, ChevronUp, ChevronDown, Monitor, Smartphone, 
   Square, Circle, ArrowRight, Eye, X, Columns, Settings2
 } from "lucide-react";
@@ -339,17 +339,19 @@ export default function PageBuilder() {
             </Button>
           </div>
           
-          <ScrollArea className="flex-1 bg-muted/10">
-            <div className="p-4 md:p-12 min-h-full">
-              <div className={`mx-auto bg-white shadow-2xl transition-all duration-300 min-h-full overflow-hidden ${viewMode === "mobile" ? "max-w-[375px] rounded-[40px] border-[8px] border-slate-900" : "max-w-6xl w-full rounded-3xl"}`}>
-                <div className="py-8">
-                  {blocks.map((block) => (
-                    <BlockRenderer key={block.id} block={block} products={products} />
-                  ))}
+          <div className="flex-1 bg-muted/10 overflow-hidden relative">
+            <ScrollArea className="h-full w-full">
+              <div className="p-4 md:p-12 min-h-full flex flex-col items-center">
+                <div className={`bg-white shadow-2xl transition-all duration-300 min-h-full overflow-hidden mb-12 ${viewMode === "mobile" ? "max-w-[375px] rounded-[40px] border-[8px] border-slate-900" : "max-w-6xl w-full rounded-3xl"}`}>
+                  <div className="py-8">
+                    {blocks.map((block) => (
+                      <BlockRenderer key={block.id} block={block} products={products} />
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          </ScrollArea>
+            </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
@@ -476,13 +478,23 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
     case "carousel":
       const items = block.content.items || [];
       const desktopCols = block.style.desktopColumns || 3;
+      
+      // Map columns to explicit tailwind classes to avoid dynamic string issues
+      const basisMap: Record<number, string> = {
+        1: "md:basis-full",
+        2: "md:basis-1/2",
+        3: "md:basis-1/3",
+        4: "md:basis-1/4"
+      };
+      const basisClass = basisMap[desktopCols] || "md:basis-1/3";
+
       return (
         <div style={style} className="px-6">
           <Carousel className="w-full">
             <CarouselContent>
               {items.map((item: CarouselItemData) => (
-                <CarouselItem key={item.id} className={`basis-full md:basis-1/${desktopCols}`}>
-                  <Card className="rounded-2xl border-none shadow-md overflow-hidden h-full flex flex-col">
+                <CarouselItem key={item.id} className={`basis-full ${basisClass}`}>
+                  <Card className="rounded-2xl border shadow-md overflow-hidden h-full flex flex-col">
                     {item.image && <img src={item.image} className="w-full aspect-video object-cover" />}
                     <div className="p-4 space-y-2 flex-1 flex flex-col">
                       {item.title && <h4 className="font-headline font-bold text-lg">{item.title}</h4>}
@@ -672,6 +684,26 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
                 <SelectItem value="4">4 Cards</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Visual Preview in Editor */}
+          <div className="p-2 border rounded-xl bg-white/50">
+            <div className={`grid gap-2 grid-cols-2 md:grid-cols-${block.style.desktopColumns || 3}`}>
+              {(block.content.items || []).map((item: CarouselItemData) => (
+                <div key={item.id} className="aspect-video bg-muted rounded-lg overflow-hidden border">
+                  {item.image ? (
+                    <img src={item.image} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[8px] text-muted-foreground">No Image</div>
+                  )}
+                </div>
+              ))}
+              {(!block.content.items || block.content.items.length === 0) && (
+                <div className="col-span-full py-4 text-center text-[9px] text-muted-foreground uppercase tracking-widest opacity-50">
+                  Add items to see preview
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
