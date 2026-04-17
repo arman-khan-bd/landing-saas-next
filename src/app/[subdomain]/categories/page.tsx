@@ -4,12 +4,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Loader2, Layers, Search } from "lucide-react";
+import { Plus, Trash2, Loader2, Layers, Search, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -18,10 +18,12 @@ export default function CategoriesPage() {
   const { subdomain } = useParams();
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [storeId, setStoreId] = useState("");
   const [newCategory, setNewCategory] = useState({ name: "", slug: "" });
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function CategoriesPage() {
 
   const handleCreate = async () => {
     if (!newCategory.name) return;
-    setCreating(true);
+    setProcessing(true);
     const slug = newCategory.slug || newCategory.name.toLowerCase().replace(/ /g, "-");
     
     try {
@@ -62,11 +64,31 @@ export default function CategoriesPage() {
       });
       toast({ title: "Category added" });
       setNewCategory({ name: "", slug: "" });
+      setIsDialogOpen(false);
       fetchStoreAndCategories();
     } catch (error) {
       toast({ variant: "destructive", title: "Error adding category" });
     } finally {
-      setCreating(false);
+      setProcessing(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editingCategory?.name || !editingCategory?.id) return;
+    setProcessing(true);
+    try {
+      const slug = editingCategory.slug || editingCategory.name.toLowerCase().replace(/ /g, "-");
+      await updateDoc(doc(db, "categories", editingCategory.id), {
+        name: editingCategory.name,
+        slug: slug,
+      });
+      toast({ title: "Category updated" });
+      setEditingCategory(null);
+      fetchStoreAndCategories();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error updating category" });
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -95,9 +117,12 @@ export default function CategoriesPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-xl w-full sm:w-auto">
+            <Button className="rounded-xl w-full sm:w-auto" onClick={() => {
+              setNewCategory({ name: "", slug: "" });
+              setEditingCategory(null);
+            }}>
               <Plus className="mr-2 w-5 h-5" /> Add Category
             </Button>
           </DialogTrigger>
@@ -125,8 +150,8 @@ export default function CategoriesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button className="w-full rounded-xl" onClick={handleCreate} disabled={creating}>
-                {creating ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Category"}
+              <Button className="w-full rounded-xl" onClick={handleCreate} disabled={processing}>
+                {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Category"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -159,6 +184,39 @@ export default function CategoriesPage() {
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>{item.slug}</TableCell>
                     <TableCell className="text-right">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => setEditingCategory({ ...item })}>
+                            <Edit className="w-4 h-4 text-primary" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-3xl">
+                          <DialogHeader>
+                            <DialogTitle>Edit Category</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label>Name</Label>
+                              <Input 
+                                value={editingCategory?.name || ""}
+                                onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Slug</Label>
+                              <Input 
+                                value={editingCategory?.slug || ""}
+                                onChange={(e) => setEditingCategory({ ...editingCategory, slug: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button className="w-full rounded-xl" onClick={handleUpdate} disabled={processing}>
+                              {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Update Category"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>

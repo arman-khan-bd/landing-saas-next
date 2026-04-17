@@ -4,12 +4,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Loader2, Bookmark, Search } from "lucide-react";
+import { Plus, Trash2, Loader2, Bookmark, Search, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -20,10 +20,12 @@ export default function SubCategoriesPage() {
   const [subCategories, setSubCategories] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [storeId, setStoreId] = useState("");
   const [newSub, setNewSub] = useState({ name: "", slug: "", categoryId: "" });
+  const [editingSub, setEditingSub] = useState<any>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function SubCategoriesPage() {
 
   const handleCreate = async () => {
     if (!newSub.name || !newSub.categoryId) return;
-    setCreating(true);
+    setProcessing(true);
     const slug = newSub.slug || newSub.name.toLowerCase().replace(/ /g, "-");
     
     try {
@@ -68,11 +70,32 @@ export default function SubCategoriesPage() {
       });
       toast({ title: "Sub-category added" });
       setNewSub({ name: "", slug: "", categoryId: "" });
+      setIsCreateDialogOpen(false);
       fetchData();
     } catch (error) {
       toast({ variant: "destructive", title: "Error adding sub-category" });
     } finally {
-      setCreating(false);
+      setProcessing(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editingSub?.name || !editingSub?.id || !editingSub?.categoryId) return;
+    setProcessing(true);
+    try {
+      const slug = editingSub.slug || editingSub.name.toLowerCase().replace(/ /g, "-");
+      await updateDoc(doc(db, "sub-categories", editingSub.id), {
+        name: editingSub.name,
+        slug: slug,
+        categoryId: editingSub.categoryId,
+      });
+      toast({ title: "Sub-category updated" });
+      setEditingSub(null);
+      fetchData();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error updating" });
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -102,7 +125,7 @@ export default function SubCategoriesPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Dialog>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button className="rounded-xl w-full sm:w-auto">
               <Plus className="mr-2 w-5 h-5" /> Add Sub-category
@@ -129,8 +152,8 @@ export default function SubCategoriesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button className="w-full rounded-xl" onClick={handleCreate} disabled={creating}>
-                {creating ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Sub-category"}
+              <Button className="w-full rounded-xl" onClick={handleCreate} disabled={processing}>
+                {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Sub-category"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -163,6 +186,41 @@ export default function SubCategoriesPage() {
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>{getCategoryName(item.categoryId)}</TableCell>
                     <TableCell className="text-right">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => setEditingSub({ ...item })}>
+                            <Edit className="w-4 h-4 text-primary" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-3xl">
+                          <DialogHeader>
+                            <DialogTitle>Edit Sub-category</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label>Parent Category</Label>
+                              <Select value={editingSub?.categoryId} onValueChange={(val) => setEditingSub({ ...editingSub, categoryId: val })}>
+                                <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
+                                <SelectContent>
+                                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Name</Label>
+                              <Input 
+                                value={editingSub?.name || ""}
+                                onChange={(e) => setEditingSub({ ...editingSub, name: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button className="w-full rounded-xl" onClick={handleUpdate} disabled={processing}>
+                              {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Update Sub-category"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>

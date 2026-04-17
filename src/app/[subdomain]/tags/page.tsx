@@ -4,23 +4,25 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Loader2, Tags, Search } from "lucide-react";
+import { Plus, Trash2, Loader2, Tags, Search, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 
 export default function TagsPage() {
   const { subdomain } = useParams();
   const [tags, setTags] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [storeId, setStoreId] = useState("");
   const [newTag, setNewTag] = useState("");
+  const [editingTag, setEditingTag] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function TagsPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTag) return;
-    setCreating(true);
+    setProcessing(true);
     try {
       await addDoc(collection(db, "tags"), {
         name: newTag,
@@ -63,7 +65,24 @@ export default function TagsPage() {
     } catch (error) {
       toast({ variant: "destructive", title: "Error adding tag" });
     } finally {
-      setCreating(false);
+      setProcessing(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editingTag?.name || !editingTag?.id) return;
+    setProcessing(true);
+    try {
+      await updateDoc(doc(db, "tags", editingTag.id), {
+        name: editingTag.name,
+      });
+      toast({ title: "Tag updated" });
+      setEditingTag(null);
+      fetchTags();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error updating tag" });
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -89,8 +108,8 @@ export default function TagsPage() {
               <Label>Quick Add Tag</Label>
               <Input placeholder="e.g. Summer Collection" value={newTag} onChange={(e) => setNewTag(e.target.value)} />
             </div>
-            <Button type="submit" className="rounded-xl h-10 px-8" disabled={creating}>
-              {creating ? <Loader2 className="animate-spin" /> : <Plus className="mr-2" />} Add Tag
+            <Button type="submit" className="rounded-xl h-10 px-8" disabled={processing}>
+              {processing ? <Loader2 className="animate-spin" /> : <Plus className="mr-2" />} Add Tag
             </Button>
           </form>
         </CardContent>
@@ -121,7 +140,33 @@ export default function TagsPage() {
                 filtered.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
+                    <TableCell className="text-right">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => setEditingTag({ ...item })}>
+                            <Edit className="w-4 h-4 text-primary" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-3xl">
+                          <DialogHeader><DialogTitle>Edit Tag</DialogTitle></DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label>Tag Name</Label>
+                              <Input 
+                                value={editingTag?.name || ""} 
+                                onChange={(e) => setEditingTag({ ...editingTag, name: e.target.value })} 
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button className="w-full rounded-xl" onClick={handleUpdate} disabled={processing}>
+                              {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Update Tag"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}

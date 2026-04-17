@@ -4,12 +4,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Loader2, Store, Search } from "lucide-react";
+import { Plus, Trash2, Loader2, Store, Search, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -19,10 +19,12 @@ export default function BrandsPage() {
   const { subdomain } = useParams();
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [storeId, setStoreId] = useState("");
   const [newBrand, setNewBrand] = useState({ name: "", logo: "" });
+  const [editingBrand, setEditingBrand] = useState<any>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function BrandsPage() {
 
   const handleCreate = async () => {
     if (!newBrand.name) return;
-    setCreating(true);
+    setProcessing(true);
     try {
       await addDoc(collection(db, "brands"), {
         ...newBrand,
@@ -60,11 +62,30 @@ export default function BrandsPage() {
       });
       toast({ title: "Brand added" });
       setNewBrand({ name: "", logo: "" });
+      setIsCreateOpen(false);
       fetchBrands();
     } catch (error) {
       toast({ variant: "destructive", title: "Error adding brand" });
     } finally {
-      setCreating(false);
+      setProcessing(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editingBrand?.name || !editingBrand?.id) return;
+    setProcessing(true);
+    try {
+      await updateDoc(doc(db, "brands", editingBrand.id), {
+        name: editingBrand.name,
+        logo: editingBrand.logo,
+      });
+      toast({ title: "Brand updated" });
+      setEditingBrand(null);
+      fetchBrands();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error updating" });
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -88,7 +109,7 @@ export default function BrandsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search brands..." className="pl-10 rounded-xl bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
-        <Dialog>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild><Button className="rounded-xl"><Plus className="mr-2" /> Add Brand</Button></DialogTrigger>
           <DialogContent className="rounded-3xl">
             <DialogHeader><DialogTitle>New Brand</DialogTitle></DialogHeader>
@@ -103,8 +124,8 @@ export default function BrandsPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button className="w-full rounded-xl" onClick={handleCreate} disabled={creating}>
-                {creating ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Brand"}
+              <Button className="w-full rounded-xl" onClick={handleCreate} disabled={processing}>
+                {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Brand"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -131,7 +152,34 @@ export default function BrandsPage() {
                   <TableRow key={item.id}>
                     <TableCell><div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden border">{item.logo ? <img src={item.logo} className="w-full h-full object-cover" /> : <Store className="w-5 h-5" />}</div></TableCell>
                     <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
+                    <TableCell className="text-right">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => setEditingBrand({ ...item })}>
+                            <Edit className="w-4 h-4 text-primary" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-3xl">
+                          <DialogHeader><DialogTitle>Edit Brand</DialogTitle></DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label>Brand Name</Label>
+                              <Input value={editingBrand?.name || ""} onChange={(e) => setEditingBrand({ ...editingBrand, name: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Logo</Label>
+                              <CloudinaryUpload value={editingBrand?.logo || ""} onUpload={(url) => setEditingBrand({ ...editingBrand, logo: url })} onRemove={() => setEditingBrand({ ...editingBrand, logo: "" })} />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button className="w-full rounded-xl" onClick={handleUpdate} disabled={processing}>
+                              {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Update Brand"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}

@@ -4,12 +4,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Loader2, Percent } from "lucide-react";
+import { Plus, Trash2, Loader2, Percent, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -18,9 +18,11 @@ export default function TaxesPage() {
   const { subdomain } = useParams();
   const [taxes, setTaxes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [storeId, setStoreId] = useState("");
   const [newTax, setNewTax] = useState({ name: "", percentage: "" });
+  const [editingTax, setEditingTax] = useState<any>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -48,7 +50,7 @@ export default function TaxesPage() {
 
   const handleCreate = async () => {
     if (!newTax.name || !newTax.percentage) return;
-    setCreating(true);
+    setProcessing(true);
     try {
       await addDoc(collection(db, "taxes"), {
         name: newTax.name,
@@ -59,11 +61,30 @@ export default function TaxesPage() {
       });
       toast({ title: "Tax added" });
       setNewTax({ name: "", percentage: "" });
+      setIsCreateOpen(false);
       fetchTaxes();
     } catch (error) {
       toast({ variant: "destructive", title: "Error adding tax" });
     } finally {
-      setCreating(false);
+      setProcessing(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editingTax?.name || !editingTax?.percentage || !editingTax?.id) return;
+    setProcessing(true);
+    try {
+      await updateDoc(doc(db, "taxes", editingTax.id), {
+        name: editingTax.name,
+        percentage: Number(editingTax.percentage),
+      });
+      toast({ title: "Tax updated" });
+      setEditingTax(null);
+      fetchTaxes();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error updating" });
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -82,7 +103,7 @@ export default function TaxesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-headline font-bold">Tax Management</h3>
-        <Dialog>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild><Button className="rounded-xl"><Plus className="mr-2" /> Add Tax</Button></DialogTrigger>
           <DialogContent className="rounded-3xl">
             <DialogHeader><DialogTitle>New Tax Setting</DialogTitle></DialogHeader>
@@ -97,8 +118,8 @@ export default function TaxesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button className="w-full rounded-xl" onClick={handleCreate} disabled={creating}>
-                {creating ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Tax"}
+              <Button className="w-full rounded-xl" onClick={handleCreate} disabled={processing}>
+                {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Tax"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -125,7 +146,34 @@ export default function TaxesPage() {
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>{item.percentage}%</TableCell>
-                    <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
+                    <TableCell className="text-right">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => setEditingTax({ ...item })}>
+                            <Edit className="w-4 h-4 text-primary" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-3xl">
+                          <DialogHeader><DialogTitle>Edit Tax</DialogTitle></DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label>Tax Name</Label>
+                              <Input value={editingTax?.name || ""} onChange={(e) => setEditingTax({ ...editingTax, name: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Percentage (%)</Label>
+                              <Input type="number" value={editingTax?.percentage || ""} onChange={(e) => setEditingTax({ ...editingTax, percentage: e.target.value })} />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button className="w-full rounded-xl" onClick={handleUpdate} disabled={processing}>
+                              {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Update Tax"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
