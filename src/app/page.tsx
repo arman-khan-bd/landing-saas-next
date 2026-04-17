@@ -27,7 +27,7 @@ export default function Home() {
           Launch Your <span className="text-primary italic">Dream Store</span> in Seconds
         </h1>
         <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto font-body">
-          NexusCart is the most advanced multi-tenant e-commerce engine designed for high-performance brands. Fully customizable, AI-powered, and built to scale.
+          NexusCart is the most advanced multi-tenant e-commerce engine designed for high-performance brands. Fully customizable and built to scale.
         </p>
         <div className="flex gap-4 justify-center">
           <Link href="/auth">
@@ -55,8 +55,8 @@ export default function Home() {
           </div>
           <div className="p-8 bg-white rounded-3xl shadow-sm border border-border/50">
             <ShoppingCart className="w-12 h-12 text-accent mb-4" />
-            <h3 className="text-xl font-headline font-bold mb-2">AI Descriptions</h3>
-            <p className="text-muted-foreground font-body">Let our integrated AI write compelling product descriptions that convert visitors into buyers.</p>
+            <h3 className="text-xl font-headline font-bold mb-2">Modern Checkout</h3>
+            <p className="text-muted-foreground font-body">Provide a seamless purchasing experience for your customers with our optimized cart and checkout.</p>
           </div>
         </div>
       </main>

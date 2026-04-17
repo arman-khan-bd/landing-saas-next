@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
-import { Sparkles, ArrowLeft, Loader2, Save } from "lucide-react";
-import { aiProductDescriptionGenerator } from "@/ai/flows/ai-product-description-generator";
+import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function NewProductPage() {
@@ -19,7 +18,6 @@ export default function NewProductPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [generatingAI, setGeneratingAI] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     price: "",
@@ -28,26 +26,6 @@ export default function NewProductPage() {
     image: "",
     features: "",
   });
-
-  const handleGenerateAI = async () => {
-    if (!formData.name) {
-      toast({ variant: "destructive", title: "Product name required for AI generation" });
-      return;
-    }
-    setGeneratingAI(true);
-    try {
-      const res = await aiProductDescriptionGenerator({
-        productName: formData.name,
-        keyFeatures: formData.features ? formData.features.split(",").map(f => f.trim()) : [],
-      });
-      setFormData({ ...formData, description: res.description });
-      toast({ title: "Description generated!" });
-    } catch (error) {
-      toast({ variant: "destructive", title: "AI Generation failed" });
-    } finally {
-      setGeneratingAI(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,20 +84,7 @@ export default function NewProductPage() {
                 />
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="description">Description</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 rounded-lg gap-1.5 text-xs text-primary border-primary/20 hover:bg-primary/5"
-                    onClick={handleGenerateAI}
-                    disabled={generatingAI}
-                  >
-                    {generatingAI ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                    Generate with AI
-                  </Button>
-                </div>
+                <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
                   placeholder="Tell your customers about this product..."
