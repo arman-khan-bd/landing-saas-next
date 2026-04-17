@@ -15,7 +15,7 @@ import {
   Plus, Save, Trash2, GripVertical, Image as ImageIcon, 
   Type, Layout, List, CheckCircle, CreditCard, ShoppingCart, 
   Loader2, ChevronUp, ChevronDown, Monitor, Smartphone, 
-  Square, Circle, ArrowRight, Eye, X
+  Square, Circle, ArrowRight, Eye, X, Columns
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
@@ -31,9 +31,9 @@ type BlockType =
   | "button" 
   | "link" 
   | "carousel" 
-  | "block-grid" 
   | "checked-list" 
-  | "product-order-form";
+  | "product-order-form"
+  | "row";
 
 interface Block {
   id: string;
@@ -45,7 +45,10 @@ interface Block {
     textAlign?: "left" | "center" | "right";
     columns?: number;
     listType?: "rounded" | "box" | "arrow";
+    backgroundColor?: string;
+    textColor?: string;
   };
+  children?: Block[];
 }
 
 export default function PageBuilder() {
@@ -84,15 +87,13 @@ export default function PageBuilder() {
     }
   };
 
-  const addBlock = (type: BlockType) => {
-    const newBlock: Block = {
-      id: Math.random().toString(36).substr(2, 9),
-      type,
-      content: getInitialContent(type),
-      style: { padding: "20px", margin: "0px", textAlign: "left", columns: 1, listType: "rounded" }
-    };
-    setBlocks([...blocks, newBlock]);
-  };
+  const createBlock = (type: BlockType): Block => ({
+    id: Math.random().toString(36).substr(2, 9),
+    type,
+    content: getInitialContent(type),
+    style: { padding: "20px", margin: "0px", textAlign: "left", columns: 2, listType: "rounded" },
+    children: type === "row" ? [] : undefined
+  });
 
   const getInitialContent = (type: BlockType) => {
     switch (type) {
@@ -103,27 +104,71 @@ export default function PageBuilder() {
       case "button": return { text: "Click Here", link: "#" };
       case "link": return { text: "Learn More", link: "#" };
       case "carousel": return { images: [] };
-      case "block-grid": return { items: [{ title: "Feature 1", desc: "Description" }] };
       case "checked-list": return { items: ["Item 1", "Item 2"] };
       case "product-order-form": return { mainProductId: "", subProductIds: [], shippingType: "free", shippingCost: 0 };
+      case "row": return { columns: 2 };
       default: return {};
     }
   };
 
-  const removeBlock = (id: string) => {
-    setBlocks(blocks.filter(b => b.id !== id));
+  const addBlock = (type: BlockType, parentId?: string) => {
+    const newBlock = createBlock(type);
+    if (parentId) {
+      setBlocks(prev => addNestedBlock(prev, parentId, newBlock));
+    } else {
+      setBlocks([...blocks, newBlock]);
+    }
   };
 
-  const moveBlock = (index: number, direction: "up" | "down") => {
-    const newBlocks = [...blocks];
-    const target = direction === "up" ? index - 1 : index + 1;
-    if (target < 0 || target >= newBlocks.length) return;
-    [newBlocks[index], newBlocks[target]] = [newBlocks[target], newBlocks[index]];
-    setBlocks(newBlocks);
+  const addNestedBlock = (items: Block[], parentId: string, newBlock: Block): Block[] => {
+    return items.map(item => {
+      if (item.id === parentId) {
+        return { ...item, children: [...(item.children || []), newBlock] };
+      }
+      if (item.children) {
+        return { ...item, children: addNestedBlock(item.children, parentId, newBlock) };
+      }
+      return item;
+    });
+  };
+
+  const removeBlock = (id: string) => {
+    setBlocks(prev => removeNestedBlock(prev, id));
+  };
+
+  const removeNestedBlock = (items: Block[], id: string): Block[] => {
+    return items.filter(item => item.id !== id).map(item => ({
+      ...item,
+      children: item.children ? removeNestedBlock(item.children, id) : undefined
+    }));
   };
 
   const updateBlock = (id: string, updates: Partial<Block>) => {
-    setBlocks(blocks.map(b => b.id === id ? { ...b, ...updates } : b));
+    setBlocks(prev => updateNestedBlock(prev, id, updates));
+  };
+
+  const updateNestedBlock = (items: Block[], id: string, updates: Partial<Block>): Block[] => {
+    return items.map(item => {
+      if (item.id === id) return { ...item, ...updates };
+      if (item.children) return { ...item, children: updateNestedBlock(item.children, id, updates) };
+      return item;
+    });
+  };
+
+  const moveBlock = (id: string, direction: "up" | "down") => {
+    setBlocks(prev => {
+      const newBlocks = [...prev];
+      const index = newBlocks.findIndex(b => b.id === id);
+      if (index !== -1) {
+        const target = direction === "up" ? index - 1 : index + 1;
+        if (target >= 0 && target < newBlocks.length) {
+          [newBlocks[index], newBlocks[target]] = [newBlocks[target], newBlocks[index]];
+        }
+        return newBlocks;
+      }
+      // Handle nested movement (simplified for now to top-level)
+      return newBlocks;
+    });
   };
 
   const handleSave = async () => {
@@ -148,9 +193,12 @@ export default function PageBuilder() {
         <Card className="rounded-3xl border-border/50 sticky top-24">
           <CardHeader>
             <CardTitle className="text-lg">Components</CardTitle>
-            <CardDescription>Click to add blocks to your page</CardDescription>
+            <CardDescription>Drag or click to add blocks</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-2">
+            <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("row")}>
+              <Columns className="w-5 h-5" /> <span className="text-xs">Row / Section</span>
+            </Button>
             <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("header")}>
               <Type className="w-5 h-5" /> <span className="text-xs">Header</span>
             </Button>
@@ -166,17 +214,11 @@ export default function PageBuilder() {
             <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("accordion")}>
               <ChevronDown className="w-5 h-5" /> <span className="text-xs">Accordion</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("block-grid")}>
-              <Layout className="w-5 h-5" /> <span className="text-xs">Blocks</span>
-            </Button>
             <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("checked-list")}>
               <CheckCircle className="w-5 h-5" /> <span className="text-xs">Checked List</span>
             </Button>
             <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("button")}>
               <Monitor className="w-5 h-5" /> <span className="text-xs">Button</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl" onClick={() => addBlock("link")}>
-              <Monitor className="w-5 h-5" /> <span className="text-xs">Link</span>
             </Button>
             <Button variant="outline" className="h-20 flex-col gap-2 rounded-xl bg-primary/10 border-primary/50 text-primary" onClick={() => addBlock("product-order-form")}>
               <ShoppingCart className="w-5 h-5" /> <span className="text-xs font-bold">Checkout</span>
@@ -227,28 +269,16 @@ export default function PageBuilder() {
               </div>
             ) : (
               blocks.map((block, index) => (
-                <div key={block.id} className="group relative border-2 border-transparent hover:border-primary/20 rounded-2xl transition-all">
-                  {/* Block Toolbar */}
-                  <div className="absolute -left-12 top-0 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => moveBlock(index, "up")}>
-                      <ChevronUp className="w-4 h-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => moveBlock(index, "down")}>
-                      <ChevronDown className="w-4 h-4" />
-                    </Button>
-                    <Button variant="destructive" size="icon" className="h-8 w-8 rounded-full" onClick={() => removeBlock(block.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  <div className="p-6">
-                    <BlockSettingsEditor 
-                      block={block} 
-                      products={products}
-                      onChange={(updates) => updateBlock(block.id, updates)} 
-                    />
-                  </div>
-                </div>
+                <BlockEditorWrapper 
+                  key={block.id} 
+                  block={block} 
+                  index={index}
+                  products={products}
+                  onUpdate={updateBlock}
+                  onRemove={removeBlock}
+                  onMove={moveBlock}
+                  onAddNested={addBlock}
+                />
               ))
             )}
           </div>
@@ -257,35 +287,86 @@ export default function PageBuilder() {
 
       {/* Full Preview Modal */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 rounded-3xl overflow-hidden bg-background">
-          <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-4 border-b bg-white">
-              <div className="flex items-center gap-4">
-                <DialogTitle className="text-xl font-headline font-bold">Landing Page Preview</DialogTitle>
-                <div className="flex gap-2 ml-4">
-                  <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("desktop")}>Desktop</Button>
-                  <Button variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("mobile")}>Mobile</Button>
-                </div>
+        <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 rounded-none border-none bg-background flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b bg-white shrink-0 z-20 shadow-sm">
+            <div className="flex items-center gap-4">
+              <DialogTitle className="text-xl font-headline font-bold">Live Landing Page Preview</DialogTitle>
+              <div className="flex gap-2 ml-4">
+                <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("desktop")}>
+                  <Monitor className="w-4 h-4 mr-2" /> Desktop
+                </Button>
+                <Button variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("mobile")}>
+                  <Smartphone className="w-4 h-4 mr-2" /> Mobile
+                </Button>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setIsPreviewOpen(false)} className="rounded-full">
-                <X className="w-5 h-5" />
-              </Button>
             </div>
-            
-            <ScrollArea className="flex-1 bg-muted/10">
-              <div className="p-4 md:p-8">
-                <div className={`mx-auto bg-white shadow-xl transition-all duration-300 min-h-full ${viewMode === "mobile" ? "max-w-[375px]" : "max-w-6xl w-full"}`}>
-                  <div className="py-12">
-                    {blocks.map((block) => (
-                      <BlockRenderer key={block.id} block={block} products={products} />
-                    ))}
-                  </div>
-                </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsPreviewOpen(false)} className="rounded-full">
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto bg-muted/10 p-4 md:p-8 scroll-smooth">
+            <div className={`mx-auto bg-white shadow-2xl transition-all duration-300 min-h-full ${viewMode === "mobile" ? "max-w-[375px]" : "max-w-6xl w-full"}`}>
+              <div className="py-12">
+                {blocks.map((block) => (
+                  <BlockRenderer key={block.id} block={block} products={products} />
+                ))}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove, onAddNested }: any) {
+  return (
+    <div className="group relative border-2 border-transparent hover:border-primary/20 rounded-2xl transition-all bg-muted/5 p-4 mb-4">
+      {/* Block Toolbar */}
+      <div className="absolute -left-12 top-0 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white" onClick={() => onMove(block.id, "up")}>
+          <ChevronUp className="w-4 h-4" />
+        </Button>
+        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white" onClick={() => onMove(block.id, "down")}>
+          <ChevronDown className="w-4 h-4" />
+        </Button>
+        <Button variant="destructive" size="icon" className="h-8 w-8 rounded-full" onClick={() => onRemove(block.id)}>
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <div className="p-2">
+        <BlockSettingsEditor 
+          block={block} 
+          products={products}
+          onChange={(updates: any) => onUpdate(block.id, updates)}
+          onAddNested={onAddNested}
+        />
+        
+        {block.type === "row" && (
+          <div className="mt-4 pl-4 border-l-2 border-primary/20 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-primary uppercase tracking-widest">Row Content</span>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onAddNested("paragraph", block.id)}>
+                <Plus className="w-3 h-3 mr-1" /> Add Component to Row
+              </Button>
+            </div>
+            {block.children?.map((child: any, idx: number) => (
+              <BlockEditorWrapper 
+                key={child.id} 
+                block={child} 
+                index={idx}
+                products={products}
+                onUpdate={onUpdate}
+                onRemove={onRemove}
+                onMove={onMove}
+                onAddNested={onAddNested}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -295,9 +376,22 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
     padding: block.style.padding,
     margin: block.style.margin,
     textAlign: block.style.textAlign as any,
+    backgroundColor: block.style.backgroundColor,
+    color: block.style.textColor,
   };
 
   switch (block.type) {
+    case "row":
+      return (
+        <div style={style} className={`grid gap-6 grid-cols-1 md:grid-cols-${block.content.columns || 1} px-6`}>
+          {block.children?.map(child => (
+            <div key={child.id}>
+              <BlockRenderer block={child} products={products} />
+            </div>
+          ))}
+        </div>
+      );
+
     case "header":
       const Tag = block.content.level || 'h2';
       const sizes = { h1: 'text-5xl', h2: 'text-4xl', h3: 'text-2xl' };
@@ -414,14 +508,32 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
   }
 }
 
-function BlockSettingsEditor({ block, products, onChange }: { block: Block, products: any[], onChange: (updates: Partial<Block>) => void }) {
+function BlockSettingsEditor({ block, products, onChange, onAddNested }: any) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="bg-primary/10 text-primary p-1.5 rounded-lg">
-          {getBlockIcon(block.type)}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="bg-primary/10 text-primary p-1.5 rounded-lg">
+            {getBlockIcon(block.type)}
+          </div>
+          <span className="font-headline font-bold uppercase text-xs tracking-widest">{block.type}</span>
         </div>
-        <span className="font-headline font-bold uppercase text-xs tracking-widest">{block.type}</span>
+        {block.type === "row" && (
+          <Select 
+            value={String(block.content.columns)} 
+            onValueChange={(val) => onChange({ content: { ...block.content, columns: Number(val) } })}
+          >
+            <SelectTrigger className="w-32 h-8 text-xs rounded-xl">
+              <SelectValue placeholder="Columns" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1 Column</SelectItem>
+              <SelectItem value="2">2 Columns</SelectItem>
+              <SelectItem value="3">3 Columns</SelectItem>
+              <SelectItem value="4">4 Columns</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {block.type === "header" && (
@@ -429,7 +541,7 @@ function BlockSettingsEditor({ block, products, onChange }: { block: Block, prod
           <Input 
             value={block.content.text} 
             onChange={(e) => onChange({ content: { ...block.content, text: e.target.value } })} 
-            className="text-2xl font-bold font-headline border-none px-0 focus-visible:ring-0"
+            className="text-2xl font-bold font-headline border-none px-0 focus-visible:ring-0 bg-transparent"
           />
           <div className="flex gap-2">
             {["h1", "h2", "h3"].map(level => (
@@ -445,7 +557,7 @@ function BlockSettingsEditor({ block, products, onChange }: { block: Block, prod
         <Textarea 
           value={block.content.text} 
           onChange={(e) => onChange({ content: { ...block.content, text: e.target.value } })} 
-          className="border-none px-0 focus-visible:ring-0 min-h-[100px] resize-none"
+          className="border-none px-0 focus-visible:ring-0 min-h-[100px] resize-none bg-transparent"
         />
       )}
 
@@ -550,17 +662,6 @@ function BlockSettingsEditor({ block, products, onChange }: { block: Block, prod
                 </div>
               )}
             </div>
-
-            <div className="bg-white p-4 rounded-xl border border-primary/10 space-y-4">
-              <h4 className="font-bold text-sm text-primary flex items-center gap-2">
-                <CreditCard className="w-4 h-4" /> Order Form Preview
-              </h4>
-              <div className="space-y-2 opacity-50 pointer-events-none">
-                <Input placeholder="Full Name" className="rounded-lg h-9" />
-                <Input placeholder="Phone Number" className="rounded-lg h-9" />
-                <Textarea placeholder="Full Address" className="rounded-lg h-16" />
-              </div>
-            </div>
           </CardContent>
         </Card>
       )}
@@ -595,6 +696,7 @@ function getBlockIcon(type: BlockType) {
     case "accordion": return <ChevronDown className="w-4 h-4" />;
     case "checked-list": return <CheckCircle className="w-4 h-4" />;
     case "product-order-form": return <ShoppingCart className="w-4 h-4" />;
+    case "row": return <Columns className="w-4 h-4" />;
     default: return <Plus className="w-4 h-4" />;
   }
 }
