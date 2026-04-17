@@ -479,7 +479,6 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
       const items = block.content.items || [];
       const desktopCols = block.style.desktopColumns || 3;
       
-      // Map columns to explicit tailwind classes to avoid dynamic string issues
       const basisMap: Record<number, string> = {
         1: "md:basis-full",
         2: "md:basis-1/2",
@@ -686,26 +685,6 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
             </Select>
           </div>
 
-          {/* Visual Preview in Editor */}
-          <div className="p-2 border rounded-xl bg-white/50">
-            <div className={`grid gap-2 grid-cols-2 md:grid-cols-${block.style.desktopColumns || 3}`}>
-              {(block.content.items || []).map((item: CarouselItemData) => (
-                <div key={item.id} className="aspect-video bg-muted rounded-lg overflow-hidden border">
-                  {item.image ? (
-                    <img src={item.image} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[8px] text-muted-foreground">No Image</div>
-                  )}
-                </div>
-              ))}
-              {(!block.content.items || block.content.items.length === 0) && (
-                <div className="col-span-full py-4 text-center text-[9px] text-muted-foreground uppercase tracking-widest opacity-50">
-                  Add items to see preview
-                </div>
-              )}
-            </div>
-          </div>
-
           <div className="space-y-2">
             <Label className="text-[10px] uppercase tracking-wider font-bold">Carousel Items</Label>
             <Accordion type="single" collapsible className="w-full space-y-2">
@@ -713,67 +692,82 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
                 <AccordionItem key={item.id} value={item.id} className="border bg-white rounded-xl overflow-hidden shadow-sm">
                   <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-muted/30">
                     <div className="flex items-center justify-between w-full text-left">
-                      <span className="text-[11px] font-bold text-muted-foreground truncate max-w-[150px]">
-                        {item.title || `Item #${idx + 1}`}
-                      </span>
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-10 h-10 rounded-lg bg-muted flex-shrink-0 overflow-hidden border">
+                          {item.image ? (
+                            <img src={item.image} className="w-full h-full object-cover" />
+                          ) : (
+                            <ImageIcon className="w-4 h-4 text-muted-foreground/40 mx-auto mt-3" />
+                          )}
+                        </div>
+                        <span className="text-[11px] font-bold text-muted-foreground truncate max-w-[150px]">
+                          {item.title || `Item #${idx + 1}`}
+                        </span>
+                      </div>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="p-3 pt-1 space-y-3">
-                    <div className="flex justify-end">
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={(e) => {
+                  <AccordionContent className="p-3 pt-1 space-y-4">
+                    <div className="flex justify-end -mb-6">
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive z-10" onClick={(e) => {
                         e.stopPropagation();
                         const newItems = block.content.items.filter((i: any) => i.id !== item.id);
                         onChange({ content: { ...block.content, items: newItems } });
-                      }}><Trash2 className="w-3 h-3" /></Button>
+                      }}><Trash2 className="w-3.5 h-3.5" /></Button>
                     </div>
-                    <div className="grid gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Image</Label>
-                        <CloudinaryUpload 
-                          value={item.image} 
-                          onUpload={(url) => {
-                            const newItems = [...block.content.items];
-                            newItems[idx] = { ...newItems[idx], image: url };
-                            onChange({ content: { ...block.content, items: newItems } });
-                          }}
-                          onRemove={() => {
-                            const newItems = [...block.content.items];
-                            newItems[idx] = { ...newItems[idx], image: "" };
-                            onChange({ content: { ...block.content, items: newItems } });
-                          }}
-                        />
+                    
+                    <div className="bg-muted/30 p-3 rounded-2xl border border-dashed flex flex-col gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] font-bold uppercase tracking-tight">Slide Media</Label>
+                          <CloudinaryUpload 
+                            value={item.image} 
+                            onUpload={(url) => {
+                              const newItems = [...block.content.items];
+                              newItems[idx] = { ...newItems[idx], image: url };
+                              onChange({ content: { ...block.content, items: newItems } });
+                            }}
+                            onRemove={() => {
+                              const newItems = [...block.content.items];
+                              newItems[idx] = { ...newItems[idx], image: "" };
+                              onChange({ content: { ...block.content, items: newItems } });
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <Label className="text-[10px]">Title</Label>
+                            <Input 
+                              placeholder="e.g. Special Offer" 
+                              value={item.title || ""} 
+                              className="h-8 text-xs rounded-lg"
+                              onChange={(e) => {
+                                const newItems = [...block.content.items];
+                                newItems[idx] = { ...newItems[idx], title: e.target.value };
+                                onChange({ content: { ...block.content, items: newItems } });
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px]">Subtitle</Label>
+                            <Textarea 
+                              placeholder="Short description..." 
+                              value={item.subtitle || ""} 
+                              className="text-xs rounded-lg min-h-[50px] resize-none"
+                              onChange={(e) => {
+                                const newItems = [...block.content.items];
+                                newItems[idx] = { ...newItems[idx], subtitle: e.target.value };
+                                onChange({ content: { ...block.content, items: newItems } });
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Title</Label>
-                        <Input 
-                          placeholder="Title (Optional)" 
-                          value={item.title || ""} 
-                          className="h-8 text-xs rounded-lg"
-                          onChange={(e) => {
-                            const newItems = [...block.content.items];
-                            newItems[idx] = { ...newItems[idx], title: e.target.value };
-                            onChange({ content: { ...block.content, items: newItems } });
-                          }}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Subtitle</Label>
-                        <Textarea 
-                          placeholder="Subtitle (Optional)" 
-                          value={item.subtitle || ""} 
-                          className="text-xs rounded-lg min-h-[50px]"
-                          onChange={(e) => {
-                            const newItems = [...block.content.items];
-                            newItems[idx] = { ...newItems[idx], subtitle: e.target.value };
-                            onChange({ content: { ...block.content, items: newItems } });
-                          }}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
+
+                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-dashed">
                         <div className="space-y-1">
                           <Label className="text-[10px]">Btn Text</Label>
                           <Input 
-                            placeholder="e.g. Shop Now" 
+                            placeholder="Shop Now" 
                             value={item.buttonText || ""} 
                             className="h-8 text-xs rounded-lg"
                             onChange={(e) => {
@@ -786,7 +780,7 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
                         <div className="space-y-1">
                           <Label className="text-[10px]">Btn Link</Label>
                           <Input 
-                            placeholder="e.g. /products/..." 
+                            placeholder="/products/..." 
                             value={item.buttonLink || ""} 
                             className="h-8 text-xs rounded-lg"
                             onChange={(e) => {
