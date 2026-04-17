@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { useFirestore } from "@/firebase";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -25,6 +25,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 type BlockType = 
   | "header" 
@@ -66,6 +68,7 @@ interface Block {
 
 export default function PageBuilder() {
   const { subdomain } = useParams();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,20 +81,23 @@ export default function PageBuilder() {
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchStoreData();
-  }, [subdomain]);
+    if (firestore) {
+      fetchStoreData();
+    }
+  }, [subdomain, firestore]);
 
   const fetchStoreData = async () => {
+    if (!firestore) return;
     setLoading(true);
     try {
-      const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
+      const storeQ = query(collection(firestore, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQ);
       if (!storeSnap.empty) {
         const data = storeSnap.docs[0].data();
         setStoreId(storeSnap.docs[0].id);
         setBlocks(data.landingPageConfig || []);
         
-        const prodQ = query(collection(db, "products"), where("storeId", "==", storeSnap.docs[0].id));
+        const prodQ = query(collection(firestore, "products"), where("storeId", "==", storeSnap.docs[0].id));
         const prodSnap = await getDocs(prodQ);
         setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       }
@@ -204,18 +210,47 @@ export default function PageBuilder() {
     });
   };
 
-  const handleSave = async () => {
-    if (!storeId) return;
+  const handleSave = () => {
+    if (!storeId || !firestore) return;
     setSaving(true);
-    try {
-      await updateDoc(doc(db, "stores", storeId), { landingPageConfig: blocks });
-      toast({ title: "Page saved!", description: "Your changes are now live." });
-    } catch (error) {
-      console.error("Firestore Save Error:", error);
-      toast({ variant: "destructive", title: "Error saving", description: "Something went wrong while saving your design." });
-    } finally {
-      setSaving(false);
-    }
+
+    // Deep sanitize blocks to remove any 'undefined' values which Firestore hates
+    const sanitizeBlocks = (items: Block[]): any[] => {
+      return items.map(item => {
+        // Use JSON methods to quickly strip undefined values
+        const base = JSON.parse(JSON.stringify({
+          id: item.id,
+          type: item.type,
+          content: item.content || {},
+          style: item.style || {},
+        }));
+        
+        if (item.children) {
+          base.children = sanitizeBlocks(item.children);
+        }
+        
+        return base;
+      });
+    };
+
+    const sanitizedData = sanitizeBlocks(blocks);
+    const storeRef = doc(firestore, "stores", storeId);
+
+    updateDoc(storeRef, { landingPageConfig: sanitizedData })
+      .then(() => {
+        toast({ title: "Page saved!", description: "Your changes are now live." });
+        setSaving(false);
+      })
+      .catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: storeRef.path,
+          operation: 'update',
+          requestResourceData: { landingPageConfig: sanitizedData },
+        } satisfies SecurityRuleContext);
+        
+        errorEmitter.emit('permission-error', permissionError);
+        setSaving(false);
+      });
   };
 
   if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin" /></div>;
@@ -447,17 +482,17 @@ function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove
 
 function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
   const style = {
-    padding: block.style.padding || "0px",
-    margin: block.style.margin || "0px",
-    textAlign: block.style.textAlign as any,
-    backgroundColor: block.style.backgroundColor,
-    color: block.style.textColor,
+    padding: block.style?.padding || "0px",
+    margin: block.style?.margin || "0px",
+    textAlign: block.style?.textAlign as any,
+    backgroundColor: block.style?.backgroundColor,
+    color: block.style?.textColor,
   };
 
   switch (block.type) {
     case "row":
       return (
-        <div style={style} className={cn("grid gap-6 grid-cols-1 px-6", `md:grid-cols-${block.content.columns || 1}`)}>
+        <div style={style} className={cn("grid gap-6 grid-cols-1 px-6", `md:grid-cols-${block.content?.columns || 1}`)}>
           {block.children?.map(child => (
             <div key={child.id}>
               <BlockRenderer block={child} products={products} />
@@ -467,22 +502,22 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
       );
 
     case "header":
-      const Tag = block.content.level || 'h2';
+      const Tag = block.content?.level || 'h2';
       const sizes = { h1: 'text-5xl', h2: 'text-4xl', h3: 'text-2xl' };
-      return <div style={style} className="px-6"><Tag className={cn(sizes[Tag as keyof typeof sizes], "font-headline font-bold mb-4")}>{block.content.text}</Tag></div>;
+      return <div style={style} className="px-6"><Tag className={cn(sizes[Tag as keyof typeof sizes], "font-headline font-bold mb-4")}>{block.content?.text}</Tag></div>;
     
     case "paragraph":
-      return <div style={style} className="px-6 text-muted-foreground leading-relaxed whitespace-pre-wrap">{block.content.text}</div>;
+      return <div style={style} className="px-6 text-muted-foreground leading-relaxed whitespace-pre-wrap">{block.content?.text}</div>;
     
     case "image":
-      return <div style={style} className="px-6">{block.content.url && <img src={block.content.url} className="w-full rounded-2xl shadow-lg" />}</div>;
+      return <div style={style} className="px-6">{block.content?.url && <img src={block.content.url} className="w-full rounded-2xl shadow-lg" />}</div>;
     
     case "checked-list":
       return (
         <div style={style} className="px-6 space-y-3">
-          {block.content.items.map((item: string, i: number) => (
+          {(block.content?.items || []).map((item: string, i: number) => (
             <div key={i} className="flex items-start gap-3">
-              <div className="mt-1 text-primary"><ListIcon type={block.style.listType} /></div>
+              <div className="mt-1 text-primary"><ListIcon type={block.style?.listType} /></div>
               <span className="font-medium">{item}</span>
             </div>
           ))}
@@ -492,13 +527,13 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
     case "button":
       return (
         <div style={style} className="px-6">
-          <Button size="lg" className="rounded-xl px-8 h-12 font-bold shadow-lg shadow-primary/20">{block.content.text}</Button>
+          <Button size="lg" className="rounded-xl px-8 h-12 font-bold shadow-lg shadow-primary/20">{block.content?.text}</Button>
         </div>
       );
 
     case "carousel":
-      const items = block.content.items || [];
-      const desktopCols = block.style.desktopColumns || 3;
+      const items = block.content?.items || [];
+      const desktopCols = block.style?.desktopColumns || 3;
       
       const basisMap: Record<number, string> = {
         1: "md:basis-full",
@@ -540,8 +575,8 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
       );
 
     case "product-order-form":
-      const mainProd = products.find(p => p.id === block.content.mainProductId);
-      const subProds = products.filter(p => block.content.subProductIds.includes(p.id));
+      const mainProd = products.find(p => p.id === block.content?.mainProductId);
+      const subProds = products.filter(p => block.content?.subProductIds?.includes(p.id));
       
       return (
         <div style={style} className="px-6">
@@ -602,12 +637,12 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
                       <span>${mainProd?.currentPrice || 0}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span>Shipping ({block.content.shippingType})</span>
-                      <span>{block.content.shippingType === 'free' ? 'FREE' : `$${block.content.shippingCost}`}</span>
+                      <span>Shipping ({block.content?.shippingType})</span>
+                      <span>{block.content?.shippingType === 'free' ? 'FREE' : `$${block.content?.shippingCost || 0}`}</span>
                     </div>
                     <div className="flex justify-between pt-3 border-t font-bold text-xl text-primary">
                       <span>Total</span>
-                      <span>${(mainProd?.currentPrice || 0) + (block.content.shippingType === 'paid' ? block.content.shippingCost : 0)}</span>
+                      <span>${(mainProd?.currentPrice || 0) + (block.content?.shippingType === 'paid' ? (block.content?.shippingCost || 0) : 0)}</span>
                     </div>
                   </div>
                   <Button className="w-full h-12 rounded-xl text-lg font-bold shadow-lg shadow-primary/20">
@@ -626,7 +661,7 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
 }
 
 function BlockSettingsEditor({ block, products, onChange }: any) {
-  const desktopCols = block.style.desktopColumns || 3;
+  const desktopCols = block.style?.desktopColumns || 3;
   const gridColsClass = desktopCols === 1 
     ? 'grid-cols-1' 
     : desktopCols === 2 
@@ -646,7 +681,7 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
         </div>
         {block.type === "row" && (
           <Select 
-            value={String(block.content.columns)} 
+            value={String(block.content?.columns || 1)} 
             onValueChange={(val) => onChange({ content: { ...block.content, columns: Number(val) } })}
           >
             <SelectTrigger className="w-28 h-7 text-[10px] rounded-lg bg-white">
@@ -665,14 +700,14 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
       {block.type === "header" && (
         <div className="space-y-3">
           <Input 
-            value={block.content.text} 
+            value={block.content?.text || ""} 
             onChange={(e) => onChange({ content: { ...block.content, text: e.target.value } })} 
             className="text-lg font-bold font-headline border-none px-0 focus-visible:ring-0 bg-transparent h-auto"
             placeholder="Type your heading..."
           />
           <div className="flex gap-2">
             {["h1", "h2", "h3"].map(level => (
-              <Button key={level} size="sm" variant={block.content.level === level ? "default" : "outline"} className="rounded-lg h-7 text-[10px] px-3" onClick={() => onChange({ content: { ...block.content, level } })}>
+              <Button key={level} size="sm" variant={block.content?.level === level ? "default" : "outline"} className="rounded-lg h-7 text-[10px] px-3" onClick={() => onChange({ content: { ...block.content, level } })}>
                 {level.toUpperCase()}
               </Button>
             ))}
@@ -682,7 +717,7 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
 
       {block.type === "paragraph" && (
         <Textarea 
-          value={block.content.text} 
+          value={block.content?.text || ""} 
           onChange={(e) => onChange({ content: { ...block.content, text: e.target.value } })} 
           className="border-none px-0 focus-visible:ring-0 min-h-[60px] resize-none bg-transparent text-sm"
           placeholder="Start typing your story..."
@@ -691,7 +726,7 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
 
       {block.type === "image" && (
         <CloudinaryUpload 
-          value={block.content.url} 
+          value={block.content?.url || ""} 
           onUpload={(url) => onChange({ content: { ...block.content, url } })} 
           onRemove={() => onChange({ content: { ...block.content, url: "" } })} 
         />
@@ -724,7 +759,7 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
               collapsible 
               className={cn("w-full grid gap-4", gridColsClass)}
             >
-              {(block.content.items || []).map((item: CarouselItemData, idx: number) => (
+              {(block.content?.items || []).map((item: CarouselItemData, idx: number) => (
                 <AccordionItem key={item.id} value={item.id} className="border bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                   <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-slate-50">
                     <div className="flex items-center gap-3 overflow-hidden text-left w-full">
@@ -756,7 +791,7 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
                       <div className="space-y-2">
                         <Label className="text-[10px] font-bold uppercase tracking-tight text-slate-500">Media Upload</Label>
                         <CloudinaryUpload 
-                          value={item.image} 
+                          value={item.image || ""} 
                           onUpload={(url) => {
                             const newItems = [...block.content.items];
                             newItems[idx] = { ...newItems[idx], image: url };
@@ -845,7 +880,7 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
                   buttonText: "",
                   buttonLink: ""
                 };
-                onChange({ content: { ...block.content, items: [...(block.content.items || []), newItem] } });
+                onChange({ content: { ...block.content, items: [...(block.content?.items || []), newItem] } });
               }}
             >
               <Plus className="w-4 h-4 mr-2 group-hover:scale-125 transition-transform" /> Add New Slide
@@ -857,20 +892,20 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
       {block.type === "checked-list" && (
         <div className="space-y-4 bg-slate-50 p-3 rounded-2xl border">
           <div className="flex gap-1.5 mb-2">
-            <Button size="sm" variant={block.style.listType === "rounded" ? "default" : "outline"} className="rounded-xl h-8 text-[10px] px-3" onClick={() => onChange({ style: { ...block.style, listType: "rounded" } })}>
+            <Button size="sm" variant={block.style?.listType === "rounded" ? "default" : "outline"} className="rounded-xl h-8 text-[10px] px-3" onClick={() => onChange({ style: { ...block.style, listType: "rounded" } })}>
               <Circle className="w-3 h-3 mr-1.5" /> Rounded
             </Button>
-            <Button size="sm" variant={block.style.listType === "box" ? "default" : "outline"} className="rounded-xl h-8 text-[10px] px-3" onClick={() => onChange({ style: { ...block.style, listType: "box" } })}>
+            <Button size="sm" variant={block.style?.listType === "box" ? "default" : "outline"} className="rounded-xl h-8 text-[10px] px-3" onClick={() => onChange({ style: { ...block.style, listType: "box" } })}>
               <Square className="w-3 h-3 mr-1.5" /> Box
             </Button>
-            <Button size="sm" variant={block.style.listType === "arrow" ? "default" : "outline"} className="rounded-xl h-8 text-[10px] px-3" onClick={() => onChange({ style: { ...block.style, listType: "arrow" } })}>
+            <Button size="sm" variant={block.style?.listType === "arrow" ? "default" : "outline"} className="rounded-xl h-8 text-[10px] px-3" onClick={() => onChange({ style: { ...block.style, listType: "arrow" } })}>
               <ArrowRight className="w-3 h-3 mr-1.5" /> Arrow
             </Button>
           </div>
           <div className="space-y-2">
-            {block.content.items.map((item: string, i: number) => (
+            {(block.content?.items || []).map((item: string, i: number) => (
               <div key={i} className="flex gap-2 items-center">
-                <div className="text-primary"><ListIcon type={block.style.listType} /></div>
+                <div className="text-primary"><ListIcon type={block.style?.listType} /></div>
                 <Input 
                   value={item} 
                   onChange={(e) => {
@@ -887,7 +922,7 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
               </div>
             ))}
           </div>
-          <Button variant="outline" className="w-full border-dashed border-2 h-9 rounded-xl text-[10px] bg-white" onClick={() => onChange({ content: { ...block.content, items: [...block.content.items, "New list item"] } })}>
+          <Button variant="outline" className="w-full border-dashed border-2 h-9 rounded-xl text-[10px] bg-white" onClick={() => onChange({ content: { ...block.content, items: [...(block.content?.items || []), "New list item"] } })}>
             <Plus className="w-3.5 h-3.5 mr-2" /> Add Item to List
           </Button>
         </div>
@@ -898,7 +933,7 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
           <CardContent className="pt-4 space-y-4">
             <div className="space-y-1.5">
               <Label className="text-[10px] font-bold uppercase text-slate-500">Primary Product</Label>
-              <Select value={block.content.mainProductId} onValueChange={(val) => onChange({ content: { ...block.content, mainProductId: val } })}>
+              <Select value={block.content?.mainProductId || ""} onValueChange={(val) => onChange({ content: { ...block.content, mainProductId: val } })}>
                 <SelectTrigger className="rounded-xl h-10 text-xs bg-white"><SelectValue placeholder="Select product" /></SelectTrigger>
                 <SelectContent>
                   {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
@@ -909,15 +944,15 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
             <div className="space-y-1.5">
               <Label className="text-[10px] font-bold uppercase text-slate-500">Upsell Products (Sub-products)</Label>
               <div className="grid grid-cols-1 gap-2">
-                {products.filter(p => p.id !== block.content.mainProductId).map(p => (
+                {products.filter(p => p.id !== block.content?.mainProductId).map(p => (
                   <label key={p.id} className="flex items-center gap-3 p-2.5 bg-white rounded-xl border cursor-pointer hover:border-primary transition-colors">
                     <input 
                       type="checkbox" 
-                      checked={block.content.subProductIds.includes(p.id)}
+                      checked={block.content?.subProductIds?.includes(p.id)}
                       onChange={(e) => {
                         const newIds = e.target.checked 
-                          ? [...block.content.subProductIds, p.id]
-                          : block.content.subProductIds.filter((id: string) => id !== p.id);
+                          ? [...(block.content?.subProductIds || []), p.id]
+                          : (block.content?.subProductIds || []).filter((id: string) => id !== p.id);
                         onChange({ content: { ...block.content, subProductIds: newIds } });
                       }}
                       className="w-4 h-4 accent-primary"
@@ -936,7 +971,7 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-bold uppercase text-slate-500">Shipping Mode</Label>
-                <Select value={block.content.shippingType} onValueChange={(val) => onChange({ content: { ...block.content, shippingType: val } })}>
+                <Select value={block.content?.shippingType || "free"} onValueChange={(val) => onChange({ content: { ...block.content, shippingType: val } })}>
                   <SelectTrigger className="rounded-xl h-10 text-xs bg-white"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="free">Free Delivery</SelectItem>
@@ -944,12 +979,12 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
                   </SelectContent>
                 </Select>
               </div>
-              {block.content.shippingType === "paid" && (
+              {block.content?.shippingType === "paid" && (
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-bold uppercase text-slate-500">Flat Rate ($)</Label>
                   <Input 
                     type="number" 
-                    value={block.content.shippingCost} 
+                    value={block.content?.shippingCost || 0} 
                     onChange={(e) => onChange({ content: { ...block.content, shippingCost: Number(e.target.value) } })} 
                     className="rounded-xl h-10 text-xs bg-white"
                   />
@@ -968,12 +1003,12 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
         </div>
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label className="text-[9px] font-bold text-slate-400">Padding ({block.style.padding})</Label>
-            <Slider defaultValue={[parseInt(block.style.padding || "10")]} max={100} step={2} onValueChange={([v]) => onChange({ style: { ...block.style, padding: `${v}px` } })} />
+            <Label className="text-[9px] font-bold text-slate-400">Padding ({block.style?.padding || "10px"})</Label>
+            <Slider defaultValue={[parseInt(block.style?.padding || "10")]} max={100} step={2} onValueChange={([v]) => onChange({ style: { ...block.style, padding: `${v}px` } })} />
           </div>
           <div className="space-y-2">
-            <Label className="text-[9px] font-bold text-slate-400">Margin ({block.style.margin})</Label>
-            <Slider defaultValue={[parseInt(block.style.margin || "0")]} max={100} step={2} onValueChange={([v]) => onChange({ style: { ...block.style, margin: `${v}px` } })} />
+            <Label className="text-[9px] font-bold text-slate-400">Margin ({block.style?.margin || "0px"})</Label>
+            <Slider defaultValue={[parseInt(block.style?.margin || "0")]} max={100} step={2} onValueChange={([v]) => onChange({ style: { ...block.style, margin: `${v}px` } })} />
           </div>
         </div>
       </div>
