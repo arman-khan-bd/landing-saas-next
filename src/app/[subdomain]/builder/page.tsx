@@ -15,13 +15,14 @@ import {
   Plus, Save, Trash2, GripVertical, Image as ImageIcon, 
   Type, Layout, List, CheckCircle, CreditCard, ShoppingCart, 
   Loader2, ChevronUp, ChevronDown, Monitor, Smartphone, 
-  Square, Circle, ArrowRight
+  Square, Circle, ArrowRight, Eye, X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Slider } from "@/components/ui/slider";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 type BlockType = 
   | "header" 
@@ -57,6 +58,7 @@ export default function PageBuilder() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     fetchStoreData();
@@ -72,7 +74,6 @@ export default function PageBuilder() {
         setStoreId(storeSnap.docs[0].id);
         setBlocks(data.landingPageConfig || []);
         
-        // Fetch products for the product-order-form block
         const prodQ = query(collection(db, "products"), where("storeId", "==", storeSnap.docs[0].id));
         const prodSnap = await getDocs(prodQ);
         setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -182,10 +183,13 @@ export default function PageBuilder() {
               <ShoppingCart className="w-5 h-5" /> <span className="text-xs font-bold">Checkout</span>
             </Button>
           </CardContent>
-          <div className="p-6 border-t">
+          <div className="p-6 border-t space-y-3">
             <Button className="w-full rounded-xl" onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}
-              Save Landing Page
+              Save Page
+            </Button>
+            <Button variant="outline" className="w-full rounded-xl" onClick={() => setIsPreviewOpen(true)}>
+              <Eye className="mr-2 w-4 h-4" /> Full Preview
             </Button>
           </div>
         </Card>
@@ -193,13 +197,16 @@ export default function PageBuilder() {
 
       {/* Editor Surface */}
       <div className="flex-1 space-y-4">
-        <div className="flex justify-center gap-4 bg-muted/50 p-2 rounded-full max-w-fit mx-auto mb-4">
-          <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" className="rounded-full" onClick={() => setViewMode("desktop")}>
-            <Monitor className="w-4 h-4 mr-2" /> Desktop
-          </Button>
-          <Button variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" className="rounded-full" onClick={() => setViewMode("mobile")}>
-            <Smartphone className="w-4 h-4 mr-2" /> Mobile
-          </Button>
+        <div className="flex justify-between items-center bg-muted/50 p-2 rounded-full max-w-2xl mx-auto mb-4 px-4">
+          <div className="flex gap-2">
+            <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" className="rounded-full" onClick={() => setViewMode("desktop")}>
+              <Monitor className="w-4 h-4 mr-2" /> Desktop
+            </Button>
+            <Button variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" className="rounded-full" onClick={() => setViewMode("mobile")}>
+              <Smartphone className="w-4 h-4 mr-2" /> Mobile
+            </Button>
+          </div>
+          <div className="text-xs text-muted-foreground font-bold uppercase tracking-widest hidden sm:block">Editor Mode</div>
         </div>
 
         <div className={`mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden transition-all duration-500 min-h-[600px] border-border/50 ${viewMode === "mobile" ? "max-w-[375px]" : "w-full"}`}>
@@ -248,8 +255,161 @@ export default function PageBuilder() {
           </div>
         </div>
       </div>
+
+      {/* Full Preview Modal */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 rounded-3xl overflow-hidden bg-background">
+          <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between p-4 border-b bg-white">
+              <div className="flex items-center gap-4">
+                <DialogTitle className="text-xl font-headline font-bold">Landing Page Preview</DialogTitle>
+                <div className="flex gap-2 ml-4">
+                  <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("desktop")}>Desktop</Button>
+                  <Button variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("mobile")}>Mobile</Button>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setIsPreviewOpen(false)} className="rounded-full">
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto bg-muted/10 p-4 md:p-8">
+              <div className={`mx-auto bg-white shadow-xl transition-all duration-300 min-h-full ${viewMode === "mobile" ? "max-w-[375px]" : "max-w-6xl w-full"}`}>
+                <div className="py-12">
+                  {blocks.map((block) => (
+                    <BlockRenderer key={block.id} block={block} products={products} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
+  const style = {
+    padding: block.style.padding,
+    margin: block.style.margin,
+    textAlign: block.style.textAlign as any,
+  };
+
+  switch (block.type) {
+    case "header":
+      const Tag = block.content.level || 'h2';
+      const sizes = { h1: 'text-5xl', h2: 'text-4xl', h3: 'text-2xl' };
+      return <div style={style} className="px-6"><Tag className={`${sizes[Tag as keyof typeof sizes]} font-headline font-bold mb-4`}>{block.content.text}</Tag></div>;
+    
+    case "paragraph":
+      return <div style={style} className="px-6 text-muted-foreground leading-relaxed whitespace-pre-wrap">{block.content.text}</div>;
+    
+    case "image":
+      return <div style={style} className="px-6">{block.content.url && <img src={block.content.url} className="w-full rounded-2xl shadow-lg" />}</div>;
+    
+    case "checked-list":
+      return (
+        <div style={style} className="px-6 space-y-3">
+          {block.content.items.map((item: string, i: number) => (
+            <div key={i} className="flex items-start gap-3">
+              <div className="mt-1 text-primary"><ListIcon type={block.style.listType} /></div>
+              <span className="font-medium">{item}</span>
+            </div>
+          ))}
+        </div>
+      );
+
+    case "button":
+      return (
+        <div style={style} className="px-6">
+          <Button size="lg" className="rounded-xl px-8 h-12 font-bold shadow-lg shadow-primary/20">{block.content.text}</Button>
+        </div>
+      );
+
+    case "product-order-form":
+      const mainProd = products.find(p => p.id === block.content.mainProductId);
+      const subProds = products.filter(p => block.content.subProductIds.includes(p.id));
+      
+      return (
+        <div style={style} className="px-6">
+          <Card className="rounded-3xl shadow-xl border-primary/10 overflow-hidden">
+            <CardHeader className="bg-primary text-white p-8">
+              <CardTitle className="text-2xl font-headline font-bold">Checkout & Order</CardTitle>
+              <CardDescription className="text-white/80">Complete your purchase in seconds.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+              {mainProd && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-4 bg-primary/5 rounded-2xl border border-primary/20">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-xl bg-muted overflow-hidden">
+                        <img src={mainProd.featuredImage} className="w-full h-full object-cover" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold">{mainProd.name}</h4>
+                        <p className="text-primary font-bold">${mainProd.currentPrice}</p>
+                      </div>
+                    </div>
+                    <CheckCircle className="text-primary w-6 h-6" />
+                  </div>
+
+                  {subProds.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest px-1">Limited Time Extras</p>
+                      <div className="grid gap-2">
+                        {subProds.map(p => (
+                          <div key={p.id} className="flex justify-between items-center p-4 bg-muted/30 rounded-2xl border">
+                            <div className="flex items-center gap-3">
+                              <ShoppingCart className="w-4 h-4 text-muted-foreground" />
+                              <span className="font-medium">{p.name}</span>
+                            </div>
+                            <span className="font-bold text-sm">+${p.currentPrice}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                <div className="space-y-4">
+                  <h4 className="font-bold text-lg">Shipping Information</h4>
+                  <div className="space-y-2">
+                    <Input placeholder="Full Name" className="rounded-xl h-12" />
+                    <Input placeholder="Phone Number" className="rounded-xl h-12" />
+                    <Textarea placeholder="Full Address" className="rounded-xl min-h-[100px]" />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h4 className="font-bold text-lg">Order Summary</h4>
+                  <div className="bg-muted/30 p-6 rounded-3xl space-y-4 border">
+                    <div className="flex justify-between text-sm">
+                      <span>Subtotal</span>
+                      <span>${mainProd?.currentPrice || 0}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Shipping ({block.content.shippingType})</span>
+                      <span>{block.content.shippingType === 'free' ? 'FREE' : `$${block.content.shippingCost}`}</span>
+                    </div>
+                    <div className="flex justify-between pt-4 border-t font-bold text-xl text-primary">
+                      <span>Total</span>
+                      <span>${(mainProd?.currentPrice || 0) + (block.content.shippingType === 'paid' ? block.content.shippingCost : 0)}</span>
+                    </div>
+                  </div>
+                  <Button className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20">
+                    Place Order Now
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+
+    default:
+      return null;
+  }
 }
 
 function BlockSettingsEditor({ block, products, onChange }: { block: Block, products: any[], onChange: (updates: Partial<Block>) => void }) {
