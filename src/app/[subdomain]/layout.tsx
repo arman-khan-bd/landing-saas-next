@@ -1,26 +1,27 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
-import { auth, db } from "@/lib/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   const { subdomain } = useParams();
+  const auth = useAuth();
+  const firestore = useFirestore();
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         await verifyStoreAccess(user.uid);
@@ -29,13 +30,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       }
     });
     return () => unsubscribe();
-  }, [subdomain, router]);
+  }, [subdomain, router, auth]);
 
   const verifyStoreAccess = async (uid: string) => {
+    if (!firestore) return;
     setLoading(true);
     try {
       const q = query(
-        collection(db, "stores"),
+        collection(firestore, "stores"),
         where("subdomain", "==", subdomain),
         where("ownerId", "==", uid)
       );
@@ -166,7 +168,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             </div>
             <div className="flex items-center gap-4">
               <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold">
-                {auth.currentUser?.email?.[0].toUpperCase()}
+                {auth?.currentUser?.email?.[0].toUpperCase()}
               </div>
             </div>
           </header>
