@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,10 +6,12 @@ import { useParams, useRouter, usePathname } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, LogOut } from "lucide-react";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
+import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   const { subdomain } = useParams();
@@ -58,10 +61,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  const navItems = [
-    { title: "Dashboard", icon: LayoutDashboard, href: `/${subdomain}` },
+  const catalogItems = [
     { title: "Products", icon: ShoppingBag, href: `/${subdomain}/products` },
-    { title: "Settings", icon: Settings, href: `/${subdomain}/settings` },
+    { title: "Add Product", icon: PlusCircle, href: `/${subdomain}/products/new` },
+    { title: "Categories", icon: Layers, href: `/${subdomain}/categories` },
+    { title: "Sub Categories", icon: Bookmark, href: `/${subdomain}/sub-categories` },
+    { title: "Brands", icon: Store, href: `/${subdomain}/brands` },
+    { title: "Taxes", icon: Percent, href: `/${subdomain}/taxes` },
+    { title: "Tags", icon: Tags, href: `/${subdomain}/tags` },
   ];
 
   return (
@@ -79,18 +86,54 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               </div>
             </div>
           </SidebarHeader>
-          <SidebarContent className="p-4">
+          <SidebarContent className="p-4 space-y-4">
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.href} className="rounded-xl h-11 px-4">
-                    <Link href={item.href} className="flex items-center gap-3">
-                      <item.icon className={`w-5 h-5 ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <span className="font-medium">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === `/${subdomain}`} className="rounded-xl h-11 px-4">
+                  <Link href={`/${subdomain}`} className="flex items-center gap-3">
+                    <LayoutDashboard className={`w-5 h-5 ${pathname === `/${subdomain}` ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <span className="font-medium">Overview</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarGroup>
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
+                    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Catalog</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="mt-2">
+                      {catalogItems.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild isActive={pathname === item.href} className="rounded-xl h-10 px-4">
+                            <Link href={item.href} className="flex items-center gap-3">
+                              <item.icon className={`w-4 h-4 ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <span className="text-sm font-medium">{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === `/${subdomain}/settings`} className="rounded-xl h-11 px-4">
+                  <Link href={`/${subdomain}/settings`} className="flex items-center gap-3">
+                    <Settings className={`w-5 h-5 ${pathname === `/${subdomain}/settings` ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <span className="font-medium">Store Settings</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
           <div className="mt-auto p-4 border-t border-border/50">
@@ -107,7 +150,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center gap-4">
               <SidebarTrigger className="md:hidden" />
               <h2 className="text-xl font-headline font-bold text-foreground capitalize">
-                {pathname.split("/").pop() === subdomain ? "Overview" : pathname.split("/").pop()}
+                {pathname.split("/").pop() === subdomain ? "Overview" : pathname.split("/").pop()?.replace('-', ' ')}
               </h2>
             </div>
             <div className="flex items-center gap-4">
@@ -124,5 +167,3 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     </SidebarProvider>
   );
 }
-
-import { Button } from "@/components/ui/button";

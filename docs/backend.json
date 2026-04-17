@@ -104,12 +104,6 @@
             "type": "string"
           }
         },
-        "metaKeywords": {
-          "type": "string"
-        },
-        "metaDescription": {
-          "type": "string"
-        },
         "currentPrice": {
           "type": "number"
         },
@@ -120,9 +114,6 @@
           "type": "string"
         },
         "subCategory": {
-          "type": "string"
-        },
-        "childCategory": {
           "type": "string"
         },
         "brand": {
@@ -154,6 +145,71 @@
         "totalInStock",
         "createdAt"
       ]
+    },
+    "Category": {
+      "title": "Category",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "storeId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["storeId", "ownerId", "name", "slug", "createdAt"]
+    },
+    "SubCategory": {
+      "title": "SubCategory",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "storeId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["storeId", "ownerId", "categoryId", "name", "slug", "createdAt"]
+    },
+    "Brand": {
+      "title": "Brand",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "storeId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "logo": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["storeId", "ownerId", "name", "createdAt"]
+    },
+    "Tax": {
+      "title": "Tax",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "storeId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "percentage": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["storeId", "ownerId", "name", "percentage", "createdAt"]
+    },
+    "Tag": {
+      "title": "Tag",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "storeId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["storeId", "ownerId", "name", "createdAt"]
     }
   },
   "auth": {
@@ -173,6 +229,26 @@
     "/products/{productId}": {
       "schema": "Product",
       "description": "Products across all stores."
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Store categories."
+    },
+    "/sub-categories/{subCategoryId}": {
+      "schema": "SubCategory",
+      "description": "Store sub-categories."
+    },
+    "/brands/{brandId}": {
+      "schema": "Brand",
+      "description": "Product brands."
+    },
+    "/taxes/{taxId}": {
+      "schema": "Tax",
+      "description": "Tax settings."
+    },
+    "/tags/{tagId}": {
+      "schema": "Tag",
+      "description": "Global product tags."
     }
   }
 }
