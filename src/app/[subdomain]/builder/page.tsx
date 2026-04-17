@@ -15,13 +15,14 @@ import {
   Plus, Save, Trash2, GripVertical, Image as ImageIcon, 
   Type, Layout, List, CheckCircle, CreditCard, ShoppingCart, 
   Loader2, ChevronUp, ChevronDown, Monitor, Smartphone, 
-  Square, Circle, ArrowRight, Eye, X, Columns
+  Square, Circle, ArrowRight, Eye, X, Columns, Settings2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Slider } from "@/components/ui/slider";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 type BlockType = 
   | "header" 
@@ -35,6 +36,15 @@ type BlockType =
   | "product-order-form"
   | "row";
 
+interface CarouselItemData {
+  id: string;
+  image?: string;
+  title?: string;
+  subtitle?: string;
+  buttonText?: string;
+  buttonLink?: string;
+}
+
 interface Block {
   id: string;
   type: BlockType;
@@ -47,6 +57,7 @@ interface Block {
     listType?: "rounded" | "box" | "arrow";
     backgroundColor?: string;
     textColor?: string;
+    desktopColumns?: number;
   };
   children?: Block[];
 }
@@ -93,7 +104,14 @@ export default function PageBuilder() {
     id: Math.random().toString(36).substr(2, 9),
     type,
     content: getInitialContent(type),
-    style: { padding: "20px", margin: "0px", textAlign: "left", columns: 2, listType: "rounded" },
+    style: { 
+      padding: "20px", 
+      margin: "0px", 
+      textAlign: "left", 
+      columns: 2, 
+      listType: "rounded",
+      desktopColumns: type === "carousel" ? 3 : undefined
+    },
     children: type === "row" ? [] : undefined
   });
 
@@ -105,7 +123,7 @@ export default function PageBuilder() {
       case "accordion": return { items: [{ title: "Item 1", content: "Content 1" }] };
       case "button": return { text: "Click Here", link: "#" };
       case "link": return { text: "Learn More", link: "#" };
-      case "carousel": return { images: [] };
+      case "carousel": return { items: [] as CarouselItemData[] };
       case "checked-list": return { items: ["Item 1", "Item 2"] };
       case "product-order-form": return { mainProductId: "", subProductIds: [], shippingType: "free", shippingCost: 0 };
       case "row": return { columns: 2 };
@@ -192,7 +210,7 @@ export default function PageBuilder() {
   return (
     <div className="flex flex-col h-full max-w-6xl mx-auto space-y-4">
       {/* Top Header Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-3 rounded-2xl border border-border/50 shadow-sm gap-3">
+      <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-3 rounded-2xl border border-border/50 shadow-sm gap-3 sticky top-0 z-50">
         <div className="flex gap-2 bg-muted/50 p-1 rounded-full">
           <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" className="rounded-full h-8" onClick={() => setViewMode("desktop")}>
             <Monitor className="w-4 h-4 mr-2" /> Desktop
@@ -226,9 +244,9 @@ export default function PageBuilder() {
             <div className="w-8" />
           </div>
 
-          <div className="flex-1 p-4 md:p-6 space-y-4 overflow-y-auto">
+          <div className="flex-1 p-3 md:p-4 space-y-2 overflow-y-auto">
             {blocks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed rounded-3xl opacity-30 gap-4">
+              <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-3xl opacity-30 gap-4">
                 <Layout className="w-12 h-12" />
                 <p className="font-headline font-bold">Your canvas is empty</p>
                 <Button variant="secondary" className="rounded-xl" onClick={() => { setActiveParentId(null); setIsAddDialogOpen(true); }}>
@@ -253,8 +271,8 @@ export default function PageBuilder() {
                   />
                 ))}
                 
-                <div className="flex justify-center pt-4 border-t">
-                  <Button variant="outline" className="rounded-full border-dashed border-2 h-12 px-6 group hover:border-primary transition-all" onClick={() => { setActiveParentId(null); setIsAddDialogOpen(true); }}>
+                <div className="flex justify-center pt-2 border-t">
+                  <Button variant="outline" className="rounded-full border-dashed border-2 h-10 px-6 group hover:border-primary transition-all" onClick={() => { setActiveParentId(null); setIsAddDialogOpen(true); }}>
                     <Plus className="mr-2 w-4 h-4 group-hover:scale-110 transition-transform" /> Add New Section
                   </Button>
                 </div>
@@ -309,15 +327,17 @@ export default function PageBuilder() {
             </Button>
           </div>
           
-          <div className="flex-1 overflow-y-auto bg-muted/10 p-4 md:p-12 scroll-smooth">
-            <div className={`mx-auto bg-white shadow-2xl transition-all duration-300 min-h-full overflow-hidden ${viewMode === "mobile" ? "max-w-[375px] rounded-[40px] border-[8px] border-slate-900" : "max-w-6xl w-full rounded-3xl"}`}>
-              <div className="py-8">
-                {blocks.map((block) => (
-                  <BlockRenderer key={block.id} block={block} products={products} />
-                ))}
+          <ScrollArea className="flex-1 bg-muted/10">
+            <div className="p-4 md:p-12 min-h-full">
+              <div className={`mx-auto bg-white shadow-2xl transition-all duration-300 min-h-full overflow-hidden ${viewMode === "mobile" ? "max-w-[375px] rounded-[40px] border-[8px] border-slate-900" : "max-w-6xl w-full rounded-3xl"}`}>
+                <div className="py-8">
+                  {blocks.map((block) => (
+                    <BlockRenderer key={block.id} block={block} products={products} />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>
@@ -339,17 +359,17 @@ function ComponentSelectButton({ icon: Icon, label, onClick, isPrimary = false }
 
 function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove, onOpenAddDialog }: any) {
   return (
-    <div className="group relative border-2 border-transparent hover:border-primary/20 rounded-2xl transition-all bg-muted/5 p-2 mb-2">
+    <div className="group relative border-2 border-transparent hover:border-primary/20 rounded-2xl transition-all bg-muted/5 p-1 mb-1">
       {/* Block Toolbar */}
-      <div className="absolute -left-10 top-0 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button variant="outline" size="icon" className="h-7 w-7 rounded-full bg-white border-border/50 shadow-sm" onClick={() => onMove(block.id, "up")}>
-          <ChevronUp className="w-3.5 h-3.5" />
+      <div className="absolute -left-8 top-0 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        <Button variant="outline" size="icon" className="h-6 w-6 rounded-full bg-white border-border/50 shadow-sm" onClick={() => onMove(block.id, "up")}>
+          <ChevronUp className="w-3 h-3" />
         </Button>
-        <Button variant="outline" size="icon" className="h-7 w-7 rounded-full bg-white border-border/50 shadow-sm" onClick={() => onMove(block.id, "down")}>
-          <ChevronDown className="w-3.5 h-3.5" />
+        <Button variant="outline" size="icon" className="h-6 w-6 rounded-full bg-white border-border/50 shadow-sm" onClick={() => onMove(block.id, "down")}>
+          <ChevronDown className="w-3 h-3" />
         </Button>
-        <Button variant="destructive" size="icon" className="h-7 w-7 rounded-full shadow-lg" onClick={() => onRemove(block.id)}>
-          <Trash2 className="w-3.5 h-3.5" />
+        <Button variant="destructive" size="icon" className="h-6 w-6 rounded-full shadow-lg" onClick={() => onRemove(block.id)}>
+          <Trash2 className="w-3 h-3" />
         </Button>
       </div>
 
@@ -361,14 +381,14 @@ function BlockEditorWrapper({ block, index, products, onUpdate, onRemove, onMove
         />
         
         {block.type === "row" && (
-          <div className="mt-4 pl-4 border-l-2 border-primary/20 space-y-3 bg-white/50 rounded-r-2xl p-3">
+          <div className="mt-2 pl-3 border-l-2 border-primary/20 space-y-2 bg-white/50 rounded-r-2xl p-2">
             <div className="flex items-center justify-between">
               <span className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">Row Children</span>
-              <Button size="sm" variant="ghost" className="h-6 text-[10px] rounded-full hover:bg-primary/10 text-primary" onClick={() => onOpenAddDialog(block.id)}>
-                <Plus className="w-3 h-3 mr-1" /> Add to Row
+              <Button size="sm" variant="ghost" className="h-5 text-[10px] rounded-full hover:bg-primary/10 text-primary" onClick={() => onOpenAddDialog(block.id)}>
+                <Plus className="w-2.5 h-2.5 mr-1" /> Add to Row
               </Button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {block.children?.map((child: any, idx: number) => (
                 <BlockEditorWrapper 
                   key={child.id} 
@@ -437,6 +457,40 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
       return (
         <div style={style} className="px-6">
           <Button size="lg" className="rounded-xl px-8 h-12 font-bold shadow-lg shadow-primary/20">{block.content.text}</Button>
+        </div>
+      );
+
+    case "carousel":
+      const items = block.content.items || [];
+      const desktopCols = block.style.desktopColumns || 3;
+      return (
+        <div style={style} className="px-6">
+          <Carousel className="w-full">
+            <CarouselContent>
+              {items.map((item: CarouselItemData) => (
+                <CarouselItem key={item.id} className={`basis-full md:basis-1/${desktopCols}`}>
+                  <Card className="rounded-2xl border-none shadow-md overflow-hidden h-full flex flex-col">
+                    {item.image && <img src={item.image} className="w-full aspect-video object-cover" />}
+                    <div className="p-4 space-y-2 flex-1 flex flex-col">
+                      {item.title && <h4 className="font-headline font-bold text-lg">{item.title}</h4>}
+                      {item.subtitle && <p className="text-sm text-muted-foreground leading-snug">{item.subtitle}</p>}
+                      {item.buttonText && (
+                        <div className="mt-auto pt-4">
+                          <Button size="sm" className="w-full rounded-lg">{item.buttonText}</Button>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            {items.length > 1 && (
+              <>
+                <CarouselPrevious className="-left-4 bg-white" />
+                <CarouselNext className="-right-4 bg-white" />
+              </>
+            )}
+          </Carousel>
         </div>
       );
 
@@ -528,20 +582,20 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
 
 function BlockSettingsEditor({ block, products, onChange }: any) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="bg-primary/10 text-primary p-1.5 rounded-lg">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-1.5">
+          <div className="bg-primary/10 text-primary p-1 rounded-lg">
             {getBlockIcon(block.type)}
           </div>
-          <span className="font-headline font-bold uppercase text-[9px] tracking-widest">{block.type}</span>
+          <span className="font-headline font-bold uppercase text-[8px] tracking-widest">{block.type}</span>
         </div>
         {block.type === "row" && (
           <Select 
             value={String(block.content.columns)} 
             onValueChange={(val) => onChange({ content: { ...block.content, columns: Number(val) } })}
           >
-            <SelectTrigger className="w-28 h-7 text-[10px] rounded-lg">
+            <SelectTrigger className="w-24 h-6 text-[9px] rounded-lg">
               <SelectValue placeholder="Cols" />
             </SelectTrigger>
             <SelectContent>
@@ -555,15 +609,15 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
       </div>
 
       {block.type === "header" && (
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Input 
             value={block.content.text} 
             onChange={(e) => onChange({ content: { ...block.content, text: e.target.value } })} 
-            className="text-xl font-bold font-headline border-none px-0 focus-visible:ring-0 bg-transparent h-auto"
+            className="text-lg font-bold font-headline border-none px-0 focus-visible:ring-0 bg-transparent h-auto"
           />
-          <div className="flex gap-1.5">
+          <div className="flex gap-1">
             {["h1", "h2", "h3"].map(level => (
-              <Button key={level} size="sm" variant={block.content.level === level ? "default" : "outline"} className="rounded-lg h-7 text-[10px]" onClick={() => onChange({ content: { ...block.content, level } })}>
+              <Button key={level} size="sm" variant={block.content.level === level ? "default" : "outline"} className="rounded-lg h-6 text-[9px]" onClick={() => onChange({ content: { ...block.content, level } })}>
                 {level.toUpperCase()}
               </Button>
             ))}
@@ -575,7 +629,7 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
         <Textarea 
           value={block.content.text} 
           onChange={(e) => onChange({ content: { ...block.content, text: e.target.value } })} 
-          className="border-none px-0 focus-visible:ring-0 min-h-[80px] resize-none bg-transparent"
+          className="border-none px-0 focus-visible:ring-0 min-h-[60px] resize-none bg-transparent text-sm"
         />
       )}
 
@@ -585,6 +639,112 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
           onUpload={(url) => onChange({ content: { ...block.content, url } })} 
           onRemove={() => onChange({ content: { ...block.content, url: "" } })} 
         />
+      )}
+
+      {block.type === "carousel" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <Label className="text-[10px] uppercase tracking-wider font-bold">Desktop Layout</Label>
+            <Select 
+              value={String(block.style.desktopColumns || 3)} 
+              onValueChange={(val) => onChange({ style: { ...block.style, desktopColumns: Number(val) } })}
+            >
+              <SelectTrigger className="w-28 h-8 text-xs rounded-lg">
+                <SelectValue placeholder="Cards per row" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 Card</SelectItem>
+                <SelectItem value="2">2 Cards</SelectItem>
+                <SelectItem value="3">3 Cards</SelectItem>
+                <SelectItem value="4">4 Cards</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] uppercase tracking-wider font-bold">Carousel Items</Label>
+            <div className="grid gap-2">
+              {(block.content.items || []).map((item: CarouselItemData, idx: number) => (
+                <div key={item.id} className="p-3 bg-white rounded-xl border border-border/50 space-y-3 shadow-sm group/item">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-muted-foreground">Item #{idx + 1}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => {
+                      const newItems = block.content.items.filter((i: any) => i.id !== item.id);
+                      onChange({ content: { ...block.content, items: newItems } });
+                    }}><Trash2 className="w-3 h-3" /></Button>
+                  </div>
+                  <div className="grid gap-2">
+                    <CloudinaryUpload 
+                      value={item.image} 
+                      onUpload={(url) => {
+                        const newItems = [...block.content.items];
+                        newItems[idx] = { ...newItems[idx], image: url };
+                        onChange({ content: { ...block.content, items: newItems } });
+                      }}
+                      onRemove={() => {
+                        const newItems = [...block.content.items];
+                        newItems[idx] = { ...newItems[idx], image: "" };
+                        onChange({ content: { ...block.content, items: newItems } });
+                      }}
+                    />
+                    <Input 
+                      placeholder="Title (Optional)" 
+                      value={item.title || ""} 
+                      className="h-8 text-xs rounded-lg"
+                      onChange={(e) => {
+                        const newItems = [...block.content.items];
+                        newItems[idx] = { ...newItems[idx], title: e.target.value };
+                        onChange({ content: { ...block.content, items: newItems } });
+                      }}
+                    />
+                    <Textarea 
+                      placeholder="Subtitle (Optional)" 
+                      value={item.subtitle || ""} 
+                      className="text-xs rounded-lg min-h-[50px]"
+                      onChange={(e) => {
+                        const newItems = [...block.content.items];
+                        newItems[idx] = { ...newItems[idx], subtitle: e.target.value };
+                        onChange({ content: { ...block.content, items: newItems } });
+                      }}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input 
+                        placeholder="Btn Text" 
+                        value={item.buttonText || ""} 
+                        className="h-8 text-xs rounded-lg"
+                        onChange={(e) => {
+                          const newItems = [...block.content.items];
+                          newItems[idx] = { ...newItems[idx], buttonText: e.target.value };
+                          onChange({ content: { ...block.content, items: newItems } });
+                        }}
+                      />
+                      <Input 
+                        placeholder="Btn Link" 
+                        value={item.buttonLink || ""} 
+                        className="h-8 text-xs rounded-lg"
+                        onChange={(e) => {
+                          const newItems = [...block.content.items];
+                          newItems[idx] = { ...newItems[idx], buttonLink: e.target.value };
+                          onChange({ content: { ...block.content, items: newItems } });
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button 
+                variant="outline" 
+                className="w-full h-10 border-dashed border-2 rounded-xl text-xs hover:bg-primary/5 hover:border-primary transition-all"
+                onClick={() => {
+                  const newItem = { id: Math.random().toString(36).substr(2, 9), title: "New Item" };
+                  onChange({ content: { ...block.content, items: [...(block.content.items || []), newItem] } });
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" /> Add Carousel Card
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {block.type === "checked-list" && (
@@ -687,19 +847,19 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
       )}
 
       {/* Spacing Controls */}
-      <div className="pt-3 border-t mt-4 space-y-3 opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="flex items-center justify-between text-[9px] text-muted-foreground font-bold uppercase tracking-wider">
+      <div className="pt-2 border-t mt-2 space-y-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center justify-between text-[8px] text-muted-foreground font-bold uppercase tracking-wider">
           <span>Block Styling</span>
-          <GripVertical className="w-3 h-3" />
+          <Settings2 className="w-3 h-3" />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <Label className="text-[9px]">Padding ({block.style.padding})</Label>
-            <Slider defaultValue={[parseInt(block.style.padding || "20")]} max={100} step={4} onValueChange={([v]) => onChange({ style: { ...block.style, padding: `${v}px` } })} />
+            <Label className="text-[8px]">Padding ({block.style.padding})</Label>
+            <Slider defaultValue={[parseInt(block.style.padding || "20")]} max={80} step={4} onValueChange={([v]) => onChange({ style: { ...block.style, padding: `${v}px` } })} />
           </div>
           <div className="space-y-1">
-            <Label className="text-[9px]">Margin ({block.style.margin})</Label>
-            <Slider defaultValue={[parseInt(block.style.margin || "0")]} max={100} step={4} onValueChange={([v]) => onChange({ style: { ...block.style, margin: `${v}px` } })} />
+            <Label className="text-[8px]">Margin ({block.style.margin})</Label>
+            <Slider defaultValue={[parseInt(block.style.margin || "0")]} max={80} step={4} onValueChange={([v]) => onChange({ style: { ...block.style, margin: `${v}px` } })} />
           </div>
         </div>
       </div>
@@ -709,23 +869,23 @@ function BlockSettingsEditor({ block, products, onChange }: any) {
 
 function getBlockIcon(type: BlockType) {
   switch (type) {
-    case "header": return <Type className="w-3.5 h-3.5" />;
-    case "paragraph": return <List className="w-3.5 h-3.5" />;
-    case "image": return <ImageIcon className="w-3.5 h-3.5" />;
-    case "carousel": return <Layout className="w-3.5 h-3.5" />;
-    case "accordion": return <ChevronDown className="w-3.5 h-3.5" />;
-    case "checked-list": return <CheckCircle className="w-3.5 h-3.5" />;
-    case "product-order-form": return <ShoppingCart className="w-3.5 h-3.5" />;
-    case "row": return <Columns className="w-3.5 h-3.5" />;
-    default: return <Plus className="w-3.5 h-3.5" />;
+    case "header": return <Type className="w-3 h-3" />;
+    case "paragraph": return <List className="w-3 h-3" />;
+    case "image": return <ImageIcon className="w-3 h-3" />;
+    case "carousel": return <Layout className="w-3 h-3" />;
+    case "accordion": return <ChevronDown className="w-3 h-3" />;
+    case "checked-list": return <CheckCircle className="w-3 h-3" />;
+    case "product-order-form": return <ShoppingCart className="w-3 h-3" />;
+    case "row": return <Columns className="w-3 h-3" />;
+    default: return <Plus className="w-3 h-3" />;
   }
 }
 
 function ListIcon({ type }: { type?: string }) {
   switch (type) {
-    case "rounded": return <Circle className="w-3.5 h-3.5 fill-current" />;
-    case "box": return <Square className="w-3.5 h-3.5 fill-current" />;
-    case "arrow": return <ArrowRight className="w-3.5 h-3.5" />;
-    default: return <CheckCircle className="w-3.5 h-3.5" />;
+    case "rounded": return <Circle className="w-3 h-3 fill-current" />;
+    case "box": return <Square className="w-3 h-3 fill-current" />;
+    case "arrow": return <ArrowRight className="w-3 h-3" />;
+    default: return <CheckCircle className="w-3 h-3" />;
   }
 }
