@@ -256,21 +256,21 @@ export default function PageBuilder() {
     <SidebarProvider>
       <div className="flex h-screen w-full bg-slate-50/50 overflow-hidden text-slate-800 select-none">
         
-        {/* --- SHADCN EDITOR SIDEBAR --- */}
-        <Sidebar collapsible="offcanvas" className="border-r border-slate-200 bg-white shadow-2xl">
-          <SidebarHeader className="p-6 border-b border-slate-100 bg-slate-50/50">
+        {/* --- BRANDED SIDEBAR --- */}
+        <Sidebar collapsible="offcanvas" className="border-r-0 bg-primary text-primary-foreground shadow-2xl">
+          <SidebarHeader className="p-6 border-b border-white/10 bg-black/10">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-                  <Sparkles className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                  <Sparkles className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <span className="block font-headline font-bold text-slate-900 text-sm tracking-tight">Designer Pro</span>
-                  <span className="text-[10px] text-primary font-bold uppercase tracking-widest mt-0.5 block">iHut System</span>
+                  <span className="block font-headline font-bold text-white text-sm tracking-tight">Designer Pro</span>
+                  <span className="text-[10px] text-white/60 font-bold uppercase tracking-widest mt-0.5 block">iHut System</span>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => router.push(`/${subdomain}/builder`)} className="rounded-full">
-                <ArrowLeft className="w-5 h-5 text-slate-400" />
+              <Button variant="ghost" size="icon" onClick={() => router.push(`/${subdomain}/builder`)} className="rounded-full text-white/50 hover:text-white hover:bg-white/10">
+                <ArrowLeft className="w-5 h-5" />
               </Button>
             </div>
           </SidebarHeader>
@@ -278,22 +278,22 @@ export default function PageBuilder() {
           <SidebarContent className="p-0">
             {selectedBlock ? (
               <div className="flex flex-col h-full">
-                <div className="px-6 py-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div className="px-6 py-5 bg-black/20 border-b border-white/10 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-xl text-primary font-bold">
+                    <div className="p-2 bg-white/10 rounded-xl text-white font-bold">
                       {getBlockIcon(selectedBlock.type)}
                     </div>
-                    <span className="font-headline font-extrabold text-[11px] uppercase tracking-tighter">Editing {selectedBlock.type}</span>
+                    <span className="font-headline font-extrabold text-[11px] uppercase tracking-tighter text-white">Editing {selectedBlock.type}</span>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-destructive" onClick={() => removeBlock(selectedBlock.id)}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-white/50 hover:text-red-400 hover:bg-red-400/10" onClick={() => removeBlock(selectedBlock.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
 
                 <Tabs value={sidebarTab} onValueChange={(v: any) => setSidebarTab(v)} className="flex-1 overflow-hidden flex flex-col">
-                  <TabsList className="w-full bg-white border-b border-slate-100 rounded-none h-12 p-0">
-                    <TabsTrigger value="edit" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent font-bold text-[10px] uppercase tracking-widest h-full">Content</TabsTrigger>
-                    <TabsTrigger value="advanced" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent font-bold text-[10px] uppercase tracking-widest h-full">Style</TabsTrigger>
+                  <TabsList className="w-full bg-black/10 border-b border-white/10 rounded-none h-12 p-0">
+                    <TabsTrigger value="edit" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent text-white/60 data-[state=active]:text-white font-bold text-[10px] uppercase tracking-widest h-full">Content</TabsTrigger>
+                    <TabsTrigger value="advanced" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent text-white/60 data-[state=active]:text-white font-bold text-[10px] uppercase tracking-widest h-full">Style</TabsTrigger>
                   </TabsList>
 
                   <ScrollArea className="flex-1 px-6 py-8">
@@ -306,18 +306,18 @@ export default function PageBuilder() {
                     <TabsContent value="advanced" className="mt-0 space-y-8 pb-10">
                        <PropertySection label="Typography" icon={Type}>
                           <div className="space-y-6">
-                            <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl">
+                            <div className="grid grid-cols-4 gap-1 bg-black/20 p-1 rounded-xl">
                               <AlignButton active={selectedBlock.style?.textAlign === "left"} icon={AlignLeft} onClick={() => updateBlock(selectedBlock.id, { style: { textAlign: "left" } })} />
                               <AlignButton active={selectedBlock.style?.textAlign === "center"} icon={AlignCenter} onClick={() => updateBlock(selectedBlock.id, { style: { textAlign: "center" } })} />
                               <AlignButton active={selectedBlock.style?.textAlign === "right"} icon={AlignRight} onClick={() => updateBlock(selectedBlock.id, { style: { textAlign: "right" } })} />
                               <AlignButton active={selectedBlock.style?.textAlign === "justify"} icon={AlignJustify} onClick={() => updateBlock(selectedBlock.id, { style: { textAlign: "justify" } })} />
                             </div>
                             <div className="space-y-4">
-                              <div className="flex justify-between items-center text-[10px] font-bold text-primary">
+                              <div className="flex justify-between items-center text-[10px] font-bold text-white/70">
                                 <Label>Font Size</Label>
                                 <span>{selectedBlock.style?.fontSize || 16}px</span>
                               </div>
-                              <Slider value={[selectedBlock.style?.fontSize || 16]} min={8} max={100} onValueChange={([v]) => updateBlock(selectedBlock.id, { style: { fontSize: v } })} />
+                              <Slider value={[selectedBlock.style?.fontSize || 16]} min={8} max={100} onValueChange={([v]) => updateBlock(selectedBlock.id, { style: { fontSize: v } })} className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-primary" />
                             </div>
                           </div>
                        </PropertySection>
@@ -325,31 +325,31 @@ export default function PageBuilder() {
                        <PropertySection label="Aesthetics" icon={Palette}>
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label className="text-[10px] uppercase font-bold text-primary">Text</Label>
-                              <Input type="color" value={selectedBlock.style?.textColor || "#000000"} onChange={(e) => updateBlock(selectedBlock.id, { style: { textColor: e.target.value } })} className="h-10 w-full p-1 rounded-xl cursor-pointer" />
+                              <Label className="text-[10px] uppercase font-bold text-white/70">Text</Label>
+                              <Input type="color" value={selectedBlock.style?.textColor || "#000000"} onChange={(e) => updateBlock(selectedBlock.id, { style: { textColor: e.target.value } })} className="h-10 w-full p-1 rounded-xl cursor-pointer border-none bg-black/20" />
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-[10px] uppercase font-bold text-primary">Background</Label>
-                              <Input type="color" value={selectedBlock.style?.backgroundColor || "#FFFFFF"} onChange={(e) => updateBlock(selectedBlock.id, { style: { backgroundColor: e.target.value } })} className="h-10 w-full p-1 rounded-xl cursor-pointer" />
+                              <Label className="text-[10px] uppercase font-bold text-white/70">Background</Label>
+                              <Input type="color" value={selectedBlock.style?.backgroundColor || "#FFFFFF"} onChange={(e) => updateBlock(selectedBlock.id, { style: { backgroundColor: e.target.value } })} className="h-10 w-full p-1 rounded-xl cursor-pointer border-none bg-black/20" />
                             </div>
                           </div>
                        </PropertySection>
 
                        <PropertySection label="Responsive" icon={Eye}>
                          <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div className="flex items-center justify-between p-4 bg-black/10 rounded-2xl border border-white/5">
                               <div className="flex items-center gap-3">
-                                <Monitor className="w-4 h-4 text-primary" />
-                                <span className="text-xs font-bold">Hide on Desktop</span>
+                                <Monitor className="w-4 h-4 text-white/70" />
+                                <span className="text-xs font-bold text-white/90">Hide on Desktop</span>
                               </div>
-                              <Switch checked={!!selectedBlock.style?.hideDesktop} onCheckedChange={(v) => updateBlock(selectedBlock.id, { style: { hideDesktop: v } })} />
+                              <Switch checked={!!selectedBlock.style?.hideDesktop} onCheckedChange={(v) => updateBlock(selectedBlock.id, { style: { hideDesktop: v } })} className="data-[state=checked]:bg-white data-[state=checked]:[&_span]:bg-primary" />
                             </div>
-                            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div className="flex items-center justify-between p-4 bg-black/10 rounded-2xl border border-white/5">
                               <div className="flex items-center gap-3">
-                                <Smartphone className="w-4 h-4 text-primary" />
-                                <span className="text-xs font-bold">Hide on Mobile</span>
+                                <Smartphone className="w-4 h-4 text-white/70" />
+                                <span className="text-xs font-bold text-white/90">Hide on Mobile</span>
                               </div>
-                              <Switch checked={!!selectedBlock.style?.hideMobile} onCheckedChange={(v) => updateBlock(selectedBlock.id, { style: { hideMobile: v } })} />
+                              <Switch checked={!!selectedBlock.style?.hideMobile} onCheckedChange={(v) => updateBlock(selectedBlock.id, { style: { hideMobile: v } })} className="data-[state=checked]:bg-white data-[state=checked]:[&_span]:bg-primary" />
                             </div>
                          </div>
                        </PropertySection>
@@ -359,21 +359,21 @@ export default function PageBuilder() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full p-12 text-center space-y-6 opacity-30">
-                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center">
-                  <MousePointer2 className="w-10 h-10 text-slate-400 animate-bounce" />
+                <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center">
+                  <MousePointer2 className="w-10 h-10 text-white animate-pulse" />
                 </div>
                 <div>
-                  <h4 className="font-headline font-bold text-sm tracking-widest uppercase">Canvas Focus Mode</h4>
-                  <p className="text-xs text-slate-500 mt-2">Select any component on the builder to see settings here.</p>
+                  <h4 className="font-headline font-bold text-sm tracking-widest uppercase text-white">Canvas Focus Mode</h4>
+                  <p className="text-xs text-white/70 mt-2">Select any component on the builder to see settings here.</p>
                 </div>
               </div>
             )}
           </SidebarContent>
 
-          <SidebarFooter className="p-6 border-t border-slate-100 bg-slate-50/50">
-            <Button className="w-full h-14 rounded-2xl font-bold text-base shadow-xl shadow-primary/20 transition-all hover:scale-[1.02]" onClick={handleSave} disabled={saving}>
+          <SidebarFooter className="p-6 border-t border-white/10 bg-black/10">
+            <Button className="w-full h-14 rounded-2xl font-bold text-base bg-white text-primary hover:bg-white/90 transition-all hover:scale-[1.02] shadow-xl" onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="animate-spin w-5 h-5 mr-3" /> : <Save className="w-5 h-5 mr-3" />}
-              Publish Landing Page
+              Publish Page
             </Button>
           </SidebarFooter>
         </Sidebar>
@@ -382,7 +382,7 @@ export default function PageBuilder() {
         <SidebarInset className="flex flex-col h-full bg-slate-50/30">
           <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 lg:px-10 shrink-0 z-30 sticky top-0">
             <div className="flex items-center gap-6">
-              <SidebarTrigger className="bg-slate-50 border-slate-200 shadow-sm" />
+              <SidebarTrigger className="bg-primary text-white border-none shadow-lg shadow-primary/20" />
               <div className="h-6 w-px bg-slate-200 hidden md:block" />
               <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl">
                 <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("desktop")} className="rounded-lg h-9 px-4 font-bold text-[10px] uppercase tracking-wider">
@@ -475,7 +475,7 @@ export default function PageBuilder() {
         </SidebarInset>
       </div>
 
-      {/* --- PREVIEW DIALOG (Fixed Scrolling) --- */}
+      {/* --- PREVIEW DIALOG --- */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 rounded-none border-none bg-slate-50 flex flex-col overflow-hidden">
           <header className="flex h-16 items-center justify-between px-10 border-b bg-white z-50 shadow-sm shrink-0">
@@ -536,7 +536,7 @@ function WidgetGridButton({ icon: Icon, label, onClick, highlight = false }: any
 
 function AlignButton({ active, icon: Icon, onClick }: any) {
   return (
-    <Button variant="ghost" onClick={onClick} className={cn("h-10 rounded-xl px-0", active ? "bg-primary text-white shadow-lg" : "text-slate-400 hover:text-slate-900")}>
+    <Button variant="ghost" onClick={onClick} className={cn("h-10 rounded-xl px-0", active ? "bg-white text-primary shadow-lg" : "text-white/40 hover:text-white")}>
       <Icon className="w-4 h-4" />
     </Button>
   );
@@ -545,11 +545,11 @@ function AlignButton({ active, icon: Icon, onClick }: any) {
 function PropertySection({ label, icon: Icon, children }: any) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 text-primary group">
+      <div className="flex items-center gap-3 text-white group">
         <Icon className="w-4 h-4 group-hover:scale-110 transition-transform" />
         <span className="font-headline font-bold text-[10px] uppercase tracking-[0.2em]">{label}</span>
       </div>
-      <div className="bg-slate-50/80 p-6 rounded-[32px] border border-slate-200/50 space-y-6">
+      <div className="bg-black/10 p-6 rounded-[32px] border border-white/5 space-y-6">
         {children}
       </div>
     </div>
@@ -588,14 +588,14 @@ function PropertyEditor({ block, products, onChange }: any) {
       return (
         <div className="space-y-5">
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Header Text</Label>
-            <Input value={block.content?.text || ""} onChange={(e) => onChange({ content: { text: e.target.value } })} className="rounded-xl h-11" />
+            <Label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Header Text</Label>
+            <Input value={block.content?.text || ""} onChange={(e) => onChange({ content: { text: e.target.value } })} className="rounded-xl h-11 border-none bg-black/20 text-white" />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Scale</Label>
+            <Label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Scale</Label>
             <Select value={block.content?.level || "h2"} onValueChange={(v) => onChange({ content: { level: v } })}>
-              <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectTrigger className="rounded-xl h-11 border-none bg-black/20 text-white"><SelectValue /></SelectTrigger>
+              <SelectContent className="rounded-xl">
                 <SelectItem value="h1">Level 1 Prestige</SelectItem>
                 <SelectItem value="h2">Level 2 Hero</SelectItem>
                 <SelectItem value="h3">Level 3 Subtitle</SelectItem>
@@ -607,14 +607,14 @@ function PropertyEditor({ block, products, onChange }: any) {
     case "paragraph":
       return (
         <div className="space-y-2">
-          <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Narrative</Label>
-          <Textarea value={block.content?.text || ""} onChange={(e) => onChange({ content: { text: e.target.value } })} className="rounded-2xl min-h-[150px] leading-relaxed" />
+          <Label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Narrative</Label>
+          <Textarea value={block.content?.text || ""} onChange={(e) => onChange({ content: { text: e.target.value } })} className="rounded-2xl min-h-[150px] leading-relaxed border-none bg-black/20 text-white" />
         </div>
       );
     case "image":
       return (
         <div className="space-y-2">
-          <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Visual Asset</Label>
+          <Label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Visual Asset</Label>
           <CloudinaryUpload value={block.content?.url || ""} onUpload={(url) => onChange({ content: { url } })} onRemove={() => onChange({ content: { url: "" } })} />
         </div>
       );
@@ -622,29 +622,29 @@ function PropertyEditor({ block, products, onChange }: any) {
       return (
         <div className="space-y-5">
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Action Label</Label>
-            <Input value={block.content?.text || ""} onChange={(e) => onChange({ content: { text: e.target.value } })} className="rounded-xl h-11" />
+            <Label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Action Label</Label>
+            <Input value={block.content?.text || ""} onChange={(e) => onChange({ content: { text: e.target.value } })} className="rounded-xl h-11 border-none bg-black/20 text-white" />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Target URL</Label>
-            <Input value={block.content?.link || ""} onChange={(e) => onChange({ content: { link: e.target.value } })} className="rounded-xl h-11" />
+            <Label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Target URL</Label>
+            <Input value={block.content?.link || ""} onChange={(e) => onChange({ content: { link: e.target.value } })} className="rounded-xl h-11 border-none bg-black/20 text-white" />
           </div>
         </div>
       );
     case "product-order-form":
       return (
         <div className="space-y-2">
-          <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Featured Product</Label>
+          <Label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Featured Product</Label>
           <Select value={block.content?.mainProductId || ""} onValueChange={(v) => onChange({ content: { mainProductId: v } })}>
-            <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="Select Product" /></SelectTrigger>
-            <SelectContent>
+            <SelectTrigger className="rounded-xl h-11 border-none bg-black/20 text-white"><SelectValue placeholder="Select Product" /></SelectTrigger>
+            <SelectContent className="rounded-xl">
               {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       );
     default:
-      return <div className="text-[10px] text-slate-400 italic text-center py-4 uppercase font-bold tracking-widest">Widget properties unavailable</div>;
+      return <div className="text-[10px] text-white/40 italic text-center py-4 uppercase font-bold tracking-widest">Widget properties unavailable</div>;
   }
 }
 
