@@ -105,8 +105,12 @@ export default function ProductsPage() {
                   <TableRow key={product.id} className="hover:bg-muted/30">
                     <TableCell>
                       <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center border border-border overflow-hidden">
-                        {product.images && product.images[0] ? (
-                          <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                        {(product.featuredImage || (product.gallery && product.gallery[0])) ? (
+                          <img 
+                            src={product.featuredImage || product.gallery[0]} 
+                            alt={product.name} 
+                            className="w-full h-full object-cover" 
+                          />
                         ) : (
                           <Package className="w-6 h-6 text-muted-foreground/30" />
                         )}
@@ -114,12 +118,16 @@ export default function ProductsPage() {
                     </TableCell>
                     <TableCell className="font-medium text-foreground">{product.name}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.stock > 0 ? 'bg-accent/10 text-accent' : 'bg-destructive/10 text-destructive'}`}>
-                        {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.totalInStock > 0 ? 'bg-accent/10 text-accent' : 'bg-destructive/10 text-destructive'}`}>
+                        {product.totalInStock > 0 ? 'In Stock' : 'Out of Stock'}
                       </span>
                     </TableCell>
-                    <TableCell>${Number(product.price).toFixed(2)}</TableCell>
-                    <TableCell>{product.stock}</TableCell>
+                    <TableCell className="font-bold">${Number(product.currentPrice || 0).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <span className="font-mono text-xs bg-muted px-2 py-1 rounded-md">
+                        {product.totalInStock || 0} units
+                      </span>
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -127,11 +135,11 @@ export default function ProductsPage() {
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl">
-                          <DropdownMenuItem className="gap-2" onClick={() => router.push(`/${subdomain}/products/${product.id}`)}>
-                            <Edit className="w-4 h-4" /> Edit
+                        <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-border/50">
+                          <DropdownMenuItem className="gap-2 focus:bg-primary focus:text-white cursor-pointer" onClick={() => router.push(`/${subdomain}/products/${product.id}`)}>
+                            <Edit className="w-4 h-4" /> Edit Product
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDelete(product.id)}>
+                          <DropdownMenuItem className="gap-2 text-destructive focus:bg-destructive focus:text-white cursor-pointer" onClick={() => handleDelete(product.id)}>
                             <Trash2 className="w-4 h-4" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>

@@ -13,12 +13,8 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isExistingOwner(docOwnerId) {
-      return isSignedIn() && resource != null && docOwnerId == request.auth.uid;
-    }
-
-    function willBeOwner(proposedOwnerId) {
-      return isSignedIn() && proposedOwnerId == request.auth.uid;
+    function isStoreOwner(storeData) {
+      return isSignedIn() && storeData.ownerId == request.auth.uid;
     }
 
     // --- Collection Rules ---
@@ -31,45 +27,76 @@ service cloud.firestore {
     }
 
     match /stores/{storeId} {
-      allow get, list: if true;
-      allow create: if willBeOwner(request.resource.data.ownerId);
-      allow update, delete: if isExistingOwner(resource.data.ownerId);
+      // Anyone can see a store (for landing page info)
+      allow get: if true;
+      allow list: if true; 
+      
+      // Only the owner can create/update/delete
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
-    match /products/{productId} {
+    // Public collections (Anyone can read, only owner can write)
+    match /products/{id} {
       allow get, list: if true;
-      allow create: if willBeOwner(request.resource.data.ownerId);
-      allow update, delete: if isExistingOwner(resource.data.ownerId);
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /categories/{id} {
       allow get, list: if true;
-      allow create: if willBeOwner(request.resource.data.ownerId);
-      allow update, delete: if isExistingOwner(resource.data.ownerId);
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /sub-categories/{id} {
       allow get, list: if true;
-      allow create: if willBeOwner(request.resource.data.ownerId);
-      allow update, delete: if isExistingOwner(resource.data.ownerId);
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /brands/{id} {
       allow get, list: if true;
-      allow create: if willBeOwner(request.resource.data.ownerId);
-      allow update, delete: if isExistingOwner(resource.data.ownerId);
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /taxes/{id} {
       allow get, list: if true;
-      allow create: if willBeOwner(request.resource.data.ownerId);
-      allow update, delete: if isExistingOwner(resource.data.ownerId);
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /tags/{id} {
       allow get, list: if true;
-      allow create: if willBeOwner(request.resource.data.ownerId);
-      allow update, delete: if isExistingOwner(resource.data.ownerId);
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Private collections (Only store owner can access)
+    match /orders/{id} {
+      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || request.resource.data.ownerId == request.auth.uid);
+      allow create: if true; // Customers need to create orders
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /customers/{id} {
+      allow read, write: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid) 
+                                         && (request.resource == null || request.resource.data.ownerId == request.auth.uid);
+    }
+
+    match /notifications/{id} {
+      allow read, write: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid)
+                                         && (request.resource == null || request.resource.data.ownerId == request.auth.uid);
+    }
+
+    match /pages/{id} {
+      // Anyone can read pages for storefront rendering
+      allow get, list: if true;
+      // Only the owner can create
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      // Only the owner can manage existing pages
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
   }
 }

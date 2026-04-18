@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { ShoppingCart, Plus, Store, ExternalLink, LogOut, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getStoreUrl } from "@/lib/utils";
 
 export default function UserDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -101,7 +102,7 @@ export default function UserDashboard() {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <ShoppingCart className="text-white w-5 h-5" />
             </div>
-            <span className="text-xl font-headline font-bold text-primary">NexusCart Dashboard</span>
+            <span className="text-xl font-headline font-bold text-primary">iHut Dashboard</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-muted-foreground hidden sm:block">{user?.email}</span>
@@ -153,7 +154,7 @@ export default function UserDashboard() {
                       className="rounded-l-xl rounded-r-none h-12"
                     />
                     <div className="h-12 bg-muted flex items-center px-4 rounded-r-xl border border-l-0 border-input text-sm font-medium text-muted-foreground">
-                      .nexuscart.com
+                      .ihut.shop
                     </div>
                   </div>
                 </div>
@@ -183,14 +184,14 @@ export default function UserDashboard() {
                       <Store className="text-primary w-6 h-6" />
                     </div>
                     <Button variant="ghost" size="icon" className="rounded-full group-hover:bg-primary group-hover:text-white transition-colors" asChild>
-                      <a href={`http://${store.subdomain}.nexuscart.com:9002`} target="_blank" rel="noopener noreferrer">
+                      <a href={getStoreUrl(store.subdomain)} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="w-4 h-4" />
                       </a>
                     </Button>
                   </div>
                   <CardTitle className="mt-4 text-2xl font-headline font-bold">{store.name}</CardTitle>
                   <CardDescription className="text-sm font-medium text-primary">
-                    {store.subdomain}.nexuscart.com
+                    {getStoreUrl(store.subdomain).replace("https://", "").replace("http://", "")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">

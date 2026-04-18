@@ -6,7 +6,7 @@ import { useAuth, useFirestore } from "@/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2 } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -19,6 +19,8 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     if (!auth) return;
@@ -35,18 +37,27 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const verifyStoreAccess = async (uid: string) => {
     if (!firestore) return;
     setLoading(true);
+    setAccessDenied(false);
     try {
       const q = query(
         collection(firestore, "stores"),
-        where("subdomain", "==", subdomain),
-        where("ownerId", "==", uid)
+        where("subdomain", "==", subdomain)
       );
       const querySnapshot = await getDocs(q);
+      
       if (querySnapshot.empty) {
         router.push("/dashboard");
         return;
       }
-      setStore({ id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() });
+
+      const storeData = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
+      
+      // Strict Security Check: Only the owner can access administrative routes
+      if (storeData.ownerId !== uid) {
+        setAccessDenied(true);
+      } else {
+        setStore(storeData);
+      }
     } catch (error) {
       console.error(error);
       router.push("/dashboard");
@@ -57,21 +68,69 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-slate-50">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (accessDenied && isAdminPath) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+        <div className="max-w-md w-full text-center space-y-6 bg-white p-12 rounded-[40px] shadow-2xl border border-border/50">
+          <div className="w-24 h-24 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-12 h-12 text-destructive" />
+          </div>
+          <h2 className="text-3xl font-headline font-bold text-foreground">Access Denied</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            You do not have permission to manage this store. Only the authenticated owner can access this dashboard.
+          </p>
+          <div className="pt-4">
+            <Link href="/dashboard">
+              <Button className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20">
+                Back to My Dashboard
+              </Button>
+            </Link>
+          </div>
+          <p className="text-xs text-muted-foreground uppercase tracking-widest pt-4">Security ID: 403 Forbidden</p>
+        </div>
       </div>
     );
   }
 
   const catalogItems = [
     { title: "Products", icon: ShoppingBag, href: `/${subdomain}/products` },
-    { title: "Add Product", icon: PlusCircle, href: `/${subdomain}/products/new` },
     { title: "Categories", icon: Layers, href: `/${subdomain}/categories` },
     { title: "Sub Categories", icon: Bookmark, href: `/${subdomain}/sub-categories` },
     { title: "Brands", icon: Store, href: `/${subdomain}/brands` },
     { title: "Taxes", icon: Percent, href: `/${subdomain}/taxes` },
     { title: "Tags", icon: Tags, href: `/${subdomain}/tags` },
   ];
+
+  const salesItems = [
+    { title: "All Orders", icon: Receipt, href: `/${subdomain}/orders` },
+    { title: "Uncompleted", icon: AlertCircle, href: `/${subdomain}/orders/uncompleted` },
+  ];
+
+  const customerItems = [
+    { title: "All Customers", icon: Users, href: `/${subdomain}/customers` },
+    { title: "Fraud List", icon: AlertCircle, href: `/${subdomain}/customers/fraud` },
+  ];
+
+  const adminSegments = ["overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder"];
+  
+  // Custom check: Hide admin navigation when in the high-fidelity page builder editor
+  const isBuilderEditor = pathname.includes("/builder/") && pathname.split("/").length > 3;
+  
+  const isAdminPath = adminSegments.some(segment => pathname.startsWith(`/${subdomain}/${segment}`)) && !isBuilderEditor;
+
+  if (!isAdminPath) {
+    return (
+      <div className="min-h-screen bg-background">
+        {children}
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -84,32 +143,46 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               </div>
               <div className="overflow-hidden">
                 <h3 className="font-headline font-bold text-lg truncate leading-none">{store?.name}</h3>
-                <p className="text-xs text-muted-foreground truncate">{store?.subdomain}.nexuscart.com</p>
+                <p className="text-xs text-muted-foreground truncate">{store?.subdomain}.ihut.shop</p>
               </div>
             </div>
           </SidebarHeader>
           <SidebarContent className="p-4 space-y-4">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === `/${subdomain}`} className="rounded-xl h-11 px-4">
-                  <Link href={`/${subdomain}`} className="flex items-center gap-3">
-                    <LayoutDashboard className={`w-5 h-5 ${pathname === `/${subdomain}` ? 'text-primary' : 'text-muted-foreground'}`} />
+                <SidebarMenuButton asChild isActive={pathname === `/${subdomain}/overview`} className="rounded-xl h-11 px-4">
+                  <Link href={`/${subdomain}/overview`} className="flex items-center gap-3">
+                    <LayoutDashboard className={`w-5 h-5 ${pathname === `/${subdomain}/overview` ? 'text-primary' : 'text-muted-foreground'}`} />
                     <span className="font-medium">Overview</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
 
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === `/${subdomain}/builder`} className="rounded-xl h-11 px-4">
-                  <Link href={`/${subdomain}/builder`} className="flex items-center gap-3">
-                    <PenTool className={`w-5 h-5 ${pathname === `/${subdomain}/builder` ? 'text-primary' : 'text-muted-foreground'}`} />
-                    <span className="font-medium">Page Builder</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarGroup>
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
+                    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Appearance</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="mt-2">
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === `/${subdomain}/builder`} className="rounded-xl h-10 px-4">
+                          <Link href={`/${subdomain}/builder`} className="flex items-center gap-3">
+                            <PenTool className={`w-4 h-4 ${pathname === `/${subdomain}/builder` ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <span className="text-sm font-medium">Landing Page</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
 
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarGroup>
@@ -123,6 +196,60 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                   <SidebarGroupContent>
                     <SidebarMenu className="mt-2">
                       {catalogItems.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild isActive={pathname === item.href} className="rounded-xl h-10 px-4">
+                            <Link href={item.href} className="flex items-center gap-3">
+                              <item.icon className={`w-4 h-4 ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <span className="text-sm font-medium">{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarGroup>
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
+                    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Sales</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="mt-2">
+                      {salesItems.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild isActive={pathname === item.href} className="rounded-xl h-10 px-4">
+                            <Link href={item.href} className="flex items-center gap-3">
+                              <item.icon className={`w-4 h-4 ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <span className="text-sm font-medium">{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarGroup>
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
+                    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Customers</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="mt-2">
+                      {customerItems.map((item) => (
                         <SidebarMenuItem key={item.title}>
                           <SidebarMenuButton asChild isActive={pathname === item.href} className="rounded-xl h-10 px-4">
                             <Link href={item.href} className="flex items-center gap-3">
@@ -163,10 +290,18 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center gap-4">
               <SidebarTrigger className="md:hidden" />
               <h2 className="text-xl font-headline font-bold text-foreground capitalize">
-                {pathname.split("/").pop() === subdomain ? "Overview" : pathname.split("/").pop()?.replace('-', ' ')}
+                {pathname.split("/").pop() === subdomain ? "Storefront" : 
+                 pathname.endsWith("/builder") ? "Landing Page" :
+                 pathname.split("/").pop()?.replace('-', ' ')}
               </h2>
             </div>
             <div className="flex items-center gap-4">
+              <Link href={`/${subdomain}/notifications`} className="relative p-2 text-muted-foreground hover:text-primary transition-colors hover:bg-primary/5 rounded-full">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary text-[10px] font-bold text-white flex items-center justify-center rounded-full border-2 border-white">
+                  3
+                </span>
+              </Link>
               <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold">
                 {auth?.currentUser?.email?.[0].toUpperCase()}
               </div>

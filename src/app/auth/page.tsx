@@ -107,7 +107,7 @@ export default function AuthPage() {
         createdAt: serverTimestamp(),
       });
 
-      toast({ title: "Welcome to NexusCart!", description: "Your account and store have been created." });
+      toast({ title: "Welcome to iHut!", description: "Your account and store have been created." });
       router.push("/dashboard");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Signup Error", description: error.message });
@@ -137,7 +137,7 @@ export default function AuthPage() {
             <div className="mx-auto w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
               <ShoppingCart className="text-white w-7 h-7" />
             </div>
-            <CardTitle className="text-3xl font-headline font-bold">NexusCart</CardTitle>
+            <CardTitle className="text-3xl font-headline font-bold">iHut</CardTitle>
             <CardDescription className="text-white/80">Login to manage your empire.</CardDescription>
           </CardHeader>
           <CardContent className="p-8">
@@ -157,7 +157,7 @@ export default function AuthPage() {
           </CardContent>
           <CardFooter className="flex justify-center p-6 bg-muted/30 border-t">
             <button onClick={() => setIsLogin(false)} className="text-sm font-medium text-primary hover:underline">
-              New to NexusCart? Create an account
+              New to iHut? Create an account
             </button>
           </CardFooter>
         </Card>
@@ -172,7 +172,7 @@ export default function AuthPage() {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-6 h-6" />
-              <span className="font-headline font-bold text-xl">NexusCart</span>
+              <span className="font-headline font-bold text-xl">iHut</span>
             </div>
             <div className="text-xs font-medium bg-white/20 px-3 py-1 rounded-full">
               Step {step} of 3
@@ -226,7 +226,7 @@ export default function AuthPage() {
                 <div className="flex">
                   <Input id="subdomain" placeholder="myshop" value={formData.subdomain} onChange={handleInputChange} className="rounded-l-xl rounded-r-none h-12" />
                   <div className="h-12 bg-muted flex items-center px-4 rounded-r-xl border border-l-0 text-sm font-medium text-muted-foreground">
-                    .nexuscart.com
+                    .ihut.shop
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">This will be your store's web address.</p>

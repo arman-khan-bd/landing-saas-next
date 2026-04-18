@@ -14,7 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
-import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2 } from "lucide-react";
+import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { getStoreUrl } from "@/lib/utils";
 
 export default function StoreSettingsPage() {
   const { subdomain } = useParams();
@@ -93,6 +95,13 @@ export default function StoreSettingsPage() {
     try {
       await updateDoc(doc(db, "stores", storeId), settings);
       toast({ title: "Settings Updated", description: "Your store configuration has been saved." });
+      
+      if (settings.subdomain !== subdomain) {
+        toast({ title: "Subdomain Changed", description: "Redirecting to your new store address..." });
+        setTimeout(() => {
+          window.location.href = `/${settings.subdomain}/settings`;
+        }, 1500);
+      }
     } catch (error) {
       toast({ variant: "destructive", title: "Update Failed" });
     } finally {
@@ -123,7 +132,8 @@ export default function StoreSettingsPage() {
 
       <Tabs defaultValue="general" className="w-full">
         <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 h-auto p-1 bg-muted/50 rounded-2xl">
-          <TabsTrigger value="general" className="rounded-xl py-3">General</TabsTrigger>
+           <TabsTrigger value="general" className="rounded-xl py-3">General</TabsTrigger>
+          <TabsTrigger value="domains" className="rounded-xl py-3">Domains</TabsTrigger>
           <TabsTrigger value="branding" className="rounded-xl py-3">Branding</TabsTrigger>
           <TabsTrigger value="payment" className="rounded-xl py-3">Payment</TabsTrigger>
           <TabsTrigger value="shop-ui" className="rounded-xl py-3">Shop UI</TabsTrigger>
@@ -172,6 +182,61 @@ export default function StoreSettingsPage() {
                 <div className="space-y-2">
                   <Label>Google Map Embed Link</Label>
                   <Input placeholder="https://www.google.com/maps/embed?..." value={settings.googleMapEmbed} onChange={(e) => setSettings({...settings, googleMapEmbed: e.target.value})} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Domains */}
+        <TabsContent value="domains" className="mt-6">
+          <Card className="rounded-3xl border-border/50">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Globe className="text-primary" />
+                <CardTitle>Domain Settings</CardTitle>
+              </div>
+              <CardDescription>Configure your store&apos;s web address and custom domains.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-6 border rounded-2xl bg-muted/20 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold">NexusCart Subdomain</h4>
+                    <p className="text-sm text-muted-foreground">Your default store address.</p>
+                  </div>
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100">Live</Badge>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 bg-white border border-border/50 px-4 rounded-xl flex-1 text-sm font-medium text-muted-foreground">
+                    Subdomain: 
+                    <Input 
+                      className="border-none bg-transparent p-0 h-10 text-foreground font-bold focus-visible:ring-0 w-auto min-w-[100px]" 
+                      value={settings.subdomain}
+                      onChange={(e) => setSettings({...settings, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")})}
+                    />
+                  </div>
+                  <div className="p-3 bg-secondary/30 rounded-xl text-xs font-mono break-all flex items-center gap-2">
+                    <Globe className="w-3 h-3 text-secondary-foreground" />
+                    Live at: <span className="text-primary font-bold">{getStoreUrl(settings.subdomain)}</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-amber-600 flex items-center gap-2">
+                  <AlertCircle className="w-3 h-3" /> Note: Changing your subdomain will immediately update your store&apos;s URL.
+                </p>
+              </div>
+
+              <div className="p-6 border border-dashed rounded-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                   <div>
+                    <h4 className="font-bold">Custom Domain</h4>
+                    <p className="text-sm text-muted-foreground">Connect your own domain (e.g., www.yourstore.com).</p>
+                   </div>
+                   <Badge className="bg-primary/10 text-primary border-none">PRO</Badge>
+                </div>
+                <div className="flex gap-2">
+                  <Input disabled placeholder="e.g. store.mydomain.com" className="rounded-xl h-11 bg-muted/50" />
+                  <Button disabled variant="outline" className="rounded-xl px-6">Connect</Button>
                 </div>
               </div>
             </CardContent>
