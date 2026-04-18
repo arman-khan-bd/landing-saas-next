@@ -19,7 +19,7 @@ import {
   Square, Circle, ArrowRight, Eye, X, Columns, Settings2, 
   ArrowLeft, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Bold, Italic, Underline, Palette, Layers, Box, Maximize, MousePointer2,
-  Sparkles, Shield, EyeOff, MonitorOff, SmartphoneOff, Shadow
+  Star, Settings, Monitor, Smartphone
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -357,7 +357,7 @@ export default function PageBuilder() {
                       </TabsContent>
 
                       <TabsContent value="advanced" className="mt-0 space-y-6 px-1 animate-in slide-in-from-right-4 duration-300">
-                        <PropertySection label="Motion Effects" icon={Sparkles}>
+                        <PropertySection label="Motion Effects" icon={Star}>
                            <div className="space-y-3">
                               <Label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Entrance Animation</Label>
                               <Select value={selectedBlock.style?.animation || "none"} onValueChange={(v: any) => updateBlock(selectedBlock.id, { style: { animation: v } })}>
@@ -374,7 +374,7 @@ export default function PageBuilder() {
                            </div>
                         </PropertySection>
 
-                        <PropertySection label="Border & Shadow" icon={Shield}>
+                        <PropertySection label="Border & Shadow" icon={Settings}>
                            <div className="space-y-6">
                               <div className="space-y-3">
                                 <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
@@ -402,21 +402,21 @@ export default function PageBuilder() {
                            </div>
                         </PropertySection>
 
-                        <PropertySection label="Responsive" icon={EyeOff}>
+                        <PropertySection label="Responsive" icon={Eye}>
                            <div className="space-y-4">
                               <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                                 <div className="flex items-center gap-3">
-                                  <MonitorOff className="w-4 h-4 text-slate-500" />
+                                  <Monitor className="w-4 h-4 text-slate-500" />
                                   <span className="text-[11px] font-bold">Hide on Desktop</span>
                                 </div>
-                                <Switch checked={selectedBlock.style?.hideDesktop} onCheckedChange={(v) => updateBlock(selectedBlock.id, { style: { hideDesktop: v } })} />
+                                <Switch checked={!!selectedBlock.style?.hideDesktop} onCheckedChange={(v) => updateBlock(selectedBlock.id, { style: { hideDesktop: v } })} />
                               </div>
                               <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                                 <div className="flex items-center gap-3">
-                                  <SmartphoneOff className="w-4 h-4 text-slate-500" />
+                                  <Smartphone className="w-4 h-4 text-slate-500" />
                                   <span className="text-[11px] font-bold">Hide on Mobile</span>
                                 </div>
-                                <Switch checked={selectedBlock.style?.hideMobile} onCheckedChange={(v) => updateBlock(selectedBlock.id, { style: { hideMobile: v } })} />
+                                <Switch checked={!!selectedBlock.style?.hideMobile} onCheckedChange={(v) => updateBlock(selectedBlock.id, { style: { hideMobile: v } })} />
                               </div>
                            </div>
                         </PropertySection>
