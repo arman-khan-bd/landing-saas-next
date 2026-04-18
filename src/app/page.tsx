@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ShoppingCart, ShieldCheck, Zap } from "lucide-react";
+import { ArrowRight, ShoppingCart, ShieldCheck, Zap, LogIn } from "lucide-react";
 
 export default function Home() {
   return (
@@ -12,15 +12,19 @@ export default function Home() {
           </div>
           <span className="text-xl sm:text-2xl font-headline font-bold text-primary tracking-tight">NexusCart</span>
         </div>
-        <nav className="hidden md:flex gap-8 text-sm font-medium">
+        <nav className="hidden lg:flex gap-8 text-sm font-medium">
           <Link href="#features" className="hover:text-primary transition-colors">Features</Link>
           <Link href="#pricing" className="hover:text-primary transition-colors">Pricing</Link>
-          <Link href="/auth" className="hover:text-primary transition-colors">Login</Link>
         </nav>
         <div className="flex items-center gap-2">
           <Link href="/auth">
-            <Button size="sm" className="sm:hidden rounded-full px-4 h-9">Start</Button>
-            <Button size="lg" className="hidden sm:flex rounded-full">Get Started</Button>
+            <Button variant="ghost" size="sm" className="rounded-full px-4 h-9 font-bold flex items-center gap-2">
+              <LogIn className="w-4 h-4" />
+              <span>Login</span>
+            </Button>
+          </Link>
+          <Link href="/auth">
+            <Button size="sm" className="rounded-full px-4 h-9 shadow-lg shadow-primary/20">Get Started</Button>
           </Link>
         </div>
       </header>
