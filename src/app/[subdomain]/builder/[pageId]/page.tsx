@@ -660,7 +660,7 @@ function CanvasBlockWrapper({ block, products, isSelected, onSelect, onRemove, v
       onClick={(e) => { e.stopPropagation(); onSelect(); }}
       className={cn(
         "relative group/block transition-all duration-300 cursor-pointer min-h-[20px]",
-        isSelected ? "ring-2 ring-primary ring-inset z-40 bg-primary/5" : "hover:bg-primary/5",
+        isSelected ? "ring-2 ring-primary ring-offset-2 z-40 bg-primary/5 rounded-lg" : "hover:bg-primary/5",
         isHidden ? "opacity-20 blur-[0.5px] grayscale" : ""
       )}
     >
@@ -913,44 +913,63 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
     borderRadius: block.style?.borderRadius ? `${block.style.borderRadius}px` : undefined,
   };
 
+  const gridColsMap: Record<number, string> = {
+    1: "md:grid-cols-1",
+    2: "md:grid-cols-2",
+    3: "md:grid-cols-3",
+    4: "md:grid-cols-4",
+  };
+
   switch (block.type) {
     case "row":
+      const colsCount = block.content?.columns || 1;
+      const gridClass = gridColsMap[colsCount] || "md:grid-cols-1";
+
       return (
-        <div style={style} className={cn("grid gap-4 px-4 max-w-6xl mx-auto", `grid-cols-1 md:grid-cols-${block.content?.columns || 1}`)}>
-          {block.children?.map((child: any) => (
-            isBuilder ? (
-              <CanvasBlockWrapper 
-                key={child.id} 
-                block={child} 
-                products={products} 
-                viewMode={viewMode} 
-                onAddNested={onAddNested}
-                onSelect={() => onSelect(child.id)}
-                onRemove={() => onRemove(child.id)}
-              />
-            ) : (
-              <BlockRenderer key={child.id} block={child} products={products} isPreview={isPreview} viewMode={viewMode} />
-            )
-          ))}
+        <div style={style} className={cn("grid gap-6 px-4 max-w-6xl mx-auto w-full", "grid-cols-1", gridClass)}>
+          {block.children && block.children.length > 0 ? (
+            block.children.map((child: any) => (
+              isBuilder ? (
+                <CanvasBlockWrapper 
+                  key={child.id} 
+                  block={child} 
+                  products={products} 
+                  viewMode={viewMode} 
+                  onAddNested={onAddNested}
+                  onSelect={(id: string) => onSelect(id)}
+                  onRemove={(id: string) => onRemove(id)}
+                />
+              ) : (
+                <BlockRenderer key={child.id} block={child} products={products} isPreview={isPreview} viewMode={viewMode} />
+              )
+            ))
+          ) : isBuilder ? (
+            <div className="col-span-full py-12 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-3 text-slate-300">
+              <LayoutGrid className="w-8 h-8 opacity-20" />
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">Empty Grid Row ({colsCount} Columns)</p>
+            </div>
+          ) : null}
+          
           {isBuilder && (
-             <div className="col-span-full flex justify-center py-2">
+             <div className="col-span-full flex justify-center py-4 border-t border-dashed border-slate-100 mt-2">
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="sm" 
-                  className="pointer-events-auto h-8 px-4 rounded-lg bg-primary/5 text-primary border border-dashed border-primary/20 hover:bg-primary/10"
+                  className="pointer-events-auto h-9 px-6 rounded-full bg-white text-primary border-primary/20 hover:bg-primary hover:text-white transition-all shadow-sm group"
                   onClick={(e) => { e.stopPropagation(); onAddNested(block.id); }}
                 >
-                  <Plus className="w-3 h-3 mr-1.5" /> Add Component to Row
+                  <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
+                  Add to Row
                 </Button>
              </div>
           )}
         </div>
       );
     case "header":
-      const Tag = block.content?.level || 'h2';
-      const sizes: any = { h1: 'text-2xl md:text-5xl', h2: 'text-xl md:text-4xl', h3: 'text-lg md:text-2xl' };
+      const HeaderTag = block.content?.level || 'h2';
+      const headerSizes: any = { h1: 'text-2xl md:text-5xl', h2: 'text-xl md:text-4xl', h3: 'text-lg md:text-2xl' };
       return <div style={style} className={cn("px-4 w-full font-headline font-bold leading-tight")}>
-        <Tag className={sizes[Tag]}>{block.content?.text}</Tag>
+        <HeaderTag className={headerSizes[HeaderTag]}>{block.content?.text}</HeaderTag>
       </div>;
     case "paragraph":
       return <div style={style} className="px-4 w-full leading-relaxed whitespace-pre-wrap text-sm opacity-80">{block.content?.text}</div>;
@@ -963,8 +982,8 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
         <Button size="lg" className="rounded-xl px-8 h-11 font-bold uppercase tracking-widest text-[10px] shadow-md transition-all hover:scale-105">{block.content?.text}</Button>
       </div>;
     case "carousel":
-      const cols = block.style?.desktopColumns || 3;
-      const colMapping: any = {
+      const carouselCols = block.style?.desktopColumns || 3;
+      const carouselColMapping: any = {
         1: "basis-full",
         2: "basis-full md:basis-1/2",
         3: "basis-full md:basis-1/3",
@@ -975,7 +994,7 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
           <Carousel opts={{ align: "start" }} className="w-full">
             <CarouselContent>
               {(block.content?.items || []).map((item: any) => (
-                <CarouselItem key={item.id} className={cn(colMapping[cols] || "basis-full", "px-1")}>
+                <CarouselItem key={item.id} className={cn(carouselColMapping[carouselCols] || "basis-full", "px-1")}>
                   <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-100 h-full flex flex-col">
                     {item.imageUrl && <img src={item.imageUrl} className="w-full aspect-square object-cover" />}
                     {(item.title || item.subtitle || item.buttonText) && (

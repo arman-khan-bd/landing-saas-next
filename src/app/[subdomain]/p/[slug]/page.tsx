@@ -169,10 +169,19 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
     hideOnMobile ? "hidden md:block" : ""
   );
 
+  const gridColsMap: Record<number, string> = {
+    1: "md:grid-cols-1",
+    2: "md:grid-cols-2",
+    3: "md:grid-cols-3",
+    4: "md:grid-cols-4",
+  };
+
   switch (block.type) {
     case "row":
+      const colsCount = block.content?.columns || 1;
+      const gridClass = gridColsMap[colsCount] || "md:grid-cols-1";
       return (
-        <div style={style} className={cn("grid gap-6 grid-cols-1 px-6 max-w-6xl mx-auto", `md:grid-cols-${block.content?.columns || 1}`, animClass, responsiveClass)}>
+        <div style={style} className={cn("grid gap-6 px-6 max-w-6xl mx-auto", "grid-cols-1", gridClass, animClass, responsiveClass)}>
           {block.children?.map(child => (
             <BlockRenderer key={child.id} block={child} products={products} />
           ))}
