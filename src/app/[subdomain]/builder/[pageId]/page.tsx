@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -478,6 +477,10 @@ export default function PageBuilder() {
       {/* --- PREVIEW DIALOG --- */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 rounded-none border-none bg-slate-50 flex flex-col overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Page Preview</DialogTitle>
+            <DialogDescription>A high-fidelity preview of your landing page design.</DialogDescription>
+          </DialogHeader>
           <header className="flex h-16 items-center justify-between px-10 border-b bg-white z-50 shadow-sm shrink-0">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
