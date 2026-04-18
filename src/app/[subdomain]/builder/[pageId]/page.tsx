@@ -18,7 +18,8 @@ import {
   Square, Eye, X, Columns, Settings2,
   ArrowLeft, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Bold, Italic, Underline, Palette, Layers, Box, MousePointer2,
-  Star, Settings, Sparkles, Menu, PlusCircle, LayoutGrid
+  Star, Settings, Sparkles, Menu, PlusCircle, LayoutGrid,
+  MoveVertical, MoveHorizontal, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -57,8 +58,14 @@ interface Block {
   type: BlockType;
   content: any;
   style: {
-    padding?: string;
-    margin?: string;
+    paddingTop?: number;
+    paddingBottom?: number;
+    paddingLeft?: number;
+    paddingRight?: number;
+    marginTop?: number;
+    marginBottom?: number;
+    marginLeft?: number;
+    marginRight?: number;
     textAlign?: "left" | "center" | "right" | "justify";
     backgroundColor?: string;
     textColor?: string;
@@ -162,8 +169,14 @@ function PageBuilderInner() {
       type,
       content: getInitialContent(type),
       style: {
-        padding: "0px",
-        margin: "0px",
+        paddingTop: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+        marginTop: 0,
+        marginBottom: 0,
+        marginLeft: 0,
+        marginRight: 0,
         textAlign: "left",
         fontSize: 16,
         fontWeight: "400",
@@ -353,6 +366,54 @@ function PageBuilderInner() {
                               <Slider value={[selectedBlock.style?.fontSize || 16]} min={8} max={100} onValueChange={([v]) => updateBlock(selectedBlock.id, { style: { fontSize: v } })} className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-primary" />
                             </div>
                           </div>
+                       </PropertySection>
+
+                       <PropertySection label="Spacing (Padding & Margin)" icon={MoveVertical}>
+                         <div className="space-y-4">
+                           <div className="space-y-2">
+                             <Label className="text-[9px] uppercase font-bold text-white/60">Padding (px)</Label>
+                             <div className="grid grid-cols-2 gap-2">
+                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
+                                 <ArrowUp className="w-2.5 h-2.5 text-white/40" />
+                                 <Input type="number" value={selectedBlock.style?.paddingTop || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingTop: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                               </div>
+                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
+                                 <ArrowDown className="w-2.5 h-2.5 text-white/40" />
+                                 <Input type="number" value={selectedBlock.style?.paddingBottom || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingBottom: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                               </div>
+                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
+                                 <ArrowLeftIcon className="w-2.5 h-2.5 text-white/40" />
+                                 <Input type="number" value={selectedBlock.style?.paddingLeft || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingLeft: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                               </div>
+                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
+                                 <ArrowRightIcon className="w-2.5 h-2.5 text-white/40" />
+                                 <Input type="number" value={selectedBlock.style?.paddingRight || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingRight: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                               </div>
+                             </div>
+                           </div>
+
+                           <div className="space-y-2">
+                             <Label className="text-[9px] uppercase font-bold text-white/60">Margin (px)</Label>
+                             <div className="grid grid-cols-2 gap-2">
+                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
+                                 <ArrowUp className="w-2.5 h-2.5 text-white/40" />
+                                 <Input type="number" value={selectedBlock.style?.marginTop || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginTop: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                               </div>
+                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
+                                 <ArrowDown className="w-2.5 h-2.5 text-white/40" />
+                                 <Input type="number" value={selectedBlock.style?.marginBottom || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginBottom: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                               </div>
+                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
+                                 <ArrowLeftIcon className="w-2.5 h-2.5 text-white/40" />
+                                 <Input type="number" value={selectedBlock.style?.marginLeft || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginLeft: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                               </div>
+                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
+                                 <ArrowRightIcon className="w-2.5 h-2.5 text-white/40" />
+                                 <Input type="number" value={selectedBlock.style?.marginRight || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginRight: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                               </div>
+                             </div>
+                           </div>
+                         </div>
                        </PropertySection>
                        
                        <PropertySection label="Colors" icon={Palette}>
@@ -836,8 +897,14 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
   if (isHidden && isPreview) return null;
 
   const style: any = {
-    padding: block.style?.padding || "0px",
-    margin: block.style?.margin || "0px",
+    paddingTop: `${block.style?.paddingTop || 0}px`,
+    paddingBottom: `${block.style?.paddingBottom || 0}px`,
+    paddingLeft: `${block.style?.paddingLeft || 0}px`,
+    paddingRight: `${block.style?.paddingRight || 0}px`,
+    marginTop: `${block.style?.marginTop || 0}px`,
+    marginBottom: `${block.style?.marginBottom || 0}px`,
+    marginLeft: `${block.style?.marginLeft || 0}px`,
+    marginRight: `${block.style?.marginRight || 0}px`,
     textAlign: block.style?.textAlign as any,
     backgroundColor: block.style?.backgroundColor,
     color: block.style?.textColor,
@@ -849,7 +916,7 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
   switch (block.type) {
     case "row":
       return (
-        <div style={style} className={cn("grid gap-4 px-4 max-w-6xl mx-auto py-4", `grid-cols-1 md:grid-cols-${block.content?.columns || 1}`)}>
+        <div style={style} className={cn("grid gap-4 px-4 max-w-6xl mx-auto", `grid-cols-1 md:grid-cols-${block.content?.columns || 1}`)}>
           {block.children?.map((child: any) => (
             isBuilder ? (
               <CanvasBlockWrapper 
@@ -882,17 +949,17 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
     case "header":
       const Tag = block.content?.level || 'h2';
       const sizes: any = { h1: 'text-2xl md:text-5xl', h2: 'text-xl md:text-4xl', h3: 'text-lg md:text-2xl' };
-      return <div style={style} className={cn("px-4 py-3 w-full font-headline font-bold leading-tight")}>
+      return <div style={style} className={cn("px-4 w-full font-headline font-bold leading-tight")}>
         <Tag className={sizes[Tag]}>{block.content?.text}</Tag>
       </div>;
     case "paragraph":
-      return <div style={style} className="px-4 py-2 w-full leading-relaxed whitespace-pre-wrap text-sm opacity-80">{block.content?.text}</div>;
+      return <div style={style} className="px-4 w-full leading-relaxed whitespace-pre-wrap text-sm opacity-80">{block.content?.text}</div>;
     case "image":
-      return <div style={style} className="px-4 py-3 w-full">
+      return <div style={style} className="px-4 w-full">
         {block.content?.url && <img src={block.content.url} className="w-full h-auto shadow-md rounded-xl" alt="" />}
       </div>;
     case "button":
-      return <div style={style} className="px-4 py-3 w-full">
+      return <div style={style} className="px-4 w-full">
         <Button size="lg" className="rounded-xl px-8 h-11 font-bold uppercase tracking-widest text-[10px] shadow-md transition-all hover:scale-105">{block.content?.text}</Button>
       </div>;
     case "carousel":
@@ -904,7 +971,7 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
         4: "basis-full md:basis-1/4"
       };
       return (
-        <div style={style} className="px-4 py-4 w-full max-w-6xl mx-auto">
+        <div style={style} className="px-4 w-full max-w-6xl mx-auto">
           <Carousel opts={{ align: "start" }} className="w-full">
             <CarouselContent>
               {(block.content?.items || []).map((item: any) => (
@@ -929,7 +996,7 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
       );
     case "checked-list":
       return (
-        <div style={style} className="px-4 py-2 w-full max-w-6xl mx-auto space-y-2">
+        <div style={style} className="px-4 w-full max-w-6xl mx-auto space-y-2">
           {(block.content?.items || []).map((item: string, i: number) => (
             <div key={i} className="flex items-center gap-2">
               <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -941,7 +1008,7 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
     case "product-order-form":
       const mainProd = products.find((p: any) => p.id === block.content?.mainProductId);
       return (
-        <div style={style} className="px-4 w-full max-w-5xl mx-auto py-6 text-left">
+        <div style={style} className="px-4 w-full max-w-5xl mx-auto text-left">
           <Card className="rounded-[32px] shadow-lg border-none overflow-hidden bg-white">
             <div className="bg-slate-900 text-white p-6 text-center">
               <h3 className="text-xl md:text-2xl font-headline font-bold mb-1 tracking-tighter uppercase">Secure Checkout</h3>
