@@ -106,6 +106,7 @@ function PageBuilderInner() {
   const [sidebarTab, setSidebarTab] = useState<"edit" | "advanced">("edit");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isComponentDialogOpen, setIsComponentDialogOpen] = useState(false);
+  const [activeParentId, setActiveParentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (firestore && pageId) {
@@ -197,11 +198,30 @@ function PageBuilderInner() {
 
   const handleAddBlock = (type: BlockType) => {
     const newBlock = createBlock(type);
-    setBlocks([...blocks, newBlock]);
+    
+    if (activeParentId) {
+      setBlocks(prev => addNestedBlock(prev, activeParentId, newBlock));
+    } else {
+      setBlocks([...blocks, newBlock]);
+    }
+    
     setSelectedBlockId(newBlock.id);
     setSidebarTab("edit");
     setIsComponentDialogOpen(false);
+    setActiveParentId(null);
     if (isMobile) setOpenMobile(true);
+  };
+
+  const addNestedBlock = (items: Block[], parentId: string, newBlock: Block): Block[] => {
+    return items.map(item => {
+      if (item.id === parentId) {
+        return { ...item, children: [...(item.children || []), newBlock] };
+      }
+      if (item.children) {
+        return { ...item, children: addNestedBlock(item.children, parentId, newBlock) };
+      }
+      return item;
+    });
   };
 
   const updateBlock = (id: string, updates: any) => {
@@ -440,6 +460,10 @@ function PageBuilderInner() {
                       }}
                       onRemove={() => removeBlock(block.id)}
                       viewMode={viewMode}
+                      onAddNested={(parentId: string) => {
+                        setActiveParentId(parentId);
+                        setIsComponentDialogOpen(true);
+                      }}
                     />
                   ))}
                 </div>
@@ -451,6 +475,7 @@ function PageBuilderInner() {
                     <Button
                       variant="outline"
                       className="h-12 w-12 rounded-full border-2 border-primary/20 text-primary shadow-xl hover:scale-110 active:scale-95 transition-all bg-white group"
+                      onClick={() => setActiveParentId(null)}
                     >
                       <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" />
                     </Button>
@@ -461,7 +486,9 @@ function PageBuilderInner() {
                         <div className="p-2 bg-white/20 rounded-xl"><PlusCircle className="w-5 h-5" /></div>
                         <div>
                           <DialogTitle className="text-lg font-headline font-bold">Add New Widget</DialogTitle>
-                          <DialogDescription className="text-white/70 text-[10px] uppercase font-bold tracking-widest">Select a component to drop on canvas</DialogDescription>
+                          <DialogDescription className="text-white/70 text-[10px] uppercase font-bold tracking-widest">
+                            {activeParentId ? "Adding component to row" : "Adding component to page"}
+                          </DialogDescription>
                         </div>
                       </div>
                     </DialogHeader>
@@ -470,7 +497,7 @@ function PageBuilderInner() {
                       <WidgetGridButton icon={List} label="Rich Text" onClick={() => handleAddBlock("paragraph")} />
                       <WidgetGridButton icon={ImageIcon} label="Image Box" onClick={() => handleAddBlock("image")} />
                       <WidgetGridButton icon={Monitor} label="Action Button" onClick={() => handleAddBlock("button")} />
-                      <WidgetGridButton icon={Columns} label="Grid Row" onClick={() => handleAddBlock("row")} />
+                      {!activeParentId && <WidgetGridButton icon={Columns} label="Grid Row" onClick={() => handleAddBlock("row")} />}
                       <WidgetGridButton icon={ShoppingCart} label="Order Form" onClick={() => handleAddBlock("product-order-form")} highlight />
                       <WidgetGridButton icon={Layout} label="Carousel" onClick={() => handleAddBlock("carousel")} />
                       <WidgetGridButton icon={CheckCircle} label="Checked List" onClick={() => handleAddBlock("checked-list")} />
@@ -564,7 +591,7 @@ function PropertySection({ label, icon: Icon, children }: any) {
   );
 }
 
-function CanvasBlockWrapper({ block, products, isSelected, onSelect, onRemove, viewMode }: any) {
+function CanvasBlockWrapper({ block, products, isSelected, onSelect, onRemove, viewMode, onAddNested }: any) {
   const isHidden = (viewMode === "desktop" && block.style?.hideDesktop) || (viewMode === "mobile" && block.style?.hideMobile);
 
   return (
@@ -585,7 +612,15 @@ function CanvasBlockWrapper({ block, products, isSelected, onSelect, onRemove, v
         </div>
       )}
       <div className="pointer-events-none">
-        <BlockRenderer block={block} products={products} viewMode={viewMode} />
+        <BlockRenderer 
+          block={block} 
+          products={products} 
+          viewMode={viewMode} 
+          onAddNested={onAddNested}
+          isBuilder
+          onSelect={onSelect}
+          onRemove={onRemove}
+        />
       </div>
     </div>
   );
@@ -796,7 +831,7 @@ function PropertyEditor({ block, products, onChange }: any) {
   }
 }
 
-function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop" }: any) {
+function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop", onAddNested, isBuilder, onSelect, onRemove }: any) {
   const isHidden = (viewMode === "desktop" && block.style?.hideDesktop) || (viewMode === "mobile" && block.style?.hideMobile);
   if (isHidden && isPreview) return null;
 
@@ -815,7 +850,33 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
     case "row":
       return (
         <div style={style} className={cn("grid gap-4 px-4 max-w-6xl mx-auto py-4", `grid-cols-1 md:grid-cols-${block.content?.columns || 1}`)}>
-          {block.children?.map((child: any) => <BlockRenderer key={child.id} block={child} products={products} isPreview={isPreview} viewMode={viewMode} />)}
+          {block.children?.map((child: any) => (
+            isBuilder ? (
+              <CanvasBlockWrapper 
+                key={child.id} 
+                block={child} 
+                products={products} 
+                viewMode={viewMode} 
+                onAddNested={onAddNested}
+                onSelect={() => onSelect(child.id)}
+                onRemove={() => onRemove(child.id)}
+              />
+            ) : (
+              <BlockRenderer key={child.id} block={child} products={products} isPreview={isPreview} viewMode={viewMode} />
+            )
+          ))}
+          {isBuilder && (
+             <div className="col-span-full flex justify-center py-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="pointer-events-auto h-8 px-4 rounded-lg bg-primary/5 text-primary border border-dashed border-primary/20 hover:bg-primary/10"
+                  onClick={(e) => { e.stopPropagation(); onAddNested(block.id); }}
+                >
+                  <Plus className="w-3 h-3 mr-1.5" /> Add Component to Row
+                </Button>
+             </div>
+          )}
         </div>
       );
     case "header":

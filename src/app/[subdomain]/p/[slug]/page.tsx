@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -119,8 +118,6 @@ export default function RenderDynamicPage() {
 }
 
 function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
-  // Mobile/Desktop Detection (Simplified for SSR/CSR mismatch handling)
-  // In a real app we'd use a media query hook or CSS-only approach
   const hideOnDesktop = block.style?.hideDesktop;
   const hideOnMobile = block.style?.hideMobile;
 
@@ -141,7 +138,6 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
     borderRadius: block.style?.borderRadius ? `${block.style.borderRadius}px` : undefined,
   };
 
-  // Shadow Presets
   if (block.style?.boxShadow && block.style?.boxShadow !== "none") {
     const shadows = {
       sm: "0 2px 4px rgba(0,0,0,0.05)",
