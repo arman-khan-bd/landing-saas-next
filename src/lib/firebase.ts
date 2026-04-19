@@ -1,22 +1,8 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirebase } from "@/firebase";
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-import { initializeFirestore } from "firebase/firestore";
-
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-});
+// Consolidate initialization to use the shared, correctly configured instances
+// from the main firebase module. This prevents "Failed to fetch" errors caused
+// by attempts to initialize with empty environment variables.
+const { auth, firestore: db, firebaseApp: app } = initializeFirebase();
 
 export { auth, db, app };

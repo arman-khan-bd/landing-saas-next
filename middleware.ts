@@ -16,15 +16,11 @@ export const config = {
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl;
 
-  // Get hostname of request (e.g. demo.nexuscart.com, nexuscart.com)
+  // Get hostname of request
   const hostname = req.headers.get("host") || "ihut.shop";
 
-  // Define allowed domains (localhost and main production domain)
-  const searchParams = url.searchParams.toString();
-  const path = `${url.pathname}${searchParams.length > 0 ? `?${searchParams}` : ""}`;
-
   // Check for subdomain
-  const isMainDomain = hostname === "ihut.shop" || hostname === "localhost:9002" || hostname === "localhost:9002";
+  const isMainDomain = hostname === "ihut.shop" || hostname === "localhost:9002";
 
   if (isMainDomain) {
     // Regular routing for the main application
@@ -35,5 +31,5 @@ export default async function middleware(req: NextRequest) {
   const subdomain = hostname.split(".")[0];
 
   // Rewrite to the dynamic route
-  return NextResponse.rewrite(new URL(`/${subdomain}${path}`, req.url));
+  return NextResponse.rewrite(new URL(`/${subdomain}${url.pathname}${url.search}`, req.url));
 }
