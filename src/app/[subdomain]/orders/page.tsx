@@ -45,14 +45,14 @@ export default function OrdersPage() {
   );
 
   return (
-    <div className="space-y-8 max-w-[1400px] mx-auto">
+    <div className="space-y-8 max-w-[1400px] mx-auto pb-20">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
         <p className="text-muted-foreground">Manage and track your store&apos;s sales.</p>
       </div>
 
       {/* Overview Cards (Scrollable on mobile) */}
-      <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto pb-4 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto pb-4 md:pb-0 scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
         <Card className="rounded-2xl border-border/50 bg-white shadow-sm shrink-0 w-[280px] md:w-auto">
           <div className="p-5 flex items-center justify-between">
             <div>
@@ -82,7 +82,7 @@ export default function OrdersPage() {
         </Card>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
@@ -94,13 +94,13 @@ export default function OrdersPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" className="flex-1 sm:flex-none rounded-2xl h-11 px-5 bg-white shadow-sm border-border/50"><Filter className="w-4 h-4 mr-2" /> Filter</Button>
-          <Button className="flex-1 sm:flex-none rounded-2xl h-11 px-6 font-bold shadow-lg shadow-primary/20">Export</Button>
+          <Button className="flex-1 sm:flex-none rounded-2xl h-11 px-6 font-bold shadow-lg shadow-primary/20">Export CSV</Button>
         </div>
       </div>
 
       {/* Desktop Table View */}
       <div className="hidden md:block">
-        <Card className="rounded-[32px] overflow-hidden border-border/50 bg-white/50 backdrop-blur-sm shadow-xl shadow-slate-200/50">
+        <Card className="rounded-[32px] overflow-hidden border-border/50 bg-white shadow-xl shadow-slate-200/50">
           <CardContent className="p-0">
             <Table>
               <TableHeader className="bg-muted/30">
@@ -152,7 +152,7 @@ export default function OrdersPage() {
       </div>
 
       {/* Mobile Card List View */}
-      <div className="grid grid-cols-1 gap-4 md:hidden pb-10">
+      <div className="grid grid-cols-1 gap-4 md:hidden">
         {filteredOrders.map((order) => (
           <Card key={order.id} className="rounded-3xl border-border/50 bg-white shadow-sm overflow-hidden active:scale-[0.98] transition-transform">
             <CardContent className="p-5 space-y-4">
@@ -185,7 +185,7 @@ export default function OrdersPage() {
                     <span className="text-xs font-medium">{order.date}</span>
                  </div>
                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-tighter">Total Amount</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Total Amount</p>
                     <p className="text-xl font-black text-primary">${order.total.toFixed(2)}</p>
                  </div>
               </div>
@@ -197,15 +197,21 @@ export default function OrdersPage() {
                       order.status === 'processing' ? 'bg-amber-500' : 
                       'bg-slate-400'
                     }`} />
-                    <span className="text-xs font-bold uppercase tracking-wider">{order.status}</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider">{order.status}</span>
                  </div>
-                 <Badge variant="outline" className={`rounded-lg border-none ${order.payment === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                 <Badge variant="outline" className={`rounded-lg border-none px-3 py-1 font-bold text-[10px] ${order.payment === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
                     {order.payment.toUpperCase()}
                  </Badge>
               </div>
             </CardContent>
           </Card>
         ))}
+        {filteredOrders.length === 0 && (
+          <div className="text-center py-20 bg-muted/10 rounded-3xl border-2 border-dashed">
+            <ShoppingCart className="w-12 h-12 mx-auto text-muted-foreground/20 mb-3" />
+            <p className="text-muted-foreground">No orders found.</p>
+          </div>
+        )}
       </div>
     </div>
   );
