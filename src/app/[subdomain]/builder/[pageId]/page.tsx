@@ -21,7 +21,8 @@ import {
   Palette, Box, MousePointer2,
   Sparkles, PlusCircle, LayoutGrid,
   MoveVertical, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon,
-  Paintbrush, GripVertical, Copy, Layers
+  Paintbrush, GripVertical, Copy, Layers,
+  ChevronUp, ChevronDown as ChevronDownIcon
 } from "lucide-react";
 import {
   DndContext,
@@ -149,6 +150,9 @@ function PageBuilderInner() {
   const [isComponentDialogOpen, setIsComponentDialogOpen] = useState(false);
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  
+  // Insertion tracking
+  const [insertInfo, setInsertInfo] = useState<{ id: string, position: 'before' | 'after' } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -247,7 +251,10 @@ function PageBuilderInner() {
   const handleAddBlock = (type: BlockType) => {
     const newBlock = createBlock(type);
     
-    if (activeParentId) {
+    if (insertInfo) {
+      setBlocks(prev => insertBlockRecursively(prev, insertInfo.id, insertInfo.position, newBlock));
+      setInsertInfo(null);
+    } else if (activeParentId) {
       setBlocks(prev => addNestedBlock(prev, activeParentId, newBlock));
     } else {
       setBlocks([...blocks, newBlock]);
@@ -258,6 +265,21 @@ function PageBuilderInner() {
     setIsComponentDialogOpen(false);
     setActiveParentId(null);
     if (isMobile) setOpenMobile(true);
+  };
+
+  const insertBlockRecursively = (items: Block[], relativeId: string, position: 'before' | 'after', newBlock: Block): Block[] => {
+    const index = items.findIndex(i => i.id === relativeId);
+    if (index !== -1) {
+      const newItems = [...items];
+      newItems.splice(position === 'before' ? index : index + 1, 0, newBlock);
+      return newItems;
+    }
+    return items.map(item => {
+      if (item.children) {
+        return { ...item, children: insertBlockRecursively(item.children, relativeId, position, newBlock) };
+      }
+      return item;
+    });
   };
 
   const addNestedBlock = (items: Block[], parentId: string, newBlock: Block): Block[] => {
@@ -347,6 +369,12 @@ function PageBuilderInner() {
         toast({ variant: "destructive", title: "Save failed", description: "Database rejected the request." });
       })
       .finally(() => setSaving(false));
+  };
+
+  const onInsertRequest = (id: string, position: 'before' | 'after') => {
+    setInsertInfo({ id, position });
+    setActiveParentId(null);
+    setIsComponentDialogOpen(true);
   };
 
   if (loading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin text-primary w-12 h-12" /></div>;
@@ -568,7 +596,7 @@ function PageBuilderInner() {
               <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("desktop")} className="rounded-md h-7 px-2.5 font-bold text-[9px] uppercase tracking-wider">
                 <Monitor className="w-3.5 h-3.5 mr-1.5" /> Desktop
               </Button>
-              <Button variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("mobile")} className="rounded-md h-7 px-2.5 font-bold text-[9px] uppercase tracking-wider">
+              <Button variant="mobile" variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("mobile")} className="rounded-md h-7 px-2.5 font-bold text-[9px] uppercase tracking-wider">
                 <Smartphone className="w-3.5 h-3.5 mr-1.5" /> Mobile
               </Button>
             </div>
@@ -623,9 +651,11 @@ function PageBuilderInner() {
                             if (isMobile) setOpenMobile(true);
                           }}
                           onRemove={(id?: string) => removeBlock(id || block.id)}
+                          onInsertRequest={onInsertRequest}
                           viewMode={viewMode}
                           onAddNested={(parentId: string) => {
                             setActiveParentId(parentId);
+                            setInsertInfo(null);
                             setIsComponentDialogOpen(true);
                           }}
                         />
@@ -648,7 +678,7 @@ function PageBuilderInner() {
                     <Button
                       variant="outline"
                       className="h-12 w-12 rounded-full border-2 border-primary/20 text-primary shadow-xl hover:scale-110 active:scale-95 transition-all bg-white group"
-                      onClick={() => setActiveParentId(null)}
+                      onClick={() => { setActiveParentId(null); setInsertInfo(null); }}
                     >
                       <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" />
                     </Button>
@@ -660,7 +690,7 @@ function PageBuilderInner() {
                         <div>
                           <DialogTitle className="text-lg font-headline font-bold">Add New Widget</DialogTitle>
                           <DialogDescription className="text-white/70 text-[10px] uppercase font-bold tracking-widest">
-                            {activeParentId ? "Adding component to row" : "Adding component to page"}
+                            {insertInfo ? `Inserting ${insertInfo.position} block` : activeParentId ? "Adding component to row" : "Adding component to page"}
                           </DialogDescription>
                         </div>
                       </div>
@@ -670,7 +700,7 @@ function PageBuilderInner() {
                       <WidgetGridButton icon={List} label="Rich Text" onClick={() => handleAddBlock("paragraph")} />
                       <WidgetGridButton icon={ImageIcon} label="Image Box" onClick={() => handleAddBlock("image")} />
                       <WidgetGridButton icon={Monitor} label="Action Button" onClick={() => handleAddBlock("button")} />
-                      {!activeParentId && <WidgetGridButton icon={Columns} label="Grid Row" onClick={() => handleAddBlock("row")} />}
+                      {(!activeParentId && !insertInfo) && <WidgetGridButton icon={Columns} label="Grid Row" onClick={() => handleAddBlock("row")} />}
                       <WidgetGridButton icon={ShoppingCart} label="Order Form" onClick={() => handleAddBlock("product-order-form")} highlight />
                       <WidgetGridButton icon={Layout} label="Carousel" onClick={() => handleAddBlock("carousel")} />
                       <WidgetGridButton icon={CheckCircle} label="Checked List" onClick={() => handleAddBlock("checked-list")} />
@@ -774,7 +804,7 @@ function PropertySection({ label, icon: Icon, children }: any) {
   );
 }
 
-function CanvasBlockWrapper({ block, products, isSelected, onSelect, onRemove, viewMode, onAddNested }: any) {
+function CanvasBlockWrapper({ block, products, isSelected, onSelect, onRemove, onInsertRequest, viewMode, onAddNested }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
   
   const style = {
@@ -802,8 +832,26 @@ function CanvasBlockWrapper({ block, products, isSelected, onSelect, onRemove, v
           <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing hover:bg-white/20 p-0.5 rounded mr-1">
             <GripVertical className="w-3 h-3" />
           </div>
-          {block.type}
-          <div className="ml-1.5 border-l border-white/20 pl-1.5">
+          <div className="flex items-center gap-1.5 border-r border-white/20 pr-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-4 w-4 text-white hover:bg-white/20 p-0"
+              onClick={(e) => { e.stopPropagation(); onInsertRequest(block.id, 'before'); }}
+            >
+              <Plus className="w-2.5 h-2.5" />
+            </Button>
+            <span>{block.type}</span>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-4 w-4 text-white hover:bg-white/20 p-0"
+              onClick={(e) => { e.stopPropagation(); onInsertRequest(block.id, 'after'); }}
+            >
+              <Plus className="w-2.5 h-2.5" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-1">
             <Trash2 className="w-3 h-3 cursor-pointer hover:text-red-200" onClick={(e) => { e.stopPropagation(); onRemove(); }} />
           </div>
         </div>
@@ -817,6 +865,7 @@ function CanvasBlockWrapper({ block, products, isSelected, onSelect, onRemove, v
           isBuilder
           onSelect={onSelect}
           onRemove={onRemove}
+          onInsertRequest={onInsertRequest}
         />
       </div>
     </div>
@@ -1028,7 +1077,7 @@ function PropertyEditor({ block, products, onChange }: any) {
   }
 }
 
-function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop", onAddNested, isBuilder, onSelect, onRemove }: any) {
+function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop", onAddNested, isBuilder, onSelect, onRemove, onInsertRequest }: any) {
   const isHidden = (viewMode === "desktop" && block.style?.hideDesktop) || (viewMode === "mobile" && block.style?.hideMobile);
   if (isHidden && isPreview) return null;
 
@@ -1082,6 +1131,7 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
                 onAddNested={onAddNested}
                 onSelect={(id?: string) => onSelect(id || child.id)}
                 onRemove={(id?: string) => onRemove(id || child.id)}
+                onInsertRequest={onInsertRequest}
               />
             ) : (
               <BlockRenderer key={child.id} block={child} products={products} isPreview={isPreview} viewMode={viewMode} />
