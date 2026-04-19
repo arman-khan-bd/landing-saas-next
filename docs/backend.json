@@ -1,47 +1,38 @@
-
 {
   "entities": {
     "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Stores additional profile information for users, linked to Firebase Authentication.",
+      "description": "Stores additional profile information for users authenticated via Firebase. This entity is distinct from Firebase's own user data and can hold application-specific user details.",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity, typically matching the Firebase Auth UID."
         },
         "email": {
           "type": "string",
+          "description": "The user's email address.",
           "format": "email"
         },
-        "fullName": {
-          "type": "string"
-        },
-        "phone": {
-          "type": "string"
-        },
-        "role": {
+        "displayName": {
           "type": "string",
-          "enum": ["user", "admin"],
-          "default": "user"
-        },
-        "subscription": {
-          "type": "object",
-          "properties": {
-            "plan": { "type": "string", "enum": ["free", "pro", "enterprise"] },
-            "status": { "type": "string", "enum": ["active", "expired", "cancelled"] },
-            "expiresAt": { "type": "string", "format": "date-time" }
-          }
+          "description": "The user's preferred display name."
         },
         "createdAt": {
           "type": "string",
+          "description": "Timestamp when the user profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was last updated.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
         "email",
-        "fullName",
         "createdAt"
       ]
     },
@@ -49,72 +40,37 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Store",
       "type": "object",
-      "description": "Represents an individual e-commerce store with full configuration.",
+      "description": "Represents an individual e-commerce store (tenant) within the NexusCart platform, owned by a user. All store-specific data is isolated by 'storeId'.",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "subdomain": { "type": "string" },
-        "ownerId": { "type": "string" },
-        "status": { "type": "string", "enum": ["active", "suspended", "maintenance"] },
-        "homePageTitle": { "type": "string" },
-        "address": { "type": "string" },
-        "phone": { "type": "string" },
-        "email": { "type": "string" },
-        "logo": { "type": "string" },
-        "favicon": { "type": "string" },
-        "pwaLogo": { "type": "string" },
-        "selectedTheme": { "type": "string" },
-        "googleAnalyticsId": { "type": "string" },
-        "facebookPixelId": { "type": "string" },
-        "googleMapEmbed": { "type": "string" },
-        "workingDays": { "type": "string" },
-        "paymentSettings": {
-          "type": "object",
-          "properties": {
-            "cod": { "type": "boolean" },
-            "manualEnabled": { "type": "boolean" },
-            "manualDetails": { "type": "string" }
-          }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Store entity."
         },
-        "seo": {
-          "type": "object",
-          "properties": {
-            "metaImage": { "type": "string" },
-            "keywords": { "type": "string" },
-            "description": { "type": "string" }
-          }
+        "name": {
+          "type": "string",
+          "description": "The public-facing name of the store."
         },
-        "shopConfig": {
-          "type": "object",
-          "properties": {
-            "showHeader": { "type": "boolean" },
-            "stickyHeader": { "type": "boolean" }
-          }
+        "subdomain": {
+          "type": "string",
+          "description": "The unique subdomain assigned to the store (e.g., 'store1' in 'store1.nexuscart.com')."
         },
-        "socialLinks": {
-          "type": "object",
-          "properties": {
-            "facebook": { "type": "string" },
-            "twitter": { "type": "string" },
-            "instagram": { "type": "string" },
-            "youtube": { "type": "string" }
-          }
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who owns this store. (Relationship: UserProfile 1:N Store)"
         },
-        "landingPageConfig": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": { "type": "string" },
-              "type": { "type": "string" },
-              "content": { "type": "object" },
-              "style": { "type": "object" }
-            }
-          }
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the store was created.",
+          "format": "date-time"
         },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the store was last updated.",
+          "format": "date-time"
+        }
       },
       "required": [
+        "id",
         "name",
         "subdomain",
         "ownerId",
@@ -125,136 +81,304 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
       "type": "object",
-      "description": "Represents a product available for sale with detailed attributes.",
+      "description": "Represents a product available for sale within a specific e-commerce store.",
       "properties": {
-        "id": { "type": "string" },
-        "storeId": { "type": "string" },
-        "ownerId": { "type": "string" },
-        "name": { "type": "string" },
-        "slug": { "type": "string" },
-        "shortDescription": { "type": "string" },
-        "description": { "type": "string" },
-        "featuredImage": { "type": "string" },
-        "gallery": { "type": "array", "items": { "type": "string" } },
-        "currentPrice": { "type": "number" },
-        "prevPrice": { "type": "number" },
-        "category": { "type": "string" },
-        "totalInStock": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Product entity."
+        },
+        "storeId": {
+          "type": "string",
+          "description": "Reference to the Store that owns this product. (Relationship: Store 1:N Product)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the product, potentially AI-generated."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the product."
+        },
+        "stock": {
+          "type": "number",
+          "description": "The current stock quantity of the product."
+        },
+        "imageUrls": {
+          "type": "array",
+          "description": "An array of URLs for product images, hosted on Cloudinary.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the product was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the product was last updated.",
+          "format": "date-time"
+        }
       },
       "required": [
+        "id",
         "storeId",
-        "ownerId",
         "name",
-        "slug",
-        "currentPrice",
-        "totalInStock",
+        "price",
+        "stock",
         "createdAt"
       ]
     },
-    "Category": {
-      "title": "Category",
+    "SubscriptionPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubscriptionPlan",
       "type": "object",
+      "description": "Defines the different subscription tiers or plans available on the NexusCart platform. These plans determine the features and pricing for stores and are managed by the admin.",
       "properties": {
-        "id": { "type": "string" },
-        "storeId": { "type": "string" },
-        "ownerId": { "type": "string" },
-        "name": { "type": "string" },
-        "slug": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SubscriptionPlan entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the plan (e.g., 'Basic', 'Premium', 'Enterprise')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the plan's offerings and benefits."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the plan per billing interval."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency code for the plan's price (e.g., 'USD', 'EUR')."
+        },
+        "billingInterval": {
+          "type": "string",
+          "description": "The frequency of billing for this plan (e.g., 'month', 'year', 'week')."
+        },
+        "features": {
+          "type": "array",
+          "description": "A list of key features included in this subscription plan.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the plan is currently active and available for new subscriptions."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the subscription plan was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the subscription plan was last updated.",
+          "format": "date-time"
+        }
       },
-      "required": ["storeId", "ownerId", "name", "slug", "createdAt"]
+      "required": [
+        "id",
+        "name",
+        "price",
+        "currency",
+        "billingInterval",
+        "isActive",
+        "createdAt"
+      ]
     },
-    "SubCategory": {
-      "title": "SubCategory",
+    "StoreSubscription": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StoreSubscription",
       "type": "object",
+      "description": "Records the active subscription details for a specific store to a SubscriptionPlan. Each store typically has only one active subscription at a time.",
       "properties": {
-        "id": { "type": "string" },
-        "storeId": { "type": "string" },
-        "ownerId": { "type": "string" },
-        "categoryId": { "type": "string" },
-        "name": { "type": "string" },
-        "slug": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the StoreSubscription entity."
+        },
+        "storeId": {
+          "type": "string",
+          "description": "Reference to the Store that holds this subscription. (Relationship: Store 1:1 StoreSubscription)"
+        },
+        "planId": {
+          "type": "string",
+          "description": "Reference to the SubscriptionPlan this store is subscribed to. (Relationship: SubscriptionPlan 1:N StoreSubscription)"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the subscription (e.g., 'active', 'trialing', 'canceled', 'past_due', 'incomplete')."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The date and time when the subscription became active.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The projected end date of the current subscription period or the effective cancellation date if applicable. This can be null if the subscription is active and has no set end date (e.g., perpetual, renewed automatically).",
+          "format": "date-time"
+        },
+        "currentPeriodStart": {
+          "type": "string",
+          "description": "The start date of the current billing period.",
+          "format": "date-time"
+        },
+        "currentPeriodEnd": {
+          "type": "string",
+          "description": "The end date of the current billing period, after which the subscription will renew or expire.",
+          "format": "date-time"
+        },
+        "cancellationDate": {
+          "type": "string",
+          "description": "The date and time when the subscription was canceled, if applicable.",
+          "format": "date-time"
+        },
+        "stripeSubscriptionId": {
+          "type": "string",
+          "description": "The ID of the corresponding subscription record in the payment gateway (e.g., Stripe), if integrated, for external reference."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the subscription record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the subscription record was last updated.",
+          "format": "date-time"
+        }
       },
-      "required": ["storeId", "ownerId", "categoryId", "name", "slug", "createdAt"]
-    },
-    "Brand": {
-      "title": "Brand",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "storeId": { "type": "string" },
-        "ownerId": { "type": "string" },
-        "name": { "type": "string" },
-        "logo": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["storeId", "ownerId", "name", "createdAt"]
-    },
-    "Tax": {
-      "title": "Tax",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "storeId": { "type": "string" },
-        "ownerId": { "type": "string" },
-        "name": { "type": "string" },
-        "percentage": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["storeId", "ownerId", "name", "percentage", "createdAt"]
-    },
-    "Tag": {
-      "title": "Tag",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "storeId": { "type": "string" },
-        "ownerId": { "type": "string" },
-        "name": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["storeId", "ownerId", "name", "createdAt"]
+      "required": [
+        "id",
+        "storeId",
+        "planId",
+        "status",
+        "startDate",
+        "currentPeriodStart",
+        "currentPeriodEnd",
+        "createdAt"
+      ]
     }
   },
   "auth": {
     "providers": [
-      "password"
+      "password",
+      "anonymous"
     ]
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": "UserProfile",
-      "description": "Individual user profiles."
-    },
-    "/stores/{storeId}": {
-      "schema": "Store",
-      "description": "User-owned e-commerce stores."
-    },
-    "/products/{productId}": {
-      "schema": "Product",
-      "description": "Products across all stores."
-    },
-    "/categories/{categoryId}": {
-      "schema": "Category",
-      "description": "Store categories."
-    },
-    "/sub-categories/{subCategoryId}": {
-      "schema": "SubCategory",
-      "description": "Store sub-categories."
-    },
-    "/brands/{brandId}": {
-      "schema": "Brand",
-      "description": "Product brands."
-    },
-    "/taxes/{taxId}": {
-      "schema": "Tax",
-      "description": "Tax settings."
-    },
-    "/tags/{tagId}": {
-      "schema": "Tag",
-      "description": "Global product tags."
-    }
+    "structure": [
+      {
+        "path": "/userProfiles/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information, strictly private to the authenticated user. Access is path-based, where 'userId' must match 'request.auth.uid'.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user, matching 'request.auth.uid'."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/adminRoles/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "A collection for Database Access Control (DBAC). The existence of a document at '/adminRoles/{uid}' grants administrative privileges to the user with 'uid'. This document will typically be an empty placeholder. Access is restricted to platform administrators for creation/deletion, and read for rule validation.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user who holds the admin role, matching 'request.auth.uid'."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/stores/{storeId}",
+        "definition": {
+          "entityName": "Store",
+          "schema": {
+            "$ref": "#/backend/entities/Store"
+          },
+          "description": "Represents individual e-commerce stores. Each store document contains 'ownerId' for direct ownership checks, ensuring Authorization Independence. Store owners can manage their stores; only platform admins can create/delete stores. Querying for owned stores is facilitated by filtering on 'ownerId'.",
+          "params": [
+            {
+              "name": "storeId",
+              "description": "The unique identifier for a specific store."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/stores/{storeId}/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Products belonging to a specific store. For Authorization Independence, each Product document includes a denormalized 'ownerId' (from its parent Store) in addition to 'storeId'. This allows direct ownership checks without using 'get()' in rules, enabling QAPs for listings. Only the store's owner can manage these products.",
+          "params": [
+            {
+              "name": "storeId",
+              "description": "The unique identifier of the parent store."
+            },
+            {
+              "name": "productId",
+              "description": "The unique identifier for a specific product within the store."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subscriptionPlans/{planId}",
+        "definition": {
+          "entityName": "SubscriptionPlan",
+          "schema": {
+            "$ref": "#/backend/entities/SubscriptionPlan"
+          },
+          "description": "Globally available subscription plans. These are read-only for all authenticated users (stores) to browse, and write-only for platform administrators (checked via '/adminRoles/{uid}' collection) for creation and management. This collection follows structural segregation for public read / admin write access.",
+          "params": [
+            {
+              "name": "planId",
+              "description": "The unique identifier for a subscription plan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/stores/{storeId}/subscription",
+        "definition": {
+          "entityName": "StoreSubscription",
+          "schema": {
+            "$ref": "#/backend/entities/StoreSubscription"
+          },
+          "description": "The active subscription details for a specific store. This is a 1:1 relationship, so 'subscription' is a fixed document ID within each store's subcollection. For Authorization Independence, each StoreSubscription document includes a denormalized 'ownerId' (from its parent Store) in addition to 'storeId'. This allows direct ownership checks without using 'get()' in rules, enabling QAPs. Only the store's owner can view or modify their store's subscription.",
+          "params": [
+            {
+              "name": "storeId",
+              "description": "The unique identifier of the parent store."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for NexusCart is designed prioritizing Authorization Independence, Structural Segregation, and consistent Access Modeling to ensure robust security rules and simplified debugging. Authorization Independence is achieved by denormalizing key ownership fields: 'ownerId' from the parent 'Store' document is copied into every 'Product' and 'StoreSubscription' document. This eliminates the need for 'get()' calls in security rules when authorizing access to subcollection documents, allowing atomic operations and preventing rule complexity. Structural Segregation is applied by grouping documents with similar security postures. For example, platform-wide 'SubscriptionPlan' documents are in a root collection, accessible differently (read-only by users, write-only by admins) than user-specific data. User-owned entities like 'UserProfile' use path-based ownership (/userProfiles/{userId}). 'Store' and its subcollections ('products', 'subscription') follow a hierarchical path structure (/stores/{storeId}/products/{productId}, /stores/{storeId}/subscription) with denormalized 'ownerId' to ensure tenant isolation and direct ownership checks. QAPs (Queryable Authorization Patterns) are supported through indexed 'ownerId' and 'storeId' fields in denormalized documents, enabling efficient and secure 'list' operations without relying on security rules as filters. Global administrative roles are managed via an 'adminRoles' collection, leveraging document existence for DBAC (Database Access Control)."
   }
 }
