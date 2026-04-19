@@ -1,20 +1,18 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useFirestore, useUser } from "@/firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, getDoc, deleteDoc } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
   ShoppingCart, Plus, Store, ExternalLink, LogOut, Loader2, 
-  User, Settings, LayoutDashboard, ShieldCheck, Mail, Phone, 
+  User, Settings, LayoutDashboard, ShieldCheck, Phone, 
   Globe, Sparkles, ChevronRight, CheckCircle2, Shield,
-  MoreVertical, Trash2, Lock, Unlock, AlertTriangle, Hammer, Power
+  MoreVertical, Trash2, Lock, AlertTriangle, Hammer, Power, X
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -24,10 +22,9 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getStoreUrl } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Badge } from "@/components/ui/badge";
@@ -45,9 +42,11 @@ export default function RedesignedDashboard() {
   const [profileData, setProfileData] = useState({ fullName: "", phone: "", role: "user" });
   const [view, setView] = useState<"stores" | "profile" | "settings">("stores");
 
-  // Store Settings Dialogs
+  // Custom Modal States
+  const [isCreateStoreOpen, setIsCreateStoreOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isSecurityDialogOpen, setIsSecurityDialogOpen] = useState(false);
+  
   const [selectedStore, setSelectedStore] = useState<any>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [passwordData, setPasswordData] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
@@ -61,6 +60,15 @@ export default function RedesignedDashboard() {
       fetchProfile(user.uid);
     }
   }, [user, firestore]);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isCreateStoreOpen || isDeleteDialogOpen || isSecurityDialogOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isCreateStoreOpen, isDeleteDialogOpen, isSecurityDialogOpen]);
 
   const fetchStores = async (uid: string) => {
     if (!firestore) return;
@@ -148,6 +156,7 @@ export default function RedesignedDashboard() {
         .then(() => {
           toast({ title: "Store Launched!", description: "Your new brand is now live." });
           setNewStore({ name: "", subdomain: "" });
+          setIsCreateStoreOpen(false);
           fetchStores(user.uid);
         })
         .catch(async (error) => {
@@ -201,7 +210,6 @@ export default function RedesignedDashboard() {
       return;
     }
     
-    // Simple password check for prototype
     if (selectedStore.managePassword && passwordData.oldPassword !== selectedStore.managePassword) {
       toast({ variant: "destructive", title: "Invalid", description: "Incorrect old password." });
       return;
@@ -329,55 +337,9 @@ export default function RedesignedDashboard() {
                   <p className="text-muted-foreground text-lg">Manage your digital commerce empire from a single dashboard.</p>
                 </div>
                 
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button size="lg" className="w-full sm:w-auto rounded-2xl shadow-2xl shadow-primary/30 h-14 px-8 text-lg font-bold group">
-                      <Plus className="mr-2 w-6 h-6 group-hover:rotate-90 transition-transform duration-300" /> Create Store
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="rounded-[40px] p-8 border-none shadow-2xl max-w-[95vw] sm:max-w-lg">
-                    <DialogHeader>
-                      <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
-                        <Store className="w-8 h-8" />
-                      </div>
-                      <DialogTitle className="text-3xl font-headline font-black tracking-tight">New Store Concept</DialogTitle>
-                      <DialogDescription className="text-slate-500 text-lg">
-                        Define the home of your brand. Pick a name and a custom subdomain.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-6 py-6">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Brand Name</Label>
-                        <Input
-                          placeholder="e.g. Urban Style"
-                          value={newStore.name}
-                          onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
-                          className="rounded-2xl h-14 bg-slate-50 border-none text-lg px-6"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Subdomain Access</Label>
-                        <div className="flex items-center">
-                          <Input
-                            placeholder="urban"
-                            value={newStore.subdomain}
-                            onChange={(e) => setNewStore({ ...newStore, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                            className="rounded-l-2xl rounded-r-none h-14 bg-slate-50 border-none text-lg px-6 flex-1"
-                          />
-                          <div className="h-14 bg-slate-200/50 flex items-center px-6 rounded-r-2xl border-l border-white text-sm font-black text-slate-400">
-                            .ihut.shop
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button className="w-full h-16 rounded-[24px] text-xl font-black shadow-xl shadow-primary/20" onClick={handleCreateStore} disabled={creating}>
-                        {creating ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" />}
-                        Launch Brand
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                <Button size="lg" className="w-full sm:w-auto rounded-2xl shadow-2xl shadow-primary/30 h-14 px-8 text-lg font-bold group" onClick={() => setIsCreateStoreOpen(true)}>
+                  <Plus className="mr-2 w-6 h-6 group-hover:rotate-90 transition-transform duration-300" /> Create Store
+                </Button>
               </div>
             </section>
 
@@ -530,9 +492,9 @@ export default function RedesignedDashboard() {
               <div className="lg:col-span-1 space-y-8">
                 <Card className="rounded-[40px] border-none shadow-lg bg-primary text-white p-8">
                    <div className="flex flex-col items-center text-center space-y-6">
-                      <Avatar className="w-24 h-24 border-4 border-white/20 shadow-2xl">
-                         <AvatarFallback className="bg-white/10 text-white text-4xl font-black uppercase">{user?.email?.[0]}</AvatarFallback>
-                      </Avatar>
+                      <div className="w-24 h-24 border-4 border-white/20 shadow-2xl rounded-full bg-white/10 flex items-center justify-center text-white text-4xl font-black uppercase">
+                         {user?.email?.[0]}
+                      </div>
                       <div>
                         <h4 className="text-2xl font-black tracking-tight">{profileData.fullName || "Admin Account"}</h4>
                         <p className="text-white/60 font-bold uppercase tracking-widest text-[10px]">Verified Global Owner</p>
@@ -603,90 +565,158 @@ export default function RedesignedDashboard() {
         )}
       </main>
 
-      {/* Settings Dialogs */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="rounded-[40px] border-none shadow-2xl p-8">
-          <DialogHeader>
-            <div className="w-16 h-16 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 mb-6">
-              <AlertTriangle className="w-8 h-8" />
-            </div>
-            <DialogTitle className="text-3xl font-headline font-black tracking-tight">Delete Brand Permanent?</DialogTitle>
-            <DialogDescription className="text-slate-500 text-lg">
-              This action cannot be undone. To confirm, please type <span className="font-black text-slate-900">{selectedStore?.subdomain}</span> below.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-6">
-            <Input 
-              placeholder="Confirm subdomain" 
-              className="h-14 rounded-2xl bg-slate-50 border-none text-lg px-6" 
-              value={deleteConfirmText}
-              onChange={(e) => setDeleteConfirmText(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="destructive" 
-              className="w-full h-16 rounded-[24px] text-xl font-black" 
-              disabled={updating || deleteConfirmText !== selectedStore?.subdomain}
-              onClick={handleDeleteStore}
-            >
-              {updating ? <Loader2 className="animate-spin mr-2" /> : <Trash2 className="mr-2" />}
-              Destroy Brand
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* --- CUSTOM RAW TAILWIND MODALS --- */}
 
-      <Dialog open={isSecurityDialogOpen} onOpenChange={setIsSecurityDialogOpen}>
-        <DialogContent className="rounded-[40px] border-none shadow-2xl p-8">
-          <DialogHeader>
-            <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
-              <ShieldCheck className="w-8 h-8" />
-            </div>
-            <DialogTitle className="text-3xl font-headline font-black tracking-tight">Manager Vault</DialogTitle>
-            <DialogDescription className="text-slate-500 text-lg">
-              Set a password that must be entered every time someone tries to manage this store.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-6">
-            {selectedStore?.managePassword && (
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Old Password</Label>
+      {/* Create Store Modal */}
+      {isCreateStoreOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsCreateStoreOpen(false)} />
+           <div className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+              <button onClick={() => setIsCreateStoreOpen(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+              <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
+                <Store className="w-8 h-8" />
+              </div>
+              <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">New Store Concept</h2>
+              <p className="text-slate-500 text-lg mt-2 leading-relaxed">Define the home of your brand. Pick a name and a custom subdomain.</p>
+              
+              <div className="space-y-6 py-8">
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Brand Name</Label>
+                  <Input
+                    placeholder="e.g. Urban Style"
+                    value={newStore.name}
+                    onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
+                    className="rounded-2xl h-14 bg-slate-50 border-none text-lg px-6"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Subdomain Access</Label>
+                  <div className="flex items-center">
+                    <Input
+                      placeholder="urban"
+                      value={newStore.subdomain}
+                      onChange={(e) => setNewStore({ ...newStore, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+                      className="rounded-l-2xl rounded-r-none h-14 bg-slate-50 border-none text-lg px-6 flex-1"
+                    />
+                    <div className="h-14 bg-slate-200/50 flex items-center px-6 rounded-r-2xl border-l border-white text-sm font-black text-slate-400">
+                      .ihut.shop
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-3">
+                <Button className="w-full h-16 rounded-[24px] text-xl font-black shadow-xl shadow-primary/20" onClick={handleCreateStore} disabled={creating}>
+                  {creating ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" />}
+                  Launch Brand
+                </Button>
+                <Button variant="ghost" className="w-full rounded-xl text-slate-400 font-bold" onClick={() => setIsCreateStoreOpen(false)}>Cancel</Button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteDialogOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsDeleteDialogOpen(false)} />
+           <div className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+              <button onClick={() => setIsDeleteDialogOpen(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+              <div className="w-16 h-16 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 mb-6">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+              <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">Delete Permanently?</h2>
+              <p className="text-slate-500 text-lg mt-2 leading-relaxed">
+                This action cannot be undone. To confirm, please type <span className="font-black text-slate-900">{selectedStore?.subdomain}</span> below.
+              </p>
+              <div className="py-8">
                 <Input 
-                  type="password"
-                  className="h-12 rounded-xl bg-slate-50 border-none px-4" 
-                  value={passwordData.oldPassword}
-                  onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})}
+                  placeholder="Confirm subdomain" 
+                  className="h-14 rounded-2xl bg-slate-50 border-none text-lg px-6" 
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  autoFocus
                 />
               </div>
-            )}
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">New Password</Label>
-              <Input 
-                type="password"
-                className="h-12 rounded-xl bg-slate-50 border-none px-4" 
-                value={passwordData.newPassword}
-                onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Confirm New Password</Label>
-              <Input 
-                type="password"
-                className="h-12 rounded-xl bg-slate-50 border-none px-4" 
-                value={passwordData.confirmPassword}
-                onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button className="w-full h-16 rounded-[24px] text-xl font-black" onClick={handleUpdatePassword} disabled={updating}>
-              {updating ? <Loader2 className="animate-spin mr-2" /> : <Lock className="mr-2" />}
-              Secure Manager
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <div className="flex flex-col gap-3">
+                <Button 
+                  variant="destructive" 
+                  className="w-full h-16 rounded-[24px] text-xl font-black" 
+                  disabled={updating || deleteConfirmText !== selectedStore?.subdomain}
+                  onClick={handleDeleteStore}
+                >
+                  {updating ? <Loader2 className="animate-spin mr-2" /> : <Trash2 className="mr-2" />}
+                  Destroy Brand
+                </Button>
+                <Button variant="ghost" className="w-full rounded-xl text-slate-400 font-bold" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Manager Vault Modal (RAW TAILWIND) */}
+      {isSecurityDialogOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsSecurityDialogOpen(false)} />
+           <div className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+              <button onClick={() => setIsSecurityDialogOpen(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="text-center">
+                <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto mb-6">
+                  <ShieldCheck className="w-10 h-10" />
+                </div>
+                <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">Manager Vault</h2>
+                <p className="text-slate-500 mt-2">Set a password that must be entered every time someone tries to manage this store.</p>
+              </div>
+
+              <div className="space-y-4 py-8">
+                {selectedStore?.managePassword && (
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Old Password</Label>
+                    <Input 
+                      type="password"
+                      className="h-12 rounded-xl bg-slate-50 border-none px-4" 
+                      value={passwordData.oldPassword}
+                      onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})}
+                    />
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">New Password</Label>
+                  <Input 
+                    type="password"
+                    className="h-12 rounded-xl bg-slate-50 border-none px-4" 
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Confirm New Password</Label>
+                  <Input 
+                    type="password"
+                    className="h-12 rounded-xl bg-slate-50 border-none px-4" 
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Button className="w-full h-16 rounded-[24px] text-xl font-black shadow-xl shadow-primary/20" onClick={handleUpdatePassword} disabled={updating}>
+                  {updating ? <Loader2 className="animate-spin mr-2" /> : <Lock className="mr-2" />}
+                  Secure Manager
+                </Button>
+                <Button variant="ghost" className="w-full rounded-xl text-slate-400 font-bold" onClick={() => setIsSecurityDialogOpen(false)}>Cancel</Button>
+              </div>
+           </div>
+        </div>
+      )}
 
       <footer className="fixed bottom-0 w-full bg-white/60 backdrop-blur-md border-t p-6 flex justify-center z-40 md:hidden">
          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">&copy; 2024 NEXUSCART SAAS ENGINE</p>
