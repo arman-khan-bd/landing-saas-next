@@ -90,12 +90,13 @@ export default function AuthPage() {
 
       await updateProfile(user, { displayName: formData.fullName });
 
-      // Store User Data
+      // Store User Data with default role 'user'
       await setDoc(doc(db, "users", user.uid), {
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
         uid: user.uid,
+        role: "user",
         createdAt: serverTimestamp(),
       });
 
