@@ -36,7 +36,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   }, [subdomain, router, auth]);
 
   const verifyStoreAccess = async (uid: string) => {
-    if (!firestore) return;
+    if (!firestore || !subdomain) return;
     setLoading(true);
     setAccessDenied(false);
     try {
@@ -68,8 +68,16 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   };
 
   const adminSegments = ["overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder"];
-  const isBuilderEditor = pathname.includes("/builder/") && pathname.split("/").length > 3;
-  const isAdminPath = adminSegments.some(segment => pathname.startsWith(`/${subdomain}/${segment}`)) && !isBuilderEditor;
+  
+  // Normalize pathname to check for admin routes
+  // In dev/root domain, path is /arman/overview
+  // On custom subdomain, path is /overview
+  const normalizedPath = pathname.startsWith(`/${subdomain}`) 
+    ? pathname.replace(`/${subdomain}`, "") || "/"
+    : pathname;
+
+  const isBuilderEditor = normalizedPath.includes("/builder/") && normalizedPath.split("/").filter(Boolean).length > 1;
+  const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`)) && !isBuilderEditor;
 
   if (loading) {
     return (
@@ -148,9 +156,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           <SidebarContent className="p-4 space-y-4">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === `/${subdomain}/overview`} className="rounded-xl h-11 px-4">
+                <SidebarMenuButton asChild isActive={normalizedPath === "/overview"} className="rounded-xl h-11 px-4">
                   <Link href={`/${subdomain}/overview`} className="flex items-center gap-3">
-                    <LayoutDashboard className={`w-5 h-5 ${pathname === `/${subdomain}/overview` ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <LayoutDashboard className={`w-5 h-5 ${normalizedPath === "/overview" ? 'text-primary' : 'text-muted-foreground'}`} />
                     <span className="font-medium">Overview</span>
                   </Link>
                 </SidebarMenuButton>
@@ -169,9 +177,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                   <SidebarGroupContent>
                     <SidebarMenu className="mt-2">
                       <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname === `/${subdomain}/builder`} className="rounded-xl h-10 px-4">
+                        <SidebarMenuButton asChild isActive={normalizedPath === "/builder"} className="rounded-xl h-10 px-4">
                           <Link href={`/${subdomain}/builder`} className="flex items-center gap-3">
-                            <PenTool className={`w-4 h-4 ${pathname === `/${subdomain}/builder` ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <PenTool className={`w-4 h-4 ${normalizedPath === "/builder" ? 'text-primary' : 'text-muted-foreground'}`} />
                             <span className="text-sm font-medium">Landing Page</span>
                           </Link>
                         </SidebarMenuButton>
@@ -195,9 +203,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                     <SidebarMenu className="mt-2">
                       {catalogItems.map((item) => (
                         <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton asChild isActive={pathname === item.href} className="rounded-xl h-10 px-4">
+                          <SidebarMenuButton asChild isActive={normalizedPath === item.href.replace(`/${subdomain}`, "")} className="rounded-xl h-10 px-4">
                             <Link href={item.href} className="flex items-center gap-3">
-                              <item.icon className={`w-4 h-4 ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <item.icon className={`w-4 h-4 ${normalizedPath === item.href.replace(`/${subdomain}`, "") ? 'text-primary' : 'text-muted-foreground'}`} />
                               <span className="text-sm font-medium">{item.title}</span>
                             </Link>
                           </SidebarMenuButton>
@@ -222,9 +230,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                     <SidebarMenu className="mt-2">
                       {salesItems.map((item) => (
                         <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton asChild isActive={pathname === item.href} className="rounded-xl h-10 px-4">
+                          <SidebarMenuButton asChild isActive={normalizedPath === item.href.replace(`/${subdomain}`, "")} className="rounded-xl h-10 px-4">
                             <Link href={item.href} className="flex items-center gap-3">
-                              <item.icon className={`w-4 h-4 ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <item.icon className={`w-4 h-4 ${normalizedPath === item.href.replace(`/${subdomain}`, "") ? 'text-primary' : 'text-muted-foreground'}`} />
                               <span className="text-sm font-medium">{item.title}</span>
                             </Link>
                           </SidebarMenuButton>
@@ -249,9 +257,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                     <SidebarMenu className="mt-2">
                       {customerItems.map((item) => (
                         <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton asChild isActive={pathname === item.href} className="rounded-xl h-10 px-4">
+                          <SidebarMenuButton asChild isActive={normalizedPath === item.href.replace(`/${subdomain}`, "")} className="rounded-xl h-10 px-4">
                             <Link href={item.href} className="flex items-center gap-3">
-                              <item.icon className={`w-4 h-4 ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <item.icon className={`w-4 h-4 ${normalizedPath === item.href.replace(`/${subdomain}`, "") ? 'text-primary' : 'text-muted-foreground'}`} />
                               <span className="text-sm font-medium">{item.title}</span>
                             </Link>
                           </SidebarMenuButton>
@@ -265,9 +273,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === `/${subdomain}/settings`} className="rounded-xl h-11 px-4">
+                <SidebarMenuButton asChild isActive={normalizedPath === "/settings"} className="rounded-xl h-11 px-4">
                   <Link href={`/${subdomain}/settings`} className="flex items-center gap-3">
-                    <Settings className={`w-5 h-5 ${pathname === `/${subdomain}/settings` ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <Settings className={`w-5 h-5 ${normalizedPath === "/settings" ? 'text-primary' : 'text-muted-foreground'}`} />
                     <span className="font-medium">Store Settings</span>
                   </Link>
                 </SidebarMenuButton>
@@ -288,9 +296,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center gap-3 overflow-hidden">
               <SidebarTrigger className="md:hidden" />
               <h2 className="text-lg sm:text-xl font-headline font-bold text-foreground capitalize truncate">
-                {pathname.split("/").pop() === subdomain ? "Storefront" : 
-                 pathname.endsWith("/builder") ? "Landing Page" :
-                 pathname.split("/").pop()?.replace('-', ' ')}
+                {normalizedPath === "/" ? "Storefront" : 
+                 normalizedPath.startsWith("/builder") ? "Landing Page" :
+                 normalizedPath.split("/").pop()?.replace('-', ' ')}
               </h2>
             </div>
             <div className="flex items-center gap-2 sm:gap-4 shrink-0">
