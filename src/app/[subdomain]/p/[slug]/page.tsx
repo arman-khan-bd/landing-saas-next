@@ -57,6 +57,13 @@ interface Block {
   children?: Block[];
 }
 
+interface PageStyle {
+  backgroundColor?: string;
+  backgroundImage?: string;
+  paddingTop?: number;
+  paddingBottom?: number;
+}
+
 export default function RenderDynamicPage() {
   const { subdomain, slug } = useParams();
   const db = useFirestore();
@@ -112,8 +119,20 @@ export default function RenderDynamicPage() {
     </div>
   );
 
+  const pageStyle: PageStyle = page.pageStyle || {};
+
   return (
-    <div className="min-h-screen bg-white">
+    <div 
+      className="min-h-screen"
+      style={{
+        backgroundColor: pageStyle.backgroundColor || "#FFFFFF",
+        backgroundImage: pageStyle.backgroundImage ? `url(${pageStyle.backgroundImage})` : 'none',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        paddingTop: `${pageStyle.paddingTop || 40}px`,
+        paddingBottom: `${pageStyle.paddingBottom || 40}px`,
+      }}
+    >
       <div className="py-0">
         {page.config?.map((block: Block) => (
           <BlockRenderer key={block.id} block={block} products={products} />

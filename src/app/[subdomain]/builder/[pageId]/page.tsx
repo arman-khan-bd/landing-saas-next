@@ -19,7 +19,8 @@ import {
   ArrowLeft, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Bold, Italic, Underline, Palette, Layers, Box, MousePointer2,
   Star, Settings, Sparkles, Menu, PlusCircle, LayoutGrid,
-  MoveVertical, MoveHorizontal, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon
+  MoveVertical, MoveHorizontal, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon,
+  Paintbrush
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -88,6 +89,13 @@ interface Block {
   children?: Block[];
 }
 
+interface PageStyle {
+  backgroundColor?: string;
+  backgroundImage?: string;
+  paddingTop?: number;
+  paddingBottom?: number;
+}
+
 export default function PageBuilder() {
   return (
     <SidebarProvider>
@@ -107,6 +115,12 @@ function PageBuilderInner() {
   const [saving, setSaving] = useState(false);
   const [pageTitle, setPageTitle] = useState("");
   const [blocks, setBlocks] = useState<Block[]>([]);
+  const [pageStyle, setPageStyle] = useState<PageStyle>({
+    backgroundColor: "#FFFFFF",
+    backgroundImage: "",
+    paddingTop: 40,
+    paddingBottom: 40,
+  });
   const [products, setProducts] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -132,6 +146,9 @@ function PageBuilderInner() {
         const data = pageSnap.data();
         setBlocks(data.config || []);
         setPageTitle(data.title || "Untitled Page");
+        if (data.pageStyle) {
+          setPageStyle(data.pageStyle);
+        }
 
         const prodQ = query(collection(firestore, "products"), where("storeId", "==", data.storeId));
         const prodSnap = await getDocs(prodQ);
@@ -284,8 +301,13 @@ function PageBuilderInner() {
     setSaving(true);
     const pageRef = doc(firestore, "pages", pageId as string);
     const sanitizedConfig = sanitizeForFirestore(blocks);
+    const sanitizedStyle = sanitizeForFirestore(pageStyle);
     
-    updateDoc(pageRef, { config: sanitizedConfig, updatedAt: serverTimestamp() })
+    updateDoc(pageRef, { 
+      config: sanitizedConfig, 
+      pageStyle: sanitizedStyle,
+      updatedAt: serverTimestamp() 
+    })
       .then(() => {
         toast({ title: "Project Published!", description: "Changes are live on your store." });
       })
@@ -453,14 +475,46 @@ function PageBuilderInner() {
               </Tabs>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-4 opacity-30">
-              <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center">
-                <MousePointer2 className="w-8 h-8 text-white animate-pulse" />
-              </div>
-              <div>
-                <h4 className="font-headline font-bold text-[10px] tracking-widest uppercase text-white">Select a Component</h4>
-                <p className="text-[9px] text-white/60 mt-1 max-w-[140px] mx-auto">Click any element on the canvas to edit its properties here.</p>
-              </div>
+            <div className="flex flex-col h-full overflow-hidden">
+               <div className="px-4 py-3 bg-black/20 border-b border-white/10 flex items-center gap-2 shrink-0">
+                  <Paintbrush className="w-4 h-4 text-white" />
+                  <span className="font-headline font-bold text-[10px] uppercase tracking-wider text-white">Page Design</span>
+               </div>
+               <ScrollArea className="flex-1 min-h-0">
+                  <div className="p-4 space-y-6 pb-20">
+                     <PropertySection label="Global Background" icon={Palette}>
+                        <div className="space-y-4">
+                           <div className="space-y-1.5">
+                              <Label className="text-[9px] uppercase font-bold text-white/70">Page Color</Label>
+                              <Input type="color" value={pageStyle.backgroundColor || "#FFFFFF"} onChange={(e) => setPageStyle({...pageStyle, backgroundColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
+                           </div>
+                           <div className="space-y-1.5">
+                              <Label className="text-[9px] uppercase font-bold text-white/70">Background Image</Label>
+                              <CloudinaryUpload value={pageStyle.backgroundImage || ""} onUpload={(url) => setPageStyle({...pageStyle, backgroundImage: url})} onRemove={() => setPageStyle({...pageStyle, backgroundImage: ""})} />
+                           </div>
+                        </div>
+                     </PropertySection>
+
+                     <PropertySection label="Global Spacing" icon={MoveVertical}>
+                        <div className="space-y-6">
+                           <div className="space-y-3">
+                              <div className="flex justify-between items-center text-[9px] font-bold text-white/70 uppercase">
+                                 <Label>Vertical Padding (px)</Label>
+                                 <span>{pageStyle.paddingTop}px</span>
+                              </div>
+                              <Slider value={[pageStyle.paddingTop || 0]} min={0} max={200} step={4} onValueChange={([v]) => setPageStyle({...pageStyle, paddingTop: v, paddingBottom: v})} className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-primary" />
+                           </div>
+                        </div>
+                     </PropertySection>
+
+                     <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex flex-col items-center text-center gap-3">
+                        <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                           <MousePointer2 className="w-5 h-5 text-white/40" />
+                        </div>
+                        <p className="text-[10px] text-white/40 font-medium leading-relaxed">Select any element on the canvas to edit its specific properties.</p>
+                     </div>
+                  </div>
+               </ScrollArea>
             </div>
           )}
         </SidebarContent>
@@ -496,11 +550,22 @@ function PageBuilderInner() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center items-start">
-          <div className={cn(
-            "transition-all duration-700 bg-white min-h-[100%] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] relative rounded-xl overflow-hidden",
-            viewMode === "mobile" ? "w-full max-w-[375px] rounded-[40px] border-[10px] border-slate-900 ring-[12px] ring-white/10" : "max-w-6xl w-full"
-          )}>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center items-start" onClick={() => setSelectedBlockId(null)}>
+          <div 
+            className={cn(
+               "transition-all duration-700 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] relative overflow-hidden",
+               viewMode === "mobile" ? "w-full max-w-[375px] rounded-[40px] border-[10px] border-slate-900 ring-[12px] ring-white/10" : "max-w-6xl w-full rounded-xl"
+            )}
+            style={{
+               backgroundColor: pageStyle.backgroundColor || "#FFFFFF",
+               backgroundImage: pageStyle.backgroundImage ? `url(${pageStyle.backgroundImage})` : 'none',
+               backgroundSize: 'cover',
+               backgroundPosition: 'center',
+               paddingTop: `${pageStyle.paddingTop || 40}px`,
+               paddingBottom: `${pageStyle.paddingBottom || 40}px`,
+               minHeight: '100%'
+            }}
+          >
             <div className="py-8 group/canvas">
               {blocks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-32 gap-4 opacity-10 filter grayscale">
@@ -530,7 +595,7 @@ function PageBuilderInner() {
                 </div>
               )}
 
-              <div className="flex flex-col items-center justify-center py-8 mt-6 border-t border-dashed border-slate-100">
+              <div className="flex flex-col items-center justify-center py-8 mt-6 border-t border-dashed border-slate-100/20">
                 <Dialog open={isComponentDialogOpen} onOpenChange={setIsComponentDialogOpen}>
                   <DialogTrigger asChild>
                     <Button
@@ -589,10 +654,20 @@ function PageBuilderInner() {
           </header>
           
           <div className="flex-1 overflow-y-auto bg-slate-100/30 flex justify-center p-4">
-            <div className={cn(
-              "bg-white shadow-2xl transition-all duration-700 min-h-full py-0",
-              viewMode === "mobile" ? "w-full max-w-[375px] rounded-[40px] border-[10px] border-slate-900" : "max-w-6xl w-full rounded-xl"
-            )}>
+            <div 
+               className={cn(
+                  "shadow-2xl transition-all duration-700 min-h-full py-0",
+                  viewMode === "mobile" ? "w-full max-w-[375px] rounded-[40px] border-[10px] border-slate-900" : "max-w-6xl w-full rounded-xl"
+               )}
+               style={{
+                  backgroundColor: pageStyle.backgroundColor || "#FFFFFF",
+                  backgroundImage: pageStyle.backgroundImage ? `url(${pageStyle.backgroundImage})` : 'none',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  paddingTop: `${pageStyle.paddingTop || 40}px`,
+                  paddingBottom: `${pageStyle.paddingBottom || 40}px`,
+               }}
+            >
               <ScrollArea className="h-full">
                 {blocks.map(block => <BlockRenderer key={block.id} block={block} products={products} isPreview viewMode={viewMode} />)}
               </ScrollArea>
@@ -944,14 +1019,14 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
               )
             ))
           ) : isBuilder ? (
-            <div className="col-span-full py-12 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-3 text-slate-300">
+            <div className="col-span-full py-12 border-2 border-dashed border-slate-200/20 rounded-2xl flex flex-col items-center justify-center gap-3 text-slate-300">
               <LayoutGrid className="w-8 h-8 opacity-20" />
               <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">Empty Grid Row ({colsCount} Columns)</p>
             </div>
           ) : null}
           
           {isBuilder && (
-             <div className="col-span-full flex justify-center py-4 border-t border-dashed border-slate-100 mt-2">
+             <div className="col-span-full flex justify-center py-4 border-t border-dashed border-slate-100/20 mt-2">
                 <Button 
                   variant="outline" 
                   size="sm" 
