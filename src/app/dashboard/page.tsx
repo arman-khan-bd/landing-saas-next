@@ -2,46 +2,51 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth, db } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import { useAuth, useFirestore, useUser } from "@/firebase";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  ShoppingCart, Plus, Store, ExternalLink, LogOut, Loader2, 
+  User, Settings, LayoutDashboard, ShieldCheck, Mail, Phone, 
+  Globe, Sparkles, ChevronRight, CheckCircle2
+} from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { ShoppingCart, Plus, Store, ExternalLink, LogOut, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getStoreUrl } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-export default function UserDashboard() {
-  const [user, setUser] = useState<any>(null);
+export default function RedesignedDashboard() {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const firestore = useFirestore();
   const [stores, setStores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [newStore, setNewStore] = useState({ name: "", subdomain: "" });
+  const [profileData, setProfileData] = useState({ fullName: "", phone: "" });
+  
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUser(user);
-        fetchStores(user.uid);
-      } else {
-        router.push("/auth");
-      }
-    });
-    return () => unsubscribe();
-  }, [router]);
+    if (user) {
+      fetchStores(user.uid);
+      fetchProfile(user.uid);
+    }
+  }, [user]);
 
   const fetchStores = async (uid: string) => {
-    setLoading(true);
+    if (!firestore) return;
     try {
-      const q = query(collection(db, "stores"), where("ownerId", "==", uid));
+      const q = query(collection(firestore, "stores"), where("ownerId", "==", uid));
       const querySnapshot = await getDocs(q);
-      const storesList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setStores(storesList);
+      setStores(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (error) {
       console.error(error);
     } finally {
@@ -49,15 +54,53 @@ export default function UserDashboard() {
     }
   };
 
+  const fetchProfile = async (uid: string) => {
+    if (!firestore) return;
+    try {
+      const userRef = doc(firestore, "users", uid);
+      const userSnap = await getDocs(query(collection(firestore, "users"), where("uid", "==", uid)));
+      if (!userSnap.empty) {
+        const data = userSnap.docs[0].data();
+        setProfileData({
+          fullName: data.fullName || "",
+          phone: data.phone || ""
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!user || !firestore) return;
+    setUpdating(true);
+    try {
+      // Find user doc by UID
+      const q = query(collection(firestore, "users"), where("uid", "==", user.uid));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        await updateDoc(doc(firestore, "users", snap.docs[0].id), {
+          fullName: profileData.fullName,
+          phone: profileData.phone,
+          updatedAt: serverTimestamp()
+        });
+        toast({ title: "Profile Updated", description: "Your changes have been saved successfully." });
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Update Failed", description: "Could not save profile changes." });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleCreateStore = async () => {
-    if (!newStore.name || !newStore.subdomain) {
+    if (!newStore.name || !newStore.subdomain || !firestore || !user) {
       toast({ variant: "destructive", title: "Missing fields" });
       return;
     }
     setCreating(true);
     try {
-      // Check if subdomain exists (basic check)
-      const q = query(collection(db, "stores"), where("subdomain", "==", newStore.subdomain.toLowerCase()));
+      const q = query(collection(firestore, "stores"), where("subdomain", "==", newStore.subdomain.toLowerCase()));
       const snap = await getDocs(q);
       if (!snap.empty) {
         toast({ variant: "destructive", title: "Subdomain already taken" });
@@ -65,14 +108,14 @@ export default function UserDashboard() {
         return;
       }
 
-      await addDoc(collection(db, "stores"), {
+      await addDoc(collection(firestore, "stores"), {
         name: newStore.name,
         subdomain: newStore.subdomain.toLowerCase(),
         ownerId: user.uid,
         createdAt: serverTimestamp(),
       });
 
-      toast({ title: "Store Created!", description: "Your store is now online." });
+      toast({ title: "Store Launched!", description: "Your new brand is now live." });
       setNewStore({ name: "", subdomain: "" });
       fetchStores(user.uid);
     } catch (error: any) {
@@ -83,128 +126,320 @@ export default function UserDashboard() {
   };
 
   const handleLogout = async () => {
-    await auth.signOut();
-    router.push("/auth");
+    if (auth) {
+      await auth.signOut();
+      router.push("/auth");
+    }
   };
 
-  if (loading) {
+  if (isUserLoading || loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <p className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">Initializing Portal</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-white border-b border-border p-4 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <ShoppingCart className="text-white w-5 h-5" />
+    <div className="min-h-screen bg-slate-50/50">
+      {/* --- DASHBOARD HEADER --- */}
+      <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-xl shadow-primary/20">
+              <ShoppingCart className="text-white w-6 h-6" />
             </div>
-            <span className="text-xl font-headline font-bold text-primary">iHut</span>
+            <div className="hidden xs:block">
+              <span className="text-xl font-headline font-black text-slate-900 tracking-tighter">NexusCart</span>
+              <span className="text-[10px] block font-bold text-primary uppercase tracking-widest leading-none">Console</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <span className="text-xs sm:text-sm font-medium text-muted-foreground hidden xs:block truncate max-w-[150px]">{user?.email}</span>
-            <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-full h-9 w-9">
-              <LogOut className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex flex-col text-right">
+              <span className="text-sm font-bold text-slate-900">{profileData.fullName || user?.email}</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Admin Owner</span>
+            </div>
+            <Avatar className="w-10 h-10 border-2 border-primary/10">
+              <AvatarFallback className="bg-primary/5 text-primary font-black uppercase">{user?.email?.[0]}</AvatarFallback>
+            </Avatar>
+            <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl hover:bg-rose-50 hover:text-rose-500">
+              <LogOut className="w-5 h-5" />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-4 sm:p-10">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-10">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-headline font-bold text-foreground">Welcome Back</h1>
-            <p className="text-muted-foreground mt-1">Manage your e-commerce stores.</p>
-          </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button size="lg" className="w-full sm:w-auto rounded-xl shadow-lg shadow-primary/20 h-12">
-                <Plus className="mr-2 w-5 h-5" /> Create Store
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="rounded-3xl p-6 sm:p-8 max-w-[95vw] sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-headline font-bold">New Store Concept</DialogTitle>
-                <DialogDescription className="font-body">
-                  Enter your store details. This will be the home of your brand.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Store Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="My Awesome Brand"
-                    value={newStore.name}
-                    onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
-                    className="rounded-xl h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="subdomain">Subdomain</Label>
-                  <div className="flex items-center">
+      <main className="max-w-7xl mx-auto p-4 sm:p-10 pb-32">
+        {/* --- WELCOME HERO --- */}
+        <section className="mb-12">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px]">
+                <Sparkles className="w-3 h-3" /> System Ready
+              </div>
+              <h1 className="text-4xl sm:text-5xl font-headline font-black text-slate-900 tracking-tight">Welcome Back</h1>
+              <p className="text-muted-foreground text-lg">Manage your digital commerce empire from a single dashboard.</p>
+            </div>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="lg" className="w-full sm:w-auto rounded-2xl shadow-2xl shadow-primary/30 h-14 px-8 text-lg font-bold group">
+                  <Plus className="mr-2 w-6 h-6 group-hover:rotate-90 transition-transform duration-300" /> Create Store
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="rounded-[40px] p-8 border-none shadow-2xl max-w-[95vw] sm:max-w-lg">
+                <DialogHeader>
+                  <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
+                    <Store className="w-8 h-8" />
+                  </div>
+                  <DialogTitle className="text-3xl font-headline font-black tracking-tight">New Store Concept</DialogTitle>
+                  <DialogDescription className="text-slate-500 text-lg">
+                    Define the home of your brand. Pick a name and a custom subdomain.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-6 py-6">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Brand Name</Label>
                     <Input
-                      id="subdomain"
-                      placeholder="mybrand"
-                      value={newStore.subdomain}
-                      onChange={(e) => setNewStore({ ...newStore, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                      className="rounded-l-xl rounded-r-none h-12"
+                      placeholder="e.g. Urban Style"
+                      value={newStore.name}
+                      onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
+                      className="rounded-2xl h-14 bg-slate-50 border-none text-lg px-6"
                     />
-                    <div className="h-12 bg-muted flex items-center px-3 sm:px-4 rounded-r-xl border border-l-0 border-input text-[10px] sm:text-sm font-medium text-muted-foreground shrink-0">
-                      .ihut.shop
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Subdomain Access</Label>
+                    <div className="flex items-center">
+                      <Input
+                        placeholder="urban"
+                        value={newStore.subdomain}
+                        onChange={(e) => setNewStore({ ...newStore, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+                        className="rounded-l-2xl rounded-r-none h-14 bg-slate-50 border-none text-lg px-6 flex-1"
+                      />
+                      <div className="h-14 bg-slate-200/50 flex items-center px-6 rounded-r-2xl border-l border-white text-sm font-black text-slate-400">
+                        .ihut.shop
+                      </div>
                     </div>
                   </div>
+                </div>
+                <DialogFooter>
+                  <Button className="w-full h-16 rounded-[24px] text-xl font-black shadow-xl shadow-primary/20" onClick={handleCreateStore} disabled={creating}>
+                    {creating ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" />}
+                    Launch Brand
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </section>
+
+        {/* --- TABS SYSTEM --- */}
+        <Tabs defaultValue="stores" className="space-y-8">
+          <TabsList className="bg-white p-1 rounded-2xl border border-slate-200 h-auto grid grid-cols-3 sm:w-[500px]">
+            <TabsTrigger value="stores" className="rounded-xl py-3 data-[state=active]:bg-primary data-[state=active]:text-white font-bold gap-2">
+              <LayoutDashboard className="w-4 h-4" /> Stores
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="rounded-xl py-3 data-[state=active]:bg-primary data-[state=active]:text-white font-bold gap-2">
+              <User className="w-4 h-4" /> Profile
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="rounded-xl py-3 data-[state=active]:bg-primary data-[state=active]:text-white font-bold gap-2">
+              <Settings className="w-4 h-4" /> Account
+            </TabsTrigger>
+          </TabsList>
+
+          {/* --- STORES TAB --- */}
+          <TabsContent value="stores" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {stores.length === 0 ? (
+              <div className="text-center py-32 bg-white rounded-[48px] border-2 border-dashed border-slate-200">
+                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8 opacity-20">
+                  <Store className="w-12 h-12" />
+                </div>
+                <h3 className="text-2xl font-headline font-black text-slate-900 mb-2">No Active Stores</h3>
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">You haven&apos;t created any stores yet. Launch your first brand to start selling products across the globe.</p>
+                <Button variant="outline" className="rounded-2xl h-12 px-8 border-2 font-black">
+                  Learn How to Sell
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {stores.map((store) => (
+                  <Card key={store.id} className="group hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 border-none rounded-[40px] overflow-hidden bg-white">
+                    <CardHeader className="bg-slate-50/50 p-8 border-b border-slate-100">
+                      <div className="flex justify-between items-start">
+                        <div className="w-16 h-16 bg-white rounded-[24px] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
+                          <Store className="text-primary w-8 h-8" />
+                        </div>
+                        <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 hover:bg-primary hover:text-white transition-colors shadow-sm bg-white" asChild>
+                          <a href={getStoreUrl(store.subdomain)} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-5 h-5" />
+                          </a>
+                        </Button>
+                      </div>
+                      <div className="mt-8">
+                        <h3 className="text-2xl font-headline font-black text-slate-900 truncate leading-none mb-2">{store.name}</h3>
+                        <p className="text-sm font-bold text-primary flex items-center gap-2">
+                          <Globe className="w-3.5 h-3.5" />
+                          {getStoreUrl(store.subdomain).replace("https://", "").replace("http://", "")}
+                        </p>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-8">
+                       <div className="grid grid-cols-2 gap-4 mb-8">
+                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Status</p>
+                             <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                <span className="text-xs font-bold">Online</span>
+                             </div>
+                          </div>
+                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Created</p>
+                             <p className="text-xs font-bold">2024</p>
+                          </div>
+                       </div>
+                       <Button className="w-full rounded-[24px] h-14 font-black text-lg bg-slate-900 hover:bg-primary transition-all shadow-xl shadow-slate-900/10 group" onClick={() => router.push(`/${store.subdomain}/overview`)}>
+                        Enter Manager <ChevronRight className="ml-1 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* --- PROFILE TAB --- */}
+          <TabsContent value="profile" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2">
+                <Card className="rounded-[48px] border-none shadow-xl shadow-slate-200/50 bg-white overflow-hidden">
+                  <CardHeader className="bg-slate-900 text-white p-10">
+                    <CardTitle className="text-3xl font-headline font-black tracking-tight">Admin Profile</CardTitle>
+                    <CardDescription className="text-slate-400 text-lg">Update your identity across all stores.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-10 space-y-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Full Legal Name</Label>
+                        <Input 
+                          placeholder="Admin Full Name" 
+                          className="h-14 rounded-2xl bg-slate-50 border-none px-6 text-lg" 
+                          value={profileData.fullName}
+                          onChange={(e) => setProfileData({...profileData, fullName: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Contact Email</Label>
+                        <Input 
+                          disabled 
+                          value={user?.email || ""} 
+                          className="h-14 rounded-2xl bg-slate-100 border-none px-6 text-lg text-slate-400" 
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Phone Identification</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                        <Input 
+                          placeholder="+880 1234 567 890" 
+                          className="h-14 rounded-2xl bg-slate-50 border-none pl-16 pr-6 text-lg" 
+                          value={profileData.phone}
+                          onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="pt-6 border-t border-slate-100">
+                      <Button className="w-full sm:w-auto h-16 rounded-[24px] px-12 text-xl font-black shadow-2xl shadow-primary/20" onClick={handleUpdateProfile} disabled={updating}>
+                        {updating ? <Loader2 className="animate-spin mr-2" /> : <ShieldCheck className="mr-2" />}
+                        Save Profile Changes
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="lg:col-span-1 space-y-8">
+                <Card className="rounded-[40px] border-none shadow-lg bg-primary text-white p-8">
+                   <div className="flex flex-col items-center text-center space-y-6">
+                      <Avatar className="w-24 h-24 border-4 border-white/20 shadow-2xl">
+                         <AvatarFallback className="bg-white/10 text-white text-4xl font-black uppercase">{user?.email?.[0]}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h4 className="text-2xl font-black tracking-tight">{profileData.fullName || "Admin Account"}</h4>
+                        <p className="text-white/60 font-bold uppercase tracking-widest text-[10px]">Verified Global Owner</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 w-full">
+                         <div className="bg-white/10 rounded-[24px] p-4">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1">Stores</p>
+                            <p className="text-2xl font-black">{stores.length}</p>
+                         </div>
+                         <div className="bg-white/10 rounded-[24px] p-4">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1">Since</p>
+                            <p className="text-2xl font-black">2024</p>
+                         </div>
+                      </div>
+                   </div>
+                </Card>
+
+                <div className="bg-slate-200/50 rounded-[32px] p-8 border border-white">
+                   <div className="flex items-center gap-4 mb-4">
+                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                         <ShieldCheck className="text-primary w-5 h-5" />
+                      </div>
+                      <h4 className="font-bold text-slate-900">Account Security</h4>
+                   </div>
+                   <p className="text-sm text-slate-500 leading-relaxed">Your account is protected by industry-standard encryption and Firebase Authentication. Always use a unique password.</p>
                 </div>
               </div>
-              <DialogFooter>
-                <Button className="w-full h-12 rounded-xl text-lg" onClick={handleCreateStore} disabled={creating}>
-                  {creating ? <Loader2 className="animate-spin mr-2" /> : "Launch Store"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </div>
+          </TabsContent>
 
-        {stores.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-border/60 p-6">
-            <Store className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-            <h3 className="text-xl font-headline font-bold mb-2">No stores yet</h3>
-            <p className="text-muted-foreground mb-6">Create your first store to start selling.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {stores.map((store) => (
-              <Card key={store.id} className="hover:shadow-xl transition-all duration-300 border-border/50 rounded-3xl overflow-hidden group">
-                <CardHeader className="bg-muted/30 pb-4 p-6">
-                  <div className="flex justify-between items-start">
-                    <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
-                      <Store className="text-primary w-6 h-6" />
+          {/* --- ACCOUNT TAB --- */}
+          <TabsContent value="settings" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Card className="rounded-[48px] border-none shadow-xl shadow-slate-200/50 bg-white overflow-hidden max-w-4xl">
+              <CardHeader className="bg-slate-50 p-10 border-b">
+                 <div className="flex items-center gap-4 text-primary font-black uppercase tracking-widest text-[10px] mb-4">
+                    <Settings className="w-4 h-4" /> Global Preferences
+                 </div>
+                 <CardTitle className="text-3xl font-headline font-black tracking-tight text-slate-900">Account Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="p-10 space-y-12">
+                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div className="space-y-1">
+                       <h4 className="text-xl font-bold">Email Notifications</h4>
+                       <p className="text-slate-500 text-sm">Receive weekly performance reports for your stores.</p>
                     </div>
-                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary hover:text-white transition-colors h-9 w-9" asChild>
-                      <a href={getStoreUrl(store.subdomain)} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </Button>
-                  </div>
-                  <CardTitle className="mt-4 text-2xl font-headline font-bold truncate">{store.name}</CardTitle>
-                  <CardDescription className="text-sm font-medium text-primary truncate">
-                    {getStoreUrl(store.subdomain).replace("https://", "").replace("http://", "")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <Button className="w-full rounded-xl h-12 font-bold" onClick={() => router.push(`/${store.subdomain}/products`)}>
-                    Manage Catalog
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                    <Button variant="outline" className="rounded-2xl border-2 font-black">Configure Emails</Button>
+                 </div>
+
+                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pt-12 border-t border-slate-100">
+                    <div className="space-y-1">
+                       <h4 className="text-xl font-bold">Billing & Subscription</h4>
+                       <p className="text-slate-500 text-sm">Manage your iHut pro plan and billing details.</p>
+                    </div>
+                    <Button className="rounded-2xl font-black h-12 px-8 bg-slate-900">Upgrade to Pro</Button>
+                 </div>
+
+                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pt-12 border-t border-slate-100">
+                    <div className="space-y-1">
+                       <h4 className="text-xl font-bold text-rose-500">Danger Zone</h4>
+                       <p className="text-slate-500 text-sm">Permanently delete your account and all associated stores.</p>
+                    </div>
+                    <Button variant="ghost" className="rounded-2xl font-black text-rose-500 hover:bg-rose-50 hover:text-rose-600">Delete Account</Button>
+                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
+
+      <footer className="fixed bottom-0 w-full bg-white/60 backdrop-blur-md border-t p-6 flex justify-center z-40 md:hidden">
+         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">&copy; 2024 NEXUSCART SAAS ENGINE</p>
+      </footer>
     </div>
   );
 }
