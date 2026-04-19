@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useFirestore, useUser } from "@/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -19,6 +20,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useToast } from "@/hooks/use-toast";
 import { getStoreUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function RedesignedDashboard() {
   const { user, isUserLoading } = useUser();
@@ -35,11 +38,11 @@ export default function RedesignedDashboard() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
+    if (user && firestore) {
       fetchStores(user.uid);
       fetchProfile(user.uid);
     }
-  }, [user]);
+  }, [user, firestore]);
 
   const fetchStores = async (uid: string) => {
     if (!firestore) return;
@@ -57,10 +60,11 @@ export default function RedesignedDashboard() {
   const fetchProfile = async (uid: string) => {
     if (!firestore) return;
     try {
+      // Use getDoc for direct owner-based document access (ID is the UID)
       const userRef = doc(firestore, "users", uid);
-      const userSnap = await getDocs(query(collection(firestore, "users"), where("uid", "==", uid)));
-      if (!userSnap.empty) {
-        const data = userSnap.docs[0].data();
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const data = userSnap.data();
         setProfileData({
           fullName: data.fullName || "",
           phone: data.phone || ""
@@ -74,23 +78,27 @@ export default function RedesignedDashboard() {
   const handleUpdateProfile = async () => {
     if (!user || !firestore) return;
     setUpdating(true);
-    try {
-      // Find user doc by UID
-      const q = query(collection(firestore, "users"), where("uid", "==", user.uid));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        await updateDoc(doc(firestore, "users", snap.docs[0].id), {
-          fullName: profileData.fullName,
-          phone: profileData.phone,
-          updatedAt: serverTimestamp()
-        });
+    
+    const userRef = doc(firestore, "users", user.uid);
+    const updateData = {
+      fullName: profileData.fullName,
+      phone: profileData.phone,
+      updatedAt: serverTimestamp()
+    };
+
+    updateDoc(userRef, updateData)
+      .then(() => {
         toast({ title: "Profile Updated", description: "Your changes have been saved successfully." });
-      }
-    } catch (error) {
-      toast({ variant: "destructive", title: "Update Failed", description: "Could not save profile changes." });
-    } finally {
-      setUpdating(false);
-    }
+      })
+      .catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => setUpdating(false));
   };
 
   const handleCreateStore = async () => {
@@ -99,7 +107,16 @@ export default function RedesignedDashboard() {
       return;
     }
     setCreating(true);
+    
+    const storeData = {
+      name: newStore.name,
+      subdomain: newStore.subdomain.toLowerCase(),
+      ownerId: user.uid,
+      createdAt: serverTimestamp(),
+    };
+
     try {
+      // Check subdomain availability
       const q = query(collection(firestore, "stores"), where("subdomain", "==", newStore.subdomain.toLowerCase()));
       const snap = await getDocs(q);
       if (!snap.empty) {
@@ -108,19 +125,24 @@ export default function RedesignedDashboard() {
         return;
       }
 
-      await addDoc(collection(firestore, "stores"), {
-        name: newStore.name,
-        subdomain: newStore.subdomain.toLowerCase(),
-        ownerId: user.uid,
-        createdAt: serverTimestamp(),
-      });
+      addDoc(collection(firestore, "stores"), storeData)
+        .then(() => {
+          toast({ title: "Store Launched!", description: "Your new brand is now live." });
+          setNewStore({ name: "", subdomain: "" });
+          fetchStores(user.uid);
+        })
+        .catch(async (error) => {
+          const permissionError = new FirestorePermissionError({
+            path: 'stores',
+            operation: 'create',
+            requestResourceData: storeData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        })
+        .finally(() => setCreating(false));
 
-      toast({ title: "Store Launched!", description: "Your new brand is now live." });
-      setNewStore({ name: "", subdomain: "" });
-      fetchStores(user.uid);
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error creating store", description: error.message });
-    } finally {
+      toast({ variant: "destructive", title: "Error creating store" });
       setCreating(false);
     }
   };
