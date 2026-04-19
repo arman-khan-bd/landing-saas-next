@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -243,6 +244,37 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
               <span className="text-xl font-medium pt-0.5">{item}</span>
             </div>
           ))}
+        </div>
+      );
+
+    case "carousel":
+      const carouselCols = block.style?.desktopColumns || 3;
+      const carouselColMapping: any = {
+        1: "basis-full",
+        2: "basis-full md:basis-1/2",
+        3: "basis-full md:basis-1/3",
+        4: "basis-full md:basis-1/4"
+      };
+      return (
+        <div style={style} className={cn("px-6 w-full max-w-6xl mx-auto", animClass, responsiveClass)}>
+          <Carousel opts={{ align: "start" }} className="w-full">
+            <CarouselContent>
+              {(block.content?.items || []).map((item: any) => (
+                <CarouselItem key={item.id} className={cn(carouselColMapping[carouselCols] || "basis-full", "px-2")}>
+                  <div className="bg-slate-50 rounded-[32px] overflow-hidden border border-slate-100 h-full flex flex-col shadow-sm">
+                    {item.imageUrl && <img src={item.imageUrl} className="w-full aspect-square object-cover" />}
+                    {(item.title || item.subtitle || item.buttonText) && (
+                      <div className="p-6 space-y-3 flex-1">
+                        {item.title && <h4 className="font-bold text-xl">{item.title}</h4>}
+                        {item.subtitle && <p className="text-sm text-muted-foreground line-clamp-3">{item.subtitle}</p>}
+                        {item.buttonText && <Button variant="secondary" className="w-full h-12 text-xs uppercase font-black rounded-2xl mt-4">{item.buttonText}</Button>}
+                      </div>
+                    )}
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
         </div>
       );
 

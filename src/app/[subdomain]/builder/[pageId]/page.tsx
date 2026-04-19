@@ -1,11 +1,12 @@
+
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { collection, query, where, getDocs, doc, updateDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,8 +21,26 @@ import {
   Palette, Box, MousePointer2,
   Sparkles, PlusCircle, LayoutGrid,
   MoveVertical, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon,
-  Paintbrush
+  Paintbrush, GripVertical, Copy, Layers
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  defaultDropAnimationSideEffects,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
@@ -129,6 +148,12 @@ function PageBuilderInner() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isComponentDialogOpen, setIsComponentDialogOpen] = useState(false);
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   useEffect(() => {
     if (firestore && pageId) {
@@ -165,12 +190,7 @@ function PageBuilderInner() {
     }
   };
 
-  const selectedBlock = useMemo(() => {
-    if (!selectedBlockId) return null;
-    return findBlockById(blocks, selectedBlockId);
-  }, [selectedBlockId, blocks]);
-
-  function findBlockById(items: Block[], id: string): Block | null {
+  const findBlockById = useCallback((items: Block[], id: string): Block | null => {
     for (const item of items) {
       if (item.id === id) return item;
       if (item.children) {
@@ -179,7 +199,12 @@ function PageBuilderInner() {
       }
     }
     return null;
-  }
+  }, []);
+
+  const selectedBlock = useMemo(() => {
+    if (!selectedBlockId) return null;
+    return findBlockById(blocks, selectedBlockId);
+  }, [selectedBlockId, blocks, findBlockById]);
 
   const createBlock = (type: BlockType): Block => {
     return {
@@ -277,22 +302,35 @@ function PageBuilderInner() {
     }));
   };
 
-  const sanitizeForFirestore = (obj: any): any => {
-    if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
-    if (obj !== null && typeof obj === 'object') {
-      return Object.fromEntries(
-        Object.entries(obj)
-          .filter(([_, v]) => v !== undefined)
-          .map(([k, v]) => [k, sanitizeForFirestore(v)])
-      );
-    }
-    return obj === undefined ? null : obj;
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    setActiveDragId(null);
+    if (!over || active.id === over.id) return;
+
+    setBlocks((items) => {
+      const oldIndex = items.findIndex((i) => i.id === active.id);
+      const newIndex = items.findIndex((i) => i.id === over.id);
+      return arrayMove(items, oldIndex, newIndex);
+    });
   };
 
   const handleSave = () => {
     if (!pageId || !firestore) return;
     setSaving(true);
     const pageRef = doc(firestore, "pages", pageId as string);
+    
+    const sanitizeForFirestore = (obj: any): any => {
+      if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
+      if (obj !== null && typeof obj === 'object') {
+        return Object.fromEntries(
+          Object.entries(obj)
+            .filter(([_, v]) => v !== undefined)
+            .map(([k, v]) => [k, sanitizeForFirestore(v)])
+        );
+      }
+      return obj === undefined ? null : obj;
+    };
+
     const sanitizedConfig = sanitizeForFirestore(blocks);
     const sanitizedStyle = sanitizeForFirestore(pageStyle);
     
@@ -566,26 +604,42 @@ function PageBuilderInner() {
                   <h3 className="text-2xl font-headline font-black tracking-tighter uppercase">Canvas is Empty</h3>
                 </div>
               ) : (
-                <div className="space-y-0">
-                  {blocks.map((block) => (
-                    <CanvasBlockWrapper
-                      key={block.id}
-                      block={block}
-                      products={products}
-                      isSelected={selectedBlockId === block.id}
-                      onSelect={(id?: string) => {
-                        setSelectedBlockId(id || block.id);
-                        if (isMobile) setOpenMobile(true);
-                      }}
-                      onRemove={(id?: string) => removeBlock(id || block.id)}
-                      viewMode={viewMode}
-                      onAddNested={(parentId: string) => {
-                        setActiveParentId(parentId);
-                        setIsComponentDialogOpen(true);
-                      }}
-                    />
-                  ))}
-                </div>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={(e) => setActiveDragId(e.active.id as string)}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-0">
+                      {blocks.map((block) => (
+                        <CanvasBlockWrapper
+                          key={block.id}
+                          block={block}
+                          products={products}
+                          isSelected={selectedBlockId === block.id}
+                          onSelect={(id?: string) => {
+                            setSelectedBlockId(id || block.id);
+                            if (isMobile) setOpenMobile(true);
+                          }}
+                          onRemove={(id?: string) => removeBlock(id || block.id)}
+                          viewMode={viewMode}
+                          onAddNested={(parentId: string) => {
+                            setActiveParentId(parentId);
+                            setIsComponentDialogOpen(true);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                  <DragOverlay>
+                    {activeDragId ? (
+                      <div className="opacity-50 pointer-events-none scale-105 transition-transform bg-white rounded-lg p-4 shadow-2xl border border-primary/20">
+                        {findBlockById(blocks, activeDragId)?.type}
+                      </div>
+                    ) : null}
+                  </DragOverlay>
+                </DndContext>
               )}
 
               <div className="flex flex-col items-center justify-center py-8 mt-6 border-t border-dashed border-slate-100/20">
@@ -721,10 +775,21 @@ function PropertySection({ label, icon: Icon, children }: any) {
 }
 
 function CanvasBlockWrapper({ block, products, isSelected, onSelect, onRemove, viewMode, onAddNested }: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 100 : 'auto',
+    opacity: isDragging ? 0.3 : 1,
+  };
+
   const isHidden = (viewMode === "desktop" && block.style?.hideDesktop) || (viewMode === "mobile" && block.style?.hideMobile);
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       onClick={(e) => { e.stopPropagation(); onSelect(); }}
       className={cn(
         "relative group/block transition-all duration-300 cursor-pointer min-h-[20px]",
@@ -734,6 +799,9 @@ function CanvasBlockWrapper({ block, products, isSelected, onSelect, onRemove, v
     >
       {isSelected && (
         <div className="absolute -top-7 left-0 flex items-center gap-2 bg-primary text-white rounded-t-lg px-2.5 py-1 text-[8px] font-black uppercase tracking-widest z-50 shadow-lg">
+          <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing hover:bg-white/20 p-0.5 rounded mr-1">
+            <GripVertical className="w-3 h-3" />
+          </div>
           {block.type}
           <div className="ml-1.5 border-l border-white/20 pl-1.5">
             <Trash2 className="w-3 h-3 cursor-pointer hover:text-red-200" onClick={(e) => { e.stopPropagation(); onRemove(); }} />
