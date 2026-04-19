@@ -571,43 +571,46 @@ export default function RedesignedDashboard() {
       {isCreateStoreOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsCreateStoreOpen(false)} />
-           <div className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-              <button onClick={() => setIsCreateStoreOpen(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors">
+           <div className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 max-h-[95vh] flex flex-col overflow-hidden">
+              <button onClick={() => setIsCreateStoreOpen(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors z-10">
                 <X className="w-5 h-5" />
               </button>
-              <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
-                <Store className="w-8 h-8" />
-              </div>
-              <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">New Store Concept</h2>
-              <p className="text-slate-500 text-lg mt-2 leading-relaxed">Define the home of your brand. Pick a name and a custom subdomain.</p>
               
-              <div className="space-y-6 py-8">
-                <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Brand Name</Label>
-                  <Input
-                    placeholder="e.g. Urban Style"
-                    value={newStore.name}
-                    onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
-                    className="rounded-2xl h-14 bg-slate-50 border-none text-lg px-6"
-                  />
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
+                  <Store className="w-8 h-8" />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Subdomain Access</Label>
-                  <div className="flex items-center">
+                <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">New Store Concept</h2>
+                <p className="text-slate-500 text-lg mt-2 leading-relaxed">Define the home of your brand. Pick a name and a custom subdomain.</p>
+                
+                <div className="space-y-6 py-8">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Brand Name</Label>
                     <Input
-                      placeholder="urban"
-                      value={newStore.subdomain}
-                      onChange={(e) => setNewStore({ ...newStore, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                      className="rounded-l-2xl rounded-r-none h-14 bg-slate-50 border-none text-lg px-6 flex-1"
+                      placeholder="e.g. Urban Style"
+                      value={newStore.name}
+                      onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
+                      className="rounded-2xl h-14 bg-slate-50 border-none text-lg px-6"
                     />
-                    <div className="h-14 bg-slate-200/50 flex items-center px-6 rounded-r-2xl border-l border-white text-sm font-black text-slate-400">
-                      .ihut.shop
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Subdomain Access</Label>
+                    <div className="flex items-center">
+                      <Input
+                        placeholder="urban"
+                        value={newStore.subdomain}
+                        onChange={(e) => setNewStore({ ...newStore, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+                        className="rounded-l-2xl rounded-r-none h-14 bg-slate-50 border-none text-lg px-6 flex-1"
+                      />
+                      <div className="h-14 bg-slate-200/50 flex items-center px-6 rounded-r-2xl border-l border-white text-sm font-black text-slate-400">
+                        .ihut.shop
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
               
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 pt-6 border-t mt-4">
                 <Button className="w-full h-16 rounded-[24px] text-xl font-black shadow-xl shadow-primary/20" onClick={handleCreateStore} disabled={creating}>
                   {creating ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" />}
                   Launch Brand
@@ -622,27 +625,31 @@ export default function RedesignedDashboard() {
       {isDeleteDialogOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsDeleteDialogOpen(false)} />
-           <div className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-              <button onClick={() => setIsDeleteDialogOpen(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors">
+           <div className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 max-h-[95vh] flex flex-col overflow-hidden">
+              <button onClick={() => setIsDeleteDialogOpen(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors z-10">
                 <X className="w-5 h-5" />
               </button>
-              <div className="w-16 h-16 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 mb-6">
-                <AlertTriangle className="w-8 h-8" />
+              
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="w-16 h-16 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 mb-6">
+                  <AlertTriangle className="w-8 h-8" />
+                </div>
+                <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">Delete Permanently?</h2>
+                <p className="text-slate-500 text-lg mt-2 leading-relaxed">
+                  This action cannot be undone. To confirm, please type <span className="font-black text-slate-900">{selectedStore?.subdomain}</span> below.
+                </p>
+                <div className="py-8">
+                  <Input 
+                    placeholder="Confirm subdomain" 
+                    className="h-14 rounded-2xl bg-slate-50 border-none text-lg px-6" 
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    autoFocus
+                  />
+                </div>
               </div>
-              <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">Delete Permanently?</h2>
-              <p className="text-slate-500 text-lg mt-2 leading-relaxed">
-                This action cannot be undone. To confirm, please type <span className="font-black text-slate-900">{selectedStore?.subdomain}</span> below.
-              </p>
-              <div className="py-8">
-                <Input 
-                  placeholder="Confirm subdomain" 
-                  className="h-14 rounded-2xl bg-slate-50 border-none text-lg px-6" 
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div className="flex flex-col gap-3">
+
+              <div className="flex flex-col gap-3 pt-6 border-t mt-4">
                 <Button 
                   variant="destructive" 
                   className="w-full h-16 rounded-[24px] text-xl font-black" 
@@ -662,52 +669,54 @@ export default function RedesignedDashboard() {
       {isSecurityDialogOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsSecurityDialogOpen(false)} />
-           <div className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-              <button onClick={() => setIsSecurityDialogOpen(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors">
+           <div className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 max-h-[95vh] flex flex-col overflow-hidden">
+              <button onClick={() => setIsSecurityDialogOpen(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors z-10">
                 <X className="w-5 h-5" />
               </button>
               
-              <div className="text-center">
-                <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto mb-6">
-                  <ShieldCheck className="w-10 h-10" />
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="text-center">
+                  <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto mb-6">
+                    <ShieldCheck className="w-10 h-10" />
+                  </div>
+                  <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">Manager Vault</h2>
+                  <p className="text-slate-500 mt-2">Set a password that must be entered every time someone tries to manage this store.</p>
                 </div>
-                <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">Manager Vault</h2>
-                <p className="text-slate-500 mt-2">Set a password that must be entered every time someone tries to manage this store.</p>
-              </div>
 
-              <div className="space-y-4 py-8">
-                {selectedStore?.managePassword && (
+                <div className="space-y-4 py-8">
+                  {selectedStore?.managePassword && (
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Old Password</Label>
+                      <Input 
+                        type="password"
+                        className="h-12 rounded-xl bg-slate-50 border-none px-4" 
+                        value={passwordData.oldPassword}
+                        onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})}
+                      />
+                    </div>
+                  )}
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Old Password</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">New Password</Label>
                     <Input 
                       type="password"
                       className="h-12 rounded-xl bg-slate-50 border-none px-4" 
-                      value={passwordData.oldPassword}
-                      onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})}
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
                     />
                   </div>
-                )}
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">New Password</Label>
-                  <Input 
-                    type="password"
-                    className="h-12 rounded-xl bg-slate-50 border-none px-4" 
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Confirm New Password</Label>
-                  <Input 
-                    type="password"
-                    className="h-12 rounded-xl bg-slate-50 border-none px-4" 
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-                  />
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Confirm New Password</Label>
+                    <Input 
+                      type="password"
+                      className="h-12 rounded-xl bg-slate-50 border-none px-4" 
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 pt-6 border-t mt-4">
                 <Button className="w-full h-16 rounded-[24px] text-xl font-black shadow-xl shadow-primary/20" onClick={handleUpdatePassword} disabled={updating}>
                   {updating ? <Loader2 className="animate-spin mr-2" /> : <Lock className="mr-2" />}
                   Secure Manager
