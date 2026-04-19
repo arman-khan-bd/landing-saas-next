@@ -1060,33 +1060,53 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
     case "row":
       const colsCount = block.content?.columns || 1;
       const gridClass = gridColsMap[colsCount] || "md:grid-cols-1";
+      const children = block.children || [];
 
       return (
-        <div style={style} className={cn("grid gap-6 px-4 max-w-6xl mx-auto w-full", "grid-cols-1", gridClass)}>
-          {block.children && block.children.length > 0 ? (
-            block.children.map((child: any) => (
-              isBuilder ? (
-                <CanvasBlockWrapper 
-                  key={child.id} 
-                  block={child} 
-                  products={products} 
-                  viewMode={viewMode} 
-                  onAddNested={onAddNested}
-                  onSelect={(id?: string) => onSelect(id || child.id)}
-                  onRemove={(id?: string) => onRemove(id || child.id)}
-                />
-              ) : (
-                <BlockRenderer key={child.id} block={child} products={products} isPreview={isPreview} viewMode={viewMode} />
-              )
-            ))
-          ) : isBuilder ? (
-            <div className="col-span-full py-12 border-2 border-dashed border-slate-200/20 rounded-2xl flex flex-col items-center justify-center gap-3 text-slate-300">
-              <LayoutGrid className="w-8 h-8 opacity-20" />
-              <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">Empty Grid Row ({colsCount} Columns)</p>
-            </div>
-          ) : null}
-          
+        <div 
+          style={style} 
+          className={cn(
+            "grid gap-6 px-4 max-w-6xl mx-auto w-full", 
+            "grid-cols-1", 
+            gridClass,
+            isBuilder && "border border-dashed border-primary/20 p-6 rounded-[32px] bg-slate-50/20"
+          )}
+        >
+          {children.map((child: any) => (
+            isBuilder ? (
+              <CanvasBlockWrapper 
+                key={child.id} 
+                block={child} 
+                products={products} 
+                viewMode={viewMode} 
+                onAddNested={onAddNested}
+                onSelect={(id?: string) => onSelect(id || child.id)}
+                onRemove={(id?: string) => onRemove(id || child.id)}
+              />
+            ) : (
+              <BlockRenderer key={child.id} block={child} products={products} isPreview={isPreview} viewMode={viewMode} />
+            )
+          ))}
+
           {isBuilder && (
+            Array.from({ length: Math.max(0, colsCount - children.length) }).map((_, i) => (
+              <div 
+                key={`empty-col-${i}`}
+                className="min-h-[120px] border-2 border-dashed border-slate-200/40 rounded-2xl flex items-center justify-center bg-white/40 group/empty hover:border-primary/40 hover:bg-white transition-all duration-300"
+              >
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-10 w-10 rounded-full border-primary/20 text-primary bg-white shadow-sm hover:bg-primary hover:text-white transition-all pointer-events-auto group-hover/empty:scale-110"
+                  onClick={(e) => { e.stopPropagation(); onAddNested(block.id); }}
+                >
+                  <Plus className="w-5 h-5" />
+                </Button>
+              </div>
+            ))
+          )}
+          
+          {isBuilder && children.length >= colsCount && (
              <div className="col-span-full flex justify-center py-4 border-t border-dashed border-slate-100/20 mt-2">
                 <Button 
                   variant="outline" 
