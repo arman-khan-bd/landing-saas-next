@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ShoppingCart, Plus, Store, ExternalLink, LogOut, Loader2, 
   User, Settings, LayoutDashboard, ShieldCheck, Mail, Phone, 
-  Globe, Sparkles, ChevronRight, CheckCircle2
+  Globe, Sparkles, ChevronRight, CheckCircle2, Shield
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,7 @@ import { getStoreUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Link from "next/link";
 
 export default function RedesignedDashboard() {
   const { user, isUserLoading } = useUser();
@@ -32,7 +33,7 @@ export default function RedesignedDashboard() {
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [newStore, setNewStore] = useState({ name: "", subdomain: "" });
-  const [profileData, setProfileData] = useState({ fullName: "", phone: "" });
+  const [profileData, setProfileData] = useState({ fullName: "", phone: "", role: "user" });
   
   const router = useRouter();
   const { toast } = useToast();
@@ -60,14 +61,14 @@ export default function RedesignedDashboard() {
   const fetchProfile = async (uid: string) => {
     if (!firestore) return;
     try {
-      // Use getDoc for direct owner-based document access (ID is the UID)
       const userRef = doc(firestore, "users", uid);
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         const data = userSnap.data();
         setProfileData({
           fullName: data.fullName || "",
-          phone: data.phone || ""
+          phone: data.phone || "",
+          role: data.role || "user"
         });
       }
     } catch (error) {
@@ -116,7 +117,6 @@ export default function RedesignedDashboard() {
     };
 
     try {
-      // Check subdomain availability
       const q = query(collection(firestore, "stores"), where("subdomain", "==", newStore.subdomain.toLowerCase()));
       const snap = await getDocs(q);
       if (!snap.empty) {
@@ -167,7 +167,6 @@ export default function RedesignedDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50/50">
-      {/* --- DASHBOARD HEADER --- */}
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -181,9 +180,16 @@ export default function RedesignedDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+            {profileData.role === 'admin' && (
+              <Link href="/saas-admin">
+                <Button variant="outline" className="hidden sm:flex rounded-xl border-primary/20 bg-primary/5 text-primary font-bold hover:bg-primary hover:text-white transition-all">
+                  <Shield className="w-4 h-4 mr-2" /> Admin Console
+                </Button>
+              </Link>
+            )}
             <div className="hidden md:flex flex-col text-right">
               <span className="text-sm font-bold text-slate-900">{profileData.fullName || user?.email}</span>
-              <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Admin Owner</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{profileData.role === 'admin' ? 'Super Admin' : 'Store Owner'}</span>
             </div>
             <Avatar className="w-10 h-10 border-2 border-primary/10">
               <AvatarFallback className="bg-primary/5 text-primary font-black uppercase">{user?.email?.[0]}</AvatarFallback>
@@ -196,7 +202,6 @@ export default function RedesignedDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto p-4 sm:p-10 pb-32">
-        {/* --- WELCOME HERO --- */}
         <section className="mb-12">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
             <div className="space-y-2">
@@ -259,7 +264,6 @@ export default function RedesignedDashboard() {
           </div>
         </section>
 
-        {/* --- TABS SYSTEM --- */}
         <Tabs defaultValue="stores" className="space-y-8">
           <TabsList className="bg-white p-1 rounded-2xl border border-slate-200 h-auto grid grid-cols-3 sm:w-[500px]">
             <TabsTrigger value="stores" className="rounded-xl py-3 data-[state=active]:bg-primary data-[state=active]:text-white font-bold gap-2">
@@ -273,7 +277,6 @@ export default function RedesignedDashboard() {
             </TabsTrigger>
           </TabsList>
 
-          {/* --- STORES TAB --- */}
           <TabsContent value="stores" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {stores.length === 0 ? (
               <div className="text-center py-32 bg-white rounded-[48px] border-2 border-dashed border-slate-200">
@@ -333,7 +336,6 @@ export default function RedesignedDashboard() {
             )}
           </TabsContent>
 
-          {/* --- PROFILE TAB --- */}
           <TabsContent value="profile" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2">
@@ -346,9 +348,9 @@ export default function RedesignedDashboard() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                       <div className="space-y-2">
                         <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Full Legal Name</Label>
-                        <Input 
+                        <input 
                           placeholder="Admin Full Name" 
-                          className="h-14 rounded-2xl bg-slate-50 border-none px-6 text-lg" 
+                          className="h-14 rounded-2xl bg-slate-50 border-none px-6 text-lg w-full focus:outline-none focus:ring-2 focus:ring-primary/20" 
                           value={profileData.fullName}
                           onChange={(e) => setProfileData({...profileData, fullName: e.target.value})}
                         />
@@ -366,9 +368,9 @@ export default function RedesignedDashboard() {
                       <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Phone Identification</Label>
                       <div className="relative">
                         <Phone className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-                        <Input 
+                        <input 
                           placeholder="+880 1234 567 890" 
-                          className="h-14 rounded-2xl bg-slate-50 border-none pl-16 pr-6 text-lg" 
+                          className="h-14 rounded-2xl bg-slate-50 border-none pl-16 pr-6 text-lg w-full focus:outline-none focus:ring-2 focus:ring-primary/20" 
                           value={profileData.phone}
                           onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
                         />
@@ -420,7 +422,6 @@ export default function RedesignedDashboard() {
             </div>
           </TabsContent>
 
-          {/* --- ACCOUNT TAB --- */}
           <TabsContent value="settings" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <Card className="rounded-[48px] border-none shadow-xl shadow-slate-200/50 bg-white overflow-hidden max-w-4xl">
               <CardHeader className="bg-slate-50 p-10 border-b">
