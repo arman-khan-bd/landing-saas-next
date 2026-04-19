@@ -14,12 +14,12 @@ import { Switch } from "@/components/ui/switch";
 import {
   Plus, Save, Trash2, Image as ImageIcon,
   Type, Layout, List, CheckCircle, ShoppingCart,
-  Loader2, ChevronDown, Monitor, Smartphone,
-  Square, Eye, X, Columns, Settings2,
+  Loader2, Monitor, Smartphone,
+  Square, Eye, X, Columns,
   ArrowLeft, AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Bold, Italic, Underline, Palette, Layers, Box, MousePointer2,
-  Star, Settings, Sparkles, Menu, PlusCircle, LayoutGrid,
-  MoveVertical, MoveHorizontal, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon,
+  Palette, Box, MousePointer2,
+  Sparkles, PlusCircle, LayoutGrid,
+  MoveVertical, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon,
   Paintbrush
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -186,14 +186,6 @@ function PageBuilderInner() {
       type,
       content: getInitialContent(type),
       style: {
-        paddingTop: 0,
-        paddingBottom: 0,
-        paddingLeft: 0,
-        paddingRight: 0,
-        marginTop: 0,
-        marginBottom: 0,
-        marginLeft: 0,
-        marginRight: 0,
         textAlign: "left",
         fontSize: 16,
         fontWeight: "400",
@@ -397,19 +389,19 @@ function PageBuilderInner() {
                              <div className="grid grid-cols-2 gap-2">
                                <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
                                  <ArrowUp className="w-2.5 h-2.5 text-white/40" />
-                                 <Input type="number" value={selectedBlock.style?.paddingTop || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingTop: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                                 <Input type="number" placeholder="0" value={selectedBlock.style?.paddingTop ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingTop: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
                                </div>
                                <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
                                  <ArrowDown className="w-2.5 h-2.5 text-white/40" />
-                                 <Input type="number" value={selectedBlock.style?.paddingBottom || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingBottom: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                                 <Input type="number" placeholder="0" value={selectedBlock.style?.paddingBottom ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingBottom: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
                                </div>
                                <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
                                  <ArrowLeftIcon className="w-2.5 h-2.5 text-white/40" />
-                                 <Input type="number" value={selectedBlock.style?.paddingLeft || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingLeft: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                                 <Input type="number" placeholder="0" value={selectedBlock.style?.paddingLeft ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingLeft: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
                                </div>
                                <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
                                  <ArrowRightIcon className="w-2.5 h-2.5 text-white/40" />
-                                 <Input type="number" value={selectedBlock.style?.paddingRight || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingRight: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                                 <Input type="number" placeholder="0" value={selectedBlock.style?.paddingRight ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingRight: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
                                </div>
                              </div>
                            </div>
@@ -419,19 +411,19 @@ function PageBuilderInner() {
                              <div className="grid grid-cols-2 gap-2">
                                <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
                                  <ArrowUp className="w-2.5 h-2.5 text-white/40" />
-                                 <Input type="number" value={selectedBlock.style?.marginTop || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginTop: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                                 <Input type="number" placeholder="0" value={selectedBlock.style?.marginTop ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginTop: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
                                </div>
                                <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
                                  <ArrowDown className="w-2.5 h-2.5 text-white/40" />
-                                 <Input type="number" value={selectedBlock.style?.marginBottom || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginBottom: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                                 <Input type="number" placeholder="0" value={selectedBlock.style?.marginBottom ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginBottom: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
                                </div>
                                <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
                                  <ArrowLeftIcon className="w-2.5 h-2.5 text-white/40" />
-                                 <Input type="number" value={selectedBlock.style?.marginLeft || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginLeft: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                                 <Input type="number" placeholder="0" value={selectedBlock.style?.marginLeft ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginLeft: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
                                </div>
                                <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
                                  <ArrowRightIcon className="w-2.5 h-2.5 text-white/40" />
-                                 <Input type="number" value={selectedBlock.style?.marginRight || 0} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginRight: Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
+                                 <Input type="number" placeholder="0" value={selectedBlock.style?.marginRight ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginRight: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
                                </div>
                              </div>
                            </div>
@@ -580,11 +572,11 @@ function PageBuilderInner() {
                       block={block}
                       products={products}
                       isSelected={selectedBlockId === block.id}
-                      onSelect={() => {
-                        setSelectedBlockId(block.id);
+                      onSelect={(id?: string) => {
+                        setSelectedBlockId(id || block.id);
                         if (isMobile) setOpenMobile(true);
                       }}
-                      onRemove={() => removeBlock(block.id)}
+                      onRemove={(id?: string) => removeBlock(id || block.id)}
                       viewMode={viewMode}
                       onAddNested={(parentId: string) => {
                         setActiveParentId(parentId);
@@ -668,9 +660,9 @@ function PageBuilderInner() {
                   paddingBottom: `${pageStyle.paddingBottom || 40}px`,
                }}
             >
-              <ScrollArea className="h-full">
+              <div className="h-full">
                 {blocks.map(block => <BlockRenderer key={block.id} block={block} products={products} isPreview viewMode={viewMode} />)}
-              </ScrollArea>
+              </div>
             </div>
           </div>
         </DialogContent>
@@ -972,15 +964,15 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
   if (isHidden && isPreview) return null;
 
   const style: any = {
-    paddingTop: `${block.style?.paddingTop || 0}px`,
-    paddingBottom: `${block.style?.paddingBottom || 0}px`,
-    paddingLeft: `${block.style?.paddingLeft || 0}px`,
-    paddingRight: `${block.style?.paddingRight || 0}px`,
-    marginTop: `${block.style?.marginTop || 0}px`,
-    marginBottom: `${block.style?.marginBottom || 0}px`,
-    marginLeft: `${block.style?.marginLeft || 0}px`,
-    marginRight: `${block.style?.marginRight || 0}px`,
-    textAlign: block.style?.textAlign as any,
+    ...(block.style?.paddingTop !== undefined && { paddingTop: `${block.style.paddingTop}px` }),
+    ...(block.style?.paddingBottom !== undefined && { paddingBottom: `${block.style.paddingBottom}px` }),
+    ...(block.style?.paddingLeft !== undefined && { paddingLeft: `${block.style.paddingLeft}px` }),
+    ...(block.style?.paddingRight !== undefined && { paddingRight: `${block.style.paddingRight}px` }),
+    ...(block.style?.marginTop !== undefined && { marginTop: `${block.style.marginTop}px` }),
+    ...(block.style?.marginBottom !== undefined && { marginBottom: `${block.style.marginBottom}px` }),
+    ...(block.style?.marginLeft !== undefined && { marginLeft: `${block.style.marginLeft}px` }),
+    ...(block.style?.marginRight !== undefined && { marginRight: `${block.style.marginRight}px` }),
+    textAlign: block.style?.textAlign,
     backgroundColor: block.style?.backgroundColor,
     color: block.style?.textColor,
     fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
@@ -1011,8 +1003,8 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
                   products={products} 
                   viewMode={viewMode} 
                   onAddNested={onAddNested}
-                  onSelect={(id: string) => onSelect(id)}
-                  onRemove={(id: string) => onRemove(id)}
+                  onSelect={(id?: string) => onSelect(id || child.id)}
+                  onRemove={(id?: string) => onRemove(id || child.id)}
                 />
               ) : (
                 <BlockRenderer key={child.id} block={child} products={products} isPreview={isPreview} viewMode={viewMode} />
@@ -1083,8 +1075,6 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious className="-left-2 h-7 w-7" />
-            <CarouselNext className="-right-2 h-7 w-7" />
           </Carousel>
         </div>
       );

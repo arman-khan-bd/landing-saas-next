@@ -5,14 +5,11 @@ import { useParams } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { 
-  Loader2, AlertCircle, CheckCircle, ShoppingCart, 
-  Layout as LayoutIcon, Type, List, Image as ImageIcon, 
-  ChevronDown, Monitor, Smartphone, Layout
+  Loader2, AlertCircle, CheckCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Card } from "@/components/ui/card";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -41,7 +38,6 @@ interface Block {
     fontStyle?: "normal" | "italic";
     textDecoration?: "none" | "underline";
     lineHeight?: number;
-    // Advanced
     borderStyle?: "none" | "solid" | "dashed" | "dotted";
     borderWidth?: number;
     borderColor?: string;
@@ -50,7 +46,6 @@ interface Block {
     animation?: "none" | "fadeIn" | "slideUp" | "zoomIn";
     hideDesktop?: boolean;
     hideMobile?: boolean;
-    // Specifics
     desktopColumns?: number;
     columns?: number;
   };
@@ -147,15 +142,15 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
   const hideOnMobile = block.style?.hideMobile;
 
   const style: any = {
-    paddingTop: `${block.style?.paddingTop || 0}px`,
-    paddingBottom: `${block.style?.paddingBottom || 0}px`,
-    paddingLeft: `${block.style?.paddingLeft || 0}px`,
-    paddingRight: `${block.style?.paddingRight || 0}px`,
-    marginTop: `${block.style?.marginTop || 0}px`,
-    marginBottom: `${block.style?.marginBottom || 0}px`,
-    marginLeft: `${block.style?.marginLeft || 0}px`,
-    marginRight: `${block.style?.marginRight || 0}px`,
-    textAlign: block.style?.textAlign as any,
+    ...(block.style?.paddingTop !== undefined && { paddingTop: `${block.style.paddingTop}px` }),
+    ...(block.style?.paddingBottom !== undefined && { paddingBottom: `${block.style.paddingBottom}px` }),
+    ...(block.style?.paddingLeft !== undefined && { paddingLeft: `${block.style.paddingLeft}px` }),
+    ...(block.style?.paddingRight !== undefined && { paddingRight: `${block.style.paddingRight}px` }),
+    ...(block.style?.marginTop !== undefined && { marginTop: `${block.style.marginTop}px` }),
+    ...(block.style?.marginBottom !== undefined && { marginBottom: `${block.style.marginBottom}px` }),
+    ...(block.style?.marginLeft !== undefined && { marginLeft: `${block.style.marginLeft}px` }),
+    ...(block.style?.marginRight !== undefined && { marginRight: `${block.style.marginRight}px` }),
+    textAlign: block.style?.textAlign,
     backgroundColor: block.style?.backgroundColor,
     color: block.style?.textColor,
     fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
