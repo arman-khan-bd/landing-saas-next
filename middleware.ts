@@ -15,32 +15,42 @@ export const config = {
 
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl;
-
-  // Get hostname of request (e.g. demo.ihut.shop, localhost:9002)
   const hostname = req.headers.get("host") || "";
 
-  // Define root domains
-  const rootDomains = ["ihut.shop", "www.ihut.shop", "localhost:9002"];
-  
-  // Check if current host is a root domain
-  const isRootDomain = rootDomains.includes(hostname);
+  // Standardize hostname (remove port if present)
+  const currentHost = hostname.replace(/:.*$/, "");
 
-  if (isRootDomain) {
-    // If we're on the root domain, just proceed with normal routing
-    // This allows ihut.shop/arman to work via the [subdomain] route
+  // Root domains configuration
+  const rootDomain = "ihut.shop";
+  const rootDomains = [rootDomain, `www.${rootDomain}`, "localhost"];
+
+  // 1. Check if we're on a root domain
+  if (rootDomains.includes(currentHost)) {
+    // Standard routing (e.g., ihut.shop/dashboard or localhost:9002/arman)
     return NextResponse.next();
   }
 
-  // If not a root domain, extract the subdomain
-  // e.g. "arman.ihut.shop" -> "arman"
-  const subdomain = hostname.split(".")[0];
+  // 2. Subdomain detection (e.g., arman.ihut.shop)
+  let subdomain = "";
+  if (currentHost.endsWith(`.${rootDomain}`)) {
+    subdomain = currentHost.replace(`.${rootDomain}`, "");
+  } else if (currentHost.endsWith(".localhost")) {
+    subdomain = currentHost.replace(".localhost", "");
+  }
 
-  // Fallback if subdomain detection fails
-  if (!subdomain || subdomain === hostname) {
+  // 3. Fallback for no subdomain or common "www"
+  if (!subdomain || subdomain === "www") {
     return NextResponse.next();
   }
 
-  // Rewrite to the dynamic route
-  // e.g. arman.ihut.shop/products -> /arman/products
-  return NextResponse.rewrite(new URL(`/${subdomain}${url.pathname}${url.search}`, req.url));
+  // 4. Prevent double-rewriting if the path already starts with /[subdomain]
+  if (url.pathname.startsWith(`/${subdomain}/`) || url.pathname === `/${subdomain}`) {
+    return NextResponse.next();
+  }
+
+  // 5. Rewrite to the dynamic [subdomain] route
+  // Browser stays at arman.ihut.shop/products, server sees /[subdomain]/products
+  return NextResponse.rewrite(
+    new URL(`/${subdomain}${url.pathname}${url.search}`, req.url)
+  );
 }

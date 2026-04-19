@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -85,12 +84,15 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     }
   };
 
-  const adminSegments = ["overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder"];
-  
-  const normalizedPath = pathname.startsWith(`/${subdomain}`) 
-    ? pathname.replace(`/${subdomain}`, "") || "/"
-    : pathname;
+  // Precise path normalization for sidebar active states
+  // Handles both subdomain.ihut.shop/overview AND ihut.shop/arman/overview
+  const normalizedPath = pathname === `/${subdomain}`
+    ? "/"
+    : pathname.startsWith(`/${subdomain}/`)
+      ? pathname.replace(`/${subdomain}`, "")
+      : pathname;
 
+  const adminSegments = ["overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder"];
   const isBuilderEditor = normalizedPath.includes("/builder/") && normalizedPath.split("/").filter(Boolean).length > 1;
   const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`)) && !isBuilderEditor;
 
