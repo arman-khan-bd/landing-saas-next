@@ -236,14 +236,33 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
       );
 
     case "checked-list":
+      const listStyle = block.content?.listStyle || "check";
       return (
         <div style={style} className={cn("px-6 max-w-6xl mx-auto space-y-4", animClass, responsiveClass)}>
-          {(block.content?.items || []).map((item: string, i: number) => (
-            <div key={i} className="flex items-start gap-4">
-              <div className="mt-1 bg-primary/10 p-1.5 rounded-full text-primary shadow-sm"><CheckCircle className="w-5 h-5 fill-primary text-white" /></div>
-              <span className="text-xl font-medium pt-0.5">{item}</span>
-            </div>
-          ))}
+          {(block.content?.items || []).map((item: string, i: number) => {
+            let prefix;
+            if (listStyle === "check") {
+              prefix = <div className="mt-1 bg-primary/10 p-1.5 rounded-full text-primary shadow-sm"><CheckCircle className="w-5 h-5 fill-primary text-white" /></div>;
+            } else if (listStyle === "bullet") {
+              prefix = <div className="mt-4 w-2 h-2 rounded-full bg-primary shrink-0 ml-3 mr-1" />;
+            } else if (listStyle === "number") {
+              prefix = <div className="mt-1 bg-primary/10 w-8 h-8 rounded-full flex items-center justify-center text-primary font-black text-sm shrink-0">{i + 1}</div>;
+            } else if (listStyle === "roman") {
+              const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"][i] || (i + 1);
+              prefix = <div className="mt-1 bg-primary/10 w-8 h-8 rounded-full flex items-center justify-center text-primary font-black text-[10px] shrink-0">{roman}</div>;
+            } else if (listStyle === "bengali") {
+              const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+              const bengali = (i + 1).toString().split('').map(d => bengaliDigits[parseInt(d)]).join('');
+              prefix = <div className="mt-1 bg-primary/10 w-8 h-8 rounded-full flex items-center justify-center text-primary font-black text-sm shrink-0">{bengali}</div>;
+            }
+
+            return (
+              <div key={i} className="flex items-start gap-4">
+                {prefix}
+                <span className="text-xl font-medium pt-0.5">{item}</span>
+              </div>
+            );
+          })}
         </div>
       );
 

@@ -243,7 +243,7 @@ function PageBuilderInner() {
       case "product-order-form": return { mainProductId: "", shippingType: "free" };
       case "row": return { columns: 2 };
       case "carousel": return { items: [{ id: "1", title: "Slide 1", subtitle: "", imageUrl: "", buttonText: "" }], desktopColumns: 3 };
-      case "checked-list": return { items: ["Fast Delivery", "Secure Payments", "Premium Quality"] };
+      case "checked-list": return { items: ["Fast Delivery", "Secure Payments", "Premium Quality"], listStyle: "check" };
       default: return {};
     }
   };
@@ -1018,30 +1018,45 @@ function PropertyEditor({ block, products, onChange }: any) {
       );
     case "checked-list":
       return (
-        <div className="space-y-2">
-          <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">List Items</Label>
-          <div className="space-y-1.5">
-            {(block.content?.items || []).map((item: string, index: number) => (
-              <div key={index} className="flex gap-1.5">
-                <Input 
-                  value={item} 
-                  onChange={(e) => {
-                    const newItems = [...block.content.items];
-                    newItems[index] = e.target.value;
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">List Style</Label>
+            <Select value={block.content?.listStyle || "check"} onValueChange={(v) => onChange({ content: { listStyle: v } })}>
+              <SelectTrigger className="rounded-lg h-8 border-none bg-black/20 text-white text-[10px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="check">Checkmark</SelectItem>
+                <SelectItem value="bullet">Bullet List</SelectItem>
+                <SelectItem value="number">Numbered List</SelectItem>
+                <SelectItem value="roman">Roman Numerals</SelectItem>
+                <SelectItem value="bengali">Bengali Numbers</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">List Items</Label>
+            <div className="space-y-1.5">
+              {(block.content?.items || []).map((item: string, index: number) => (
+                <div key={index} className="flex gap-1.5">
+                  <Input 
+                    value={item} 
+                    onChange={(e) => {
+                      const newItems = [...block.content.items];
+                      newItems[index] = e.target.value;
+                      onChange({ content: { items: newItems } });
+                    }}
+                    className="h-7 text-[10px] bg-black/20 border-none text-white"
+                  />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-red-400" onClick={() => {
+                    const newItems = block.content.items.filter((_: any, i: number) => i !== index);
                     onChange({ content: { items: newItems } });
-                  }}
-                  className="h-7 text-[10px] bg-black/20 border-none text-white"
-                />
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-red-400" onClick={() => {
-                  const newItems = block.content.items.filter((_: any, i: number) => i !== index);
-                  onChange({ content: { items: newItems } });
-                }}><Trash2 className="w-3 h-3" /></Button>
-              </div>
-            ))}
-            <Button variant="outline" className="w-full h-7 text-[8px] bg-transparent border-white/20 text-white/70" onClick={() => {
-              const newItems = [...(block.content?.items || []), "New Point"];
-              onChange({ content: { items: newItems } });
-            }}>Add Entry</Button>
+                  }}><Trash2 className="w-3 h-3" /></Button>
+                </div>
+              ))}
+              <Button variant="outline" className="w-full h-7 text-[8px] bg-transparent border-white/20 text-white/70" onClick={() => {
+                const newItems = [...(block.content?.items || []), "New Point"];
+                onChange({ content: { items: newItems } });
+              }}>Add Entry</Button>
+            </div>
           </div>
         </div>
       );
@@ -1218,14 +1233,33 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
         </div>
       );
     case "checked-list":
+      const listStyle = block.content?.listStyle || "check";
       return (
         <div style={style} className="px-4 w-full max-w-6xl mx-auto space-y-2">
-          {(block.content?.items || []).map((item: string, i: number) => (
-            <div key={i} className="flex items-center gap-2">
-              <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />
-              <span className="text-xs font-medium">{item}</span>
-            </div>
-          ))}
+          {(block.content?.items || []).map((item: string, i: number) => {
+            let prefix;
+            if (listStyle === "check") {
+              prefix = <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />;
+            } else if (listStyle === "bullet") {
+              prefix = <div className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0 mx-1" />;
+            } else if (listStyle === "number") {
+              prefix = <span className="text-[10px] font-bold text-primary w-4 shrink-0">{i + 1}.</span>;
+            } else if (listStyle === "roman") {
+              const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"][i] || (i + 1);
+              prefix = <span className="text-[10px] font-bold text-primary w-4 shrink-0">{roman}.</span>;
+            } else if (listStyle === "bengali") {
+              const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+              const bengali = (i + 1).toString().split('').map(d => bengaliDigits[parseInt(d)]).join('');
+              prefix = <span className="text-[10px] font-bold text-primary w-4 shrink-0">{bengali}.</span>;
+            }
+
+            return (
+              <div key={i} className="flex items-center gap-2">
+                {prefix}
+                <span className="text-xs font-medium">{item}</span>
+              </div>
+            );
+          })}
         </div>
       );
     case "product-order-form":
