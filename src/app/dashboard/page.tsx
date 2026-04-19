@@ -10,12 +10,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ShoppingCart, Plus, Store, ExternalLink, LogOut, Loader2, 
   User, Settings, LayoutDashboard, ShieldCheck, Mail, Phone, 
   Globe, Sparkles, ChevronRight, CheckCircle2, Shield
 } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getStoreUrl } from "@/lib/utils";
@@ -34,6 +41,7 @@ export default function RedesignedDashboard() {
   const [updating, setUpdating] = useState(false);
   const [newStore, setNewStore] = useState({ name: "", subdomain: "" });
   const [profileData, setProfileData] = useState({ fullName: "", phone: "", role: "user" });
+  const [view, setView] = useState<"stores" | "profile" | "settings">("stores");
   
   const router = useRouter();
   const { toast } = useToast();
@@ -169,7 +177,7 @@ export default function RedesignedDashboard() {
     <div className="min-h-screen bg-slate-50/50">
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 cursor-pointer" onClick={() => setView("stores")}>
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-xl shadow-primary/20">
               <ShoppingCart className="text-white w-6 h-6" />
             </div>
@@ -180,104 +188,130 @@ export default function RedesignedDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            {profileData.role === 'admin' && (
-              <Link href="/saas-admin">
-                <Button variant="outline" className="hidden sm:flex rounded-xl border-primary/20 bg-primary/5 text-primary font-bold hover:bg-primary hover:text-white transition-all">
-                  <Shield className="w-4 h-4 mr-2" /> Admin Console
-                </Button>
-              </Link>
-            )}
             <div className="hidden md:flex flex-col text-right">
               <span className="text-sm font-bold text-slate-900">{profileData.fullName || user?.email}</span>
-              <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{profileData.role === 'admin' ? 'Super Admin' : 'Store Owner'}</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">
+                {profileData.role === 'admin' ? 'Super Admin' : 'Store Owner'}
+              </span>
             </div>
-            <Avatar className="w-10 h-10 border-2 border-primary/10">
-              <AvatarFallback className="bg-primary/5 text-primary font-black uppercase">{user?.email?.[0]}</AvatarFallback>
-            </Avatar>
-            <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl hover:bg-rose-50 hover:text-rose-500">
-              <LogOut className="w-5 h-5" />
-            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-11 w-11 rounded-xl border-2 border-primary/10 p-0 hover:bg-primary/5 transition-all">
+                  <Avatar className="h-full w-full rounded-xl">
+                    <AvatarFallback className="flex h-full w-full items-center justify-center rounded-full bg-primary/5 text-primary font-black uppercase">
+                      {user?.email?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-64 rounded-2xl p-2 mt-2 shadow-2xl border-border/50" align="end">
+                <DropdownMenuLabel className="px-4 py-3">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-bold leading-none">{profileData.fullName || "Admin Account"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer" onClick={() => setView("stores")}>
+                  <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">My Dashboard</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer" onClick={() => setView("profile")}>
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">Edit Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer" onClick={() => setView("settings")}>
+                  <Settings className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">Account Settings</span>
+                </DropdownMenuItem>
+                {profileData.role === 'admin' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer text-indigo-600 focus:text-indigo-700" asChild>
+                      <Link href="/saas-admin">
+                        <Shield className="w-4 h-4" />
+                        <span className="font-bold">Admin Console</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer text-rose-500 focus:text-rose-600" onClick={handleLogout}>
+                  <LogOut className="w-4 h-4" />
+                  <span className="font-bold">Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto p-4 sm:p-10 pb-32">
-        <section className="mb-12">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px]">
-                <Sparkles className="w-3 h-3" /> System Ready
-              </div>
-              <h1 className="text-4xl sm:text-5xl font-headline font-black text-slate-900 tracking-tight">Welcome Back</h1>
-              <p className="text-muted-foreground text-lg">Manage your digital commerce empire from a single dashboard.</p>
-            </div>
-            
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button size="lg" className="w-full sm:w-auto rounded-2xl shadow-2xl shadow-primary/30 h-14 px-8 text-lg font-bold group">
-                  <Plus className="mr-2 w-6 h-6 group-hover:rotate-90 transition-transform duration-300" /> Create Store
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="rounded-[40px] p-8 border-none shadow-2xl max-w-[95vw] sm:max-w-lg">
-                <DialogHeader>
-                  <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
-                    <Store className="w-8 h-8" />
+        {view === "stores" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-12">
+            <section>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px]">
+                    <Sparkles className="w-3 h-3" /> System Ready
                   </div>
-                  <DialogTitle className="text-3xl font-headline font-black tracking-tight">New Store Concept</DialogTitle>
-                  <DialogDescription className="text-slate-500 text-lg">
-                    Define the home of your brand. Pick a name and a custom subdomain.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-6 py-6">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Brand Name</Label>
-                    <Input
-                      placeholder="e.g. Urban Style"
-                      value={newStore.name}
-                      onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
-                      className="rounded-2xl h-14 bg-slate-50 border-none text-lg px-6"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Subdomain Access</Label>
-                    <div className="flex items-center">
-                      <Input
-                        placeholder="urban"
-                        value={newStore.subdomain}
-                        onChange={(e) => setNewStore({ ...newStore, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                        className="rounded-l-2xl rounded-r-none h-14 bg-slate-50 border-none text-lg px-6 flex-1"
-                      />
-                      <div className="h-14 bg-slate-200/50 flex items-center px-6 rounded-r-2xl border-l border-white text-sm font-black text-slate-400">
-                        .ihut.shop
+                  <h1 className="text-4xl sm:text-5xl font-headline font-black text-slate-900 tracking-tight">Welcome Back</h1>
+                  <p className="text-muted-foreground text-lg">Manage your digital commerce empire from a single dashboard.</p>
+                </div>
+                
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button size="lg" className="w-full sm:w-auto rounded-2xl shadow-2xl shadow-primary/30 h-14 px-8 text-lg font-bold group">
+                      <Plus className="mr-2 w-6 h-6 group-hover:rotate-90 transition-transform duration-300" /> Create Store
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="rounded-[40px] p-8 border-none shadow-2xl max-w-[95vw] sm:max-w-lg">
+                    <DialogHeader>
+                      <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
+                        <Store className="w-8 h-8" />
+                      </div>
+                      <DialogTitle className="text-3xl font-headline font-black tracking-tight">New Store Concept</DialogTitle>
+                      <DialogDescription className="text-slate-500 text-lg">
+                        Define the home of your brand. Pick a name and a custom subdomain.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6 py-6">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Brand Name</Label>
+                        <Input
+                          placeholder="e.g. Urban Style"
+                          value={newStore.name}
+                          onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
+                          className="rounded-2xl h-14 bg-slate-50 border-none text-lg px-6"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Subdomain Access</Label>
+                        <div className="flex items-center">
+                          <Input
+                            placeholder="urban"
+                            value={newStore.subdomain}
+                            onChange={(e) => setNewStore({ ...newStore, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+                            className="rounded-l-2xl rounded-r-none h-14 bg-slate-50 border-none text-lg px-6 flex-1"
+                          />
+                          <div className="h-14 bg-slate-200/50 flex items-center px-6 rounded-r-2xl border-l border-white text-sm font-black text-slate-400">
+                            .ihut.shop
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button className="w-full h-16 rounded-[24px] text-xl font-black shadow-xl shadow-primary/20" onClick={handleCreateStore} disabled={creating}>
-                    {creating ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" />}
-                    Launch Brand
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </section>
+                    <DialogFooter>
+                      <Button className="w-full h-16 rounded-[24px] text-xl font-black shadow-xl shadow-primary/20" onClick={handleCreateStore} disabled={creating}>
+                        {creating ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" />}
+                        Launch Brand
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </section>
 
-        <Tabs defaultValue="stores" className="space-y-8">
-          <TabsList className="bg-white p-1 rounded-2xl border border-slate-200 h-auto grid grid-cols-3 sm:w-[500px]">
-            <TabsTrigger value="stores" className="rounded-xl py-3 data-[state=active]:bg-primary data-[state=active]:text-white font-bold gap-2">
-              <LayoutDashboard className="w-4 h-4" /> Stores
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="rounded-xl py-3 data-[state=active]:bg-primary data-[state=active]:text-white font-bold gap-2">
-              <User className="w-4 h-4" /> Profile
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="rounded-xl py-3 data-[state=active]:bg-primary data-[state=active]:text-white font-bold gap-2">
-              <Settings className="w-4 h-4" /> Account
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="stores" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {stores.length === 0 ? (
               <div className="text-center py-32 bg-white rounded-[48px] border-2 border-dashed border-slate-200">
                 <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8 opacity-20">
@@ -334,9 +368,11 @@ export default function RedesignedDashboard() {
                 ))}
               </div>
             )}
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="profile" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {view === "profile" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2">
                 <Card className="rounded-[48px] border-none shadow-xl shadow-slate-200/50 bg-white overflow-hidden">
@@ -420,9 +456,11 @@ export default function RedesignedDashboard() {
                 </div>
               </div>
             </div>
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="settings" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {view === "settings" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <Card className="rounded-[48px] border-none shadow-xl shadow-slate-200/50 bg-white overflow-hidden max-w-4xl">
               <CardHeader className="bg-slate-50 p-10 border-b">
                  <div className="flex items-center gap-4 text-primary font-black uppercase tracking-widest text-[10px] mb-4">
@@ -456,8 +494,8 @@ export default function RedesignedDashboard() {
                  </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </main>
 
       <footer className="fixed bottom-0 w-full bg-white/60 backdrop-blur-md border-t p-6 flex justify-center z-40 md:hidden">
@@ -466,3 +504,4 @@ export default function RedesignedDashboard() {
     </div>
   );
 }
+
