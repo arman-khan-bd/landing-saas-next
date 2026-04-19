@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Loader2, Tags, Search, Edit } from "lucide-react";
+import { Plus, Trash2, Loader2, Tags, Search, Edit, MoreVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function TagsPage() {
   const { subdomain } = useParams();
@@ -100,80 +100,125 @@ export default function TagsPage() {
   const filtered = tags.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="space-y-6">
-      <Card className="rounded-3xl border-border/50">
-        <CardContent className="p-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <Card className="rounded-[24px] sm:rounded-3xl border-border/50 bg-white shadow-sm overflow-hidden">
+        <CardContent className="p-5 sm:p-6">
           <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-1 space-y-2 w-full">
-              <Label>Quick Add Tag</Label>
-              <Input placeholder="e.g. Summer Collection" value={newTag} onChange={(e) => setNewTag(e.target.value)} />
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quick Add Tag</Label>
+              <Input placeholder="e.g. Summer Collection" value={newTag} onChange={(e) => setNewTag(e.target.value)} className="h-11 rounded-xl" />
             </div>
-            <Button type="submit" className="rounded-xl h-10 px-8" disabled={processing}>
-              {processing ? <Loader2 className="animate-spin" /> : <Plus className="mr-2" />} Add Tag
+            <Button type="submit" className="w-full sm:w-auto rounded-xl h-11 px-8 font-bold shadow-lg shadow-primary/10" disabled={processing || !newTag}>
+              {processing ? <Loader2 className="animate-spin h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />} Add Tag
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <div className="flex justify-between items-center px-2">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Filter tags..." className="pl-10 rounded-xl" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 px-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="Filter tags..." className="pl-10 rounded-2xl bg-white border-border/50 h-11 shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
       </div>
 
-      <Card className="rounded-3xl overflow-hidden border-border/50">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead>Tag Name</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={2} className="text-center py-10">Loading...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={2} className="text-center py-20 opacity-20"><Tags className="mx-auto" /> No tags found.</TableCell></TableRow>
-              ) : (
-                filtered.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell className="text-right">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={() => setEditingTag({ ...item })}>
-                            <Edit className="w-4 h-4 text-primary" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="rounded-3xl">
-                          <DialogHeader><DialogTitle>Edit Tag</DialogTitle></DialogHeader>
-                          <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                              <Label>Tag Name</Label>
-                              <Input 
-                                value={editingTag?.name || ""} 
-                                onChange={(e) => setEditingTag({ ...editingTag, name: e.target.value })} 
-                              />
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button className="w-full rounded-xl" onClick={handleUpdate} disabled={processing}>
-                              {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Update Tag"}
+      {loading ? (
+        <div className="flex h-40 items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-20 bg-muted/10 rounded-[32px] border-2 border-dashed">
+          <Tags className="w-16 h-16 mx-auto mb-4 opacity-10" />
+          <p className="text-muted-foreground">No tags found.</p>
+        </div>
+      ) : (
+        <>
+          {/* Desktop View */}
+          <div className="hidden md:block">
+            <Card className="rounded-[32px] overflow-hidden border-border/50 shadow-sm bg-white">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow className="border-border/50">
+                      <TableHead className="py-4 px-6">Tag Name</TableHead>
+                      <TableHead className="py-4 px-6 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((item) => (
+                      <TableRow key={item.id} className="border-border/50 hover:bg-primary/5 transition-colors">
+                        <TableCell className="py-4 px-6">
+                           <span className="inline-flex items-center px-3 py-1 bg-primary/10 text-primary text-sm font-bold rounded-full">
+                              #{item.name}
+                           </span>
+                        </TableCell>
+                        <TableCell className="py-4 px-6 text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setEditingTag({ ...item })}>
+                              <Edit className="w-4 h-4 text-primary" />
                             </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => handleDelete(item.id)}>
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Mobile Card List View */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {filtered.map((item) => (
+              <Card key={item.id} className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden">
+                <CardContent className="p-4 flex justify-between items-center">
+                  <span className="font-bold text-primary">#{item.name}</span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[140px]">
+                      <DropdownMenuItem className="gap-3 py-2.5 rounded-xl" onClick={() => setEditingTag({ ...item })}>
+                        <Edit className="w-4 h-4 text-primary" /> Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="gap-3 py-2.5 rounded-xl text-destructive" onClick={() => handleDelete(item.id)}>
+                        <Trash2 className="w-4 h-4" /> Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Edit Dialog */}
+      {editingTag && (
+        <Dialog open={!!editingTag} onOpenChange={(open) => !open && setEditingTag(null)}>
+          <DialogContent className="rounded-3xl max-w-[90vw] sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-headline font-bold">Edit Tag</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Label>Tag Name</Label>
+              <Input 
+                value={editingTag.name} 
+                onChange={(e) => setEditingTag({ ...editingTag, name: e.target.value })} 
+                className="mt-2 h-11 rounded-xl"
+              />
+            </div>
+            <DialogFooter>
+              <Button className="w-full rounded-xl h-11 font-bold" onClick={handleUpdate} disabled={processing}>
+                {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Update Tag"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

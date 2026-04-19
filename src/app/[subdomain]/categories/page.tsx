@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Loader2, Layers, Search, Edit } from "lucide-react";
+import { Plus, Trash2, Loader2, Layers, Search, Edit, MoreVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function CategoriesPage() {
   const { subdomain } = useParams();
@@ -107,29 +107,29 @@ export default function CategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
             placeholder="Search categories..." 
-            className="pl-10 rounded-xl bg-white"
+            className="pl-10 rounded-2xl bg-white border-border/50 h-11 shadow-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-xl w-full sm:w-auto" onClick={() => {
+            <Button className="rounded-xl h-11 px-6 shadow-lg shadow-primary/20 font-bold" onClick={() => {
               setNewCategory({ name: "", slug: "" });
               setEditingCategory(null);
             }}>
               <Plus className="mr-2 w-5 h-5" /> Add Category
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-3xl">
+          <DialogContent className="rounded-3xl max-w-[95vw] sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>New Category</DialogTitle>
-              <DialogDescription>Create a new product grouping.</DialogDescription>
+              <DialogTitle className="text-xl font-headline font-bold">New Category</DialogTitle>
+              <DialogDescription className="text-xs">Create a new product grouping.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -138,6 +138,7 @@ export default function CategoriesPage() {
                   placeholder="Electronics" 
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                  className="rounded-xl h-11"
                 />
               </div>
               <div className="space-y-2">
@@ -146,11 +147,12 @@ export default function CategoriesPage() {
                   placeholder="electronics" 
                   value={newCategory.slug}
                   onChange={(e) => setNewCategory({ ...newCategory, slug: e.target.value })}
+                  className="rounded-xl h-11"
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button className="w-full rounded-xl" onClick={handleCreate} disabled={processing}>
+              <Button className="w-full rounded-xl h-11 font-bold" onClick={handleCreate} disabled={processing}>
                 {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Category"}
               </Button>
             </DialogFooter>
@@ -158,76 +160,122 @@ export default function CategoriesPage() {
         </Dialog>
       </div>
 
-      <Card className="rounded-3xl overflow-hidden border-border/50">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={3} className="text-center py-10">Loading...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center py-20 text-muted-foreground">
-                    <Layers className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                    No categories found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{item.slug}</TableCell>
-                    <TableCell className="text-right">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={() => setEditingCategory({ ...item })}>
-                            <Edit className="w-4 h-4 text-primary" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="rounded-3xl">
-                          <DialogHeader>
-                            <DialogTitle>Edit Category</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                              <Label>Name</Label>
-                              <Input 
-                                value={editingCategory?.name || ""}
-                                onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Slug</Label>
-                              <Input 
-                                value={editingCategory?.slug || ""}
-                                onChange={(e) => setEditingCategory({ ...editingCategory, slug: e.target.value })}
-                              />
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button className="w-full rounded-xl" onClick={handleUpdate} disabled={processing}>
-                              {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Update Category"}
+      {loading ? (
+        <div className="flex h-40 items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>
+      ) : filtered.length === 0 ? (
+        <Card className="rounded-[32px] border-dashed border-2 py-20 text-center text-muted-foreground bg-muted/10">
+          <Layers className="w-16 h-16 mx-auto mb-4 opacity-10" />
+          <h3 className="text-xl font-bold">No categories found</h3>
+        </Card>
+      ) : (
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <Card className="rounded-[32px] overflow-hidden border-border/50 shadow-sm bg-white">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow className="border-border/50">
+                      <TableHead className="py-4 px-6">Name</TableHead>
+                      <TableHead className="py-4 px-6">Slug</TableHead>
+                      <TableHead className="py-4 px-6 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((item) => (
+                      <TableRow key={item.id} className="border-border/50 hover:bg-primary/5 transition-colors group">
+                        <TableCell className="py-4 px-6 font-bold">{item.name}</TableCell>
+                        <TableCell className="py-4 px-6 font-mono text-xs text-muted-foreground">{item.slug}</TableCell>
+                        <TableCell className="py-4 px-6 text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => {
+                              setEditingCategory({ ...item });
+                              setIsDialogOpen(true);
+                            }}>
+                              <Edit className="w-4 h-4 text-primary" />
                             </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => handleDelete(item.id)}>
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Mobile Card List View */}
+          <div className="grid grid-cols-1 gap-4 md:hidden pb-10">
+            {filtered.map((item) => (
+              <Card key={item.id} className="rounded-[24px] border-border/50 bg-white shadow-sm overflow-hidden active:scale-[0.98] transition-transform">
+                <CardContent className="p-5">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-lg leading-tight truncate">{item.name}</h4>
+                      <p className="text-[10px] font-mono text-muted-foreground uppercase mt-1">Slug: {item.slug}</p>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 -mt-2 -mr-2">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[160px]">
+                        <DropdownMenuItem className="gap-3 py-3 rounded-xl" onClick={() => {
+                          setEditingCategory({ ...item });
+                          setIsDialogOpen(true);
+                        }}>
+                          <Edit className="w-4 h-4 text-primary" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-3 py-3 rounded-xl text-destructive" onClick={() => handleDelete(item.id)}>
+                          <Trash2 className="w-4 h-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Edit Dialog - Reuse isDialogOpen or separate */}
+      {editingCategory && (
+        <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>
+          <DialogContent className="rounded-3xl max-w-[95vw] sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-headline font-bold">Edit Category</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input 
+                  value={editingCategory.name}
+                  onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                  className="rounded-xl h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Slug</Label>
+                <Input 
+                  value={editingCategory.slug}
+                  onChange={(e) => setEditingCategory({ ...editingCategory, slug: e.target.value })}
+                  className="rounded-xl h-11"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button className="w-full rounded-xl h-11 font-bold" onClick={handleUpdate} disabled={processing}>
+                {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Update Category"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

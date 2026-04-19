@@ -10,6 +10,7 @@ import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   const { subdomain } = useParams();
@@ -66,6 +67,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     }
   };
 
+  const adminSegments = ["overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder"];
+  const isBuilderEditor = pathname.includes("/builder/") && pathname.split("/").length > 3;
+  const isAdminPath = adminSegments.some(segment => pathname.startsWith(`/${subdomain}/${segment}`)) && !isBuilderEditor;
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50">
@@ -117,13 +122,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     { title: "Fraud List", icon: AlertCircle, href: `/${subdomain}/customers/fraud` },
   ];
 
-  const adminSegments = ["overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder"];
-  
-  // Custom check: Hide admin navigation when in the high-fidelity page builder editor
-  const isBuilderEditor = pathname.includes("/builder/") && pathname.split("/").length > 3;
-  
-  const isAdminPath = adminSegments.some(segment => pathname.startsWith(`/${subdomain}/${segment}`)) && !isBuilderEditor;
-
   if (!isAdminPath) {
     return (
       <div className="min-h-screen bg-background">
@@ -134,11 +132,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full overflow-x-hidden">
         <Sidebar className="border-r border-border/50 bg-white">
           <SidebarHeader className="p-6 border-b border-border/50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white">
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shrink-0">
                 <Store className="w-6 h-6" />
               </div>
               <div className="overflow-hidden">
@@ -278,7 +276,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           </SidebarContent>
           <div className="mt-auto p-4 border-t border-border/50">
             <Link href="/dashboard">
-              <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted">
+              <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted h-10 text-sm">
                 <ChevronLeft className="w-4 h-4" /> Back to Dashboard
               </Button>
             </Link>
@@ -286,28 +284,28 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         </Sidebar>
 
         <SidebarInset className="bg-background">
-          <header className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-border/50 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-            <div className="flex items-center gap-4">
+          <header className="flex h-16 shrink-0 items-center justify-between px-4 sm:px-6 border-b border-border/50 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <div className="flex items-center gap-3 overflow-hidden">
               <SidebarTrigger className="md:hidden" />
-              <h2 className="text-xl font-headline font-bold text-foreground capitalize">
+              <h2 className="text-lg sm:text-xl font-headline font-bold text-foreground capitalize truncate">
                 {pathname.split("/").pop() === subdomain ? "Storefront" : 
                  pathname.endsWith("/builder") ? "Landing Page" :
                  pathname.split("/").pop()?.replace('-', ' ')}
               </h2>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
               <Link href={`/${subdomain}/notifications`} className="relative p-2 text-muted-foreground hover:text-primary transition-colors hover:bg-primary/5 rounded-full">
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary text-[10px] font-bold text-white flex items-center justify-center rounded-full border-2 border-white">
+                <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-bold text-white flex items-center justify-center rounded-full border-2 border-white">
                   3
                 </span>
               </Link>
-              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold">
+              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
                 {auth?.currentUser?.email?.[0].toUpperCase()}
               </div>
             </div>
           </header>
-          <main className="flex-1 p-6 md:p-10">
+          <main className="flex-1 p-4 sm:p-6 md:p-10 max-w-[100vw]">
             {children}
           </main>
         </SidebarInset>

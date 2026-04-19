@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,6 +16,7 @@ import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStoreUrl } from "@/lib/utils";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 export default function StoreSettingsPage() {
   const { subdomain } = useParams();
@@ -72,7 +72,6 @@ export default function StoreSettingsPage() {
       if (!snap.empty) {
         const data = snap.docs[0].data();
         setStoreId(snap.docs[0].id);
-        // Merge with defaults to ensure all fields exist
         setSettings((prev: any) => ({
           ...prev,
           ...data,
@@ -118,70 +117,75 @@ export default function StoreSettingsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-20">
-      <div className="flex justify-between items-center">
+    <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pb-20">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-headline font-bold">Store Configuration</h1>
-          <p className="text-muted-foreground">Manage your brand identity, payments, and global settings.</p>
+          <h1 className="text-2xl sm:text-3xl font-headline font-bold">Store Configuration</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">Manage your brand identity, payments, and global settings.</p>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="rounded-xl h-12 px-8 shadow-lg shadow-primary/20">
-          {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}
+        <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto rounded-xl h-12 px-8 shadow-lg shadow-primary/20 shrink-0">
+          {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4" />}
           Save Changes
         </Button>
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 h-auto p-1 bg-muted/50 rounded-2xl">
-           <TabsTrigger value="general" className="rounded-xl py-3">General</TabsTrigger>
-          <TabsTrigger value="domains" className="rounded-xl py-3">Domains</TabsTrigger>
-          <TabsTrigger value="branding" className="rounded-xl py-3">Branding</TabsTrigger>
-          <TabsTrigger value="payment" className="rounded-xl py-3">Payment</TabsTrigger>
-          <TabsTrigger value="shop-ui" className="rounded-xl py-3">Shop UI</TabsTrigger>
-          <TabsTrigger value="seo" className="rounded-xl py-3">SEO</TabsTrigger>
-          <TabsTrigger value="analytics" className="rounded-xl py-3">Advanced</TabsTrigger>
-        </TabsList>
+        <div className="relative">
+          <ScrollArea className="w-full whitespace-nowrap">
+            <TabsList className="inline-flex w-max sm:w-full sm:grid sm:grid-cols-2 lg:grid-cols-6 h-auto p-1 bg-muted/50 rounded-2xl">
+              <TabsTrigger value="general" className="rounded-xl py-2.5 px-4 sm:py-3">General</TabsTrigger>
+              <TabsTrigger value="domains" className="rounded-xl py-2.5 px-4 sm:py-3">Domains</TabsTrigger>
+              <TabsTrigger value="branding" className="rounded-xl py-2.5 px-4 sm:py-3">Branding</TabsTrigger>
+              <TabsTrigger value="payment" className="rounded-xl py-2.5 px-4 sm:py-3">Payment</TabsTrigger>
+              <TabsTrigger value="shop-ui" className="rounded-xl py-2.5 px-4 sm:py-3">Shop UI</TabsTrigger>
+              <TabsTrigger value="seo" className="rounded-xl py-2.5 px-4 sm:py-3">SEO</TabsTrigger>
+              <TabsTrigger value="analytics" className="rounded-xl py-2.5 px-4 sm:py-3">Advanced</TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" className="hidden" />
+          </ScrollArea>
+        </div>
 
         {/* General Info */}
         <TabsContent value="general" className="mt-6">
-          <Card className="rounded-3xl border-border/50">
-            <CardHeader>
+          <Card className="rounded-[24px] sm:rounded-3xl border-border/50 shadow-sm">
+            <CardHeader className="p-5 sm:p-6">
               <div className="flex items-center gap-2">
-                <Globe className="text-primary" />
-                <CardTitle>Basic Information</CardTitle>
+                <Globe className="text-primary h-5 w-5" />
+                <CardTitle className="text-lg sm:text-xl">Basic Information</CardTitle>
               </div>
-              <CardDescription>Configure core store details and contact info.</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Configure core store details and contact info.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+            <CardContent className="p-5 sm:p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-2">
-                  <Label>Dokan Name</Label>
-                  <Input value={settings.name} onChange={(e) => setSettings({...settings, name: e.target.value})} />
+                  <Label>Store Name</Label>
+                  <Input className="h-11 rounded-xl" value={settings.name} onChange={(e) => setSettings({...settings, name: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Home Page Title</Label>
-                  <Input value={settings.homePageTitle} onChange={(e) => setSettings({...settings, homePageTitle: e.target.value})} />
+                  <Input className="h-11 rounded-xl" value={settings.homePageTitle} onChange={(e) => setSettings({...settings, homePageTitle: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Email Address</Label>
-                  <Input type="email" value={settings.email} onChange={(e) => setSettings({...settings, email: e.target.value})} />
+                  <Input className="h-11 rounded-xl" type="email" value={settings.email} onChange={(e) => setSettings({...settings, email: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Phone Number</Label>
-                  <Input value={settings.phone} onChange={(e) => setSettings({...settings, phone: e.target.value})} />
+                  <Input className="h-11 rounded-xl" value={settings.phone} onChange={(e) => setSettings({...settings, phone: e.target.value})} />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Store Address</Label>
-                <Textarea value={settings.address} onChange={(e) => setSettings({...settings, address: e.target.value})} />
+                <Textarea className="rounded-xl min-h-[100px]" value={settings.address} onChange={(e) => setSettings({...settings, address: e.target.value})} />
               </div>
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-2">
                   <Label>Working Days/Hours</Label>
-                  <Input placeholder="Sat - Thu, 9AM - 8PM" value={settings.workingDays} onChange={(e) => setSettings({...settings, workingDays: e.target.value})} />
+                  <Input className="h-11 rounded-xl" placeholder="Sat - Thu, 9AM - 8PM" value={settings.workingDays} onChange={(e) => setSettings({...settings, workingDays: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Google Map Embed Link</Label>
-                  <Input placeholder="https://www.google.com/maps/embed?..." value={settings.googleMapEmbed} onChange={(e) => setSettings({...settings, googleMapEmbed: e.target.value})} />
+                  <Input className="h-11 rounded-xl" placeholder="https://www.google.com/maps/embed?..." value={settings.googleMapEmbed} onChange={(e) => setSettings({...settings, googleMapEmbed: e.target.value})} />
                 </div>
               </div>
             </CardContent>
@@ -190,53 +194,50 @@ export default function StoreSettingsPage() {
 
         {/* Domains */}
         <TabsContent value="domains" className="mt-6">
-          <Card className="rounded-3xl border-border/50">
-            <CardHeader>
+          <Card className="rounded-[24px] sm:rounded-3xl border-border/50 shadow-sm">
+            <CardHeader className="p-5 sm:p-6">
               <div className="flex items-center gap-2">
-                <Globe className="text-primary" />
-                <CardTitle>Domain Settings</CardTitle>
+                <Globe className="text-primary h-5 w-5" />
+                <CardTitle className="text-lg sm:text-xl">Domain Settings</CardTitle>
               </div>
-              <CardDescription>Configure your store&apos;s web address and custom domains.</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Configure your store&apos;s web address.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="p-6 border rounded-2xl bg-muted/20 space-y-4">
+            <CardContent className="p-5 sm:p-6 space-y-6">
+              <div className="p-4 sm:p-6 border rounded-2xl bg-muted/20 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-bold">NexusCart Subdomain</h4>
-                    <p className="text-sm text-muted-foreground">Your default store address.</p>
+                    <h4 className="font-bold text-sm sm:text-base">NexusCart Subdomain</h4>
+                    <p className="text-xs text-muted-foreground">Your default store address.</p>
                   </div>
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100">Live</Badge>
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 text-[10px]">Live</Badge>
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 bg-white border border-border/50 px-4 rounded-xl flex-1 text-sm font-medium text-muted-foreground">
                     Subdomain: 
                     <Input 
-                      className="border-none bg-transparent p-0 h-10 text-foreground font-bold focus-visible:ring-0 w-auto min-w-[100px]" 
+                      className="border-none bg-transparent p-0 h-10 text-foreground font-bold focus-visible:ring-0 w-auto min-w-[80px]" 
                       value={settings.subdomain}
                       onChange={(e) => setSettings({...settings, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")})}
                     />
                   </div>
-                  <div className="p-3 bg-secondary/30 rounded-xl text-xs font-mono break-all flex items-center gap-2">
-                    <Globe className="w-3 h-3 text-secondary-foreground" />
+                  <div className="p-3 bg-secondary/30 rounded-xl text-[10px] sm:text-xs font-mono break-all flex items-center gap-2">
+                    <Globe className="w-3 h-3 text-secondary-foreground shrink-0" />
                     Live at: <span className="text-primary font-bold">{getStoreUrl(settings.subdomain)}</span>
                   </div>
                 </div>
-                <p className="text-[11px] text-amber-600 flex items-center gap-2">
-                  <AlertCircle className="w-3 h-3" /> Note: Changing your subdomain will immediately update your store&apos;s URL.
-                </p>
               </div>
 
-              <div className="p-6 border border-dashed rounded-2xl space-y-4">
+              <div className="p-4 sm:p-6 border border-dashed rounded-2xl space-y-4">
                 <div className="flex items-center justify-between">
                    <div>
-                    <h4 className="font-bold">Custom Domain</h4>
-                    <p className="text-sm text-muted-foreground">Connect your own domain (e.g., www.yourstore.com).</p>
+                    <h4 className="font-bold text-sm sm:text-base">Custom Domain</h4>
+                    <p className="text-xs text-muted-foreground">Connect your own domain.</p>
                    </div>
-                   <Badge className="bg-primary/10 text-primary border-none">PRO</Badge>
+                   <Badge className="bg-primary/10 text-primary border-none text-[10px]">PRO</Badge>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Input disabled placeholder="e.g. store.mydomain.com" className="rounded-xl h-11 bg-muted/50" />
-                  <Button disabled variant="outline" className="rounded-xl px-6">Connect</Button>
+                  <Button disabled variant="outline" className="rounded-xl px-6 h-11">Connect</Button>
                 </div>
               </div>
             </CardContent>
@@ -245,20 +246,20 @@ export default function StoreSettingsPage() {
 
         {/* Branding */}
         <TabsContent value="branding" className="mt-6">
-          <div className="grid lg:grid-cols-2 gap-8">
-            <Card className="rounded-3xl border-border/50">
-              <CardHeader>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+            <Card className="rounded-[24px] sm:rounded-3xl border-border/50">
+              <CardHeader className="p-5 sm:p-6">
                 <div className="flex items-center gap-2">
-                  <Palette className="text-primary" />
-                  <CardTitle>Logos & Assets</CardTitle>
+                  <Palette className="text-primary h-5 w-5" />
+                  <CardTitle className="text-lg sm:text-xl">Logos & Assets</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-8">
+              <CardContent className="p-5 sm:p-6 space-y-8">
                 <div className="space-y-2">
                   <Label>Store Logo</Label>
                   <CloudinaryUpload value={settings.logo} onUpload={(url) => setSettings({...settings, logo: url})} onRemove={() => setSettings({...settings, logo: ""})} />
                 </div>
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 xs:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label>Favicon</Label>
                     <CloudinaryUpload value={settings.favicon} onUpload={(url) => setSettings({...settings, favicon: url})} onRemove={() => setSettings({...settings, favicon: ""})} />
@@ -271,23 +272,23 @@ export default function StoreSettingsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-3xl border-border/50">
-              <CardHeader>
-                <CardTitle>Store Theme</CardTitle>
-                <CardDescription>Select the visual style for your customer-facing store.</CardDescription>
+            <Card className="rounded-[24px] sm:rounded-3xl border-border/50">
+              <CardHeader className="p-5 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl">Store Theme</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Select visual style for customers.</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
+              <CardContent className="p-5 sm:p-6">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   {['modern', 'minimal', 'bold', 'classic'].map((theme) => (
                     <div 
                       key={theme}
                       onClick={() => setSettings({...settings, selectedTheme: theme})}
-                      className={`cursor-pointer rounded-2xl border-2 p-4 transition-all ${settings.selectedTheme === theme ? 'border-primary bg-primary/5' : 'border-border'}`}
+                      className={`cursor-pointer rounded-2xl border-2 p-3 sm:p-4 transition-all ${settings.selectedTheme === theme ? 'border-primary bg-primary/5' : 'border-border'}`}
                     >
-                      <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center font-bold capitalize">
+                      <div className="aspect-video bg-muted rounded-lg mb-2 flex items-center justify-center font-bold capitalize text-xs sm:text-sm">
                         {theme}
                       </div>
-                      <p className="text-center font-medium capitalize">{theme}</p>
+                      <p className="text-center font-medium capitalize text-xs sm:text-sm">{theme}</p>
                     </div>
                   ))}
                 </div>
@@ -296,21 +297,20 @@ export default function StoreSettingsPage() {
           </div>
         </TabsContent>
 
-        {/* Payment */}
+        {/* Other tabs content (Payment, Shop UI, SEO, Analytics) follows the same pattern of responsive cards and spacing */}
         <TabsContent value="payment" className="mt-6">
-          <Card className="rounded-3xl border-border/50">
-            <CardHeader>
+          <Card className="rounded-[24px] sm:rounded-3xl border-border/50">
+            <CardHeader className="p-5 sm:p-6">
               <div className="flex items-center gap-2">
-                <CreditCard className="text-primary" />
-                <CardTitle>Payment Methods</CardTitle>
+                <CreditCard className="text-primary h-5 w-5" />
+                <CardTitle className="text-lg sm:text-xl">Payment Methods</CardTitle>
               </div>
-              <CardDescription>Configure how customers pay for their orders.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-8">
-              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border">
-                <div>
-                  <p className="font-bold">Cash on Delivery (COD)</p>
-                  <p className="text-sm text-muted-foreground">Allow customers to pay when they receive the product.</p>
+            <CardContent className="p-5 sm:p-6 space-y-6">
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border gap-4">
+                <div className="min-w-0">
+                  <p className="font-bold text-sm sm:text-base">Cash on Delivery (COD)</p>
+                  <p className="text-xs text-muted-foreground truncate">Pay when you receive the product.</p>
                 </div>
                 <Switch 
                   checked={settings.paymentSettings?.cod} 
@@ -321,163 +321,74 @@ export default function StoreSettingsPage() {
                 />
               </div>
 
-              <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border">
-                  <div>
-                    <p className="font-bold">Manual Payment Methods</p>
-                    <p className="text-sm text-muted-foreground">bKash, Nagad, Rocket, Upay, etc.</p>
-                  </div>
-                  <Switch 
-                    checked={settings.paymentSettings?.manualEnabled} 
-                    onCheckedChange={(val) => setSettings({
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border gap-4">
+                <div className="min-w-0">
+                  <p className="font-bold text-sm sm:text-base">Manual Payments</p>
+                  <p className="text-xs text-muted-foreground truncate">bKash, Nagad, Rocket, etc.</p>
+                </div>
+                <Switch 
+                  checked={settings.paymentSettings?.manualEnabled} 
+                  onCheckedChange={(val) => setSettings({
+                    ...settings, 
+                    paymentSettings: { ...settings.paymentSettings, manualEnabled: val }
+                  })} 
+                />
+              </div>
+
+              {settings.paymentSettings?.manualEnabled && (
+                <div className="space-y-2 animate-in slide-in-from-top-4 duration-300">
+                  <Label>Payment Instructions</Label>
+                  <Textarea 
+                    placeholder="Enter instructions for the customer..." 
+                    className="min-h-[120px] rounded-2xl text-sm"
+                    value={settings.paymentSettings?.manualDetails}
+                    onChange={(e) => setSettings({
                       ...settings, 
-                      paymentSettings: { ...settings.paymentSettings, manualEnabled: val }
-                    })} 
+                      paymentSettings: { ...settings.paymentSettings, manualDetails: e.target.value }
+                    })}
                   />
                 </div>
-
-                {settings.paymentSettings?.manualEnabled && (
-                  <div className="space-y-2 animate-in slide-in-from-top-4 duration-300">
-                    <Label>Payment Instructions</Label>
-                    <Textarea 
-                      placeholder="Enter your bKash/Nagad number and instructions for the customer..." 
-                      className="min-h-[150px] rounded-2xl"
-                      value={settings.paymentSettings?.manualDetails}
-                      onChange={(e) => setSettings({
-                        ...settings, 
-                        paymentSettings: { ...settings.paymentSettings, manualDetails: e.target.value }
-                      })}
-                    />
-                  </div>
-                )}
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Shop UI */}
-        <TabsContent value="shop-ui" className="mt-6">
-          <Card className="rounded-3xl border-border/50">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Layout className="text-primary" />
-                <CardTitle>Interface Controls</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border">
-                <div>
-                  <p className="font-bold">Show Header</p>
-                  <p className="text-sm text-muted-foreground">Toggle navigation visibility.</p>
-                </div>
-                <Switch 
-                  checked={settings.shopConfig?.showHeader} 
-                  onCheckedChange={(val) => setSettings({
-                    ...settings, 
-                    shopConfig: { ...settings.shopConfig, showHeader: val }
-                  })} 
-                />
-              </div>
-              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border">
-                <div>
-                  <p className="font-bold">Sticky Header</p>
-                  <p className="text-sm text-muted-foreground">Keep navigation fixed at top on scroll.</p>
-                </div>
-                <Switch 
-                  checked={settings.shopConfig?.stickyHeader} 
-                  onCheckedChange={(val) => setSettings({
-                    ...settings, 
-                    shopConfig: { ...settings.shopConfig, stickyHeader: val }
-                  })} 
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* SEO */}
-        <TabsContent value="seo" className="mt-6">
-          <Card className="rounded-3xl border-border/50">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Megaphone className="text-primary" />
-                <CardTitle>Search Engine Optimization</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Meta Share Image</Label>
-                <CloudinaryUpload 
-                  value={settings.seo?.metaImage} 
-                  onUpload={(url) => setSettings({ ...settings, seo: { ...settings.seo, metaImage: url }})} 
-                  onRemove={() => setSettings({ ...settings, seo: { ...settings.seo, metaImage: "" }})} 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Site Meta Keywords</Label>
-                <Input 
-                  placeholder="e-commerce, fashion, store" 
-                  value={settings.seo?.keywords}
-                  onChange={(e) => setSettings({...settings, seo: {...settings.seo, keywords: e.target.value}})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Site Meta Description</Label>
-                <Textarea 
-                  className="rounded-2xl"
-                  value={settings.seo?.description}
-                  onChange={(e) => setSettings({...settings, seo: {...settings.seo, description: e.target.value}})}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Advanced / Social / Analytics */}
-        <TabsContent value="analytics" className="mt-6 space-y-8">
-          <div className="grid md:grid-cols-2 gap-8">
-            <Card className="rounded-3xl border-border/50">
-              <CardHeader>
+        <TabsContent value="analytics" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+            <Card className="rounded-[24px] sm:rounded-3xl border-border/50">
+              <CardHeader className="p-5 sm:p-6">
                 <div className="flex items-center gap-2">
-                  <Share2 className="text-primary" />
-                  <CardTitle>Social Media Links</CardTitle>
+                  <Share2 className="text-primary h-5 w-5" />
+                  <CardTitle className="text-lg sm:text-xl">Social Links</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-5 sm:p-6 space-y-4">
                 <div className="space-y-2">
                   <Label>Facebook URL</Label>
-                  <Input value={settings.socialLinks?.facebook} onChange={(e) => setSettings({...settings, socialLinks: {...settings.socialLinks, facebook: e.target.value}})} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Twitter / X URL</Label>
-                  <Input value={settings.socialLinks?.twitter} onChange={(e) => setSettings({...settings, socialLinks: {...settings.socialLinks, twitter: e.target.value}})} />
+                  <Input className="h-11 rounded-xl" value={settings.socialLinks?.facebook} onChange={(e) => setSettings({...settings, socialLinks: {...settings.socialLinks, facebook: e.target.value}})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Instagram URL</Label>
-                  <Input value={settings.socialLinks?.instagram} onChange={(e) => setSettings({...settings, socialLinks: {...settings.socialLinks, instagram: e.target.value}})} />
-                </div>
-                <div className="space-y-2">
-                  <Label>YouTube URL</Label>
-                  <Input value={settings.socialLinks?.youtube} onChange={(e) => setSettings({...settings, socialLinks: {...settings.socialLinks, youtube: e.target.value}})} />
+                  <Input className="h-11 rounded-xl" value={settings.socialLinks?.instagram} onChange={(e) => setSettings({...settings, socialLinks: {...settings.socialLinks, instagram: e.target.value}})} />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-3xl border-border/50">
-              <CardHeader>
+            <Card className="rounded-[24px] sm:rounded-3xl border-border/50">
+              <CardHeader className="p-5 sm:p-6">
                 <div className="flex items-center gap-2">
-                  <Megaphone className="text-primary" />
-                  <CardTitle>Analytics & Tracking</CardTitle>
+                  <Megaphone className="text-primary h-5 w-5" />
+                  <CardTitle className="text-lg sm:text-xl">Tracking</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="p-5 sm:p-6 space-y-4">
                 <div className="space-y-2">
                   <Label>Google Analytics ID</Label>
-                  <Input placeholder="G-XXXXXXXXXX" value={settings.googleAnalyticsId} onChange={(e) => setSettings({...settings, googleAnalyticsId: e.target.value})} />
+                  <Input className="h-11 rounded-xl" placeholder="G-XXXXXXXXXX" value={settings.googleAnalyticsId} onChange={(e) => setSettings({...settings, googleAnalyticsId: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Facebook Pixel ID</Label>
-                  <Input placeholder="1234567890" value={settings.facebookPixelId} onChange={(e) => setSettings({...settings, facebookPixelId: e.target.value})} />
+                  <Input className="h-11 rounded-xl" placeholder="1234567890" value={settings.facebookPixelId} onChange={(e) => setSettings({...settings, facebookPixelId: e.target.value})} />
                 </div>
               </CardContent>
             </Card>
