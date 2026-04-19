@@ -15,7 +15,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from "@/lib/utils";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  const { subdomain } = useParams();
+  const { subdomain: rawSubdomain } = useParams();
+  const subdomain = typeof rawSubdomain === 'string' ? rawSubdomain.toLowerCase() : '';
+  
   const auth = useAuth();
   const firestore = useFirestore();
   const [store, setStore] = useState<any>(null);
@@ -33,16 +35,23 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       if (user) {
         await verifyStoreAccess(user.uid);
       } else {
-        router.push("/auth");
+        // If they are on an admin path and not logged in, redirect to login
+        if (isAdminPath) {
+          router.push("/auth");
+        } else {
+          setLoading(false);
+        }
       }
     });
     return () => unsubscribe();
   }, [subdomain, router, auth]);
 
   const verifyStoreAccess = async (uid: string) => {
-    if (!firestore || !subdomain) return;
-    setLoading(true);
-    setAccessDenied(false);
+    if (!firestore || !subdomain) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       const q = query(
         collection(firestore, "stores"),
@@ -51,13 +60,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
-        router.push("/dashboard");
+        // If store doesn't exist, we'll let the page component handle 404
+        setLoading(false);
         return;
       }
 
       const storeData = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
       
-      // Strict Security Check: Only the owner can access administrative routes
+      // Security Check: Only the owner can access administrative routes
       if (storeData.ownerId !== uid) {
         setAccessDenied(true);
       } else {
@@ -68,8 +78,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         }
       }
     } catch (error) {
-      console.error(error);
-      router.push("/dashboard");
+      console.error("Access verification error:", error);
     } finally {
       setLoading(false);
     }
@@ -85,12 +94,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   };
 
   // Precise path normalization for sidebar active states
-  // Handles both subdomain.ihut.shop/overview AND ihut.shop/arman/overview
-  const normalizedPath = pathname === `/${subdomain}`
-    ? "/"
-    : pathname.startsWith(`/${subdomain}/`)
+  // We need to know if we're on arman.ihut.shop/products (subdomain visit)
+  // or ihut.shop/arman/products (direct dev visit)
+  const normalizedPath = pathname.startsWith(`/${subdomain}/`)
       ? pathname.replace(`/${subdomain}`, "")
-      : pathname;
+      : pathname === `/${subdomain}` ? "/" : pathname;
 
   const adminSegments = ["overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder"];
   const isBuilderEditor = normalizedPath.includes("/builder/") && normalizedPath.split("/").filter(Boolean).length > 1;
@@ -104,31 +112,8 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (accessDenied && isAdminPath) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-        <div className="max-w-md w-full text-center space-y-6 bg-white p-12 rounded-[40px] shadow-2xl border border-border/50">
-          <div className="w-24 h-24 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <AlertCircle className="w-12 h-12 text-destructive" />
-          </div>
-          <h2 className="text-3xl font-headline font-bold text-foreground">Access Denied</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            You do not have permission to manage this store. Only the authenticated owner can access this dashboard.
-          </p>
-          <div className="pt-4">
-            <Link href="/dashboard">
-              <Button className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20">
-                Back to My Dashboard
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Vault Password Screen
-  if (isAdminPath && !isPasswordVerified) {
+  if (isAdminPath && !isPasswordVerified && !accessDenied) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
         <Card className="max-w-md w-full p-10 rounded-[40px] shadow-2xl border-none text-center space-y-8">
@@ -158,6 +143,29 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             </Button>
           </Link>
         </Card>
+      </div>
+    );
+  }
+
+  if (accessDenied && isAdminPath) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+        <div className="max-w-md w-full text-center space-y-6 bg-white p-12 rounded-[40px] shadow-2xl border border-border/50">
+          <div className="w-24 h-24 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-12 h-12 text-destructive" />
+          </div>
+          <h2 className="text-3xl font-headline font-bold text-foreground">Access Denied</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            You do not have permission to manage this store. Only the authenticated owner can access this dashboard.
+          </p>
+          <div className="pt-4">
+            <Link href="/dashboard">
+              <Button className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20">
+                Back to My Dashboard
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
