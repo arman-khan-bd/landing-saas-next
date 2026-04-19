@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,9 +7,11 @@ import { useAuth, useFirestore } from "@/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +25,8 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   const [accessDenied, setAccessDenied] = useState(false);
+  const [isPasswordVerified, setIsPasswordVerified] = useState(false);
+  const [managerPassword, setManagerPassword] = useState("");
 
   useEffect(() => {
     if (!auth) return;
@@ -58,6 +63,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         setAccessDenied(true);
       } else {
         setStore(storeData);
+        // If no password set, consider it verified
+        if (!storeData.managePassword) {
+          setIsPasswordVerified(true);
+        }
       }
     } catch (error) {
       console.error(error);
@@ -67,11 +76,17 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     }
   };
 
+  const handleVaultAccess = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (managerPassword === store?.managePassword) {
+      setIsPasswordVerified(true);
+    } else {
+      alert("Invalid Manager Vault Password.");
+    }
+  };
+
   const adminSegments = ["overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder"];
   
-  // Normalize pathname to check for admin routes
-  // In dev/root domain, path is /arman/overview
-  // On custom subdomain, path is /overview
   const normalizedPath = pathname.startsWith(`/${subdomain}`) 
     ? pathname.replace(`/${subdomain}`, "") || "/"
     : pathname;
@@ -105,8 +120,42 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               </Button>
             </Link>
           </div>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest pt-4">Security ID: 403 Forbidden</p>
         </div>
+      </div>
+    );
+  }
+
+  // Vault Password Screen
+  if (isAdminPath && !isPasswordVerified) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+        <Card className="max-w-md w-full p-10 rounded-[40px] shadow-2xl border-none text-center space-y-8">
+          <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto">
+            <Lock className="w-10 h-10" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-headline font-black tracking-tight">Manager Vault</h2>
+            <p className="text-muted-foreground mt-2">Enter your management password to continue to the administrative dashboard.</p>
+          </div>
+          <form onSubmit={handleVaultAccess} className="space-y-4">
+            <Input 
+              type="password" 
+              placeholder="Vault Password" 
+              className="h-14 rounded-2xl bg-slate-50 border-none text-center text-xl font-bold tracking-widest"
+              value={managerPassword}
+              onChange={(e) => setManagerPassword(e.target.value)}
+              autoFocus
+            />
+            <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20">
+              <ShieldCheck className="mr-2" /> Unlock Dashboard
+            </Button>
+          </form>
+          <Link href="/dashboard">
+            <Button variant="ghost" className="text-muted-foreground hover:text-primary">
+              <ChevronLeft className="mr-1 w-4 h-4" /> Cancel & Exit
+            </Button>
+          </Link>
+        </Card>
       </div>
     );
   }

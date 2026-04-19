@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useFirestore, useUser } from "@/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, getDoc, deleteDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { 
   ShoppingCart, Plus, Store, ExternalLink, LogOut, Loader2, 
   User, Settings, LayoutDashboard, ShieldCheck, Mail, Phone, 
-  Globe, Sparkles, ChevronRight, CheckCircle2, Shield
+  Globe, Sparkles, ChevronRight, CheckCircle2, Shield,
+  MoreVertical, Trash2, Lock, Unlock, AlertTriangle, Hammer, Power
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -29,6 +30,7 @@ import { getStoreUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 export default function RedesignedDashboard() {
@@ -42,6 +44,13 @@ export default function RedesignedDashboard() {
   const [newStore, setNewStore] = useState({ name: "", subdomain: "" });
   const [profileData, setProfileData] = useState({ fullName: "", phone: "", role: "user" });
   const [view, setView] = useState<"stores" | "profile" | "settings">("stores");
+
+  // Store Settings Dialogs
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isSecurityDialogOpen, setIsSecurityDialogOpen] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<any>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [passwordData, setPasswordData] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
   
   const router = useRouter();
   const { toast } = useToast();
@@ -121,6 +130,8 @@ export default function RedesignedDashboard() {
       name: newStore.name,
       subdomain: newStore.subdomain.toLowerCase(),
       ownerId: user.uid,
+      status: "online",
+      isMaintenance: false,
       createdAt: serverTimestamp(),
     };
 
@@ -152,6 +163,64 @@ export default function RedesignedDashboard() {
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error creating store" });
       setCreating(false);
+    }
+  };
+
+  const updateStoreSetting = async (storeId: string, updates: any) => {
+    if (!firestore) return;
+    const storeRef = doc(firestore, "stores", storeId);
+    try {
+      await updateDoc(storeRef, updates);
+      toast({ title: "Updated", description: "Store settings modified." });
+      if (user) fetchStores(user.uid);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Action Failed" });
+    }
+  };
+
+  const handleDeleteStore = async () => {
+    if (!selectedStore || !firestore || deleteConfirmText !== selectedStore.subdomain) return;
+    setUpdating(true);
+    try {
+      await deleteDoc(doc(firestore, "stores", selectedStore.id));
+      toast({ title: "Store Purged", description: "The store was permanently removed." });
+      setIsDeleteDialogOpen(false);
+      setDeleteConfirmText("");
+      if (user) fetchStores(user.uid);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Deletion Failed" });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!selectedStore || !firestore) return;
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({ variant: "destructive", title: "Mismatch", description: "Passwords do not match." });
+      return;
+    }
+    
+    // Simple password check for prototype
+    if (selectedStore.managePassword && passwordData.oldPassword !== selectedStore.managePassword) {
+      toast({ variant: "destructive", title: "Invalid", description: "Incorrect old password." });
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      await updateDoc(doc(firestore, "stores", selectedStore.id), {
+        managePassword: passwordData.newPassword,
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Security Updated", description: "Management password changed." });
+      setIsSecurityDialogOpen(false);
+      setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      if (user) fetchStores(user.uid);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -327,19 +396,55 @@ export default function RedesignedDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {stores.map((store) => (
                   <Card key={store.id} className="group hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 border-none rounded-[40px] overflow-hidden bg-white">
-                    <CardHeader className="bg-slate-50/50 p-8 border-b border-slate-100">
+                    <CardHeader className="bg-slate-50/50 p-8 border-b border-slate-100 relative">
                       <div className="flex justify-between items-start">
                         <div className="w-16 h-16 bg-white rounded-[24px] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
                           <Store className="text-primary w-8 h-8" />
                         </div>
-                        <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 hover:bg-primary hover:text-white transition-colors shadow-sm bg-white" asChild>
-                          <a href={getStoreUrl(store.subdomain)} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="w-5 h-5" />
-                          </a>
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 hover:bg-primary hover:text-white transition-colors shadow-sm bg-white" asChild>
+                            <a href={getStoreUrl(store.subdomain)} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-5 h-5" />
+                            </a>
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 hover:bg-primary hover:text-white transition-colors shadow-sm bg-white">
+                                <MoreVertical className="w-5 h-5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 border-border/50 shadow-2xl">
+                               <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-3 py-2">Lifecycle Control</DropdownMenuLabel>
+                               <DropdownMenuItem className="gap-3 py-2.5 rounded-xl cursor-pointer" onClick={() => updateStoreSetting(store.id, { isMaintenance: !store.isMaintenance })}>
+                                  <Hammer className="w-4 h-4" />
+                                  <span>{store.isMaintenance ? "Disable Maintenance" : "Enable Maintenance"}</span>
+                               </DropdownMenuItem>
+                               <DropdownMenuItem className="gap-3 py-2.5 rounded-xl cursor-pointer" onClick={() => updateStoreSetting(store.id, { status: store.status === "online" ? "offline" : "online" })}>
+                                  <Power className="w-4 h-4" />
+                                  <span>Make {store.status === "online" ? "Offline" : "Online"}</span>
+                               </DropdownMenuItem>
+                               <DropdownMenuSeparator />
+                               <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-3 py-2">Security & Identity</DropdownMenuLabel>
+                               <DropdownMenuItem className="gap-3 py-2.5 rounded-xl cursor-pointer" onClick={() => { setSelectedStore(store); setIsSecurityDialogOpen(true); }}>
+                                  <Lock className="w-4 h-4" />
+                                  <span>Manager Vault</span>
+                               </DropdownMenuItem>
+                               <DropdownMenuSeparator />
+                               <DropdownMenuItem className="gap-3 py-2.5 rounded-xl cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => { setSelectedStore(store); setIsDeleteDialogOpen(true); }}>
+                                  <Trash2 className="w-4 h-4" />
+                                  <span className="font-bold">Delete Shop</span>
+                               </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                       <div className="mt-8">
-                        <h3 className="text-2xl font-headline font-black text-slate-900 truncate leading-none mb-2">{store.name}</h3>
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <h3 className="text-2xl font-headline font-black text-slate-900 truncate leading-none">{store.name}</h3>
+                          {store.isMaintenance && <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-none text-[8px] font-black">MAINTENANCE</Badge>}
+                          {store.status === "offline" && <Badge variant="secondary" className="bg-slate-200 text-slate-600 border-none text-[8px] font-black">OFFLINE</Badge>}
+                          {store.managePassword && <Lock className="w-3.5 h-3.5 text-primary" />}
+                        </div>
                         <p className="text-sm font-bold text-primary flex items-center gap-2">
                           <Globe className="w-3.5 h-3.5" />
                           {getStoreUrl(store.subdomain).replace("https://", "").replace("http://", "")}
@@ -351,8 +456,8 @@ export default function RedesignedDashboard() {
                           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Status</p>
                              <div className="flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                                <span className="text-xs font-bold">Online</span>
+                                <span className={`w-2 h-2 rounded-full ${store.status === 'online' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                                <span className="text-xs font-bold capitalize">{store.status || 'online'}</span>
                              </div>
                           </div>
                           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
@@ -498,10 +603,94 @@ export default function RedesignedDashboard() {
         )}
       </main>
 
+      {/* Settings Dialogs */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="rounded-[40px] border-none shadow-2xl p-8">
+          <DialogHeader>
+            <div className="w-16 h-16 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 mb-6">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <DialogTitle className="text-3xl font-headline font-black tracking-tight">Delete Brand Permanent?</DialogTitle>
+            <DialogDescription className="text-slate-500 text-lg">
+              This action cannot be undone. To confirm, please type <span className="font-black text-slate-900">{selectedStore?.subdomain}</span> below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6">
+            <Input 
+              placeholder="Confirm subdomain" 
+              className="h-14 rounded-2xl bg-slate-50 border-none text-lg px-6" 
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="destructive" 
+              className="w-full h-16 rounded-[24px] text-xl font-black" 
+              disabled={updating || deleteConfirmText !== selectedStore?.subdomain}
+              onClick={handleDeleteStore}
+            >
+              {updating ? <Loader2 className="animate-spin mr-2" /> : <Trash2 className="mr-2" />}
+              Destroy Brand
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSecurityDialogOpen} onOpenChange={setIsSecurityDialogOpen}>
+        <DialogContent className="rounded-[40px] border-none shadow-2xl p-8">
+          <DialogHeader>
+            <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
+              <ShieldCheck className="w-8 h-8" />
+            </div>
+            <DialogTitle className="text-3xl font-headline font-black tracking-tight">Manager Vault</DialogTitle>
+            <DialogDescription className="text-slate-500 text-lg">
+              Set a password that must be entered every time someone tries to manage this store.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-6">
+            {selectedStore?.managePassword && (
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Old Password</Label>
+                <Input 
+                  type="password"
+                  className="h-12 rounded-xl bg-slate-50 border-none px-4" 
+                  value={passwordData.oldPassword}
+                  onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})}
+                />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">New Password</Label>
+              <Input 
+                type="password"
+                className="h-12 rounded-xl bg-slate-50 border-none px-4" 
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Confirm New Password</Label>
+              <Input 
+                type="password"
+                className="h-12 rounded-xl bg-slate-50 border-none px-4" 
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button className="w-full h-16 rounded-[24px] text-xl font-black" onClick={handleUpdatePassword} disabled={updating}>
+              {updating ? <Loader2 className="animate-spin mr-2" /> : <Lock className="mr-2" />}
+              Secure Manager
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <footer className="fixed bottom-0 w-full bg-white/60 backdrop-blur-md border-t p-6 flex justify-center z-40 md:hidden">
          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">&copy; 2024 NEXUSCART SAAS ENGINE</p>
       </footer>
     </div>
   );
 }
-
