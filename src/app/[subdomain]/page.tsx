@@ -6,12 +6,12 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ShoppingCart, Search, Menu, Instagram, Twitter, Facebook, Hammer, AlertCircle, Loader2, X, Plus, Minus, Trash2 } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Search, Menu, Instagram, Twitter, Facebook, Hammer, AlertCircle, Loader2, X, Plus, Minus, Trash2, ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
@@ -32,6 +32,11 @@ export default function Storefront() {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 10;
+
   const router = useRouter();
 
   useEffect(() => {
@@ -114,6 +119,10 @@ export default function Storefront() {
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
+  // Pagination Logic
+  const totalPages = Math.ceil(products.length / productsPerPage);
+  const currentProducts = products.slice((currentPage - 1) * productsPerPage, currentPage * productsPerPage);
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white">
@@ -149,7 +158,7 @@ export default function Storefront() {
 
   return (
     <div className="min-h-screen bg-slate-50/30">
-      {/* Navigation - Compact */}
+      {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href={`/${subdomain}`} className="flex items-center gap-2">
@@ -177,12 +186,17 @@ export default function Storefront() {
                   )}
                 </Button>
               </SheetTrigger>
-              <SheetContent className="w-full sm:max-w-md flex flex-col p-0 border-none rounded-l-3xl">
-                <SheetHeader className="p-6 bg-slate-900 text-white shrink-0">
-                  <SheetTitle className="text-xl font-headline font-black text-white flex items-center gap-2 uppercase tracking-tight">
-                    <ShoppingCart className="w-5 h-5 text-primary" />
-                    Your Cart
-                  </SheetTitle>
+              <SheetContent className="w-full sm:max-w-md flex flex-col p-0 border-none rounded-l-3xl shadow-2xl">
+                <SheetHeader className="p-6 bg-slate-900 text-white shrink-0 relative">
+                  <div className="flex items-center justify-between">
+                    <SheetTitle className="text-xl font-headline font-black text-white flex items-center gap-2 uppercase tracking-tight">
+                      <ShoppingCart className="w-5 h-5 text-primary" />
+                      Your Cart
+                    </SheetTitle>
+                    <SheetClose className="text-white/60 hover:text-white transition-colors">
+                      <X className="w-6 h-6" />
+                    </SheetClose>
+                  </div>
                 </SheetHeader>
                 
                 <ScrollArea className="flex-1 px-6 py-4">
@@ -202,7 +216,7 @@ export default function Storefront() {
                             <div className="flex justify-between items-start">
                               <h4 className="font-bold text-xs leading-tight truncate pr-4">{item.name}</h4>
                               <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-rose-500">
-                                <X className="w-3.5 h-3.5" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                             <div className="flex items-center justify-between">
@@ -221,14 +235,19 @@ export default function Storefront() {
                 </ScrollArea>
 
                 <SheetFooter className="p-6 bg-white border-t shrink-0">
-                  <div className="w-full space-y-4">
-                    <div className="flex justify-between items-end">
+                  <div className="w-full space-y-3">
+                    <div className="flex justify-between items-end mb-2">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Subtotal</span>
                       <span className="text-2xl font-black text-primary">${cartTotal.toFixed(2)}</span>
                     </div>
                     <Button className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={cart.length === 0}>
-                      Checkout
+                      Checkout Now
                     </Button>
+                    <SheetClose asChild>
+                      <Button variant="ghost" className="w-full h-12 rounded-xl text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                        Continue Shopping
+                      </Button>
+                    </SheetClose>
                   </div>
                 </SheetFooter>
               </SheetContent>
@@ -243,7 +262,7 @@ export default function Storefront() {
         </div>
       </nav>
 
-      {/* Hero - Compact */}
+      {/* Hero */}
       <section className="relative h-[320px] sm:h-[450px] flex items-center justify-center overflow-hidden bg-slate-900 text-white">
         <div className="absolute inset-0">
            <img 
@@ -267,12 +286,14 @@ export default function Storefront() {
         </div>
       </section>
 
-      {/* Featured Products - App Style Grid */}
+      {/* Featured Products Grid */}
       <section className="max-w-7xl mx-auto px-3 sm:px-6 py-10 sm:py-20">
         <div className="flex items-center justify-between mb-6 px-1">
-          <h3 className="text-xl sm:text-3xl font-headline font-black tracking-tight text-slate-900 uppercase">Shop All</h3>
-          <Button variant="link" className="text-primary font-bold text-xs uppercase tracking-widest p-0 h-auto">
-            View All
+          <h3 className="text-xl sm:text-3xl font-headline font-black tracking-tight text-slate-900 uppercase">Shop Collection</h3>
+          <Button variant="link" className="text-primary font-bold text-xs uppercase tracking-widest p-0 h-auto" asChild>
+            <Link href={`/${subdomain}/all-products`}>
+              All Products <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Link>
           </Button>
         </div>
 
@@ -282,49 +303,90 @@ export default function Storefront() {
             <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Inventory Empty</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6">
-            {products.map((p) => (
-              <Card key={p.id} className="group bg-white rounded-2xl overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 active:scale-95">
-                <CardContent className="p-0">
-                  <Link href={`/${subdomain}/product/${p.slug}`} className="block aspect-square relative overflow-hidden bg-slate-50 border-b border-slate-50">
-                    {p.featuredImage ? (
-                      <img 
-                        src={p.featuredImage} 
-                        alt={p.name} 
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-100">
-                        <ShoppingBag className="w-12 h-12" />
-                      </div>
-                    )}
-                    {p.prevPrice && (
-                      <div className="absolute top-2 left-2 bg-rose-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
-                        Sale
-                      </div>
-                    )}
-                  </Link>
-                  <div className="p-3 sm:p-5 space-y-2">
-                    <Link href={`/${subdomain}/product/${p.slug}`} className="block min-h-[32px]">
-                      <h4 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                        {p.name}
-                      </h4>
+          <div className="space-y-12">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6">
+              {currentProducts.map((p) => (
+                <Card key={p.id} className="group bg-white rounded-2xl overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 active:scale-95">
+                  <CardContent className="p-0">
+                    <Link href={`/${subdomain}/product/${p.slug}`} className="block aspect-square relative overflow-hidden bg-slate-50 border-b border-slate-50">
+                      {p.featuredImage ? (
+                        <img 
+                          src={p.featuredImage} 
+                          alt={p.name} 
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-100">
+                          <ShoppingBag className="w-12 h-12" />
+                        </div>
+                      )}
+                      {p.prevPrice && (
+                        <div className="absolute top-2 left-2 bg-rose-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
+                          Sale
+                        </div>
+                      )}
                     </Link>
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                      <div className="flex flex-col">
-                        <p className="text-primary font-black text-sm sm:text-base tracking-tight">${Number(p.currentPrice || 0).toFixed(2)}</p>
-                        {p.prevPrice && (
-                          <p className="text-slate-300 text-[9px] line-through">${Number(p.prevPrice).toFixed(2)}</p>
-                        )}
+                    <div className="p-3 sm:p-5 space-y-2">
+                      <Link href={`/${subdomain}/product/${p.slug}`} className="block min-h-[32px]">
+                        <h4 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                          {p.name}
+                        </h4>
+                      </Link>
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        <div className="flex flex-col">
+                          <p className="text-primary font-black text-sm sm:text-base tracking-tight">${Number(p.currentPrice || 0).toFixed(2)}</p>
+                          {p.prevPrice && (
+                            <p className="text-slate-300 text-[9px] line-through">${Number(p.prevPrice).toFixed(2)}</p>
+                          )}
+                        </div>
+                        <Button size="icon" variant="secondary" className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl shadow-sm bg-slate-50 hover:bg-primary hover:text-white shrink-0 transition-colors" onClick={(e) => { e.preventDefault(); addToCart(p); }}>
+                          <Plus className="w-4 h-4" />
+                        </Button>
                       </div>
-                      <Button size="icon" variant="secondary" className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl shadow-sm bg-slate-50 hover:bg-primary hover:text-white shrink-0 transition-colors" onClick={(e) => { e.preventDefault(); addToCart(p); }}>
-                        <Plus className="w-4 h-4" />
-                      </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 pt-8">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="rounded-xl" 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                
+                <div className="flex items-center gap-1.5 px-4">
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <Button 
+                      key={i} 
+                      variant={currentPage === i + 1 ? "default" : "ghost"}
+                      size="sm"
+                      className={`h-10 w-10 rounded-xl font-bold ${currentPage === i + 1 ? 'shadow-lg shadow-primary/20' : ''}`}
+                      onClick={() => setCurrentPage(i + 1)}
+                    >
+                      {i + 1}
+                    </Button>
+                  ))}
+                </div>
+
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="rounded-xl" 
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </section>

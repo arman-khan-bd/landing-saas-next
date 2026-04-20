@@ -6,11 +6,11 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ShoppingCart, ArrowLeft, Loader2, CheckCircle2, ShieldCheck, Truck, RefreshCw, Plus, Minus, X } from "lucide-react";
+import { ShoppingBag, ShoppingCart, ArrowLeft, Loader2, CheckCircle2, ShieldCheck, Truck, RefreshCw, Plus, Minus, X, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CartItem {
@@ -218,14 +218,19 @@ export default function ProductDetailPage() {
         </section>
       </main>
 
-      {/* Cart Drawer - Shared across public pages */}
+      {/* Cart Drawer */}
       <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
-        <SheetContent className="w-full sm:max-w-md flex flex-col p-0 border-none rounded-l-[40px] overflow-hidden">
+        <SheetContent className="w-full sm:max-w-md flex flex-col p-0 border-none rounded-l-[40px] overflow-hidden shadow-2xl">
           <SheetHeader className="p-8 bg-slate-900 text-white shrink-0">
-            <SheetTitle className="text-2xl font-headline font-black text-white flex items-center gap-3 uppercase tracking-tight">
-              <ShoppingCart className="w-6 h-6 text-primary" />
-              Shopping Cart
-            </SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle className="text-2xl font-headline font-black text-white flex items-center gap-3 uppercase tracking-tight">
+                <ShoppingCart className="w-6 h-6 text-primary" />
+                Shopping Cart
+              </SheetTitle>
+              <SheetClose className="text-white/60 hover:text-white transition-colors">
+                <X className="w-7 h-7" />
+              </SheetClose>
+            </div>
           </SheetHeader>
           <ScrollArea className="flex-1 px-8 py-6">
             {cart.length === 0 ? (
@@ -243,14 +248,16 @@ export default function ProductDetailPage() {
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex justify-between items-start">
                         <h4 className="font-bold text-sm leading-tight truncate pr-4">{item.name}</h4>
-                        <button onClick={() => removeFromCart(item.id)} className="text-slate-400 hover:text-rose-500"><X className="w-4 h-4" /></button>
+                        <button onClick={() => removeFromCart(item.id)} className="text-slate-400 hover:text-rose-500 transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                       <p className="text-primary font-black text-lg">${(item.price).toFixed(2)}</p>
                       <div className="flex items-center gap-4 pt-1">
                         <div className="flex items-center bg-slate-100 rounded-lg p-1">
-                          <button onClick={() => updateCartQuantity(item.id, -1)} className="p-1 hover:bg-white rounded"><Minus className="w-3 h-3" /></button>
+                          <button onClick={() => updateCartQuantity(item.id, -1)} className="p-1 hover:bg-white rounded transition-all"><Minus className="w-3 h-3" /></button>
                           <span className="w-8 text-center text-xs font-bold">{item.quantity}</span>
-                          <button onClick={() => updateCartQuantity(item.id, 1)} className="p-1 hover:bg-white rounded"><Plus className="w-3 h-3" /></button>
+                          <button onClick={() => updateCartQuantity(item.id, 1)} className="p-1 hover:bg-white rounded transition-all"><Plus className="w-3 h-3" /></button>
                         </div>
                       </div>
                     </div>
@@ -259,15 +266,20 @@ export default function ProductDetailPage() {
               </div>
             )}
           </ScrollArea>
-          <SheetFooter className="p-8 bg-slate-50 border-t shrink-0">
-            <div className="w-full space-y-6">
-              <div className="flex justify-between items-end">
-                <span className="text-lg font-black uppercase tracking-tighter">Total Amount</span>
+          <SheetFooter className="p-8 bg-white border-t shrink-0">
+            <div className="w-full space-y-4">
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-lg font-black uppercase tracking-tighter text-slate-400">Total Amount</span>
                 <span className="text-3xl font-black text-primary">${cartTotal.toFixed(2)}</span>
               </div>
               <Button className="w-full h-16 rounded-2xl text-xl font-black shadow-2xl shadow-primary/20" disabled={cart.length === 0}>
                 Checkout Now
               </Button>
+              <SheetClose asChild>
+                <Button variant="ghost" className="w-full h-12 rounded-xl text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:bg-slate-50">
+                  Continue Shopping
+                </Button>
+              </SheetClose>
             </div>
           </SheetFooter>
         </SheetContent>
