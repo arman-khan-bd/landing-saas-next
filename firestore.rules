@@ -7,66 +7,28 @@ service cloud.firestore {
      * This ruleset implements a multi-tenant e-commerce platform model (NexusCart) focusing on Tenant Isolation 
      * and Authorization Independence. Access control is primarily driven by denormalized ownership fields 
      * (`ownerId`) to ensure high performance and simplify security logic by avoiding cross-document lookups.
-     *
-     * DATA STRUCTURE:
-     * - /userProfiles/{userId}: Private user data.
-     * - /adminRoles/{userId}: Database Access Control (DBAC) for platform administrators.
-     * - /stores/{storeId}: Root tenant entities.
-     *   - /products/{productId}: Sub-resources of a store.
-     *   - /subscription: Specific document for store billing.
-     * - /subscriptionPlans/{planId}: Global configuration data.
-     *
-     * KEY SECURITY DECISIONS:
-     * 1. Denormalization: The `ownerId` from a Store is denormalized into every Product and StoreSubscription. 
-     *    Rules use this local field to authorize writes without calling get() on the parent Store.
-     * 2. Administrative Control: Store creation and deletion are reserved for platform administrators. 
-     *    Store owners can update their own store settings but cannot create the store entity itself.
-     * 3. Public vs. Private: Products and Stores are publicly readable to support storefronts, while 
-     *    Subscriptions and Profiles are strictly private.
-     * 4. Structural Segregation: Administrative roles are segregated into a dedicated collection for fast 
-     *    existence-based checks (DBAC).
      */
 
     // --- Helper Functions ---
 
-    /**
-     * @description Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Checks if the user's UID matches the provided ID.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * @description Verifies document existence and checks if the current user is the owner.
-     * Used for update and delete operations.
-     */
     function isExistingOwner(ownerId) {
       return resource != null && isOwner(ownerId);
     }
 
-    /**
-     * @description Checks if the authenticated user has a document in the adminRoles collection.
-     */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/adminRoles/$(request.auth.uid));
     }
 
     // --- Collection Rules ---
 
-    /**
-     * @description Rules for user-specific profile information.
-     * @path /userProfiles/{userId}
-     * @allow (get) If the user is the owner or an admin.
-     * @deny (create) If the userId in the path doesn't match the authenticated UID.
-     * @principle Ownership-based access and path-to-data consistency.
-     */
     match /userProfiles/{userId} {
       allow get, list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
@@ -74,70 +36,67 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    /**
-     * @description Rules for platform-wide administrative roles.
-     * @path /adminRoles/{userId}
-     * @allow (get) For rule validation purposes or by admins.
-     * @deny (create) By any non-admin user.
-     * @principle DBAC (Database Access Control) via document existence.
-     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow create: if true;
+      allow update: if isOwner(userId) || isAdmin();
+    }
+
     match /adminRoles/{userId} {
       allow get: if isSignedIn();
       allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
-    /**
-     * @description Rules for individual stores. Publicly readable, but admin-controlled lifecycle.
-     * @path /stores/{storeId}
-     * @allow (get) By anyone (for storefront).
-     * @deny (update) By users who are not the specific store owner.
-     * @principle Public read with restricted administrative/owner writes.
-     */
+    match /orders/{orderId} {
+      allow create: if true;
+      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /uncompleted_orders/{orderId} {
+      allow create: if true;
+      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
     match /stores/{storeId} {
       allow get: if true;
-      allow list: if isSignedIn(); // Users can list stores, typically filtered by ownerId in the query
-      allow create: if isAdmin();
+      allow list: if true;
+      allow create: if isSignedIn();
       allow update: if isAdmin() || isExistingOwner(resource.data.ownerId);
       allow delete: if isAdmin();
 
-      /**
-       * @description Products within a store. Denormalized ownerId allows fast write checks.
-       * @path /stores/{storeId}/products/{productId}
-       * @allow (list) By any visitor to the shop.
-       * @deny (create) If the denormalized ownerId doesn't match the requester's UID.
-       * @principle Authorization Independence via denormalization.
-       */
       match /products/{productId} {
         allow get, list: if true;
         allow create: if isOwner(request.resource.data.ownerId);
-        allow update: if isExistingOwner(resource.data.ownerId) && request.resource.data.ownerId == resource.data.ownerId;
+        allow update: if isExistingOwner(resource.data.ownerId);
         allow delete: if isExistingOwner(resource.data.ownerId);
       }
 
-      /**
-       * @description Active subscription record for the store. Private to owner and admins.
-       * @path /stores/{storeId}/subscription
-       * @allow (get) By the store owner or platform admin.
-       * @deny (update) By any user who doesn't own the parent store.
-       * @principle Sensitive data isolation with owner-only access.
-       */
       match /subscription {
         allow get: if isAdmin() || isExistingOwner(resource.data.ownerId);
-        allow list: if isAdmin() || isOwner(storeId); // List allowed if path context is known
+        allow list: if isAdmin() || isOwner(storeId);
         allow create: if isAdmin() || (isOwner(request.resource.data.ownerId) && request.resource.data.storeId == storeId);
-        allow update: if isAdmin() || (isExistingOwner(resource.data.ownerId) && request.resource.data.ownerId == resource.data.ownerId);
+        allow update: if isAdmin() || (isExistingOwner(resource.data.ownerId));
         allow delete: if isAdmin();
       }
     }
 
-    /**
-     * @description Globally available subscription plans. Managed by admins.
-     * @path /subscriptionPlans/{planId}
-     * @allow (get) By any signed-in user to view pricing.
-     * @deny (create) By any non-admin user.
-     * @principle Public Read / Admin Write (Structural Segregation).
-     */
+    // Global Collections
+    match /products/{productId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /categories/{id} { allow read, write: if true; }
+    match /sub-categories/{id} { allow read, write: if true; }
+    match /brands/{id} { allow read, write: if true; }
+    match /tags/{id} { allow read, write: if true; }
+    match /taxes/{id} { allow read, write: if true; }
+    match /pages/{id} { allow read, write: if true; }
+
     match /subscriptionPlans/{planId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();

@@ -1,16 +1,15 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, AlertCircle, Smartphone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +34,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -78,6 +78,47 @@ export default function CheckoutPage() {
     }
   };
 
+  // Abandoned Cart (Uncompleted Order) Logic
+  const saveDraft = useCallback(async (data: typeof formData) => {
+    if (!store || cart.length === 0) return;
+    if (!data.fullName && !data.phone) return;
+
+    const draftData = {
+      storeId: store.id,
+      ownerId: store.ownerId,
+      items: cart,
+      customer: {
+        fullName: data.fullName,
+        email: data.email,
+        phone: data.phone,
+        address: data.address
+      },
+      total: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0),
+      lastUpdated: serverTimestamp(),
+      subdomain
+    };
+
+    try {
+      if (draftId) {
+        await updateDoc(doc(db, "uncompleted_orders", draftId), draftData);
+      } else {
+        const docRef = await addDoc(collection(db, "uncompleted_orders"), draftData);
+        setDraftId(docRef.id);
+      }
+    } catch (e) {
+      console.error("Draft Save Error:", e);
+    }
+  }, [store, cart, draftId, subdomain]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.fullName || formData.phone) {
+        saveDraft(formData);
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [formData, saveDraft]);
+
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -91,6 +132,7 @@ export default function CheckoutPage() {
     try {
       const orderData = {
         storeId: store.id,
+        ownerId: store.ownerId,
         items: cart,
         customer: {
           fullName: formData.fullName,
@@ -107,6 +149,11 @@ export default function CheckoutPage() {
 
       await addDoc(collection(db, "orders"), orderData);
       
+      // Delete draft if exists
+      if (draftId) {
+        await deleteDoc(doc(db, "uncompleted_orders", draftId));
+      }
+
       // Clear cart
       localStorage.removeItem(`cart_${subdomain}`);
       setOrderSuccess(true);
@@ -150,13 +197,12 @@ export default function CheckoutPage() {
               {store?.name}
             </h1>
           </Link>
-          <div className="w-20" /> {/* Spacer */}
+          <div className="w-20" />
         </div>
       </nav>
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-10">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Checkout Form */}
           <div className="lg:col-span-3 space-y-8">
             <section className="space-y-6">
               <div className="flex items-center gap-3">
@@ -282,19 +328,12 @@ export default function CheckoutPage() {
                         )}
                       </div>
                     )}
-
-                    {(!store?.paymentSettings?.cod && !store?.paymentSettings?.manualEnabled) && (
-                       <div className="text-center py-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-center justify-center gap-2 text-amber-600 text-sm font-medium">
-                          <AlertCircle className="w-4 h-4" /> No payment methods configured.
-                       </div>
-                    )}
                   </RadioGroup>
                 </CardContent>
               </Card>
             </section>
           </div>
 
-          {/* Order Summary */}
           <div className="lg:col-span-2 space-y-6">
             <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Order Summary</h2>
             <Card className="rounded-[40px] border-none shadow-xl bg-white overflow-hidden sticky top-24">
@@ -332,7 +371,7 @@ export default function CheckoutPage() {
 
                 <Button 
                   className="w-full h-16 rounded-[24px] text-xl font-black shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95" 
-                  disabled={isPlacingOrder || cart.length === 0 || (!store?.paymentSettings?.cod && !store?.paymentSettings?.manualEnabled)}
+                  disabled={isPlacingOrder || cart.length === 0}
                   onClick={handlePlaceOrder}
                 >
                   {isPlacingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : "Place Order Now"}
