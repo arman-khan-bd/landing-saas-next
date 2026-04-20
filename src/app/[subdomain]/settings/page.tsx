@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
-import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle } from "lucide-react";
+import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle, Smartphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStoreUrl } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -41,7 +42,10 @@ export default function StoreSettingsPage() {
     paymentSettings: {
       cod: true,
       manualEnabled: false,
-      manualDetails: ""
+      manualDetails: "",
+      bkashNumber: "",
+      nagadNumber: "",
+      rocketNumber: ""
     },
     seo: {
       metaImage: "",
@@ -145,7 +149,6 @@ export default function StoreSettingsPage() {
           </ScrollArea>
         </div>
 
-        {/* General Info */}
         <TabsContent value="general" className="mt-6">
           <Card className="rounded-[24px] sm:rounded-3xl border-border/50 shadow-sm">
             <CardHeader className="p-5 sm:p-6">
@@ -192,7 +195,6 @@ export default function StoreSettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Domains */}
         <TabsContent value="domains" className="mt-6">
           <Card className="rounded-[24px] sm:rounded-3xl border-border/50 shadow-sm">
             <CardHeader className="p-5 sm:p-6">
@@ -244,7 +246,6 @@ export default function StoreSettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Branding */}
         <TabsContent value="branding" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             <Card className="rounded-[24px] sm:rounded-3xl border-border/50">
@@ -297,7 +298,6 @@ export default function StoreSettingsPage() {
           </div>
         </TabsContent>
 
-        {/* Other tabs content (Payment, Shop UI, SEO, Analytics) follows the same pattern of responsive cards and spacing */}
         <TabsContent value="payment" className="mt-6">
           <Card className="rounded-[24px] sm:rounded-3xl border-border/50">
             <CardHeader className="p-5 sm:p-6">
@@ -305,6 +305,7 @@ export default function StoreSettingsPage() {
                 <CreditCard className="text-primary h-5 w-5" />
                 <CardTitle className="text-lg sm:text-xl">Payment Methods</CardTitle>
               </div>
+              <CardDescription>Configure how your customers will pay for their orders.</CardDescription>
             </CardHeader>
             <CardContent className="p-5 sm:p-6 space-y-6">
               <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border gap-4">
@@ -336,17 +337,53 @@ export default function StoreSettingsPage() {
               </div>
 
               {settings.paymentSettings?.manualEnabled && (
-                <div className="space-y-2 animate-in slide-in-from-top-4 duration-300">
-                  <Label>Payment Instructions</Label>
-                  <Textarea 
-                    placeholder="Enter instructions for the customer..." 
-                    className="min-h-[120px] rounded-2xl text-sm"
-                    value={settings.paymentSettings?.manualDetails}
-                    onChange={(e) => setSettings({
-                      ...settings, 
-                      paymentSettings: { ...settings.paymentSettings, manualDetails: e.target.value }
-                    })}
-                  />
+                <div className="space-y-6 animate-in slide-in-from-top-4 duration-300 p-5 border rounded-2xl bg-slate-50/50">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Smartphone className="w-4 h-4" />
+                      <Label className="text-xs font-black uppercase tracking-widest">Mobile Banking Setup</Label>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                       <div className="space-y-2">
+                          <Label className="text-[10px] uppercase font-bold text-slate-500">bKash Number</Label>
+                          <Input 
+                            placeholder="017XXXXXXXX" 
+                            className="h-10 rounded-xl bg-white"
+                            value={settings.paymentSettings?.bkashNumber || ""}
+                            onChange={(e) => setSettings({
+                              ...settings,
+                              paymentSettings: { ...settings.paymentSettings, bkashNumber: e.target.value }
+                            })}
+                          />
+                       </div>
+                       <div className="space-y-2">
+                          <Label className="text-[10px] uppercase font-bold text-slate-500">Nagad Number</Label>
+                          <Input 
+                            placeholder="019XXXXXXXX" 
+                            className="h-10 rounded-xl bg-white"
+                            value={settings.paymentSettings?.nagadNumber || ""}
+                            onChange={(e) => setSettings({
+                              ...settings,
+                              paymentSettings: { ...settings.paymentSettings, nagadNumber: e.target.value }
+                            })}
+                          />
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase font-bold text-slate-500">Additional Instructions</Label>
+                    <Textarea 
+                      placeholder="e.g. Please send money and text us the transaction ID." 
+                      className="min-h-[100px] rounded-2xl text-sm bg-white"
+                      value={settings.paymentSettings?.manualDetails}
+                      onChange={(e) => setSettings({
+                        ...settings, 
+                        paymentSettings: { ...settings.paymentSettings, manualDetails: e.target.value }
+                      })}
+                    />
+                  </div>
                 </div>
               )}
             </CardContent>

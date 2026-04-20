@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { ShoppingBag, ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, AlertCircle, Smartphone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -247,14 +247,37 @@ export default function CheckoutPage() {
                             <RadioGroupItem value="manual" id="manual" className="border-primary text-primary" />
                             <div>
                               <Label htmlFor="manual" className="font-bold text-base cursor-pointer">Manual Payment</Label>
-                              <p className="text-xs text-muted-foreground">Bkash, Nagad, or Rocket.</p>
+                              <p className="text-xs text-muted-foreground">Mobile Banking / Bank Transfer.</p>
                             </div>
                           </div>
                           <CreditCard className="w-5 h-5 text-slate-300" />
                         </div>
-                        {formData.paymentMethod === 'manual' && store.paymentSettings.manualDetails && (
-                          <div className="mt-4 p-4 bg-white/50 rounded-xl border border-primary/10 text-xs leading-relaxed text-slate-600 animate-in slide-in-from-top-2">
-                             <div dangerouslySetInnerHTML={{ __html: store.paymentSettings.manualDetails.replace(/\n/g, '<br/>') }} />
+                        {formData.paymentMethod === 'manual' && (
+                          <div className="mt-4 p-5 bg-white/80 rounded-2xl border border-primary/10 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                             <div className="flex items-center gap-2 text-primary">
+                               <Smartphone className="w-4 h-4" />
+                               <span className="text-[10px] font-black uppercase tracking-widest">Payment Numbers</span>
+                             </div>
+                             
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {store.paymentSettings.bkashNumber && (
+                                  <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
+                                     <span className="text-xs font-black text-pink-600">bKash</span>
+                                     <span className="text-sm font-mono font-bold">{store.paymentSettings.bkashNumber}</span>
+                                  </div>
+                                )}
+                                {store.paymentSettings.nagadNumber && (
+                                  <div className="flex justify-between items-center p-3 bg-orange-50 rounded-xl">
+                                     <span className="text-xs font-black text-orange-600">Nagad</span>
+                                     <span className="text-sm font-mono font-bold">{store.paymentSettings.nagadNumber}</span>
+                                  </div>
+                                )}
+                             </div>
+
+                             {store.paymentSettings.manualDetails && (
+                               <div className="text-[11px] leading-relaxed text-slate-600 pt-3 border-t border-slate-100 italic" 
+                                    dangerouslySetInnerHTML={{ __html: store.paymentSettings.manualDetails.replace(/\n/g, '<br/>') }} />
+                             )}
                           </div>
                         )}
                       </div>
