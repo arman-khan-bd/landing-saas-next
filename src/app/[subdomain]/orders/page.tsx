@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -36,14 +37,18 @@ export default function OrdersPage() {
       if (storeSnap.empty) return;
       const storeId = storeSnap.docs[0].id;
 
+      // Remove orderBy from Firestore query to avoid composite index requirement
       const q = query(
         collection(db, "orders"), 
         where("storeId", "==", storeId),
-        where("ownerId", "==", user.uid),
-        orderBy("createdAt", "desc")
+        where("ownerId", "==", user.uid)
       );
       const snap = await getDocs(q);
-      const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      
+      // Sort in memory (newest first)
+      items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      
       setOrders(items);
 
       const totalRevenue = items.reduce((acc, curr) => acc + (curr.total || 0), 0);

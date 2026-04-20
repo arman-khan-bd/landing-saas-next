@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -28,18 +29,22 @@ export default function StoreOverview() {
       if (storeSnap.empty) return;
       const storeId = storeSnap.docs[0].id;
 
+      // Remove orderBy from Firestore query to avoid index requirement for small/medium sets
       const [prodSnap, orderSnap] = await Promise.all([
         getDocs(query(collection(db, "products"), where("storeId", "==", storeId))),
         getDocs(query(
           collection(db, "orders"), 
           where("storeId", "==", storeId),
-          where("ownerId", "==", user.uid),
-          orderBy("createdAt", "desc")
+          where("ownerId", "==", user.uid)
         ))
       ]);
       
-      const orders = orderSnap.docs.map(d => d.data());
-      const totalRevenue = orders.reduce((acc, curr) => acc + (curr.total || 0), 0);
+      const allOrders = orderSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      
+      // Sort client-side to "fix" index error immediately
+      allOrders.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+      const totalRevenue = allOrders.reduce((acc, curr) => acc + (curr.total || 0), 0);
 
       setStats({
         products: prodSnap.size,
@@ -47,7 +52,7 @@ export default function StoreOverview() {
         revenue: totalRevenue
       });
 
-      setRecentOrders(orderSnap.docs.slice(0, 5).map(doc => ({ id: doc.id, ...doc.data() })));
+      setRecentOrders(allOrders.slice(0, 5));
     } catch (error) {
       console.error("Overview Fetch Error:", error);
     }

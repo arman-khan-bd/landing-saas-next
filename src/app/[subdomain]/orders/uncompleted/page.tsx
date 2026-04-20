@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -34,14 +35,19 @@ export default function UncompletedOrdersPage() {
       if (storeSnap.empty) return;
       const storeId = storeSnap.docs[0].id;
 
+      // Remove orderBy from Firestore query to bypass composite index requirement
       const q = query(
         collection(db, "uncompleted_orders"),
         where("storeId", "==", storeId),
-        where("ownerId", "==", user.uid),
-        orderBy("lastUpdated", "desc")
+        where("ownerId", "==", user.uid)
       );
       const snap = await getDocs(q);
-      setItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      
+      // Sort in memory by lastUpdated (newest first)
+      docs.sort((a, b) => (b.lastUpdated?.seconds || 0) - (a.lastUpdated?.seconds || 0));
+      
+      setItems(docs);
     } catch (error) {
       console.error("Fetch Uncompleted Error:", error);
     } finally {
