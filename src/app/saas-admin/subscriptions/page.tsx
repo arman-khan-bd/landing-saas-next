@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { 
   CreditCard, ShieldCheck, Zap, Globe, 
   Plus, Loader2, Trash2, Edit, CheckCircle2, 
-  TrendingUp, XCircle, Info
+  TrendingUp, XCircle, Info, CalendarClock
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -198,6 +199,20 @@ export default function AdminSubscriptions() {
               </div>
 
               <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Billing Interval</Label>
+                <Select value={formData.billingInterval} onValueChange={(val) => setFormData({...formData, billingInterval: val})}>
+                  <SelectTrigger className="h-12 rounded-xl bg-slate-800 border-none px-4 text-white">
+                    <SelectValue placeholder="Select Interval" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl bg-slate-800 border-white/10 text-white">
+                    <SelectItem value="week">Weekly</SelectItem>
+                    <SelectItem value="month">Monthly</SelectItem>
+                    <SelectItem value="year">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Description</Label>
                 <Textarea 
                   placeholder="Short marketing hook..." 
@@ -228,7 +243,7 @@ export default function AdminSubscriptions() {
                  />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="p-6 border-t border-white/5">
               <Button className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 font-black text-lg" onClick={handleCreate} disabled={processing}>
                 {processing ? <Loader2 className="animate-spin mr-2" /> : "Deploy Tier"}
               </Button>
@@ -309,7 +324,6 @@ export default function AdminSubscriptions() {
               <DialogTitle className="text-3xl font-headline font-black">Edit Tier: {editingPlan.name}</DialogTitle>
             </DialogHeader>
             <div className="space-y-6 py-6 overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
-               {/* Reuse form fields from handleCreate */}
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Plan Name</Label>
@@ -336,6 +350,20 @@ export default function AdminSubscriptions() {
               </div>
 
               <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Billing Interval</Label>
+                <Select value={formData.billingInterval} onValueChange={(val) => setFormData({...formData, billingInterval: val})}>
+                  <SelectTrigger className="h-12 rounded-xl bg-slate-800 border-none px-4 text-white">
+                    <SelectValue placeholder="Select Interval" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl bg-slate-800 border-white/10 text-white">
+                    <SelectItem value="week">Weekly</SelectItem>
+                    <SelectItem value="month">Monthly</SelectItem>
+                    <SelectItem value="year">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Description</Label>
                 <Textarea 
                   placeholder="Short marketing hook..." 
@@ -355,7 +383,7 @@ export default function AdminSubscriptions() {
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="p-6 border-t border-white/5">
               <Button className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 font-black text-lg" onClick={handleUpdate} disabled={processing}>
                 {processing ? <Loader2 className="animate-spin mr-2" /> : "Save Configuration"}
               </Button>
