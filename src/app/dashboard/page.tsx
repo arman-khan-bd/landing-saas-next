@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useFirestore, useUser } from "@/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, getDoc, deleteDoc, limit } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, getDoc, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,12 +44,6 @@ export default function RedesignedDashboard() {
 
   // Custom Modal States
   const [isCreateStoreOpen, setIsCreateStoreOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isSecurityDialogOpen, setIsSecurityDialogOpen] = useState(false);
-  
-  const [selectedStore, setSelectedStore] = useState<any>(null);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [passwordData, setPasswordData] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
   
   const router = useRouter();
   const { toast } = useToast();
@@ -67,10 +60,14 @@ export default function RedesignedDashboard() {
     try {
       const q = query(collection(firestore, "stores"), where("ownerId", "==", uid));
       const querySnapshot = await getDocs(q);
-      const storeList = await Promise.all(querySnapshot.docs.map(async (docRef) => {
-        const data = docRef.data();
-        // Fetch subscription for each store
-        const subQ = query(collection(firestore, "stores", docRef.id, "subscription"), limit(1));
+      const storeList = await Promise.all(querySnapshot.docs.map(async (docSnapshot) => {
+        const data = docSnapshot.data();
+        // Fetch subscription for each store with mandatory ownerId filter
+        const subQ = query(
+          collection(firestore, "stores", docSnapshot.id, "subscription"), 
+          where("ownerId", "==", uid),
+          limit(1)
+        );
         const subSnap = await getDocs(subQ);
         let subData = null;
         let planData = null;
@@ -84,11 +81,11 @@ export default function RedesignedDashboard() {
           }
         }
         
-        return { id: docRef.id, ...data, subscription: subData, plan: planData };
+        return { id: docSnapshot.id, ...data, subscription: subData, plan: planData };
       }));
       setStores(storeList);
     } catch (error) {
-      console.error(error);
+      console.error("Dashboard Fetch Error:", error);
     } finally {
       setLoading(false);
     }

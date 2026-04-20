@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +70,9 @@ export default function StoreSettingsPage() {
 
   const fetchSettings = async () => {
     setLoading(true);
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
     try {
       const q = query(collection(db, "stores"), where("subdomain", "==", subdomain));
       const snap = await getDocs(q);
@@ -79,8 +81,12 @@ export default function StoreSettingsPage() {
         const sId = snap.docs[0].id;
         setStoreId(sId);
         
-        // Fetch subscription to check Pro status
-        const subQ = query(collection(db, "stores", sId, "subscription"), where("status", "in", ["active", "pending"]));
+        // Fetch subscription to check Pro status with ownership filter
+        const subQ = query(
+          collection(db, "stores", sId, "subscription"), 
+          where("ownerId", "==", uid),
+          where("status", "in", ["active", "pending"])
+        );
         const subSnap = await getDocs(subQ);
         if (!subSnap.empty) {
           const subData = subSnap.docs[0].data();
@@ -100,7 +106,7 @@ export default function StoreSettingsPage() {
         }));
       }
     } catch (error) {
-      console.error(error);
+      console.error("Settings Fetch Error:", error);
     } finally {
       setLoading(false);
     }
@@ -218,7 +224,6 @@ export default function StoreSettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Existing Content for other tabs... */}
         <TabsContent value="general" className="mt-6">
            <Card className="rounded-[32px] border-border/50 shadow-sm overflow-hidden bg-white">
             <CardHeader className="p-8 bg-muted/30 border-b">
