@@ -196,14 +196,23 @@ export default function UncompletedOrderDetailPage() {
                  </div>
 
                  <div className="space-y-4 sm:space-y-6">
-                    <div className="flex items-center gap-3 sm:gap-4 group">
-                       <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary/5 rounded-lg sm:rounded-xl flex items-center justify-center text-primary shrink-0 transition-all group-hover:bg-primary group-hover:text-white">
-                          <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <div className="flex items-center justify-between group">
+                       <div className="flex items-center gap-3 sm:gap-4">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary/5 rounded-lg sm:rounded-xl flex items-center justify-center text-primary shrink-0 transition-all group-hover:bg-primary group-hover:text-white">
+                             <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          </div>
+                          <div className="min-w-0">
+                             <p className="text-[8px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest">Mobile Reach</p>
+                             <p className="text-xs sm:text-sm font-bold truncate">{item.customer?.phone || "Not provided"}</p>
+                          </div>
                        </div>
-                       <div className="min-w-0">
-                          <p className="text-[8px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest">Mobile Reach</p>
-                          <p className="text-xs sm:text-sm font-bold truncate">{item.customer?.phone || "Not provided"}</p>
-                       </div>
+                       {item.customer?.phone && (
+                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-primary hover:bg-primary/10" asChild>
+                            <a href={`tel:${item.customer.phone}`}>
+                               <Phone className="w-4 h-4 fill-primary text-primary" />
+                            </a>
+                         </Button>
+                       )}
                     </div>
 
                     <div className="flex items-center gap-3 sm:gap-4 group">
