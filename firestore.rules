@@ -83,19 +83,48 @@ service cloud.firestore {
       }
     }
 
-    // Global Collections
+    // Global Collections (Scoped by ownerId)
     match /products/{productId} {
       allow get, list: if true;
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
-    match /categories/{id} { allow read, write: if true; }
-    match /sub-categories/{id} { allow read, write: if true; }
-    match /brands/{id} { allow read, write: if true; }
-    match /tags/{id} { allow read, write: if true; }
-    match /taxes/{id} { allow read, write: if true; }
-    match /pages/{id} { allow read, write: if true; }
+    match /categories/{id} { 
+      allow read: if true;
+      allow create: if isSignedIn() && isOwner(request.resource.data.ownerId);
+      allow update, delete: if isExistingOwner(resource.data.ownerId) || isAdmin();
+    }
+
+    match /sub-categories/{id} { 
+      allow read: if true;
+      allow create: if isSignedIn() && isOwner(request.resource.data.ownerId);
+      allow update, delete: if isExistingOwner(resource.data.ownerId) || isAdmin();
+    }
+
+    match /brands/{id} { 
+      allow read: if true;
+      allow create: if isSignedIn() && isOwner(request.resource.data.ownerId);
+      allow update, delete: if isExistingOwner(resource.data.ownerId) || isAdmin();
+    }
+
+    match /tags/{id} { 
+      allow read: if true;
+      allow create: if isSignedIn() && isOwner(request.resource.data.ownerId);
+      allow update, delete: if isExistingOwner(resource.data.ownerId) || isAdmin();
+    }
+
+    match /taxes/{id} { 
+      allow read: if true;
+      allow create: if isSignedIn() && isOwner(request.resource.data.ownerId);
+      allow update, delete: if isExistingOwner(resource.data.ownerId) || isAdmin();
+    }
+
+    match /pages/{id} { 
+      allow read: if true;
+      allow create: if isSignedIn() && isOwner(request.resource.data.ownerId);
+      allow update, delete: if isExistingOwner(resource.data.ownerId) || isAdmin();
+    }
 
     match /subscriptionPlans/{planId} {
       allow get, list: if true;
