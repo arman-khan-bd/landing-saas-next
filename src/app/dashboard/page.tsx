@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useFirestore, useUser } from "@/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, getDoc, deleteDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, getDoc, deleteDoc, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ import { getStoreUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { Badge } from "@/badge";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 export default function RedesignedDashboard() {
@@ -382,7 +382,6 @@ export default function RedesignedDashboard() {
 
         {view === "profile" && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-             {/* Profile content already correctly implemented */}
              <Card className="rounded-[48px] border-none shadow-xl bg-white overflow-hidden">
                 <CardHeader className="bg-slate-900 text-white p-10">
                   <CardTitle className="text-3xl font-headline font-black tracking-tight">Admin Profile</CardTitle>
