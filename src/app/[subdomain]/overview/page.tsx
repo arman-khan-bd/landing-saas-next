@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ShoppingBag, DollarSign, Package, TrendingUp, Clock } from "lucide-react";
@@ -19,6 +19,9 @@ export default function StoreOverview() {
   }, [subdomain]);
 
   const fetchStats = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
     try {
       const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQuery);
@@ -27,7 +30,12 @@ export default function StoreOverview() {
 
       const [prodSnap, orderSnap] = await Promise.all([
         getDocs(query(collection(db, "products"), where("storeId", "==", storeId))),
-        getDocs(query(collection(db, "orders"), where("storeId", "==", storeId), orderBy("createdAt", "desc")))
+        getDocs(query(
+          collection(db, "orders"), 
+          where("storeId", "==", storeId),
+          where("ownerId", "==", user.uid),
+          orderBy("createdAt", "desc")
+        ))
       ]);
       
       const orders = orderSnap.docs.map(d => d.data());

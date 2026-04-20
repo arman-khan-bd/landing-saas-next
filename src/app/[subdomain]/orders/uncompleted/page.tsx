@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,9 @@ export default function UncompletedOrdersPage() {
   }, [subdomain]);
 
   const fetchUncompleted = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
     setLoading(true);
     try {
       const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
@@ -34,6 +37,7 @@ export default function UncompletedOrdersPage() {
       const q = query(
         collection(db, "uncompleted_orders"),
         where("storeId", "==", storeId),
+        where("ownerId", "==", user.uid),
         orderBy("lastUpdated", "desc")
       );
       const snap = await getDocs(q);
