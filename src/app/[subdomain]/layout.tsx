@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   const { subdomain: rawSubdomain } = useParams();
@@ -21,6 +22,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   
   const auth = useAuth();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -73,6 +75,23 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         setAccessDenied(true);
       } else {
         setStore(storeData);
+
+        // Check for existing 1-hour session in localStorage
+        const sessionKey = `vault_session_${subdomain}`;
+        const savedSession = localStorage.getItem(sessionKey);
+        if (savedSession) {
+          try {
+            const { timestamp } = JSON.parse(savedSession);
+            const now = Date.now();
+            const oneHour = 60 * 60 * 1000;
+            if (now - timestamp < oneHour) {
+              setIsPasswordVerified(true);
+            }
+          } catch (e) {
+            console.error("Session parse error", e);
+          }
+        }
+
         // If no password set, consider it verified
         if (!storeData.managePassword) {
           setIsPasswordVerified(true);
@@ -89,8 +108,19 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     e.preventDefault();
     if (managerPassword === store?.managePassword) {
       setIsPasswordVerified(true);
+      // Save 1-hour session
+      const sessionKey = `vault_session_${subdomain}`;
+      localStorage.setItem(sessionKey, JSON.stringify({ timestamp: Date.now() }));
+      toast({
+        title: "Vault Unlocked",
+        description: "Management session active for 1 hour.",
+      });
     } else {
-      alert("Invalid Manager Vault Password.");
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "Invalid Manager Vault Password. Please try again.",
+      });
     }
   };
 
