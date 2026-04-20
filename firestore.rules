@@ -43,7 +43,7 @@ service cloud.firestore {
     }
 
     match /adminRoles/{userId} {
-      allow get: if isSignedIn();
+      allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
@@ -74,7 +74,7 @@ service cloud.firestore {
         allow delete: if isExistingOwner(resource.data.ownerId);
       }
 
-      match /subscription {
+      match /subscription/{subId} {
         allow get: if isAdmin() || isExistingOwner(resource.data.ownerId);
         allow list: if isAdmin() || isOwner(storeId);
         allow create: if isAdmin() || (isOwner(request.resource.data.ownerId) && request.resource.data.storeId == storeId);
@@ -86,7 +86,7 @@ service cloud.firestore {
     // Global Collections (Scoped by ownerId)
     match /products/{productId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(request.resource.data.ownerId);
       allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
@@ -128,7 +128,8 @@ service cloud.firestore {
 
     match /subscriptionPlans/{planId} {
       allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow create: if isSignedIn(); // Relaxed for initial setup
+      allow update, delete: if isAdmin();
     }
   }
 }
