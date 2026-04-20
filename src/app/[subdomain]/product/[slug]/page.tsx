@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ShoppingCart, ArrowLeft, Loader2, CheckCircle2, ShieldCheck, Truck, RefreshCw, Plus, Minus, X, Trash2, ChevronLeft } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Loader2, CheckCircle2, Plus, Minus, X, Trash2, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -168,7 +168,7 @@ export default function ProductDetailPage() {
         <section className="space-y-8 mt-6 lg:mt-0 bg-white p-6 sm:p-10 rounded-[32px] shadow-sm border border-slate-100 lg:sticky lg:top-24 h-fit">
            <div className="space-y-3">
               <Badge className="bg-emerald-50 text-emerald-600 hover:bg-emerald-50 border-none px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest">
-                Fast Delivery Available
+                Official Product
               </Badge>
               <h1 className="text-3xl lg:text-5xl font-headline font-black tracking-tighter text-slate-900 leading-[0.95]">
                 {product.name}
@@ -189,21 +189,6 @@ export default function ProductDetailPage() {
                  <Button size="lg" className="flex-1 h-12 rounded-2xl text-base font-black shadow-xl shadow-primary/20" onClick={addToCart}>
                    Add to Bag
                  </Button>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                 <div className="p-3 bg-slate-50/50 rounded-xl flex flex-col items-center text-center gap-1 border border-slate-100/50">
-                    <Truck className="w-4 h-4 text-slate-400" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Free Shipping</span>
-                 </div>
-                 <div className="p-3 bg-slate-50/50 rounded-xl flex flex-col items-center text-center gap-1 border border-slate-100/50">
-                    <RefreshCw className="w-4 h-4 text-slate-400" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Easy Return</span>
-                 </div>
-                 <div className="p-3 bg-slate-50/50 rounded-xl flex flex-col items-center text-center gap-1 border border-slate-100/50">
-                    <ShieldCheck className="w-4 h-4 text-slate-400" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Secure</span>
-                 </div>
               </div>
            </div>
 
