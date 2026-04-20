@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,7 +7,7 @@ import { useAuth, useFirestore } from "@/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,13 +95,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   };
 
   // Precise path normalization for sidebar active states
-  // We need to know if we're on arman.ihut.shop/products (subdomain visit)
-  // or ihut.shop/arman/products (direct dev visit)
   const normalizedPath = pathname.startsWith(`/${subdomain}/`)
       ? pathname.replace(`/${subdomain}`, "")
       : pathname === `/${subdomain}` ? "/" : pathname;
 
-  const adminSegments = ["overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder"];
+  const adminSegments = ["overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder", "home-manager"];
   const isBuilderEditor = normalizedPath.includes("/builder/") && normalizedPath.split("/").filter(Boolean).length > 1;
   const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`)) && !isBuilderEditor;
 
@@ -125,10 +124,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <p className="text-muted-foreground mt-2">Enter your management password to continue to the administrative dashboard.</p>
           </div>
           <form onSubmit={handleVaultAccess} className="space-y-4">
-            <Input 
+            <input 
               type="password" 
               placeholder="Vault Password" 
-              className="h-14 rounded-2xl bg-slate-50 border-none text-center text-xl font-bold tracking-widest"
+              className="h-14 rounded-2xl bg-slate-50 border-none text-center text-xl font-bold tracking-widest w-full focus:outline-none focus:ring-2 focus:ring-primary/20"
               value={managerPassword}
               onChange={(e) => setManagerPassword(e.target.value)}
               autoFocus
@@ -228,13 +227,21 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               <SidebarGroup>
                 <SidebarGroupLabel asChild>
                   <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
-                    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Appearance</span>
+                    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Design</span>
                     <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
                   </CollapsibleTrigger>
                 </SidebarGroupLabel>
                 <CollapsibleContent>
                   <SidebarGroupContent>
                     <SidebarMenu className="mt-2">
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={normalizedPath === "/home-manager"} className="rounded-xl h-10 px-4">
+                          <Link href={`/${subdomain}/home-manager`} className="flex items-center gap-3">
+                            <Home className={`w-4 h-4 ${normalizedPath === "/home-manager" ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <span className="text-sm font-medium">Home Manager</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
                       <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={normalizedPath === "/builder"} className="rounded-xl h-10 px-4">
                           <Link href={`/${subdomain}/builder`} className="flex items-center gap-3">
@@ -357,6 +364,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               <h2 className="text-lg sm:text-xl font-headline font-bold text-foreground capitalize truncate">
                 {normalizedPath === "/" ? "Storefront" : 
                  normalizedPath.startsWith("/builder") ? "Landing Page" :
+                 normalizedPath.startsWith("/home-manager") ? "Home Manager" :
                  normalizedPath.split("/").pop()?.replace('-', ' ')}
               </h2>
             </div>

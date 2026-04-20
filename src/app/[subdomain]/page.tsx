@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ShoppingCart, Search, Menu, Instagram, Twitter, Facebook, Hammer, AlertCircle, Loader2, X, Plus, Minus, Trash2, ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Search, Menu, Instagram, Twitter, Facebook, Hammer, AlertCircle, Loader2, X, Plus, Minus, Trash2, ChevronLeft, ChevronRight, ArrowRight, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -263,36 +263,56 @@ export default function Storefront() {
       </nav>
 
       {/* Hero */}
-      <section className="relative h-[320px] sm:h-[450px] flex items-center justify-center overflow-hidden bg-slate-900 text-white">
+      <section className="relative h-[280px] sm:h-[400px] flex items-center justify-center overflow-hidden bg-slate-900 text-white">
         <div className="absolute inset-0">
            <img 
              src={store.homeBanner || "https://picsum.photos/seed/storehero/1200/600"} 
-             className="w-full h-full object-cover opacity-40" 
+             className="w-full h-full object-cover opacity-50" 
              alt="Hero" 
              data-ai-hint="store banner"
            />
-           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent" />
         </div>
         <div className="relative z-10 text-center space-y-4 max-w-3xl px-6">
           <Badge className="bg-primary text-white border-none px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
-            New Arrivals
+            Official Store
           </Badge>
-          <h2 className="text-3xl sm:text-6xl font-headline font-black tracking-tighter leading-none uppercase">
+          <h2 className="text-3xl sm:text-5xl font-headline font-black tracking-tighter leading-none uppercase drop-shadow-lg">
             {store.homePageTitle || `Welcome to ${store.name}`}
           </h2>
-          <p className="text-sm sm:text-lg text-slate-300 max-w-xl mx-auto font-medium line-clamp-2">
+          <p className="text-xs sm:text-base text-slate-200 max-w-xl mx-auto font-medium line-clamp-2 opacity-90">
             {store.description || "Discover our curated collection of premium products."}
           </p>
         </div>
       </section>
 
+      {/* Offer Banner */}
+      {store.offerBanner && (
+        <section className="bg-accent py-3 px-6 text-center">
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-3">
+            <div className="bg-white/20 p-1.5 rounded-lg"><Zap className="w-4 h-4 text-white fill-white" /></div>
+            <p className="text-white font-black text-[10px] sm:text-xs uppercase tracking-widest">
+              {store.offerText || "Limited Time Offer! Shop now and save big."}
+            </p>
+            {store.offerLink && (
+               <Link href={store.offerLink} className="text-white underline font-bold text-[10px] sm:text-xs ml-2">
+                  View Offer
+               </Link>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Featured Products Grid */}
-      <section className="max-w-7xl mx-auto px-3 sm:px-6 py-10 sm:py-20">
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 py-8 sm:py-16">
         <div className="flex items-center justify-between mb-6 px-1">
-          <h3 className="text-xl sm:text-3xl font-headline font-black tracking-tight text-slate-900 uppercase">Shop Collection</h3>
+          <div className="space-y-1">
+            <h3 className="text-xl sm:text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">New Arrivals</h3>
+            <div className="h-1 w-12 bg-primary rounded-full" />
+          </div>
           <Button variant="link" className="text-primary font-bold text-xs uppercase tracking-widest p-0 h-auto" asChild>
             <Link href={`/${subdomain}/all-products`}>
-              All Products <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              Explore All <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Link>
           </Button>
         </div>
@@ -303,7 +323,7 @@ export default function Storefront() {
             <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Inventory Empty</p>
           </div>
         ) : (
-          <div className="space-y-12">
+          <div className="space-y-10">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6">
               {currentProducts.map((p) => (
                 <Card key={p.id} className="group bg-white rounded-2xl overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 active:scale-95">
@@ -326,7 +346,7 @@ export default function Storefront() {
                         </div>
                       )}
                     </Link>
-                    <div className="p-3 sm:p-5 space-y-2">
+                    <div className="p-3 sm:p-4 space-y-2">
                       <Link href={`/${subdomain}/product/${p.slug}`} className="block min-h-[32px]">
                         <h4 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
                           {p.name}
@@ -355,20 +375,20 @@ export default function Storefront() {
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="rounded-xl" 
+                  className="rounded-xl h-9 w-9" 
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
                 
-                <div className="flex items-center gap-1.5 px-4">
+                <div className="flex items-center gap-1 px-4">
                   {Array.from({ length: totalPages }).map((_, i) => (
                     <Button 
                       key={i} 
                       variant={currentPage === i + 1 ? "default" : "ghost"}
                       size="sm"
-                      className={`h-10 w-10 rounded-xl font-bold ${currentPage === i + 1 ? 'shadow-lg shadow-primary/20' : ''}`}
+                      className={`h-9 w-9 rounded-xl font-bold ${currentPage === i + 1 ? 'shadow-lg shadow-primary/20' : ''}`}
                       onClick={() => setCurrentPage(i + 1)}
                     >
                       {i + 1}
@@ -379,7 +399,7 @@ export default function Storefront() {
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="rounded-xl" 
+                  className="rounded-xl h-9 w-9" 
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 >

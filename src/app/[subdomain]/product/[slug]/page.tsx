@@ -6,12 +6,13 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ShoppingCart, ArrowLeft, Loader2, CheckCircle2, ShieldCheck, Truck, RefreshCw, Plus, Minus, X, Trash2 } from "lucide-react";
+import { ShoppingBag, ShoppingCart, ArrowLeft, Loader2, CheckCircle2, ShieldCheck, Truck, RefreshCw, Plus, Minus, X, Trash2, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface CartItem {
   id: string;
@@ -121,34 +122,41 @@ export default function ProductDetailPage() {
   );
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-50/50">
       {/* Mini Nav */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Button variant="ghost" size="sm" className="rounded-xl font-bold gap-2 text-slate-500" onClick={() => router.back()}>
-            <ArrowLeft className="w-4 h-4" /> Back
+      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Button variant="ghost" size="sm" className="rounded-xl font-bold gap-1 text-slate-500 h-9" onClick={() => router.back()}>
+            <ChevronLeft className="w-4 h-4" /> Back
           </Button>
           <div className="flex items-center gap-4">
-             <Button variant="ghost" size="icon" className="relative" onClick={() => setIsCartOpen(true)}>
-               <ShoppingCart className="w-5 h-5" />
-               {cart.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-[10px] font-black text-white flex items-center justify-center rounded-full">{cart.reduce((a,b) => a+b.quantity, 0)}</span>}
+             <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl" onClick={() => setIsCartOpen(true)}>
+               <ShoppingCart className="w-4 h-4" />
+               {cart.length > 0 && (
+                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-[9px] font-black text-white flex items-center justify-center rounded-full border-2 border-white">
+                   {cart.reduce((a,b) => a+b.quantity, 0)}
+                 </span>
+               )}
              </Button>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 min-h-[calc(100vh-64px)]">
+      <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-8 p-4 sm:p-6 lg:p-10">
         {/* Visual Gallery */}
-        <section className="bg-slate-50 p-6 lg:p-20 flex flex-col gap-8">
-           <div className="aspect-square rounded-[40px] overflow-hidden bg-white shadow-2xl shadow-slate-200 border border-white">
+        <section className="space-y-4">
+           <div className="aspect-square rounded-[32px] overflow-hidden bg-white shadow-xl shadow-slate-200 border border-white">
               <img src={selectedImage} className="w-full h-full object-cover" alt={product.name} />
            </div>
-           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {[product.featuredImage, ...(product.gallery || [])].filter(Boolean).map((img, i) => (
                 <button 
                   key={i} 
                   onClick={() => setSelectedImage(img)}
-                  className={`w-20 h-20 rounded-2xl overflow-hidden shrink-0 border-2 transition-all ${selectedImage === img ? 'border-primary' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                  className={cn(
+                    "w-16 h-16 rounded-2xl overflow-hidden shrink-0 border-2 transition-all",
+                    selectedImage === img ? 'border-primary' : 'border-transparent opacity-60 hover:opacity-100'
+                  )}
                 >
                   <img src={img} className="w-full h-full object-cover" alt="" />
                 </button>
@@ -157,62 +165,62 @@ export default function ProductDetailPage() {
         </section>
 
         {/* Product Info */}
-        <section className="p-8 lg:p-20 space-y-10 lg:sticky lg:top-16 lg:h-fit">
-           <div className="space-y-4">
-              <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none px-4 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest">
-                In Stock & Ready to Ship
+        <section className="space-y-8 mt-6 lg:mt-0 bg-white p-6 sm:p-10 rounded-[32px] shadow-sm border border-slate-100 lg:sticky lg:top-24 h-fit">
+           <div className="space-y-3">
+              <Badge className="bg-emerald-50 text-emerald-600 hover:bg-emerald-50 border-none px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest">
+                Fast Delivery Available
               </Badge>
-              <h1 className="text-4xl lg:text-6xl font-headline font-black tracking-tighter text-slate-900 leading-[0.95]">
+              <h1 className="text-3xl lg:text-5xl font-headline font-black tracking-tighter text-slate-900 leading-[0.95]">
                 {product.name}
               </h1>
-              <div className="flex items-baseline gap-4">
-                 <p className="text-4xl lg:text-5xl font-black text-primary tracking-tight">${Number(product.currentPrice).toFixed(2)}</p>
-                 {product.prevPrice && <p className="text-2xl text-slate-300 line-through">${Number(product.prevPrice).toFixed(2)}</p>}
+              <div className="flex items-center gap-4">
+                 <p className="text-3xl lg:text-4xl font-black text-primary tracking-tight">${Number(product.currentPrice).toFixed(2)}</p>
+                 {product.prevPrice && <p className="text-lg text-slate-300 line-through">${Number(product.prevPrice).toFixed(2)}</p>}
               </div>
            </div>
 
            <div className="space-y-6">
-              <div className="flex items-center gap-6">
-                 <div className="flex items-center bg-slate-100 rounded-2xl p-1.5 h-14">
-                    <button onClick={() => setItemQuantity(q => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-white rounded-xl transition-all shadow-none hover:shadow-sm"><Minus className="w-4 h-4" /></button>
-                    <span className="w-12 text-center font-black text-lg">{quantity}</span>
-                    <button onClick={() => setItemQuantity(q => q + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-white rounded-xl transition-all shadow-none hover:shadow-sm"><Plus className="w-4 h-4" /></button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                 <div className="flex items-center bg-slate-50 rounded-2xl p-1 h-12 border border-slate-100">
+                    <button onClick={() => setItemQuantity(q => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-white rounded-xl transition-all"><Minus className="w-4 h-4" /></button>
+                    <span className="w-10 text-center font-black text-base">{quantity}</span>
+                    <button onClick={() => setItemQuantity(q => q + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-white rounded-xl transition-all"><Plus className="w-4 h-4" /></button>
                  </div>
-                 <Button size="lg" className="flex-1 h-14 rounded-2xl text-lg font-black shadow-2xl shadow-primary/30" onClick={addToCart}>
-                   Add to Cart
+                 <Button size="lg" className="flex-1 h-12 rounded-2xl text-base font-black shadow-xl shadow-primary/20" onClick={addToCart}>
+                   Add to Bag
                  </Button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                 <div className="p-4 bg-slate-50 rounded-2xl flex flex-col items-center text-center gap-2">
-                    <Truck className="w-5 h-5 text-slate-400" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Fast Shipping</span>
+              <div className="grid grid-cols-3 gap-2">
+                 <div className="p-3 bg-slate-50/50 rounded-xl flex flex-col items-center text-center gap-1 border border-slate-100/50">
+                    <Truck className="w-4 h-4 text-slate-400" />
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Free Shipping</span>
                  </div>
-                 <div className="p-4 bg-slate-50 rounded-2xl flex flex-col items-center text-center gap-2">
-                    <RefreshCw className="w-5 h-5 text-slate-400" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">30 Day Returns</span>
+                 <div className="p-3 bg-slate-50/50 rounded-xl flex flex-col items-center text-center gap-1 border border-slate-100/50">
+                    <RefreshCw className="w-4 h-4 text-slate-400" />
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Easy Return</span>
                  </div>
-                 <div className="p-4 bg-slate-50 rounded-2xl flex flex-col items-center text-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-slate-400" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Secure Warranty</span>
+                 <div className="p-3 bg-slate-50/50 rounded-xl flex flex-col items-center text-center gap-1 border border-slate-100/50">
+                    <ShieldCheck className="w-4 h-4 text-slate-400" />
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Secure</span>
                  </div>
               </div>
            </div>
 
            <Separator className="bg-slate-100" />
 
-           <div className="space-y-4">
-              <h3 className="font-headline font-black text-xl uppercase tracking-tight">Description</h3>
+           <div className="space-y-3">
+              <h3 className="font-headline font-black text-sm uppercase tracking-widest text-slate-400">Description</h3>
               <div 
-                className="text-slate-500 leading-relaxed prose prose-slate"
+                className="text-slate-600 text-sm leading-relaxed prose prose-sm prose-slate max-w-none"
                 dangerouslySetInnerHTML={{ __html: product.description || "No detailed description available." }}
               />
            </div>
 
-           <div className="space-y-4 pt-10">
+           <div className="pt-4">
               <div className="flex items-center gap-2 text-slate-400">
-                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                 <span className="text-sm font-medium">Verified by NexusCart Protection</span>
+                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                 <span className="text-[10px] font-black uppercase tracking-widest">NexusCart Verified Seller</span>
               </div>
            </div>
         </section>
@@ -225,7 +233,7 @@ export default function ProductDetailPage() {
             <div className="flex items-center justify-between">
               <SheetTitle className="text-2xl font-headline font-black text-white flex items-center gap-3 uppercase tracking-tight">
                 <ShoppingCart className="w-6 h-6 text-primary" />
-                Shopping Cart
+                Your Bag
               </SheetTitle>
               <SheetClose className="text-white/60 hover:text-white transition-colors">
                 <X className="w-7 h-7" />
@@ -234,30 +242,30 @@ export default function ProductDetailPage() {
           </SheetHeader>
           <ScrollArea className="flex-1 px-8 py-6">
             {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center py-20 text-center space-y-6 opacity-30">
-                <ShoppingBag className="w-24 h-24" />
-                <h3 className="text-xl font-bold">Your cart is empty</h3>
+              <div className="h-full flex flex-col items-center justify-center py-20 text-center space-y-6 opacity-20">
+                <ShoppingBag className="w-20 h-20" />
+                <h3 className="text-lg font-bold uppercase tracking-widest">Bag is empty</h3>
               </div>
             ) : (
               <div className="space-y-6">
                 {cart.map((item) => (
-                  <div key={item.id} className="flex gap-4 group">
-                    <div className="w-20 h-20 rounded-2xl bg-slate-100 overflow-hidden border shrink-0">
+                  <div key={item.id} className="flex gap-4 group bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
+                    <div className="w-16 h-16 rounded-xl bg-white overflow-hidden border shrink-0">
                       <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                     </div>
-                    <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div className="flex justify-between items-start">
-                        <h4 className="font-bold text-sm leading-tight truncate pr-4">{item.name}</h4>
-                        <button onClick={() => removeFromCart(item.id)} className="text-slate-400 hover:text-rose-500 transition-colors">
-                          <Trash2 className="w-4 h-4" />
+                        <h4 className="font-bold text-xs leading-tight truncate pr-4">{item.name}</h4>
+                        <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-rose-500 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <p className="text-primary font-black text-lg">${(item.price).toFixed(2)}</p>
-                      <div className="flex items-center gap-4 pt-1">
-                        <div className="flex items-center bg-slate-100 rounded-lg p-1">
-                          <button onClick={() => updateCartQuantity(item.id, -1)} className="p-1 hover:bg-white rounded transition-all"><Minus className="w-3 h-3" /></button>
-                          <span className="w-8 text-center text-xs font-bold">{item.quantity}</span>
-                          <button onClick={() => updateCartQuantity(item.id, 1)} className="p-1 hover:bg-white rounded transition-all"><Plus className="w-3 h-3" /></button>
+                      <div className="flex items-center justify-between">
+                        <p className="text-primary font-black text-sm">${(item.price).toFixed(2)}</p>
+                        <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5">
+                          <button onClick={() => updateCartQuantity(item.id, -1)} className="p-1 hover:bg-slate-50 rounded transition-all"><Minus className="w-3 h-3" /></button>
+                          <span className="w-6 text-center text-[10px] font-bold">{item.quantity}</span>
+                          <button onClick={() => updateCartQuantity(item.id, 1)} className="p-1 hover:bg-slate-50 rounded transition-all"><Plus className="w-3 h-3" /></button>
                         </div>
                       </div>
                     </div>
@@ -269,14 +277,14 @@ export default function ProductDetailPage() {
           <SheetFooter className="p-8 bg-white border-t shrink-0">
             <div className="w-full space-y-4">
               <div className="flex justify-between items-end mb-2">
-                <span className="text-lg font-black uppercase tracking-tighter text-slate-400">Total Amount</span>
-                <span className="text-3xl font-black text-primary">${cartTotal.toFixed(2)}</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Bag Subtotal</span>
+                <span className="text-2xl font-black text-primary">${cartTotal.toFixed(2)}</span>
               </div>
-              <Button className="w-full h-16 rounded-2xl text-xl font-black shadow-2xl shadow-primary/20" disabled={cart.length === 0}>
+              <Button className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={cart.length === 0}>
                 Checkout Now
               </Button>
               <SheetClose asChild>
-                <Button variant="ghost" className="w-full h-12 rounded-xl text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:bg-slate-50">
+                <Button variant="ghost" className="w-full h-10 rounded-xl text-slate-400 font-bold uppercase tracking-widest text-[9px] hover:bg-slate-50">
                   Continue Shopping
                 </Button>
               </SheetClose>
