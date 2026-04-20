@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, setDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, AlertCircle, Smartphone } from "lucide-react";
+import { ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, Smartphone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +35,7 @@ export default function CheckoutPage() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [clientIp, setClientIp] = useState("");
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -45,6 +46,12 @@ export default function CheckoutPage() {
   });
 
   useEffect(() => {
+    // Capture IP Address
+    fetch("https://api.ipify.org?format=json")
+      .then(res => res.json())
+      .then(data => setClientIp(data.ip))
+      .catch(err => console.error("IP Capture Error:", err));
+
     if (subdomain) {
       fetchStoreData();
       const savedCart = localStorage.getItem(`cart_${subdomain}`);
@@ -62,7 +69,7 @@ export default function CheckoutPage() {
         router.push(`/${subdomain}`);
       }
     }
-  }, [subdomain]);
+  }, [subdomain, router]);
 
   const fetchStoreData = async () => {
     try {
@@ -78,7 +85,6 @@ export default function CheckoutPage() {
     }
   };
 
-  // Abandoned Cart (Uncompleted Order) Logic
   const saveDraft = useCallback(async (data: typeof formData) => {
     if (!store || cart.length === 0) return;
     if (!data.fullName && !data.phone) return;
@@ -91,7 +97,8 @@ export default function CheckoutPage() {
         fullName: data.fullName,
         email: data.email,
         phone: data.phone,
-        address: data.address
+        address: data.address,
+        ip: clientIp
       },
       total: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0),
       lastUpdated: serverTimestamp(),
@@ -108,7 +115,7 @@ export default function CheckoutPage() {
     } catch (e) {
       console.error("Draft Save Error:", e);
     }
-  }, [store, cart, draftId, subdomain]);
+  }, [store, cart, draftId, subdomain, clientIp]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -138,7 +145,8 @@ export default function CheckoutPage() {
           fullName: formData.fullName,
           email: formData.email,
           phone: formData.phone,
-          address: formData.address
+          address: formData.address,
+          ip: clientIp
         },
         total: cartTotal,
         paymentMethod: formData.paymentMethod,
@@ -149,12 +157,10 @@ export default function CheckoutPage() {
 
       await addDoc(collection(db, "orders"), orderData);
       
-      // Delete draft if exists
       if (draftId) {
         await deleteDoc(doc(db, "uncompleted_orders", draftId));
       }
 
-      // Clear cart
       localStorage.removeItem(`cart_${subdomain}`);
       setOrderSuccess(true);
       toast({ title: "Order Placed!", description: "Your order has been successfully received." });

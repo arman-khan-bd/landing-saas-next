@@ -1,18 +1,16 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, MoreHorizontal, Eye, Receipt, ShoppingCart, CheckCircle, Clock, XCircle, Filter, MoreVertical, Calendar, DollarSign } from "lucide-react";
+import { Search, MoreHorizontal, Eye, Receipt, ShoppingCart, CheckCircle, Clock, XCircle, Calendar, DollarSign } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 
 export default function OrdersPage() {
   const { subdomain } = useParams();
@@ -174,7 +172,7 @@ export default function OrdersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-xl p-1.5 min-w-[160px] border-border/50 shadow-xl">
-                          <DropdownMenuItem className="gap-2 py-2 rounded-lg cursor-pointer text-xs">
+                          <DropdownMenuItem className="gap-2 py-2 rounded-lg cursor-pointer text-xs" onClick={() => router.push(`/${subdomain}/orders/${order.id}`)}>
                             <Eye className="w-3.5 h-3.5 text-muted-foreground" /> View Details
                           </DropdownMenuItem>
                           <DropdownMenuItem className="gap-2 py-2 rounded-lg cursor-pointer text-xs">
@@ -207,16 +205,10 @@ export default function OrdersPage() {
                     <p className="text-[9px] text-slate-400 uppercase font-black tracking-tight leading-none">Order Total</p>
                     <p className="text-lg font-black text-slate-900">${order.total?.toFixed(2)}</p>
                  </div>
-                 <Button variant="outline" size="sm" className="rounded-xl h-8 px-4 text-xs font-bold border-slate-200">Details</Button>
+                 <Button variant="outline" size="sm" className="rounded-xl h-8 px-4 text-xs font-bold border-slate-200" onClick={() => router.push(`/${subdomain}/orders/${order.id}`)}>Details</Button>
               </div>
           </Card>
         ))}
-        {filteredOrders.length === 0 && (
-          <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-100 opacity-50">
-            <ShoppingCart className="w-12 h-12 mx-auto mb-2" />
-            <p className="font-bold uppercase tracking-widest text-[10px]">Empty Order Book</p>
-          </div>
-        )}
       </div>
     </div>
   );
