@@ -4,12 +4,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, MoreHorizontal, Eye, ShoppingCart, Clock, MousePointerClick, Mail, Calendar, Loader2 } from "lucide-react";
+import { Search, MoreHorizontal, Eye, ShoppingCart, Clock, Mail, Loader2, ArrowRight } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 
@@ -35,7 +35,6 @@ export default function UncompletedOrdersPage() {
       if (storeSnap.empty) return;
       const storeId = storeSnap.docs[0].id;
 
-      // Remove orderBy from Firestore query to bypass composite index requirement
       const q = query(
         collection(db, "uncompleted_orders"),
         where("storeId", "==", storeId),
@@ -44,7 +43,6 @@ export default function UncompletedOrdersPage() {
       const snap = await getDocs(q);
       const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
       
-      // Sort in memory by lastUpdated (newest first)
       docs.sort((a, b) => (b.lastUpdated?.seconds || 0) - (a.lastUpdated?.seconds || 0));
       
       setItems(docs);
@@ -121,8 +119,8 @@ export default function UncompletedOrdersPage() {
               </TableHeader>
               <TableBody>
                 {filteredItems.map((item) => (
-                  <TableRow key={item.id} className="hover:bg-primary/5 transition-colors border-border/50">
-                    <TableCell className="py-4 px-6 font-mono text-[10px] text-muted-foreground uppercase">{item.id.slice(0, 12)}</TableCell>
+                  <TableRow key={item.id} className="hover:bg-primary/5 transition-colors border-border/50 group">
+                    <TableCell className="py-4 px-6 font-mono text-[10px] text-muted-foreground uppercase group-hover:text-primary transition-colors">{item.id.slice(0, 12)}</TableCell>
                     <TableCell className="py-4 px-6">
                       <div className="flex flex-col">
                         <span className="font-bold">{item.customer?.fullName || "Anonymous"}</span>
@@ -139,11 +137,11 @@ export default function UncompletedOrdersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px] border-border/50 shadow-xl">
-                          <DropdownMenuItem className="gap-3 py-2.5 rounded-xl cursor-pointer font-medium text-primary">
-                            <Mail className="w-4 h-4" /> Send Recovery Text
+                          <DropdownMenuItem className="gap-3 py-2.5 rounded-xl cursor-pointer font-medium text-primary" onClick={() => router.push(`/${subdomain}/orders/uncompleted/${item.id}`)}>
+                            <Eye className="w-4 h-4" /> View Details
                           </DropdownMenuItem>
                           <DropdownMenuItem className="gap-3 py-2.5 rounded-xl cursor-pointer">
-                            <Eye className="w-4 h-4 text-muted-foreground" /> View Items
+                            <Mail className="w-4 h-4 text-muted-foreground" /> Send Recovery Text
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -164,14 +162,18 @@ export default function UncompletedOrdersPage() {
                   <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Abandon Draft</span>
                   <h4 className="text-lg font-bold text-foreground">{item.customer?.fullName || "Anonymous Visitor"}</h4>
                 </div>
-                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-none">Pending</Badge>
+                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-none px-2 py-0.5 text-[10px] font-black uppercase">Draft</Badge>
               </div>
               <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                 <div className="text-right flex-1">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Lost Sale Value</p>
+                 <div className="text-left">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter leading-none">Potential Sale</p>
                     <p className="text-xl font-black text-amber-600">${item.total?.toFixed(2)}</p>
                  </div>
-                 <Button variant="outline" size="sm" className="rounded-xl ml-4 h-10 px-4 font-bold text-primary border-primary/20">Contact</Button>
+                 <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" className="rounded-xl h-10 px-4 font-bold text-primary border-primary/20" onClick={() => router.push(`/${subdomain}/orders/uncompleted/${item.id}`)}>
+                      Details
+                    </Button>
+                 </div>
               </div>
           </Card>
         ))}
