@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { 
   signInWithEmailAndPassword, 
@@ -9,7 +10,7 @@ import {
   updateProfile,
   onAuthStateChanged 
 } from "firebase/auth";
-import { doc, setDoc, collection, query, where, getDocs, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, collection, query, where, getDocs, serverTimestamp, addDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,8 +23,9 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [checkingSubdomain, setCheckingSubdomain] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const planId = searchParams.get("planId");
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -90,7 +92,7 @@ export default function AuthPage() {
 
       await updateProfile(user, { displayName: formData.fullName });
 
-      // Store User Data with default role 'user'
+      // Store User Data
       await setDoc(doc(db, "users", user.uid), {
         fullName: formData.fullName,
         email: formData.email,
@@ -101,14 +103,45 @@ export default function AuthPage() {
       });
 
       // Store Store Data
-      await setDoc(doc(db, "stores", `store_${formData.subdomain.toLowerCase()}`), {
+      const storeId = `store_${formData.subdomain.toLowerCase()}`;
+      await setDoc(doc(db, "stores", storeId), {
         name: formData.storeName,
         subdomain: formData.subdomain.toLowerCase(),
         ownerId: user.uid,
         createdAt: serverTimestamp(),
       });
 
-      toast({ title: "Welcome to iHut!", description: "Your account and store have been created." });
+      // Create Initial Subscription
+      if (planId) {
+        await addDoc(collection(db, "stores", storeId, "subscription"), {
+          planId,
+          ownerId: user.uid,
+          storeId: storeId,
+          status: "pending",
+          startDate: serverTimestamp(),
+          currentPeriodStart: serverTimestamp(),
+          currentPeriodEnd: serverTimestamp(), // Will be updated by billing logic
+          createdAt: serverTimestamp(),
+        });
+      } else {
+        // Fallback to Free Plan if no planId provided
+        const freePlanQ = query(collection(db, "subscriptionPlans"), where("price", "==", 0), where("isActive", "==", true));
+        const freePlanSnap = await getDocs(freePlanQ);
+        if (!freePlanSnap.empty) {
+          await addDoc(collection(db, "stores", storeId, "subscription"), {
+            planId: freePlanSnap.docs[0].id,
+            ownerId: user.uid,
+            storeId: storeId,
+            status: "active",
+            startDate: serverTimestamp(),
+            currentPeriodStart: serverTimestamp(),
+            currentPeriodEnd: serverTimestamp(),
+            createdAt: serverTimestamp(),
+          });
+        }
+      }
+
+      toast({ title: "Welcome to NexusCart!", description: "Your account and store have been created." });
       router.push("/dashboard");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Signup Error", description: error.message });
@@ -138,7 +171,7 @@ export default function AuthPage() {
             <div className="mx-auto w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
               <ShoppingCart className="text-white w-7 h-7" />
             </div>
-            <CardTitle className="text-3xl font-headline font-bold">iHut</CardTitle>
+            <CardTitle className="text-3xl font-headline font-bold">NexusCart</CardTitle>
             <CardDescription className="text-white/80">Login to manage your empire.</CardDescription>
           </CardHeader>
           <CardContent className="p-8">
@@ -158,7 +191,7 @@ export default function AuthPage() {
           </CardContent>
           <CardFooter className="flex justify-center p-6 bg-muted/30 border-t">
             <button onClick={() => setIsLogin(false)} className="text-sm font-medium text-primary hover:underline">
-              New to iHut? Create an account
+              New to NexusCart? Create an account
             </button>
           </CardFooter>
         </Card>
@@ -173,7 +206,7 @@ export default function AuthPage() {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-6 h-6" />
-              <span className="font-headline font-bold text-xl">iHut</span>
+              <span className="font-headline font-bold text-xl">NexusCart</span>
             </div>
             <div className="text-xs font-medium bg-white/20 px-3 py-1 rounded-full">
               Step {step} of 3
@@ -219,7 +252,7 @@ export default function AuthPage() {
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
               <h2 className="text-2xl font-headline font-bold">Store Concept</h2>
               <div className="space-y-2">
-                <Label htmlFor="storeName">Store (Dokan) Name</Label>
+                <Label htmlFor="storeName">Store Name</Label>
                 <Input id="storeName" placeholder="My Awesome Shop" value={formData.storeName} onChange={handleInputChange} className="rounded-xl h-12" />
               </div>
               <div className="space-y-2">
@@ -232,6 +265,15 @@ export default function AuthPage() {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">This will be your store's web address.</p>
               </div>
+              {planId && (
+                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center gap-3">
+                   <Zap className="text-primary w-5 h-5" />
+                   <div>
+                     <p className="text-xs font-bold text-primary uppercase tracking-widest">Plan Selected</p>
+                     <p className="text-sm font-medium text-slate-600">Your store will be launched on your selected tier.</p>
+                   </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

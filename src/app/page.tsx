@@ -150,7 +150,7 @@ export default function Home() {
                     </div>
                   </CardContent>
                   <div className="p-10 pt-0">
-                    <Link href="/auth">
+                    <Link href={`/auth?planId=${plan.id}`}>
                       <Button className="w-full h-14 rounded-2xl text-lg font-black group-hover:bg-primary group-hover:text-white transition-all shadow-xl shadow-primary/10">
                         Choose {plan.name}
                       </Button>
