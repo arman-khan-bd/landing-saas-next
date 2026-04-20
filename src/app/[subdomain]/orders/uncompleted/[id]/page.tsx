@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, addDoc, collection, serverTimestamp, deleteDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
@@ -22,6 +23,7 @@ export default function UncompletedOrderDetailPage() {
   const { toast } = useToast();
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isRecovering, setIsRecovering] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -44,6 +46,38 @@ export default function UncompletedOrderDetailPage() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRecoverOrder = async () => {
+    if (!item) return;
+    setIsRecovering(true);
+    try {
+      // 1. Prepare Order Data
+      const orderData = {
+        storeId: item.storeId,
+        ownerId: item.ownerId,
+        items: item.items,
+        customer: item.customer,
+        total: item.total,
+        paymentMethod: "manual",
+        status: "pending",
+        paymentStatus: "unpaid",
+        createdAt: serverTimestamp(),
+      };
+
+      // 2. Add to orders
+      await addDoc(collection(db, "orders"), orderData);
+
+      // 3. Delete from uncompleted
+      await deleteDoc(doc(db, "uncompleted_orders", item.id));
+
+      toast({ title: "Order Recovered!", description: "The draft has been moved to your main orders list." });
+      router.push(`/${subdomain}/orders`);
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Recovery Failed", description: "Failed to move draft to orders." });
+      setIsRecovering(false);
     }
   };
 
@@ -209,8 +243,12 @@ export default function UncompletedOrderDetailPage() {
                  <h2 className="text-3xl sm:text-5xl font-black text-indigo-400 tracking-tighter">${item.total?.toFixed(2)}</h2>
                  <p className="text-slate-400 text-[10px] sm:text-xs font-medium">Potential revenue currently on hold.</p>
               </div>
-              <Button className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-indigo-500 hover:bg-indigo-600 font-black text-sm sm:text-lg shadow-xl shadow-indigo-500/20">
-                 Recover Order
+              <Button 
+                className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-indigo-500 hover:bg-indigo-600 font-black text-sm sm:text-lg shadow-xl shadow-indigo-500/20"
+                onClick={handleRecoverOrder}
+                disabled={isRecovering}
+              >
+                {isRecovering ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : "Recover Order"}
               </Button>
            </Card>
         </div>
