@@ -280,9 +280,11 @@ export default function ProductDetailPage() {
                 <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Bag Subtotal</span>
                 <span className="text-2xl font-black text-primary">${cartTotal.toFixed(2)}</span>
               </div>
-              <Button className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={cart.length === 0}>
-                Checkout Now
-              </Button>
+              <Link href={`/${subdomain}/checkout`} className="w-full">
+                <Button className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={cart.length === 0}>
+                  Checkout Now
+                </Button>
+              </Link>
               <SheetClose asChild>
                 <Button variant="ghost" className="w-full h-10 rounded-xl text-slate-400 font-bold uppercase tracking-widest text-[9px] hover:bg-slate-50">
                   Continue Shopping

@@ -240,9 +240,11 @@ export default function Storefront() {
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Subtotal</span>
                       <span className="text-2xl font-black text-primary">${cartTotal.toFixed(2)}</span>
                     </div>
-                    <Button className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={cart.length === 0}>
-                      Checkout Now
-                    </Button>
+                    <Link href={`/${subdomain}/checkout`} className="w-full">
+                      <Button className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={cart.length === 0}>
+                        Checkout Now
+                      </Button>
+                    </Link>
                     <SheetClose asChild>
                       <Button variant="ghost" className="w-full h-12 rounded-xl text-slate-400 font-bold uppercase tracking-widest text-[10px]">
                         Continue Shopping

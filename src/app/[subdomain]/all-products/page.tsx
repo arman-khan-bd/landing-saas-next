@@ -207,7 +207,7 @@ export default function AllProductsPage() {
                           <div className="w-16 h-16 rounded-xl bg-white overflow-hidden border shrink-0">
                             <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                           </div>
-                          <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                             <div className="flex justify-between items-start">
                               <h4 className="font-bold text-xs truncate pr-4">{item.name}</h4>
                               <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button>
@@ -232,9 +232,11 @@ export default function AllProductsPage() {
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Subtotal</span>
                       <span className="text-2xl font-black text-primary">${cartTotal.toFixed(2)}</span>
                     </div>
-                    <Button className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={cart.length === 0}>
-                      Checkout Now
-                    </Button>
+                    <Link href={`/${subdomain}/checkout`} className="w-full">
+                      <Button className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={cart.length === 0}>
+                        Checkout Now
+                      </Button>
+                    </Link>
                     <SheetClose asChild>
                       <Button variant="ghost" className="w-full h-12 text-slate-400 font-bold uppercase text-[10px]">Continue Shopping</Button>
                     </SheetClose>
