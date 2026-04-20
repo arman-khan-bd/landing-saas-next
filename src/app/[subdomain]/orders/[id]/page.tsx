@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
+import { useFirestore, useAuth } from "@/firebase";
 import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,21 +16,25 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function OrderDetailPage() {
   const { subdomain, id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const db = useFirestore();
+  const auth = useAuth();
   const [order, setOrder] = useState<any>(null);
   const [ipData, setIpData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [blocking, setBlocking] = useState(false);
 
   useEffect(() => {
-    if (id) {
+    if (id && db) {
       fetchOrder();
     }
-  }, [id]);
+  }, [id, db]);
 
   const fetchOrder = async () => {
     setLoading(true);
@@ -75,13 +79,13 @@ export default function OrderDetailPage() {
         storeId: order.storeId,
         createdAt: serverTimestamp(),
         reason: `Manual block from order #${order.id}`,
+        customerName: order.customer?.fullName || "Anonymous",
         metadata: {
           orderId: order.id,
-          customerName: order.customer?.fullName
         }
       };
 
-      const itemsToBlock = [];
+      const itemsToBlock: any[] = [];
       if ((type === 'ip' || type === 'customer') && order.customer?.ip) {
         itemsToBlock.push({ type: 'ip', value: order.customer.ip });
       }
@@ -92,16 +96,29 @@ export default function OrderDetailPage() {
         itemsToBlock.push({ type: 'email', value: order.customer.email });
       }
 
-      await Promise.all(itemsToBlock.map(item => 
-        addDoc(collection(db, "fraud_blocks"), {
-          ...baseBlockData,
-          ...item
-        })
-      ));
+      if (itemsToBlock.length === 0) {
+        toast({ variant: "destructive", title: "No data to block", description: "The required fields are missing from this order." });
+        setBlocking(false);
+        return;
+      }
+
+      // Execute all blocks
+      itemsToBlock.forEach(item => {
+        const fullData = { ...baseBlockData, ...item };
+        addDoc(collection(db, "fraud_blocks"), fullData)
+          .catch(async (error) => {
+            const permissionError = new FirestorePermissionError({
+              path: 'fraud_blocks',
+              operation: 'create',
+              requestResourceData: fullData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+          });
+      });
 
       toast({ 
         title: "Security Updated", 
-        description: `Entity successfully added to fraud list.` 
+        description: `${itemsToBlock.length} entities successfully added to fraud list.` 
       });
     } catch (error) {
       console.error(error);
@@ -281,7 +298,8 @@ export default function OrderDetailPage() {
                       onClick={() => handleBlockAction('ip')}
                       disabled={blocking || !order.customer?.ip}
                     >
-                       <Fingerprint className="w-4 h-4 mr-2" /> Block IP Address
+                       <Fingerprint className="w-4 h-4 mr-2" /> 
+                       {blocking ? "Processing..." : "Block IP Address"}
                     </Button>
                     <Button 
                       variant="outline" 
@@ -289,14 +307,16 @@ export default function OrderDetailPage() {
                       onClick={() => handleBlockAction('phone')}
                       disabled={blocking || !order.customer?.phone}
                     >
-                       <Phone className="w-4 h-4 mr-2" /> Block Phone Number
+                       <Phone className="w-4 h-4 mr-2" /> 
+                       {blocking ? "Processing..." : "Block Phone Number"}
                     </Button>
                     <Button 
                       className="rounded-xl h-12 justify-start bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-lg shadow-rose-200"
                       onClick={() => handleBlockAction('customer')}
                       disabled={blocking}
                     >
-                       <Lock className="w-4 h-4 mr-2" /> Block Total Identity
+                       <Lock className="w-4 h-4 mr-2" /> 
+                       {blocking ? "Locking identity..." : "Block Total Identity"}
                     </Button>
                  </div>
                  
