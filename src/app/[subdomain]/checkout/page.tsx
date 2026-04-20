@@ -1,11 +1,12 @@
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, Smartphone } from "lucide-react";
+import { ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, Smartphone, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -137,6 +138,27 @@ export default function CheckoutPage() {
 
     setIsPlacingOrder(true);
     try {
+      // --- FRAUD SHIELD CHECK ---
+      const blockValues = [clientIp, formData.email, formData.phone].filter(Boolean);
+      if (blockValues.length > 0) {
+        const fraudQ = query(
+          collection(db, "fraud_blocks"),
+          where("storeId", "==", store.id),
+          where("value", "in", blockValues),
+          limit(1)
+        );
+        const fraudSnap = await getDocs(fraudQ);
+        if (!fraudSnap.empty) {
+          toast({ 
+            variant: "destructive", 
+            title: "Transaction Denied", 
+            description: "Your details have been restricted by the merchant. Please use different details or contact support." 
+          });
+          setIsPlacingOrder(false);
+          return;
+        }
+      }
+
       const orderData = {
         storeId: store.id,
         ownerId: store.ownerId,

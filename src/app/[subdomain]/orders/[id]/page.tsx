@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -69,32 +70,42 @@ export default function OrderDetailPage() {
 
     setBlocking(true);
     try {
-      const blockData = {
-        type,
+      const baseBlockData = {
         ownerId: auth.currentUser.uid,
         storeId: order.storeId,
         createdAt: serverTimestamp(),
-        reason: "Manual block from order details",
+        reason: `Manual block from order #${order.id}`,
         metadata: {
           orderId: order.id,
           customerName: order.customer?.fullName
         }
       };
 
-      if (type === 'ip' || type === 'customer') {
-        await addDoc(collection(db, "fraud_blocks"), { ...blockData, type: 'ip', value: order.customer?.ip });
+      const itemsToBlock = [];
+      if ((type === 'ip' || type === 'customer') && order.customer?.ip) {
+        itemsToBlock.push({ type: 'ip', value: order.customer.ip });
       }
-      if (type === 'phone' || type === 'customer') {
-        await addDoc(collection(db, "fraud_blocks"), { ...blockData, type: 'phone', value: order.customer?.phone });
+      if ((type === 'phone' || type === 'customer') && order.customer?.phone) {
+        itemsToBlock.push({ type: 'phone', value: order.customer.phone });
       }
-      if (type === 'customer') {
-        await addDoc(collection(db, "fraud_blocks"), { ...blockData, type: 'email', value: order.customer?.email });
+      if (type === 'customer' && order.customer?.email) {
+        itemsToBlock.push({ type: 'email', value: order.customer.email });
       }
 
-      toast({ title: "Entity Blocked", description: `${type.toUpperCase()} has been added to your fraud list.` });
+      await Promise.all(itemsToBlock.map(item => 
+        addDoc(collection(db, "fraud_blocks"), {
+          ...baseBlockData,
+          ...item
+        })
+      ));
+
+      toast({ 
+        title: "Security Updated", 
+        description: `Entity successfully added to fraud list.` 
+      });
     } catch (error) {
       console.error(error);
-      toast({ variant: "destructive", title: "Action Failed" });
+      toast({ variant: "destructive", title: "Security Action Failed" });
     } finally {
       setBlocking(false);
     }
@@ -202,17 +213,10 @@ export default function OrderDetailPage() {
                         <p className="text-sm font-bold truncate">{ipData?.org || "Unknown ISP"}</p>
                      </div>
                      <div className="space-y-1">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Browser User Agent</p>
-                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed line-clamp-2 italic">Client header data captured at checkout.</p>
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Digital Signature</p>
+                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed line-clamp-2 italic">Captured during payment authorization phase.</p>
                      </div>
                   </div>
-               </div>
-
-               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-start gap-4">
-                  <InfoIcon className="w-5 h-5 text-indigo-500 mt-0.5" />
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    IP tracking data is obtained via external lookup. Cross-reference this with the customer's shipping address for risk assessment.
-                  </p>
                </div>
             </CardContent>
           </Card>
@@ -304,13 +308,5 @@ export default function OrderDetailPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-function InfoIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
   );
 }

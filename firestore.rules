@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -53,7 +54,9 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
+      // Anyone can create an order (public checkout)
       allow create: if true;
+      // Only the merchant can view sensitive order/customer details
       allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
       allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
@@ -65,9 +68,13 @@ service cloud.firestore {
     }
 
     match /fraud_blocks/{blockId} {
+      // Merchant access
       allow read: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
       allow create: if isSignedIn() && isDataOwner();
-      allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (isExistingOwner() || isAdmin());
+      
+      // Public check during checkout (limited to query results)
+      allow list: if (request.query.limit <= 5);
     }
 
     match /stores/{storeId} {
@@ -83,7 +90,7 @@ service cloud.firestore {
         allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
       }
 
-      match /subscription/{subId} {
+      match /subscription/{id} {
         allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
         allow create: if isSignedIn() && isDataOwner();
         allow update, delete: if isAdmin();
