@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ShoppingCart, Search, Menu, X, Plus, Minus, Trash2, Filter, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Search, Menu, X, Plus, Minus, Trash2, Filter, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 
 interface CartItem {
   id: string;
