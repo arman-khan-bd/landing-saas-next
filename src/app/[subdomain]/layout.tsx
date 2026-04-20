@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { useAuth, useFirestore } from "@/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
 import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home } from "lucide-react";
@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   const { subdomain: rawSubdomain } = useParams();
@@ -31,6 +32,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const [accessDenied, setAccessDenied] = useState(false);
   const [isPasswordVerified, setIsPasswordVerified] = useState(false);
   const [managerPassword, setManagerPassword] = useState("");
+  const [counts, setCounts] = useState({ orders: 0, uncompleted: 0 });
 
   useEffect(() => {
     if (!auth) return;
@@ -38,7 +40,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       if (user) {
         await verifyStoreAccess(user.uid);
       } else {
-        // If they are on an admin path and not logged in, redirect to login
         if (isAdminPath) {
           router.push("/auth");
         } else {
@@ -48,6 +49,36 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     });
     return () => unsubscribe();
   }, [subdomain, router, auth]);
+
+  // Real-time counts for sidebar
+  useEffect(() => {
+    if (!firestore || !store?.id || !auth?.currentUser) return;
+
+    const ordersQ = query(
+      collection(firestore, "orders"),
+      where("storeId", "==", store.id),
+      where("ownerId", "==", auth.currentUser.uid)
+    );
+    
+    const uncompletedQ = query(
+      collection(firestore, "uncompleted_orders"),
+      where("storeId", "==", store.id),
+      where("ownerId", "==", auth.currentUser.uid)
+    );
+
+    const unsubOrders = onSnapshot(ordersQ, (snap) => {
+      setCounts(prev => ({ ...prev, orders: snap.size }));
+    });
+
+    const unsubUncompleted = onSnapshot(uncompletedQ, (snap) => {
+      setCounts(prev => ({ ...prev, uncompleted: snap.size }));
+    });
+
+    return () => {
+      unsubOrders();
+      unsubUncompleted();
+    };
+  }, [firestore, store?.id, auth?.currentUser]);
 
   const verifyStoreAccess = async (uid: string) => {
     if (!firestore || !subdomain) {
@@ -63,20 +94,17 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
-        // If store doesn't exist, we'll let the page component handle 404
         setLoading(false);
         return;
       }
 
       const storeData = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
       
-      // Security Check: Only the owner can access administrative routes
       if (storeData.ownerId !== uid) {
         setAccessDenied(true);
       } else {
         setStore(storeData);
 
-        // Check for existing 1-hour session in localStorage
         const sessionKey = `vault_session_${subdomain}`;
         const savedSession = localStorage.getItem(sessionKey);
         if (savedSession) {
@@ -92,7 +120,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           }
         }
 
-        // If no password set, consider it verified
         if (!storeData.managePassword) {
           setIsPasswordVerified(true);
         }
@@ -108,7 +135,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     e.preventDefault();
     if (managerPassword === store?.managePassword) {
       setIsPasswordVerified(true);
-      // Save 1-hour session
       const sessionKey = `vault_session_${subdomain}`;
       localStorage.setItem(sessionKey, JSON.stringify({ timestamp: Date.now() }));
       toast({
@@ -124,7 +150,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     }
   };
 
-  // Precise path normalization for sidebar active states
   const normalizedPath = pathname.startsWith(`/${subdomain}/`)
       ? pathname.replace(`/${subdomain}`, "")
       : pathname === `/${subdomain}` ? "/" : pathname;
@@ -141,7 +166,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // Vault Password Screen
   if (isAdminPath && !isPasswordVerified && !accessDenied) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
@@ -209,8 +233,8 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   ];
 
   const salesItems = [
-    { title: "All Orders", icon: Receipt, href: `/${subdomain}/orders` },
-    { title: "Uncompleted", icon: AlertCircle, href: `/${subdomain}/orders/uncompleted` },
+    { title: "All Orders", icon: Receipt, href: `/${subdomain}/orders`, count: counts.orders },
+    { title: "Uncompleted", icon: AlertCircle, href: `/${subdomain}/orders/uncompleted`, count: counts.uncompleted },
   ];
 
   const customerItems = [
@@ -327,9 +351,16 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                       {salesItems.map((item) => (
                         <SidebarMenuItem key={item.title}>
                           <SidebarMenuButton asChild isActive={normalizedPath === item.href.replace(`/${subdomain}`, "")} className="rounded-xl h-10 px-4">
-                            <Link href={item.href} className="flex items-center gap-3">
-                              <item.icon className={`w-4 h-4 ${normalizedPath === item.href.replace(`/${subdomain}`, "") ? 'text-primary' : 'text-muted-foreground'}`} />
-                              <span className="text-sm font-medium">{item.title}</span>
+                            <Link href={item.href} className="flex items-center justify-between gap-3 w-full">
+                              <div className="flex items-center gap-3">
+                                <item.icon className={`w-4 h-4 ${normalizedPath === item.href.replace(`/${subdomain}`, "") ? 'text-primary' : 'text-muted-foreground'}`} />
+                                <span className="text-sm font-medium">{item.title}</span>
+                              </div>
+                              {item.count > 0 && (
+                                <Badge className="h-5 px-2 bg-primary/10 text-primary text-[10px] font-black border-none rounded-full">
+                                  {item.count}
+                                </Badge>
+                              )}
                             </Link>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -401,9 +432,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center gap-2 sm:gap-4 shrink-0">
               <Link href={`/${subdomain}/notifications`} className="relative p-2 text-muted-foreground hover:text-primary transition-colors hover:bg-primary/5 rounded-full">
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-bold text-white flex items-center justify-center rounded-full border-2 border-white">
-                  3
-                </span>
+                {(counts.orders + counts.uncompleted) > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-bold text-white flex items-center justify-center rounded-full border-2 border-white">
+                    {counts.orders + counts.uncompleted}
+                  </span>
+                )}
               </Link>
               <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
                 {auth?.currentUser?.email?.[0].toUpperCase()}

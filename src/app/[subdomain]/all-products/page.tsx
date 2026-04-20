@@ -285,8 +285,11 @@ export default function AllProductsPage() {
                 </Button>
               </SheetTrigger>
               <SheetContent className="w-full sm:max-w-sm rounded-l-3xl p-0 border-none shadow-2xl">
-                <SheetHeader className="p-8 bg-slate-900 text-white">
+                <SheetHeader className="p-8 bg-slate-900 text-white flex flex-row items-center justify-between">
                   <SheetTitle className="text-xl font-headline font-black text-white uppercase tracking-tight">Filter Products</SheetTitle>
+                  <SheetClose className="text-white/60 hover:text-white shrink-0">
+                    <X className="w-7 h-7" />
+                  </SheetClose>
                 </SheetHeader>
                 <div className="p-8 space-y-10">
                   <div className="space-y-4">
@@ -326,9 +329,12 @@ export default function AllProductsPage() {
                     />
                   </div>
                 </div>
-                <SheetFooter className="p-8 border-t">
+                <SheetFooter className="p-8 border-t flex flex-col gap-3">
                   <SheetClose asChild>
                     <Button className="w-full h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/20">Apply Filters</Button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Button variant="ghost" className="w-full h-12 rounded-xl text-slate-400 font-bold uppercase tracking-widest text-[10px]">Cancel & Close</Button>
                   </SheetClose>
                 </SheetFooter>
               </SheetContent>
