@@ -44,6 +44,11 @@ export default function RedesignedDashboard() {
 
   // Custom Modal States
   const [isCreateStoreOpen, setIsCreateStoreOpen] = useState(false);
+  const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
+  const [selectedStoreForVault, setSelectedStoreForVault] = useState<any>(null);
+  const [vaultPIN, setVaultPIN] = useState("");
+  const [currentVaultPIN, setCurrentVaultPIN] = useState("");
+  const [savingVault, setSavingVault] = useState(false);
   
   const router = useRouter();
   const { toast } = useToast();
@@ -225,6 +230,32 @@ export default function RedesignedDashboard() {
     }
   };
 
+  const handleSaveVaultPIN = async () => {
+    if (!selectedStoreForVault || !vaultPIN || !firestore) return;
+
+    // Verify old password if it exists
+    if (selectedStoreForVault.managePassword && currentVaultPIN !== selectedStoreForVault.managePassword) {
+      toast({ variant: "destructive", title: "Verification Failed", description: "The current Vault PIN you entered is incorrect." });
+      return;
+    }
+
+    setSavingVault(true);
+    try {
+      await updateDoc(doc(firestore, "stores", selectedStoreForVault.id), {
+        managePassword: vaultPIN
+      });
+      toast({ title: "Vault PIN Updated", description: "Your management password has been set." });
+      setIsVaultModalOpen(false);
+      setVaultPIN("");
+      setCurrentVaultPIN("");
+      fetchStores(user?.uid || "");
+    } catch (error) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    } finally {
+      setSavingVault(false);
+    }
+  };
+
   const handleLogout = async () => {
     if (auth) {
       await auth.signOut();
@@ -397,15 +428,28 @@ export default function RedesignedDashboard() {
                                 <Power className={`w-4 h-4 ${store.status === 'online' ? 'text-emerald-500' : 'text-slate-400'}`} />
                                 <span className="font-medium">{store.status === 'online' ? 'Deactivate Store' : 'Activate Store'}</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => router.push(`/${store.subdomain}/settings?tab=vault`)}>
-                                <Shield className="w-4 h-4" />
-                                <span className="font-medium">Vault Setup (PIN)</span>
-                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => setView("settings")}>
-                                <Lock className="w-4 h-4" />
-                                <span className="font-medium">Change Account Password</span>
-                              </DropdownMenuItem>
+                              {!store.managePassword ? (
+                                <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => {
+                                  setSelectedStoreForVault(store);
+                                  setVaultPIN("");
+                                  setCurrentVaultPIN("");
+                                  setIsVaultModalOpen(true);
+                                }}>
+                                  <Shield className="w-4 h-4" />
+                                  <span className="font-medium">Vault Setup (PIN)</span>
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => {
+                                  setSelectedStoreForVault(store);
+                                  setVaultPIN("");
+                                  setCurrentVaultPIN("");
+                                  setIsVaultModalOpen(true);
+                                }}>
+                                  <Lock className="w-4 h-4" />
+                                  <span className="font-medium">Change Vault PIN</span>
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => handleDeleteStore(store.id, store.name)}>
                                 <Trash2 className="w-4 h-4" />
@@ -587,6 +631,64 @@ export default function RedesignedDashboard() {
                 {creating ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" />}
                 Launch Brand
               </Button>
+           </div>
+        </div>
+      )}
+      {/* --- VAULT PIN MODAL --- */}
+      {isVaultModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsVaultModalOpen(false)} />
+           <div className="relative w-full max-w-md bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+              <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
+                <Lock className="w-8 h-8" />
+              </div>
+              <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">
+                {selectedStoreForVault?.managePassword ? "Update Vault PIN" : "Setup Manager Vault"}
+              </h2>
+              <p className="text-slate-500 text-lg mt-2 leading-relaxed">
+                {selectedStoreForVault?.managePassword ? "Change your existing security PIN for this store." : "Set a secure PIN to protect your store's administrative settings."}
+              </p>
+              
+              <div className="space-y-6 py-8">
+                {selectedStoreForVault?.managePassword && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Current Security PIN</Label>
+                    <Input
+                      type="password"
+                      placeholder="Enter Current PIN"
+                      value={currentVaultPIN}
+                      onChange={(e) => setCurrentVaultPIN(e.target.value)}
+                      className="rounded-2xl h-14 bg-slate-50 border-none text-center text-2xl font-bold tracking-[0.5em] px-6 focus:ring-0"
+                      autoFocus
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">
+                    {selectedStoreForVault?.managePassword ? "New Security PIN" : "Security PIN"}
+                  </Label>
+                  <Input
+                    type="password"
+                    placeholder="4-8 digit PIN"
+                    value={vaultPIN}
+                    onChange={(e) => setVaultPIN(e.target.value)}
+                    className="rounded-2xl h-14 bg-slate-50 border-none text-center text-2xl font-bold tracking-[0.5em] px-6 focus:ring-0"
+                    autoFocus={!selectedStoreForVault?.managePassword}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-4">
+                  <Button variant="outline" className="flex-1 h-14 rounded-2xl font-bold" onClick={() => setIsVaultModalOpen(false)}>Cancel</Button>
+                  <Button 
+                    className="flex-[2] h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" 
+                    onClick={handleSaveVaultPIN} 
+                    disabled={savingVault || !vaultPIN || (selectedStoreForVault?.managePassword && !currentVaultPIN)}
+                  >
+                    {savingVault ? <Loader2 className="animate-spin mr-2" /> : <ShieldCheck className="mr-2" />}
+                    {selectedStoreForVault?.managePassword ? "Update Vault PIN" : "Save Vault PIN"}
+                  </Button>
+              </div>
            </div>
         </div>
       )}
