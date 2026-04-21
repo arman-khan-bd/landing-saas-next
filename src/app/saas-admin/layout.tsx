@@ -13,15 +13,19 @@ import {
 } from "@/components/ui/sidebar";
 import { 
   ShieldCheck, Users, Store, CreditCard, LayoutDashboard, 
-  ChevronLeft, Loader2, AlertCircle, LogOut, Settings, BarChart
+  ChevronLeft, Loader2, AlertCircle, LogOut, Settings, BarChart,
+  Bell, ArrowLeftRight
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { Badge } from "@/components/ui/badge";
 
 export default function SaasAdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [pendingTransactions, setPendingTransactions] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -49,6 +53,15 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
         }
       };
       checkAdmin();
+
+      // Listen for pending transactions
+      const q = query(collection(firestore, "saas_transactions"), where("status", "==", "pending"));
+      const unsub = onSnapshot(q, (snap) => {
+        setPendingTransactions(snap.size);
+      }, (error) => {
+        console.error("SaaS Admin pending transactions error:", error);
+      });
+      return () => unsub();
     }
   }, [user, isUserLoading, firestore, router]);
 
@@ -70,6 +83,8 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
     { title: "Users", icon: Users, href: "/saas-admin/users" },
     { title: "Shops", icon: Store, href: "/saas-admin/shops" },
     { title: "Subscriptions", icon: CreditCard, href: "/saas-admin/subscriptions" },
+    { title: "Transactions", icon: ArrowLeftRight, href: "/saas-admin/transactions", badge: pendingTransactions },
+    { title: "Notifications", icon: Bell, href: "/saas-admin/notifications", badge: pendingTransactions },
   ];
 
   return (
@@ -95,9 +110,16 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
                   {menuItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild isActive={pathname === item.href} className="rounded-xl h-11 px-4 text-slate-400 hover:text-white hover:bg-white/5 data-[active=true]:bg-indigo-600 data-[active=true]:text-white">
-                        <Link href={item.href} className="flex items-center gap-3">
-                          <item.icon className="w-5 h-5" />
-                          <span className="font-medium">{item.title}</span>
+                        <Link href={item.href} className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-3">
+                            <item.icon className="w-5 h-5" />
+                            <span className="font-medium">{item.title}</span>
+                          </div>
+                          {item.badge !== undefined && item.badge > 0 && (
+                            <Badge className="bg-rose-500 hover:bg-rose-600 text-white border-none h-5 min-w-[20px] flex items-center justify-center p-0 text-[10px] font-black rounded-full shadow-lg shadow-rose-500/20">
+                              {item.badge}
+                            </Badge>
+                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

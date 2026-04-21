@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { db, auth } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -183,12 +184,18 @@ export default function CustomersPage() {
                         <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-lg font-black shadow-lg">
                           {customer.name[0]}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-900 group-hover:text-primary transition-colors text-base">{customer.name}</span>
+                        <Link 
+                          href={`/${subdomain}/customers/${customer.id}`}
+                          className="flex flex-col group/link"
+                        >
+                          <span className="font-bold text-slate-900 group-hover/link:text-primary transition-colors text-base flex items-center gap-2">
+                            {customer.name}
+                            <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                          </span>
                           <Badge variant="outline" className="w-fit mt-1 rounded-lg text-[9px] font-black uppercase tracking-tighter px-1.5 opacity-60">
                              {customer.status}
                           </Badge>
-                        </div>
+                        </Link>
                       </div>
                     </TableCell>
                     <TableCell className="py-6 px-8">
@@ -227,12 +234,21 @@ export default function CustomersPage() {
                         </div>
                     </TableCell>
                     <TableCell className="py-6 px-8 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="rounded-2xl h-11 w-11 bg-slate-50 hover:bg-slate-100">
-                            <MoreHorizontal className="w-5 h-5 text-slate-600" />
-                          </Button>
-                        </DropdownMenuTrigger>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="hidden xl:flex rounded-xl h-9 px-4 font-bold border-2 hover:bg-slate-50 gap-2"
+                          onClick={() => router.push(`/${subdomain}/customers/${customer.id}`)}
+                        >
+                          View Details
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="rounded-2xl h-11 w-11 bg-slate-50 hover:bg-slate-100">
+                              <MoreHorizontal className="w-5 h-5 text-slate-600" />
+                            </Button>
+                          </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-3xl p-2 min-w-[200px] border-border/50 shadow-2xl">
                           <DropdownMenuItem className="gap-3 py-3 rounded-2xl cursor-pointer" onClick={() => router.push(`/${subdomain}/customers/${customer.id}`)}>
                             <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
@@ -248,7 +264,8 @@ export default function CustomersPage() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
+                    </div>
+                  </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

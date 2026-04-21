@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { cn } from "@/lib/utils";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -23,6 +24,7 @@ export default function OrderDetailPage() {
   const { subdomain, id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const db = useFirestore();
   const auth = useAuth();
   const [order, setOrder] = useState<any>(null);
@@ -63,14 +65,24 @@ export default function OrderDetailPage() {
     }
   };
 
-  const handleBlockAction = async (type: 'ip' | 'phone' | 'customer') => {
+  const handleBlockAction = async (type: 'ip' | 'phone' | 'customer' | 'address') => {
     if (!order || !auth.currentUser) return;
     
-    const confirmMsg = type === 'customer' 
-      ? "Block this customer? This will flag their Email, Phone, and IP address." 
-      : `Block this ${type.toUpperCase()}?`;
+    const confirmOptions = type === 'customer' 
+      ? {
+          title: "Block Total Identity?",
+          message: "This will permanently flag this customer's Email, Phone, and IP address for all future checkout attempts. Are you sure?",
+          confirmText: "Block Identity",
+          variant: 'danger' as const
+        }
+      : {
+          title: `Block ${type.toUpperCase()}?`,
+          message: `Are you sure you want to restrict this ${type.toUpperCase()} from your store?`,
+          confirmText: `Block ${type}`,
+          variant: 'danger' as const
+        };
       
-    if (!confirm(confirmMsg)) return;
+    if (!(await confirm(confirmOptions))) return;
 
     setBlocking(true);
     try {
@@ -94,6 +106,9 @@ export default function OrderDetailPage() {
       }
       if (type === 'customer' && order.customer?.email) {
         itemsToBlock.push({ type: 'email', value: order.customer.email });
+      }
+      if ((type === 'address' || type === 'customer') && order.customer?.address) {
+        itemsToBlock.push({ type: 'address', value: order.customer.address });
       }
 
       if (itemsToBlock.length === 0) {
@@ -319,6 +334,15 @@ export default function OrderDetailPage() {
                     >
                        <Phone className="w-4 h-4 mr-2" /> 
                        {blocking ? "Processing..." : "Block Phone Number"}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="rounded-xl h-12 justify-start border-rose-200 text-rose-600 hover:bg-rose-100 font-bold text-xs"
+                      onClick={() => handleBlockAction('address')}
+                      disabled={blocking || !order.customer?.address}
+                    >
+                       <MapPin className="w-4 h-4 mr-2" /> 
+                       {blocking ? "Processing..." : "Block Shipping Address"}
                     </Button>
                     <Button 
                       className="rounded-xl h-12 justify-start bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-lg shadow-rose-200"

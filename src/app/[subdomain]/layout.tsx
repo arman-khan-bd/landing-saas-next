@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { useAuth, useFirestore } from "@/firebase";
-import { collection, query, where, getDocs, onSnapshot } from "firebase/firestore";
+import { collection, query, where, getDocs, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
 import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home } from "lucide-react";
@@ -33,7 +33,8 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const [accessDenied, setAccessDenied] = useState(false);
   const [isPasswordVerified, setIsPasswordVerified] = useState(false);
   const [managerPassword, setManagerPassword] = useState("");
-  const [counts, setCounts] = useState({ orders: 0, uncompleted: 0 });
+  const [counts, setCounts] = useState({ orders: 0, uncompleted: 0, system: 0 });
+  const [userRole, setUserRole] = useState<string>("user");
 
   useEffect(() => {
     if (!auth) return;
@@ -69,6 +70,12 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       where("isRead", "==", false)
     );
 
+    const systemQ = query(
+      collection(firestore, "system_notifications"),
+      where("userId", "==", auth.currentUser.uid),
+      where("read", "==", false)
+    );
+
     const unsubOrders = onSnapshot(ordersQ, (snap) => {
       setCounts(prev => ({ ...prev, orders: snap.size }));
     });
@@ -77,9 +84,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       setCounts(prev => ({ ...prev, uncompleted: snap.size }));
     });
 
+    const unsubSystem = onSnapshot(systemQ, (snap) => {
+      setCounts(prev => ({ ...prev, system: snap.size }));
+    });
+
     return () => {
       unsubOrders();
       unsubUncompleted();
+      unsubSystem();
     };
   }, [firestore, store?.id, auth?.currentUser]);
 
@@ -90,6 +102,13 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     }
 
     try {
+      // 1. Fetch user role first to determine global permissions
+      const userRef = doc(firestore, "users", uid);
+      const userSnap = await getDoc(userRef);
+      const role = userSnap.exists() ? (userSnap.data().role || "user") : "user";
+      setUserRole(role);
+
+      // 2. Fetch store data
       const q = query(
         collection(firestore, "stores"),
         where("subdomain", "==", subdomain)
@@ -103,7 +122,8 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
       const storeData = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
 
-      if (storeData.ownerId !== uid) {
+      // 3. Verify access: Owner OR Global Admin
+      if (storeData.ownerId !== uid && role !== 'admin') {
         setAccessDenied(true);
       } else {
         setStore(storeData);
@@ -123,7 +143,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           }
         }
 
-        if (!storeData.managePassword) {
+        // Admins bypass vault password for convenience, or keep it for security?
+        // Let's allow admins to bypass vault too if we want, or keep it.
+        // For now, let's keep it but if they are admin maybe they should see a "Bypass" option.
+        // Actually, if we just keep it, it's safer.
+        if (!storeData.managePassword || role === 'admin') {
           setIsPasswordVerified(true);
         }
       }
@@ -421,7 +445,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarContent>
-            <div className="mt-auto p-4 border-t border-border/50">
+            <div className="mt-auto p-4 border-t border-border/50 space-y-2">
+              {userRole === 'admin' && (
+                <Link href="/saas-admin">
+                  <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-indigo-50 text-indigo-600 h-10 text-sm font-bold">
+                    <ShieldCheck className="w-4 h-4" /> SaaS Admin Panel
+                  </Button>
+                </Link>
+              )}
               <Link href="/dashboard">
                 <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted h-10 text-sm">
                   <ChevronLeft className="w-4 h-4" /> Back to Dashboard
@@ -444,9 +475,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                 <Link href={`/${subdomain}/notifications`} className="relative p-2 text-muted-foreground hover:text-primary transition-colors hover:bg-primary/5 rounded-full">
                   <Bell className="w-5 h-5" />
-                  {(counts.orders + counts.uncompleted) > 0 && (
-                    <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-bold text-white flex items-center justify-center rounded-full border-2 border-white">
-                      {counts.orders + counts.uncompleted}
+                  {(counts.orders + counts.uncompleted + counts.system) > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-black text-white flex items-center justify-center rounded-full border-2 border-white">
+                      {counts.orders + counts.uncompleted + counts.system}
                     </span>
                   )}
                 </Link>

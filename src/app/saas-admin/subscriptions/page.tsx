@@ -427,7 +427,152 @@ export default function AdminSubscriptions() {
             </CardContent>
          </Card>
       </div>
+
+      <SaasPaymentMethods />
     </div>
+  );
+}
+
+function SaasPaymentMethods() {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [methods, setMethods] = useState<any[]>([]);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newMethod, setNewMethod] = useState({ name: "", details: "", isActive: true });
+
+  useEffect(() => {
+    if (firestore) fetchMethods();
+  }, [firestore]);
+
+  const fetchMethods = async () => {
+    setLoading(true);
+    try {
+      const q = query(collection(firestore!, "saasPaymentMethods"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      setMethods(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!newMethod.name || !newMethod.details) return;
+    setSaving(true);
+    try {
+      await addDoc(collection(firestore!, "saasPaymentMethods"), {
+        ...newMethod,
+        createdAt: serverTimestamp(),
+      });
+      toast({ title: "Payment Method Added" });
+      setNewMethod({ name: "", details: "", isActive: true });
+      setIsAddOpen(false);
+      fetchMethods();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Failed to add method" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(firestore!, "saasPaymentMethods", id));
+      toast({ title: "Method Removed" });
+      fetchMethods();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Failed to delete" });
+    }
+  };
+
+  const toggleMethod = async (id: string, current: boolean) => {
+    try {
+      await updateDoc(doc(firestore!, "saasPaymentMethods", id), { isActive: !current });
+      fetchMethods();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    }
+  };
+
+  return (
+    <Card className="bg-slate-900 border-white/5 rounded-[40px] overflow-hidden">
+      <CardHeader className="p-8 border-b border-white/5 flex flex-row items-center justify-between">
+        <div>
+          <div className="flex items-center gap-4">
+            <CreditCard className="text-indigo-500 w-6 h-6" />
+            <CardTitle className="text-2xl font-black">Subscription Payment Options</CardTitle>
+          </div>
+          <CardDescription className="text-slate-400 mt-1">Manage payment methods available for store managers to pay for their tiers.</CardDescription>
+        </div>
+        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="rounded-xl bg-indigo-600 hover:bg-indigo-700 h-10 px-4 font-bold">
+              <Plus className="w-4 h-4 mr-2" /> Add Method
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-slate-900 border-white/5 text-white rounded-[32px]">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black">Add Payment Method</DialogTitle>
+              <DialogDescription className="text-slate-400">Configure a manual payment option (e.g. Bank Transfer, bKash, etc.)</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Method Name</Label>
+                <Input 
+                  placeholder="e.g. Bank Transfer" 
+                  className="h-12 rounded-xl bg-slate-800 border-none"
+                  value={newMethod.name}
+                  onChange={e => setNewMethod({...newMethod, name: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Payment Details / Instructions</Label>
+                <Textarea 
+                  placeholder="Enter account numbers, contact details, or instructions..." 
+                  className="rounded-xl bg-slate-800 border-none min-h-[120px]"
+                  value={newMethod.details}
+                  onChange={e => setNewMethod({...newMethod, details: e.target.value})}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold" onClick={handleAdd} disabled={saving}>
+                {saving ? <Loader2 className="animate-spin" /> : "Save Payment Method"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent className="p-8">
+        {loading ? (
+          <div className="flex justify-center p-8"><Loader2 className="animate-spin text-indigo-500" /></div>
+        ) : methods.length === 0 ? (
+          <p className="text-center text-slate-500 py-8">No payment methods configured yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {methods.map(method => (
+              <div key={method.id} className="p-6 bg-slate-800/50 rounded-3xl border border-white/5 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-lg">{method.name}</h4>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={method.isActive} onCheckedChange={() => toggleMethod(method.id, method.isActive)} />
+                    <Button variant="ghost" size="icon" className="text-rose-500 hover:bg-rose-500/10" onClick={() => handleDelete(method.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="text-sm text-slate-400 whitespace-pre-wrap bg-slate-900/50 p-4 rounded-2xl">
+                  {method.details}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

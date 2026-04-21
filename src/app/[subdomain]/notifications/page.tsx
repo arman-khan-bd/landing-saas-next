@@ -14,7 +14,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 
 interface Notification {
   id: string;
-  type: "order" | "customer" | "fraud" | "draft";
+  type: "order" | "customer" | "fraud" | "draft" | "system";
   title: string;
   description: string;
   time: string;
@@ -113,9 +113,32 @@ export default function NotificationsPage() {
         updateCombinedNotifications(sortedDrafts, "drafts");
       });
 
+      // 3. Listen for System Notifications
+      const systemQ = query(
+        collection(db, "system_notifications"),
+        where("userId", "==", auth.currentUser.uid)
+      );
+
+      const unsubSystem = onSnapshot(systemQ, (snap) => {
+        const systemNotifs: Notification[] = snap.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            type: "system" as const,
+            title: data.title || "System Update",
+            description: data.message || "",
+            time: data.createdAt?.toDate?.()?.toLocaleString() || "Recent",
+            read: data.read || false,
+            createdAt: data.createdAt
+          };
+        });
+        updateCombinedNotifications(systemNotifs, "system");
+      });
+
       return () => {
         unsubOrders();
         unsubDrafts();
+        unsubSystem();
       };
 
     } catch (error) {
@@ -127,20 +150,22 @@ export default function NotificationsPage() {
 
   const [rawOrders, setRawOrders] = useState<Notification[]>([]);
   const [rawDrafts, setRawDrafts] = useState<Notification[]>([]);
+  const [rawSystem, setRawSystem] = useState<Notification[]>([]);
 
-  const updateCombinedNotifications = (notifs: Notification[], category: "orders" | "drafts") => {
+  const updateCombinedNotifications = (notifs: Notification[], category: "orders" | "drafts" | "system") => {
     if (category === "orders") setRawOrders(notifs);
-    else setRawDrafts(notifs);
+    else if (category === "drafts") setRawDrafts(notifs);
+    else setRawSystem(notifs);
   };
 
   useEffect(() => {
-    const combined = [...rawOrders, ...rawDrafts].sort((a, b) => {
+    const combined = [...rawOrders, ...rawDrafts, ...rawSystem].sort((a, b) => {
         const timeA = new Date(a.time).getTime() || 0;
         const timeB = new Date(b.time).getTime() || 0;
         return timeB - timeA;
     });
     setNotifications(combined);
-  }, [rawOrders, rawDrafts]);
+  }, [rawOrders, rawDrafts, rawSystem]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -170,9 +195,11 @@ export default function NotificationsPage() {
 
       // Collect all unread notification IDs and their collection names
       notifications.filter(n => !n.read).forEach(n => {
-        const collectionName = n.type === 'order' ? 'orders' : 'uncompleted_orders';
+        const collectionName = n.type === 'order' ? 'orders' : 
+                             n.type === 'draft' ? 'uncompleted_orders' : 'system_notifications';
         const docRef = doc(db, collectionName, n.id);
-        batch.update(docRef, { isRead: true });
+        const updateData = n.type === 'system' ? { read: true } : { isRead: true };
+        batch.update(docRef, updateData);
       });
 
       await batch.commit();
@@ -192,9 +219,11 @@ export default function NotificationsPage() {
     try {
       // Mark as read in DB if it's currently unread
       if (!n.read) {
-        const collectionName = n.type === 'order' ? 'orders' : 'uncompleted_orders';
+        const collectionName = n.type === 'order' ? 'orders' : 
+                             n.type === 'draft' ? 'uncompleted_orders' : 'system_notifications';
         const docRef = doc(db, collectionName, n.id);
-        await updateDoc(docRef, { isRead: true });
+        const updateData = n.type === 'system' ? { read: true } : { isRead: true };
+        await updateDoc(docRef, updateData);
       }
 
       // Mark as read locally

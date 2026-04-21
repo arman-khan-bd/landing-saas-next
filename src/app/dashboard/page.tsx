@@ -322,6 +322,12 @@ export default function RedesignedDashboard() {
                   <User className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">Edit Profile</span>
                 </DropdownMenuItem>
+                {profileData.role === 'admin' && (
+                  <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer text-indigo-600 focus:text-indigo-700 focus:bg-indigo-50" onClick={() => router.push("/saas-admin")}>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span className="font-bold">SaaS Admin Panel</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer" onClick={() => setView("settings")}>
                   <Settings className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">Account Settings</span>
@@ -350,9 +356,16 @@ export default function RedesignedDashboard() {
                   <p className="text-muted-foreground text-lg">Manage your digital commerce empire from a single dashboard.</p>
                 </div>
                 
-                <Button size="lg" className="w-full sm:w-auto rounded-2xl shadow-2xl shadow-primary/30 h-14 px-8 text-lg font-bold group" onClick={() => setIsCreateStoreOpen(true)}>
-                  <Plus className="mr-2 w-6 h-6 group-hover:rotate-90 transition-transform duration-300" /> Create Store
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                  {profileData.role === 'admin' && (
+                    <Button size="lg" variant="outline" className="rounded-2xl border-2 border-indigo-600/20 text-indigo-600 hover:bg-indigo-50 h-14 px-8 text-lg font-bold shadow-xl shadow-indigo-600/5 group" onClick={() => router.push("/saas-admin")}>
+                      <ShieldCheck className="mr-2 w-6 h-6" /> Admin Portal
+                    </Button>
+                  )}
+                  <Button size="lg" className="rounded-2xl shadow-2xl shadow-primary/30 h-14 px-8 text-lg font-bold group" onClick={() => setIsCreateStoreOpen(true)}>
+                    <Plus className="mr-2 w-6 h-6 group-hover:rotate-90 transition-transform duration-300" /> Create Store
+                  </Button>
+                </div>
               </div>
             </section>
 
