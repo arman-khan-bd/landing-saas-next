@@ -66,6 +66,7 @@ export default function UncompletedOrderDetailPage() {
         paymentMethod: "manual",
         status: "pending",
         paymentStatus: "unpaid",
+        isRead: false,
         createdAt: serverTimestamp(),
       };
 
@@ -193,10 +194,20 @@ export default function UncompletedOrderDetailPage() {
                  </div>
               </CardHeader>
               <CardContent className="p-5 sm:p-8 space-y-6 sm:space-y-8">
-                 <div className="space-y-1">
-                    <p className="text-[8px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest">Full Legal Name</p>
-                    <h3 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">{item.customer?.fullName || "Visitor"}</h3>
-                 </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                        <p className="text-[8px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest">Full Legal Name</p>
+                        <h3 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">{item.customer?.fullName || "Visitor"}</h3>
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="rounded-xl h-8 text-[9px] font-black uppercase tracking-widest text-primary border border-primary/10 hover:bg-primary/5"
+                        onClick={() => router.push(`/${subdomain}/customers/${item.id}`)}
+                    >
+                        Analyze
+                    </Button>
+                  </div>
 
                  <div className="space-y-4 sm:space-y-6">
                     <div className="flex items-center justify-between group">

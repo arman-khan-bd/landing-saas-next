@@ -4,12 +4,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, onSnapshot, orderBy, updateDoc, doc, writeBatch } from "firebase/firestore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, ShoppingCart, User, ShieldAlert, Check, Trash2, Clock, Loader2, AlertCircle, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface Notification {
   id: string;
@@ -22,12 +23,24 @@ interface Notification {
 
 export default function NotificationsPage() {
   const { subdomain } = useParams();
+  const confirm = useConfirm();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchRealNotifications();
+    let unsub: (() => void) | undefined;
+    
+    const setupListeners = async () => {
+      const cleanup = await fetchRealNotifications();
+      if (typeof cleanup === 'function') unsub = cleanup;
+    };
+
+    setupListeners();
+
+    return () => {
+      if (unsub) unsub();
+    };
   }, [subdomain]);
 
   const fetchRealNotifications = async () => {
@@ -36,53 +49,74 @@ export default function NotificationsPage() {
     try {
       const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQ);
-      if (storeSnap.empty) return;
+      if (storeSnap.empty) {
+        setLoading(false);
+        return;
+      }
       const storeId = storeSnap.docs[0].id;
 
-      // Fetch latest orders
+      // 1. Listen for Orders
       const ordersQ = query(
         collection(db, "orders"),
         where("storeId", "==", storeId),
-        where("ownerId", "==", auth.currentUser.uid),
-        limit(10)
+        where("ownerId", "==", auth.currentUser.uid)
       );
       
-      // Fetch latest drafts
+      const unsubOrders = onSnapshot(ordersQ, (snap) => {
+        const orderNotifs: Notification[] = snap.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            type: "order" as const,
+            title: `New Order Received`,
+            description: `${data.customer?.fullName || 'A customer'} placed an order for $${data.total?.toFixed(2)}`,
+            time: data.createdAt?.toDate?.()?.toLocaleString() || "Recent",
+            read: data.isRead || false,
+            createdAt: data.createdAt // Keep raw for sorting
+          };
+        });
+        
+        // Client-side sort and limit
+        const sortedNotifs = orderNotifs
+          .sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+          .slice(0, 15);
+
+        updateCombinedNotifications(sortedNotifs, "orders");
+      });
+
+      // 2. Listen for Drafts
       const draftsQ = query(
         collection(db, "uncompleted_orders"),
         where("storeId", "==", storeId),
-        where("ownerId", "==", auth.currentUser.uid),
-        limit(10)
+        where("ownerId", "==", auth.currentUser.uid)
       );
 
-      const [orderSnap, draftSnap] = await Promise.all([getDocs(ordersQ), getDocs(draftsQ)]);
+      const unsubDrafts = onSnapshot(draftsQ, (snap) => {
+        const draftNotifs: Notification[] = snap.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            type: "draft" as const,
+            title: `Abandoned Checkout`,
+            description: `${data.customer?.fullName || 'Someone'} started checking out with $${data.total?.toFixed(2)} worth of items.`,
+            time: data.lastUpdated?.toDate?.()?.toLocaleString() || "Recent",
+            read: data.isRead || false,
+            lastUpdated: data.lastUpdated // Keep raw for sorting
+          };
+        });
 
-      const orderNotifs: Notification[] = orderSnap.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          type: "order",
-          title: `New Order Received`,
-          description: `${data.customer?.fullName || 'A customer'} placed an order for $${data.total?.toFixed(2)}`,
-          time: data.createdAt?.toDate?.()?.toLocaleString() || "Recent",
-          read: false
-        };
+        // Client-side sort and limit
+        const sortedDrafts = draftNotifs
+          .sort((a: any, b: any) => (b.lastUpdated?.seconds || 0) - (a.lastUpdated?.seconds || 0))
+          .slice(0, 15);
+
+        updateCombinedNotifications(sortedDrafts, "drafts");
       });
 
-      const draftNotifs: Notification[] = draftSnap.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          type: "draft",
-          title: `Abandoned Checkout`,
-          description: `${data.customer?.fullName || 'Someone'} started checking out with $${data.total?.toFixed(2)} worth of items.`,
-          time: data.lastUpdated?.toDate?.()?.toLocaleString() || "Recent",
-          read: false
-        };
-      });
-
-      const combined = [...orderNotifs, ...draftNotifs].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-      setNotifications(combined);
+      return () => {
+        unsubOrders();
+        unsubDrafts();
+      };
 
     } catch (error) {
       console.error(error);
@@ -90,6 +124,23 @@ export default function NotificationsPage() {
       setLoading(false);
     }
   };
+
+  const [rawOrders, setRawOrders] = useState<Notification[]>([]);
+  const [rawDrafts, setRawDrafts] = useState<Notification[]>([]);
+
+  const updateCombinedNotifications = (notifs: Notification[], category: "orders" | "drafts") => {
+    if (category === "orders") setRawOrders(notifs);
+    else setRawDrafts(notifs);
+  };
+
+  useEffect(() => {
+    const combined = [...rawOrders, ...rawDrafts].sort((a, b) => {
+        const timeA = new Date(a.time).getTime() || 0;
+        const timeB = new Date(b.time).getTime() || 0;
+        return timeB - timeA;
+    });
+    setNotifications(combined);
+  }, [rawOrders, rawDrafts]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -101,24 +152,65 @@ export default function NotificationsPage() {
     }
   };
 
-  const markAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  const markAllRead = async () => {
+    const isConfirmed = await confirm({
+      title: "Mark all as Read",
+      message: "Are you sure you want to mark all recent alerts as read? This will update your notification badge density.",
+      confirmText: "Mark All Read",
+      variant: "primary"
+    });
+
+    if (!isConfirmed) return;
+
+    try {
+      const batch = writeBatch(db);
+      
+      // Update local state first for instant feedback
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+
+      // Collect all unread notification IDs and their collection names
+      notifications.filter(n => !n.read).forEach(n => {
+        const collectionName = n.type === 'order' ? 'orders' : 'uncompleted_orders';
+        const docRef = doc(db, collectionName, n.id);
+        batch.update(docRef, { isRead: true });
+      });
+
+      await batch.commit();
+    } catch (error) {
+      console.error("Error marking all read:", error);
+    }
   };
 
-  const deleteNotification = (e: React.MouseEvent, id: string) => {
+  const deleteNotification = async (e: React.MouseEvent, id: string, type: string) => {
     e.stopPropagation();
+    // For now, archive only removes from UI as requested behavior focuses on "read" status.
+    // If you want permanent deletion, we can add deleteDoc here.
     setNotifications(notifications.filter(n => n.id !== id));
   };
 
-  const handleNotificationClick = (n: Notification) => {
-    // Mark as read
-    setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
-    
-    // Navigate to appropriate detail page
-    if (n.type === 'order') {
-      router.push(`/${subdomain}/orders`);
-    } else if (n.type === 'draft') {
-      router.push(`/${subdomain}/orders/uncompleted/${n.id}`);
+  const handleNotificationClick = async (n: Notification) => {
+    try {
+      // Mark as read in DB if it's currently unread
+      if (!n.read) {
+        const collectionName = n.type === 'order' ? 'orders' : 'uncompleted_orders';
+        const docRef = doc(db, collectionName, n.id);
+        await updateDoc(docRef, { isRead: true });
+      }
+
+      // Mark as read locally
+      setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
+      
+      // Navigate to appropriate detail page
+      if (n.type === 'order') {
+        router.push(`/${subdomain}/orders`);
+      } else if (n.type === 'draft') {
+        router.push(`/${subdomain}/orders/uncompleted/${n.id}`);
+      }
+    } catch (error) {
+      console.error("Error updating notification status:", error);
+      // Still navigate even if DB update fails
+      if (n.type === 'order') router.push(`/${subdomain}/orders`);
+      else if (n.type === 'draft') router.push(`/${subdomain}/orders/uncompleted/${n.id}`);
     }
   };
 
@@ -192,7 +284,7 @@ export default function NotificationsPage() {
                           variant="ghost" 
                           size="sm" 
                           className="h-7 sm:h-8 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest gap-1 sm:gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
-                          onClick={(e) => deleteNotification(e, n.id)}
+                          onClick={(e) => deleteNotification(e, n.id, n.type)}
                         >
                           <Trash2 className="w-3 h-3" /> <span className="hidden xs:inline">Archive</span>
                         </Button>

@@ -64,6 +64,9 @@ export default function CheckoutPage() {
           if (parsedCart.length === 0) {
             router.push(`/${subdomain}`);
           }
+          // Resume Draft
+          const savedDraftId = localStorage.getItem(`draftId_${subdomain}`);
+          if (savedDraftId) setDraftId(savedDraftId);
         } catch (e) {
           console.error("Cart parse error", e);
         }
@@ -116,6 +119,7 @@ export default function CheckoutPage() {
         name: selectedShipping.name,
         cost: selectedShipping.cost
       } : null,
+      isRead: false,
       lastUpdated: serverTimestamp(),
       subdomain
     };
@@ -126,6 +130,7 @@ export default function CheckoutPage() {
       } else {
         const docRef = await addDoc(collection(db, "uncompleted_orders"), draftData);
         setDraftId(docRef.id);
+        localStorage.setItem(`draftId_${subdomain}`, docRef.id);
       }
     } catch (e) {
       console.error("Draft Save Error:", e);
@@ -196,6 +201,7 @@ export default function CheckoutPage() {
         paymentMethod: formData.paymentMethod,
         status: "pending",
         paymentStatus: "unpaid",
+        isRead: false,
         createdAt: serverTimestamp(),
       };
 
@@ -203,6 +209,7 @@ export default function CheckoutPage() {
       
       if (draftId) {
         await deleteDoc(doc(db, "uncompleted_orders", draftId));
+        localStorage.removeItem(`draftId_${subdomain}`);
       }
 
       localStorage.removeItem(`cart_${subdomain}`);

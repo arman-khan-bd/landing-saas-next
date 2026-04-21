@@ -62,14 +62,15 @@ service cloud.firestore {
     }
 
     match /uncompleted_orders/{orderId} {
-      allow create: if true;
-      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-      allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      // Allow guests to manage their own drafts (get/update by ID, delete on completion)
+      allow create, get, update, delete: if true;
+      // Only the merchant can list abandoned checkouts
+      allow list: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
     match /fraud_blocks/{blockId} {
       // Merchant access
-      allow read: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow read, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
       allow create: if isSignedIn() && isDataOwner();
       allow delete: if isSignedIn() && (isExistingOwner() || isAdmin());
       

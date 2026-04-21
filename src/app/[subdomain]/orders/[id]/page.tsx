@@ -249,10 +249,20 @@ export default function OrderDetailPage() {
                  </div>
               </CardHeader>
               <CardContent className="p-6 sm:p-8 space-y-6">
-                 <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Full Name</p>
-                    <h3 className="text-xl font-bold text-slate-900">{order.customer?.fullName}</h3>
-                 </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Full Name</p>
+                        <h3 className="text-xl font-bold text-slate-900">{order.customer?.fullName}</h3>
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="rounded-xl h-9 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 border border-primary/10"
+                        onClick={() => router.push(`/${subdomain}/customers/${order.id}`)}
+                    >
+                        Analyze Profile
+                    </Button>
+                  </div>
 
                  <div className="space-y-4">
                     <div className="flex items-center gap-3 group">

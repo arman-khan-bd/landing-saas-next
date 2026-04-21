@@ -13,11 +13,13 @@ import { Search, MoreHorizontal, ShieldAlert, AlertTriangle, Trash2, CheckCircle
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 
 export default function FraudListPage() {
   const { subdomain } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [searchTerm, setSearchTerm] = useState("");
   const [blocks, setBlocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,10 +39,19 @@ export default function FraudListPage() {
       const q = query(
         collection(db, "fraud_blocks"), 
         where("storeId", "==", sId),
-        orderBy("createdAt", "desc")
+        where("ownerId", "==", auth.currentUser?.uid)
       );
       const snap = await getDocs(q);
-      setBlocks(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Client-side sort while index builds
+      data.sort((a: any, b: any) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        return dateB - dateA;
+      });
+
+      setBlocks(data);
     } catch (e) {
       console.error(e);
     } finally {
@@ -49,7 +60,14 @@ export default function FraudListPage() {
   };
 
   const handleUnblock = async (id: string) => {
-    if (!confirm("Remove this entity from the fraud list?")) return;
+    const isConfirmed = await confirm({
+      title: "Confirm Unblock",
+      message: "Are you sure you want to remove this entity from the fraud list? This customer will be able to place orders again.",
+      confirmText: "Unblock Entity",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
     try {
       await deleteDoc(doc(db, "fraud_blocks", id));
       toast({ title: "Entity Unblocked" });
