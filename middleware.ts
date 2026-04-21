@@ -2,28 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const config = {
   matcher: [
-    /*
-     * Match all paths except for:
-     * 1. /api routes
-     * 2. /_next (Next.js internals)
-     * 3. /_static (inside /public)
-     * 4. all root files inside /public (e.g. /favicon.ico)
-     */
     "/((?!api/|_next/|_static/|_vercel|[\\w-]+\\.\\w+).*)",
   ],
 };
 
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl;
-  const hostname = req.headers.get("host") || "";
   
-  // Clean hostname
-  const currentHost = hostname.replace(/:.*$/, "").toLowerCase();
+  // Clean hostname from Next.js URL object (more reliable than host header)
+  const currentHost = url.hostname.toLowerCase().replace(/\.$/, "");
 
   // Define root domain
   const rootDomain = "ihut.shop";
   
-  // If it's the root domain or www, or local root, just proceed
+  // 1. If it's the root domain or www, or local root, just proceed
   if (
     currentHost === rootDomain || 
     currentHost === `www.${rootDomain}` || 
@@ -33,30 +25,35 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Extract subdomain: handle *.ihut.shop and others
+  // 2. Extract subdomain
   let subdomain = "";
   if (currentHost.endsWith(`.${rootDomain}`)) {
     subdomain = currentHost.replace(`.${rootDomain}`, "");
   } else {
-    // For Vercel preview URLs or other domains, take the first part
+    // Fallback for non-standard domains (Vercel previews, etc.)
     const parts = currentHost.split(".");
     if (parts.length >= 2 && !currentHost.includes("vercel.app")) {
       subdomain = parts[0];
     }
   }
 
-  // If no subdomain detected or it's 'www', serve root landing page
+  // 3. Fallback for no subdomain
   if (!subdomain || subdomain === "www") {
     return NextResponse.next();
   }
 
-  // Prevent double rewriting
+  // 4. Prevent double rewriting loops
   if (url.pathname.startsWith(`/${subdomain}/`) || url.pathname === `/${subdomain}`) {
     return NextResponse.next();
   }
 
-  // Rewrite to the subdomain folder
-  // Visitors to arman.ihut.shop/ see content from src/app/[subdomain]/page.tsx
+  // 5. Perform the rewrite
   const rewritePath = `/${subdomain}${url.pathname}${url.search}`;
-  return NextResponse.rewrite(new URL(rewritePath, req.url));
+  const response = NextResponse.rewrite(new URL(rewritePath, req.url));
+  
+  // Add debug headers
+  response.headers.set("x-subdomain-detected", subdomain);
+  response.headers.set("x-current-host", currentHost);
+  
+  return response;
 }
