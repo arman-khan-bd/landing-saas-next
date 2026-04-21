@@ -59,6 +59,9 @@ export default function UncompletedOrderDetailPage() {
         ownerId: item.ownerId,
         items: item.items,
         customer: item.customer,
+        subtotal: item.subtotal || item.total,
+        shipping: item.shipping || { name: "Free Shipping", cost: 0 },
+        shippingCost: item.shippingCost || 0,
         total: item.total,
         paymentMethod: "manual",
         status: "pending",
@@ -152,8 +155,8 @@ export default function UncompletedOrderDetailPage() {
                      <span>${item.total?.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between w-full max-w-[200px] text-[10px] sm:text-sm font-medium text-emerald-600">
-                     <span>Est. Shipping</span>
-                     <span>FREE</span>
+                     <span className="truncate pr-2">Est. Shipping ({item.shipping?.name || 'Free'})</span>
+                     <span>{item.shipping?.cost > 0 ? `$${item.shipping.cost.toFixed(2)}` : 'FREE'}</span>
                   </div>
                   <Separator className="w-full max-w-[200px] my-1 sm:my-2 bg-border/40" />
                   <div className="flex justify-between w-full max-w-[240px] text-lg sm:text-2xl font-black text-primary">

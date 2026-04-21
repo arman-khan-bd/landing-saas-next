@@ -35,6 +35,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [selectedShipping, setSelectedShipping] = useState<any>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [clientIp, setClientIp] = useState("");
 
@@ -77,7 +78,13 @@ export default function CheckoutPage() {
       const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQuery);
       if (!storeSnap.empty) {
-        setStore({ id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() });
+        const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
+        setStore(storeData);
+        
+        // Auto-select first shipping method if available
+        if (storeData.shippingSettings?.enabled && storeData.shippingSettings.methods?.length > 0) {
+          setSelectedShipping(storeData.shippingSettings.methods[0]);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -101,7 +108,14 @@ export default function CheckoutPage() {
         address: data.address,
         ip: clientIp
       },
-      total: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0),
+      subtotal: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0),
+      shippingCost: selectedShipping?.cost || 0,
+      total: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0) + (selectedShipping?.cost || 0),
+      shipping: selectedShipping ? {
+        id: selectedShipping.id,
+        name: selectedShipping.name,
+        cost: selectedShipping.cost
+      } : null,
       lastUpdated: serverTimestamp(),
       subdomain
     };
@@ -116,7 +130,7 @@ export default function CheckoutPage() {
     } catch (e) {
       console.error("Draft Save Error:", e);
     }
-  }, [store, cart, draftId, subdomain, clientIp]);
+  }, [store, cart, draftId, subdomain, clientIp, selectedShipping]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -125,9 +139,11 @@ export default function CheckoutPage() {
       }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [formData, saveDraft]);
+  }, [formData, saveDraft, selectedShipping]);
 
-  const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const cartSubtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const shippingCost = selectedShipping?.cost || 0;
+  const cartTotal = cartSubtotal + shippingCost;
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,6 +186,12 @@ export default function CheckoutPage() {
           address: formData.address,
           ip: clientIp
         },
+        shipping: selectedShipping ? {
+          name: selectedShipping.name,
+          cost: selectedShipping.cost
+        } : { name: "Free Shipping", cost: 0 },
+        subtotal: cartSubtotal,
+        shippingCost: shippingCost,
         total: cartTotal,
         paymentMethod: formData.paymentMethod,
         status: "pending",
@@ -284,6 +306,46 @@ export default function CheckoutPage() {
               </Card>
             </section>
 
+            {store?.shippingSettings?.enabled && store.shippingSettings.methods?.length > 0 && (
+              <section className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Shipping Method</h2>
+                </div>
+
+                <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
+                  <CardContent className="p-6 sm:p-8">
+                    <RadioGroup 
+                      value={selectedShipping?.id} 
+                      onValueChange={(id) => {
+                        const method = store.shippingSettings.methods.find((m: any) => m.id === id);
+                        setSelectedShipping(method);
+                      }} 
+                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    >
+                      {store.shippingSettings.methods.map((method: any) => (
+                        <div 
+                          key={method.id}
+                          className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer ${selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50'}`}
+                          onClick={() => setSelectedShipping(method)}
+                        >
+                          <div className="flex items-center gap-4">
+                            <RadioGroupItem value={method.id} id={method.id} className="border-primary text-primary" />
+                            <div>
+                              <Label htmlFor={method.id} className="font-bold text-base cursor-pointer">{method.name}</Label>
+                              <p className="text-xs text-muted-foreground">{method.cost > 0 ? `$${method.cost.toFixed(2)}` : 'Free Delivery'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </CardContent>
+                </Card>
+              </section>
+            )}
+
             <section className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
@@ -384,11 +446,13 @@ export default function CheckoutPage() {
                 <div className="space-y-3 pt-6 border-t border-slate-100">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Subtotal</span>
-                    <span className="font-bold">${cartTotal.toFixed(2)}</span>
+                    <span className="font-bold">${cartSubtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Shipping</span>
-                    <span className="text-emerald-500 font-black">FREE</span>
+                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Shipping ({selectedShipping?.name || 'Free'})</span>
+                    <span className={cn("font-black", shippingCost > 0 ? "text-slate-900" : "text-emerald-500")}>
+                      {shippingCost > 0 ? `$${shippingCost.toFixed(2)}` : 'FREE'}
+                    </span>
                   </div>
                   <Separator className="bg-slate-50" />
                   <div className="flex justify-between items-end pt-2">

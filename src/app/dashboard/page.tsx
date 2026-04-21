@@ -189,6 +189,42 @@ export default function RedesignedDashboard() {
     }
   };
 
+  const handleDeleteStore = async (sId: string, sName: string) => {
+    if (!user || !firestore) return;
+    if (!confirm(`Are you absolutely sure you want to delete "${sName}"? This action is permanent and will destroy all data including orders and products.`)) return;
+
+    try {
+      await updateDoc(doc(firestore, "stores", sId), { status: "deleted", deletedAt: serverTimestamp() });
+      toast({ title: "Store Deleted", description: `"${sName}" has been successfully removed.` });
+      fetchStores(user.uid);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Deletion Failed" });
+    }
+  };
+
+  const handleToggleMaintenance = async (sId: string, current: boolean) => {
+    if (!firestore) return;
+    try {
+      await updateDoc(doc(firestore, "stores", sId), { isMaintenance: !current });
+      toast({ title: !current ? "Maintenance Enabled" : "Maintenance Disabled" });
+      fetchStores(user?.uid || "");
+    } catch (error) {
+      toast({ variant: "destructive", title: "Toggle Failed" });
+    }
+  };
+
+  const handleToggleStatus = async (sId: string, status: string) => {
+    if (!firestore) return;
+    const newStatus = status === "online" ? "offline" : "online";
+    try {
+      await updateDoc(doc(firestore, "stores", sId), { status: newStatus });
+      toast({ title: `Store ${newStatus === 'online' ? 'Activated' : 'Deactivated'}` });
+      fetchStores(user?.uid || "");
+    } catch (error) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    }
+  };
+
   const handleLogout = async () => {
     if (auth) {
       await auth.signOut();
@@ -335,6 +371,48 @@ export default function RedesignedDashboard() {
                               <ExternalLink className="w-5 h-5" />
                             </a>
                           </Button>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 hover:bg-slate-100 transition-colors shadow-sm bg-white">
+                                <MoreVertical className="w-5 h-5 text-slate-400" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-2xl border-border/50">
+                              <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Quick Actions</DropdownMenuLabel>
+                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => router.push(`/${store.subdomain}/overview`)}>
+                                <LayoutDashboard className="w-4 h-4" />
+                                <span className="font-medium">Enter Manager</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => router.push(`/${store.subdomain}/settings`)}>
+                                <Settings className="w-4 h-4" />
+                                <span className="font-medium">Store Settings</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => handleToggleMaintenance(store.id, store.isMaintenance)}>
+                                <Hammer className={`w-4 h-4 ${store.isMaintenance ? 'text-primary' : ''}`} />
+                                <span className="font-medium">Maintenance Mode: {store.isMaintenance ? 'ON' : 'OFF'}</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => handleToggleStatus(store.id, store.status)}>
+                                <Power className={`w-4 h-4 ${store.status === 'online' ? 'text-emerald-500' : 'text-slate-400'}`} />
+                                <span className="font-medium">{store.status === 'online' ? 'Deactivate Store' : 'Activate Store'}</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => router.push(`/${store.subdomain}/settings?tab=vault`)}>
+                                <Shield className="w-4 h-4" />
+                                <span className="font-medium">Vault Setup (PIN)</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => setView("settings")}>
+                                <Lock className="w-4 h-4" />
+                                <span className="font-medium">Change Account Password</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => handleDeleteStore(store.id, store.name)}>
+                                <Trash2 className="w-4 h-4" />
+                                <span className="font-bold">Delete Store</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                       <div className="mt-8">
@@ -346,10 +424,20 @@ export default function RedesignedDashboard() {
                             <Badge variant="outline" className="text-[8px] font-black uppercase">FREE</Badge>
                           )}
                         </div>
-                        <p className="text-sm font-bold text-primary flex items-center gap-2">
-                          <Globe className="w-3.5 h-3.5" />
-                          {getStoreUrl(store.subdomain).replace("https://", "").replace("http://", "")}
-                        </p>
+                        <div className="flex items-center gap-2">
+                           <p className="text-sm font-bold text-primary flex items-center gap-2">
+                             <Globe className="w-3.5 h-3.5" />
+                             {getStoreUrl(store.subdomain).replace("https://", "").replace("http://", "")}
+                           </p>
+                           {store.isMaintenance && (
+                             <Badge className="bg-amber-100 text-amber-700 border-none text-[8px] font-black uppercase flex items-center gap-1">
+                               <Hammer className="w-2.5 h-2.5" /> Maintenance
+                             </Badge>
+                           )}
+                           {store.status === 'offline' && (
+                             <Badge className="bg-slate-100 text-slate-500 border-none text-[8px] font-black uppercase">Offline</Badge>
+                           )}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="p-8">
@@ -435,14 +523,24 @@ export default function RedesignedDashboard() {
                       </div>
                       <Button variant="outline" className="rounded-2xl border-2 font-black">Open Billing</Button>
                    </div>
-                   <div className="flex items-center justify-between gap-6 pt-10 border-t">
-                      <div>
-                        <h4 className="text-xl font-bold text-rose-500">Security Vault</h4>
-                        <p className="text-slate-500 text-sm">Reset your account password or purge sessions.</p>
-                      </div>
-                      <Button variant="ghost" className="text-rose-500 font-bold">Manage Security</Button>
-                   </div>
-                </CardContent>
+                    <div className="flex items-center justify-between gap-6 pt-10 border-t">
+                       <div>
+                         <h4 className="text-xl font-bold">Security Vault</h4>
+                         <p className="text-slate-500 text-sm">Update your account login credentials and security PIN.</p>
+                       </div>
+                       <div className="flex gap-2">
+                          <Button variant="outline" className="rounded-2xl border-2 font-black">Change Password</Button>
+                          <Button className="rounded-2xl font-black shadow-lg shadow-primary/20">Setup 2FA</Button>
+                       </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-6 pt-10 border-t">
+                       <div>
+                         <h4 className="text-xl font-bold text-rose-500">Danger Zone</h4>
+                         <p className="text-slate-500 text-sm">Permanently delete your account and all associated stores.</p>
+                       </div>
+                       <Button variant="ghost" className="text-rose-500 font-bold">Purge Account</Button>
+                    </div>
+                 </CardContent>
               </Card>
            </div>
         )}

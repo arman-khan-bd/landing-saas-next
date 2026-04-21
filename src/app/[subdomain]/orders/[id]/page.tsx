@@ -184,11 +184,11 @@ export default function OrderDetailPage() {
                <div className="p-6 sm:p-8 bg-slate-50/30 border-t flex flex-col items-end gap-2">
                   <div className="flex justify-between w-full max-w-[200px] text-sm font-medium text-slate-400">
                      <span>Subtotal</span>
-                     <span>${order.total?.toFixed(2)}</span>
+                     <span>${(order.subtotal || order.total)?.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between w-full max-w-[200px] text-sm font-medium text-emerald-600">
-                     <span>Shipping</span>
-                     <span>FREE</span>
+                     <span className="truncate pr-2">Shipping ({order.shipping?.name || 'Free'})</span>
+                     <span>{order.shippingCost > 0 ? `$${order.shippingCost.toFixed(2)}` : 'FREE'}</span>
                   </div>
                   <Separator className="w-full max-w-[200px] my-2" />
                   <div className="flex justify-between w-full max-w-[240px] text-2xl font-black text-primary">
