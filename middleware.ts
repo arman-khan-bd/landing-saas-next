@@ -1,59 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export const config = {
-  matcher: [
-    "/((?!api/|_next/|_static/|_vercel|[\\w-]+\\.\\w+).*)",
-  ],
+  matcher: ["/((?!api/|_next/|_static/|_vercel|[\\w-]+\\.\\w+).*)"],
 };
 
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl;
-  
-  // Clean hostname from Next.js URL object (more reliable than host header)
-  const currentHost = url.hostname.toLowerCase().replace(/\.$/, "");
+  const hostname = req.headers.get("host") || "ihut.shop";
+  const currentHost = hostname.toLowerCase().split(":")[0];
 
-  // Define root domain
   const rootDomain = "ihut.shop";
-  
-  // 1. If it's the root domain or www, or local root, just proceed
-  if (
-    currentHost === rootDomain || 
-    currentHost === `www.${rootDomain}` || 
-    currentHost === "localhost" || 
-    currentHost === "127.0.0.1"
-  ) {
+
+  // 1. Root domain handling
+  if (currentHost === rootDomain || currentHost === `www.${rootDomain}`) {
     return NextResponse.next();
   }
 
-  // 2. Extract subdomain
-  let subdomain = "";
-  if (currentHost.endsWith(`.${rootDomain}`)) {
-    subdomain = currentHost.replace(`.${rootDomain}`, "");
-  } else {
-    // Fallback for non-standard domains (Vercel previews, etc.)
-    const parts = currentHost.split(".");
-    if (parts.length >= 2 && !currentHost.includes("vercel.app")) {
-      subdomain = parts[0];
-    }
+  // 2. Localhost handling
+  if (currentHost === "localhost" || currentHost === "127.0.0.1") {
+    return NextResponse.next();
   }
 
-  // 3. Fallback for no subdomain
+  // 3. Subdomain extraction
+  const parts = currentHost.split(".");
+  let subdomain = "";
+
+  if (parts.length >= 3 && currentHost.endsWith(`.${rootDomain}`)) {
+    subdomain = parts[0];
+  } else if (parts.length >= 2 && !currentHost.includes("vercel.app") && !currentHost.includes(rootDomain)) {
+    // Fallback for other domains
+    subdomain = parts[0];
+  }
+
   if (!subdomain || subdomain === "www") {
     return NextResponse.next();
   }
 
-  // 4. Prevent double rewriting loops
-  if (url.pathname.startsWith(`/${subdomain}/`) || url.pathname === `/${subdomain}`) {
-    return NextResponse.next();
-  }
-
-  // 5. Perform the rewrite
+  // 4. Rewrite
+  // Rewrites https://arman.ihut.shop/ to src/app/[subdomain]/page.tsx
   const rewritePath = `/${subdomain}${url.pathname}${url.search}`;
-  const response = NextResponse.rewrite(new URL(rewritePath, req.url));
-  
-  // Add debug headers
-  response.headers.set("x-subdomain-detected", subdomain);
-  response.headers.set("x-current-host", currentHost);
-  
-  return response;
+  return NextResponse.rewrite(new URL(rewritePath, req.url));
 }
