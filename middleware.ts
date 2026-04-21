@@ -15,20 +15,21 @@ export const config = {
 
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl;
-  const hostname = req.headers.get("host") || "";
+  
+  // Use x-forwarded-host as a fallback for production environments behind proxies
+  const hostname = req.headers.get("x-forwarded-host") || req.headers.get("host") || "";
 
-  // Standardize hostname (remove port if present)
-  const currentHost = hostname.replace(/:.*$/, "");
+  // Standardize hostname: remove port, lowercase, and trim trailing dots
+  const currentHost = hostname.replace(/:.*$/, "").toLowerCase().replace(/\.$/, "");
 
-  // Root domains configuration - add your custom production domain here
+  // Root domains configuration
   const rootDomain = "ihut.shop";
-  const rootDomains = [rootDomain, `www.${rootDomain}`, "localhost"];
+  const rootDomains = [rootDomain, `www.${rootDomain}`, "localhost", "127.0.0.1"];
 
   // 1. Check if we're on a defined root domain
   const isRootDomain = rootDomains.includes(currentHost);
   
   if (isRootDomain) {
-    // On root domain, proceed normally (allows access to /, /auth, /dashboard, /saas-admin, etc.)
     return NextResponse.next();
   }
 
@@ -39,16 +40,15 @@ export default async function middleware(req: NextRequest) {
   if (currentHost.endsWith(`.${rootDomain}`)) {
     subdomain = currentHost.replace(`.${rootDomain}`, "");
   } 
-  // Handle local dev: *.localhost
-  else if (currentHost.endsWith(".localhost")) {
-    subdomain = currentHost.replace(".localhost", "");
+  // Handle local dev: *.localhost or *.127.0.0.1
+  else if (currentHost.endsWith(".localhost") || currentHost.endsWith(".127.0.0.1")) {
+    const parts = currentHost.split(".");
+    if (parts.length > 1) {
+      subdomain = parts[0];
+    }
   }
-  // Generic fallback for other domains (Vercel deployments, etc.)
-  else if (currentHost.split(".").length > 2 && !currentHost.includes("vercel.app")) {
-     subdomain = currentHost.split(".")[0];
-  }
-  // Vercel specific preview handling (optional, adjust if needed)
-  else if (currentHost.endsWith(".vercel.app") && currentHost.split(".").length > 3) {
+  // Generic fallback for other domains (Vercel previews, custom domains, etc.)
+  else if (currentHost.split(".").length >= 2 && !currentHost.includes("vercel.app")) {
      subdomain = currentHost.split(".")[0];
   }
 
@@ -57,8 +57,8 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 4. Prevent double-rewriting loop
-  // If the internal path already starts with the subdomain, do nothing
+  // 4. Prevent double-rewriting loop and allow internal paths
+  // If the internal path already starts with the subdomain segment, don't rewrite
   if (url.pathname.startsWith(`/${subdomain}/`) || url.pathname === `/${subdomain}`) {
     return NextResponse.next();
   }
@@ -67,5 +67,6 @@ export default async function middleware(req: NextRequest) {
   // Visitors to arman.ihut.shop/ see content from /arman/
   // The browser URL stays arman.ihut.shop
   const rewriteUrl = new URL(`/${subdomain}${url.pathname}${url.search}`, req.url);
+  
   return NextResponse.rewrite(rewriteUrl);
-}
+}
