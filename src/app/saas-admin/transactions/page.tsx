@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { 
   collection, query, orderBy, onSnapshot, doc, updateDoc, 
-  addDoc, serverTimestamp, getDocs, where 
+  addDoc, serverTimestamp, getDocs, where, getDoc 
 } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,9 +57,35 @@ export default function TransactionsPage() {
       );
       const subSnap = await getDocs(subQ);
       if (!subSnap.empty) {
+        // Fetch plan to get billing interval
+        const planSnap = await getDoc(doc(db, "subscriptionPlans", tx.planId));
+        const planData = planSnap.exists() ? planSnap.data() : null;
+        
+        const now = new Date();
+        const endDate = new Date();
+        
+        if (planData?.billingInterval === "year") {
+          endDate.setFullYear(now.getFullYear() + 1);
+        } else if (planData?.billingInterval === "week") {
+          endDate.setDate(now.getDate() + 7);
+        } else {
+          // Default to monthly
+          endDate.setMonth(now.getMonth() + 1);
+        }
+
         await updateDoc(doc(db, "stores", tx.storeId, "subscription", subSnap.docs[0].id), {
           status: "active",
+          currentPeriodStart: serverTimestamp(),
+          currentPeriodEnd: endDate,
           updatedAt: serverTimestamp()
+        });
+
+        // Update main store doc for fast status check
+        await updateDoc(doc(db, "stores", tx.storeId), {
+          "subscription.status": "active",
+          "subscription.currentPeriodEnd": endDate,
+          "subscription.planId": tx.planId,
+          "subscription.planName": tx.planName
         });
       }
 

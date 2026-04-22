@@ -370,8 +370,34 @@ export default function RedesignedDashboard() {
             </section>
 
             {/* Payment Warning Section */}
+            {stores.some(s => s.subscription?.status === 'active' && s.subscription?.currentPeriodEnd && (
+                (() => {
+                  const end = s.subscription.currentPeriodEnd.toDate ? s.subscription.currentPeriodEnd.toDate() : new Date(s.subscription.currentPeriodEnd);
+                  const diff = end.getTime() - new Date().getTime();
+                  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                  return days <= 10 && days > 0;
+                })()
+              )) && (
+              <Card className="rounded-[32px] border-none bg-rose-50 shadow-sm overflow-hidden mb-6">
+                <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-600">
+                      <AlertTriangle className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-rose-900">Subscription Expiring Soon</h4>
+                      <p className="text-sm text-rose-700/80">One or more of your stores have subscriptions ending within 10 days. Please renew to avoid service interruption.</p>
+                    </div>
+                  </div>
+                  <Button className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold h-11 px-6 shadow-lg shadow-rose-200" onClick={() => setView("stores")}>
+                    Review Subscriptions
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {stores.some(s => s.plan?.price > 0 && s.subscription?.status === 'pending') && (
-              <Card className="rounded-[32px] border-none bg-amber-50 shadow-sm overflow-hidden">
+              <Card className="rounded-[32px] border-none bg-amber-50 shadow-sm overflow-hidden mb-6">
                 <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
@@ -383,7 +409,7 @@ export default function RedesignedDashboard() {
                     </div>
                   </div>
                   <Button className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold h-11 px-6 shadow-lg shadow-amber-200">
-                    Resolve Payment
+                    Verify Status
                   </Button>
                 </CardContent>
               </Card>

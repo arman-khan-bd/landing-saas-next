@@ -49,6 +49,8 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const [managerPassword, setManagerPassword] = useState("");
   const [counts, setCounts] = useState({ orders: 0, uncompleted: 0, system: 0 });
   const [userRole, setUserRole] = useState<string>("user");
+  const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
 
   useEffect(() => {
     if (!auth) return;
@@ -163,6 +165,20 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         // Actually, if we just keep it, it's safer.
         if (!storeData.managePassword || role === 'admin') {
           setIsPasswordVerified(true);
+        }
+
+        // 4. Check subscription status
+        if (storeData.subscription) {
+          setSubscriptionData(storeData.subscription);
+          const end = storeData.subscription.currentPeriodEnd?.toDate 
+            ? storeData.subscription.currentPeriodEnd.toDate() 
+            : (storeData.subscription.currentPeriodEnd ? new Date(storeData.subscription.currentPeriodEnd) : null);
+          
+          if (end && end < new Date()) {
+            setIsSubscriptionExpired(true);
+          } else {
+            setIsSubscriptionExpired(false);
+          }
         }
       }
     } catch (error) {
@@ -485,6 +501,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                       normalizedPath.startsWith("/home-manager") ? "Home Manager" :
                         normalizedPath.split("/").pop()?.replace('-', ' ')}
                 </h2>
+                {isSubscriptionExpired && (
+                  <Badge variant="destructive" className="ml-2 animate-pulse rounded-full px-3 py-1 font-black text-[10px] tracking-widest uppercase shadow-lg shadow-destructive/20">
+                    EXPIRED
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                 <Link href={`/${subdomain}/notifications`} className="relative p-2 text-muted-foreground hover:text-primary transition-colors hover:bg-primary/5 rounded-full">
@@ -501,6 +522,24 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               </div>
             </header>
             <main className="flex-1 p-4 sm:p-6 md:p-10 max-w-[100vw]">
+              {isSubscriptionExpired && !normalizedPath.startsWith("/settings") && (
+                <div className="mb-8 p-6 bg-rose-50 border-2 border-rose-200 rounded-[32px] flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-rose-100">
+                  <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 bg-rose-100 rounded-[24px] flex items-center justify-center text-rose-600">
+                      <AlertCircle className="w-10 h-10" />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-black text-rose-900 uppercase tracking-tight">Access Restricted</h4>
+                      <p className="text-sm text-rose-700/80 max-w-md">Your subscription has expired. Please upgrade or renew your plan in the settings to reactivate all features and keep your custom domain alive.</p>
+                    </div>
+                  </div>
+                  <Link href={`/${subdomain}/settings?tab=subscription`}>
+                    <Button className="rounded-2xl h-14 px-10 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase tracking-tight shadow-xl shadow-rose-200">
+                      Renew Subscription
+                    </Button>
+                  </Link>
+                </div>
+              )}
               {children}
             </main>
           </SidebarInset>

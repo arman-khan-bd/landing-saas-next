@@ -34,6 +34,8 @@ export default function StoreSettingsPage() {
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<any>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<any>(null);
   const [transactionId, setTransactionId] = useState("");
+  const [expiryDate, setExpiryDate] = useState<any>(null);
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [settings, setSettings] = useState<any>({
     name: "",
     homePageTitle: "",
@@ -108,9 +110,21 @@ export default function StoreSettingsPage() {
           const subData = subSnap.docs[0].data();
           const planSnap = await getDoc(doc(db, "subscriptionPlans", subData.planId));
           if (planSnap.exists()) {
-            setIsPro(planSnap.data().price > 0);
-            setCurrentPlan({ id: planSnap.id, ...planSnap.data() });
+            const plan = planSnap.data();
+            setCurrentPlan({ id: planSnap.id, ...plan });
             setSubscriptionStatus(subData.status);
+            
+            if (subData.currentPeriodEnd) {
+              const end = subData.currentPeriodEnd.toDate ? subData.currentPeriodEnd.toDate() : new Date(subData.currentPeriodEnd);
+              setExpiryDate(end);
+              const diff = end.getTime() - new Date().getTime();
+              const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+              setDaysRemaining(days);
+              // Set Pro status only if not expired
+              setIsPro(plan.price > 0 && days > 0);
+            } else {
+              setIsPro(plan.price > 0);
+            }
           }
         }
 
@@ -383,6 +397,30 @@ export default function StoreSettingsPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-8">
+                {daysRemaining !== null && daysRemaining <= 10 && daysRemaining > 0 && (
+                  <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-4 text-amber-800">
+                    <AlertTriangle className="w-6 h-6 text-amber-600" />
+                    <div className="flex-1">
+                      <p className="font-bold">Subscription Expiring Soon</p>
+                      <p className="text-xs">Your subscription will expire in {daysRemaining} days. Please upgrade or renew to keep your Pro features active.</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="border-amber-300 text-amber-700" onClick={() => {
+                      const element = document.getElementById("plan-selection-grid");
+                      element?.scrollIntoView({ behavior: 'smooth' });
+                    }}>Upgrade Now</Button>
+                  </div>
+                )}
+                
+                {daysRemaining !== null && daysRemaining <= 0 && (
+                  <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-4 text-rose-800">
+                    <AlertCircle className="w-6 h-6 text-rose-600" />
+                    <div className="flex-1">
+                      <p className="font-bold">Subscription Expired</p>
+                      <p className="text-xs">Your subscription has expired. Pro features are now disabled. Upgrade now to restore access.</p>
+                    </div>
+                  </div>
+                )}
+
                 {currentPlan ? (
                   <div className="flex flex-col md:flex-row items-center justify-between p-6 bg-slate-50 rounded-[32px] border border-slate-100 gap-6">
                     <div className="flex items-center gap-6">
@@ -410,7 +448,7 @@ export default function StoreSettingsPage() {
                   </div>
                 )}
 
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div id="plan-selection-grid" className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {allPlans.map((plan) => (
                     <Card key={plan.id} className={`group relative rounded-[40px] border-border/50 bg-white transition-all duration-500 overflow-hidden flex flex-col ${currentPlan?.id === plan.id ? 'border-primary ring-2 ring-primary/10 shadow-xl' : 'hover:shadow-2xl'}`}>
                       <CardHeader className="p-8 pb-4">
@@ -449,9 +487,10 @@ export default function StoreSettingsPage() {
                                   setSelectedPaymentMethod(null);
                                   setTransactionId("");
                                 }} 
+                                disabled={subscriptionStatus === "pending"}
                                 className="w-full h-12 rounded-xl text-sm font-black uppercase tracking-tight shadow-lg shadow-primary/10"
                               >
-                                Select Plan
+                                {subscriptionStatus === "pending" ? "Request Pending" : "Select Plan"}
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="rounded-[40px] bg-white border-none shadow-2xl max-w-lg">

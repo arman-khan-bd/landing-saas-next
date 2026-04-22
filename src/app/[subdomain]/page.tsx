@@ -48,6 +48,8 @@ export default function Storefront() {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
+  const [isCustomDomain, setIsCustomDomain] = useState(false);
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -89,6 +91,24 @@ export default function Storefront() {
 
       const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
       setStore(storeData);
+
+      // Check subscription for custom domains
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
+        const isCustom = !hostname.endsWith(rootDomain) && hostname !== 'localhost';
+        setIsCustomDomain(isCustom);
+
+        if (isCustom && storeData.subscription) {
+          const end = storeData.subscription.currentPeriodEnd?.toDate 
+            ? storeData.subscription.currentPeriodEnd.toDate() 
+            : (storeData.subscription.currentPeriodEnd ? new Date(storeData.subscription.currentPeriodEnd) : null);
+          
+          if (end && end < new Date()) {
+            setIsSubscriptionExpired(true);
+          }
+        }
+      }
 
       const prodQuery = query(collection(db, "products"), where("storeId", "==", storeData.id));
       const prodSnap = await getDocs(prodQuery);
@@ -168,6 +188,26 @@ export default function Storefront() {
         </div>
         <h1 className="text-3xl font-headline font-black tracking-tight">{store.name}</h1>
         <p className="text-slate-500 mt-2 max-w-xs mx-auto">We're updating our store. Check back soon!</p>
+      </div>
+    );
+  }
+
+  if (isSubscriptionExpired && isCustomDomain) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white text-slate-900 p-6 text-center">
+        <div className="w-20 h-20 bg-rose-50 rounded-[32px] flex items-center justify-center text-rose-500 mb-8 shadow-xl shadow-rose-100">
+          <AlertCircle className="w-10 h-10" />
+        </div>
+        <h1 className="text-4xl font-headline font-black tracking-tighter uppercase mb-4">Service Interrupted</h1>
+        <p className="text-slate-500 max-w-sm mx-auto font-medium leading-relaxed mb-8">
+          This store's custom domain is currently inactive due to an expired subscription. 
+          If you are the store owner, please renew your subscription in the dashboard.
+        </p>
+        <Link href={`https://${store.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}`}>
+          <Button variant="outline" className="rounded-2xl h-14 px-10 border-2 font-black uppercase tracking-tight">
+            Visit via Subdomain
+          </Button>
+        </Link>
       </div>
     );
   }
