@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
+import { getSubdomain } from "@/lib/subdomain";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, ShoppingCart, Search, Menu, Instagram, Twitter, Facebook, Hammer, AlertCircle, Loader2, X, Plus, Minus, Trash2, ChevronLeft, ChevronRight, ArrowRight, Zap } from "lucide-react";
@@ -24,8 +25,23 @@ interface CartItem {
 }
 
 export default function Storefront() {
-  const { subdomain: rawSubdomain } = useParams();
-  const subdomain = typeof rawSubdomain === 'string' ? rawSubdomain.toLowerCase() : '';
+  const { subdomain: paramsSubdomain } = useParams();
+  
+  const [subdomain, setSubdomain] = useState<string>("");
+
+  useEffect(() => {
+    let sub = typeof paramsSubdomain === 'string' ? paramsSubdomain.toLowerCase() : '';
+    
+    // Fallback for production if useParams is empty due to rewrite
+    if (!sub && typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
+      const extracted = getSubdomain(hostname, rootDomain);
+      if (extracted) sub = extracted.toLowerCase();
+    }
+    
+    setSubdomain(sub);
+  }, [paramsSubdomain]);
   
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);

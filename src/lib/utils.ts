@@ -6,6 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 export function getStoreUrl(subdomain: string) {
   const isProd = process.env.NODE_ENV === "production";
+  console.log(isProd, "prod or not")
   if (isProd) {
     return `https://${subdomain}.ihut.shop`;
   }

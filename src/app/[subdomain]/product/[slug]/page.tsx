@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
+import { getSubdomain } from "@/lib/subdomain";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, ShoppingCart, Loader2, CheckCircle2, Plus, Minus, X, Trash2, ChevronLeft } from "lucide-react";
@@ -23,8 +24,22 @@ interface CartItem {
 }
 
 export default function ProductDetailPage() {
-  const { subdomain: rawSubdomain, slug } = useParams();
-  const subdomain = typeof rawSubdomain === 'string' ? rawSubdomain.toLowerCase() : '';
+  const { subdomain: paramsSubdomain, slug } = useParams();
+  const [subdomain, setSubdomain] = useState<string>("");
+
+  useEffect(() => {
+    let sub = typeof paramsSubdomain === 'string' ? paramsSubdomain.toLowerCase() : '';
+    
+    if (!sub && typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
+      const extracted = getSubdomain(hostname, rootDomain);
+      if (extracted) sub = extracted.toLowerCase();
+    }
+    
+    setSubdomain(sub);
+  }, [paramsSubdomain]);
+
   const router = useRouter();
 
   const [product, setProduct] = useState<any>(null);

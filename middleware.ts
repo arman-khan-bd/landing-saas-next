@@ -6,10 +6,10 @@ export const config = {
 
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl;
-  const hostname = req.headers.get("host") || "ihut.shop";
+  const hostname = req.headers.get("host") || (process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop");
   const currentHost = hostname.toLowerCase().split(":")[0];
 
-  const rootDomain = "ihut.shop";
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
 
   // 1. Root domain handling
   if (currentHost === rootDomain || currentHost === `www.${rootDomain}`) {
@@ -27,8 +27,11 @@ export default async function middleware(req: NextRequest) {
 
   if (parts.length >= 3 && currentHost.endsWith(`.${rootDomain}`)) {
     subdomain = parts[0];
-  } else if (parts.length >= 2 && !currentHost.includes("vercel.app") && !currentHost.includes(rootDomain)) {
-    // Fallback for other domains
+  } else if (parts.length >= 2 && !currentHost.includes("vercel.app") && !currentHost.includes("localhost") && !currentHost.includes(rootDomain)) {
+    // Fallback for other domains (custom domains)
+    subdomain = parts[0];
+  } else if (currentHost.includes(".localhost")) {
+    // Handle arman.localhost:3000
     subdomain = parts[0];
   }
 
