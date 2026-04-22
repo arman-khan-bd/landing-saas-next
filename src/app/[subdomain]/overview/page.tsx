@@ -33,14 +33,14 @@ export default function StoreOverview() {
       const [prodSnap, orderSnap] = await Promise.all([
         getDocs(query(collection(db, "products"), where("storeId", "==", storeId))),
         getDocs(query(
-          collection(db, "orders"), 
+          collection(db, "orders"),
           where("storeId", "==", storeId),
           where("ownerId", "==", user.uid)
         ))
       ]);
-      
+
       const allOrders = orderSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      
+
       // Sort client-side to "fix" index error immediately
       allOrders.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
@@ -126,7 +126,7 @@ export default function StoreOverview() {
 
         <Card className="rounded-3xl border-border/50 shadow-sm bg-slate-900 text-white">
           <CardContent className="p-6">
-            <h3 className="text-xl font-headline font-bold mb-2">NexusCart Pro</h3>
+            <h3 className="text-xl font-headline font-bold mb-2">IHut.Shop Pro</h3>
             <p className="text-xs text-white/60 mb-4 font-medium uppercase tracking-widest">Unlock Advanced Tools</p>
             <button className="w-full bg-primary text-white rounded-xl py-3 font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
               Upgrade Console
@@ -162,8 +162,8 @@ export default function StoreOverview() {
             <div className="divide-y">
               {recentOrders.length === 0 ? (
                 <div className="p-20 text-center text-slate-200">
-                   <Clock className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                   <p className="text-sm font-black uppercase tracking-widest">No Recent Activity</p>
+                  <Clock className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                  <p className="text-sm font-black uppercase tracking-widest">No Recent Activity</p>
                 </div>
               ) : (
                 recentOrders.map((o) => (

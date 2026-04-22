@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase";
 import { getSubdomain } from "@/lib/subdomain";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ShoppingCart, Search, Menu, Instagram, Twitter, Facebook, Hammer, AlertCircle, Loader2, X, Plus, Minus, Trash2, ChevronLeft, ChevronRight, ArrowRight, Zap } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Search, Menu, Instagram, Twitter, Facebook, Hammer, AlertCircle, Loader2, X, Plus, Minus, Trash2, ChevronLeft, ChevronRight, ArrowRight, Zap, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,12 +26,12 @@ interface CartItem {
 
 export default function Storefront() {
   const { subdomain: paramsSubdomain } = useParams();
-  
+
   const [subdomain, setSubdomain] = useState<string>("");
 
   useEffect(() => {
     let sub = typeof paramsSubdomain === 'string' ? paramsSubdomain.toLowerCase() : '';
-    
+
     // Fallback for production if useParams is empty due to rewrite
     if (!sub && typeof window !== 'undefined') {
       const hostname = window.location.hostname;
@@ -39,10 +39,10 @@ export default function Storefront() {
       const extracted = getSubdomain(hostname, rootDomain);
       if (extracted) sub = extracted.toLowerCase();
     }
-    
+
     setSubdomain(sub);
   }, [paramsSubdomain]);
-  
+
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +50,7 @@ export default function Storefront() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
   const [isCustomDomain, setIsCustomDomain] = useState(false);
-  
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 10;
@@ -82,7 +82,7 @@ export default function Storefront() {
     try {
       const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQuery);
-      
+
       if (storeSnap.empty) {
         setStore(null);
         setLoading(false);
@@ -100,10 +100,10 @@ export default function Storefront() {
         setIsCustomDomain(isCustom);
 
         if (isCustom && storeData.subscription) {
-          const end = storeData.subscription.currentPeriodEnd?.toDate 
-            ? storeData.subscription.currentPeriodEnd.toDate() 
+          const end = storeData.subscription.currentPeriodEnd?.toDate
+            ? storeData.subscription.currentPeriodEnd.toDate()
             : (storeData.subscription.currentPeriodEnd ? new Date(storeData.subscription.currentPeriodEnd) : null);
-          
+
           if (end && end < new Date()) {
             setIsSubscriptionExpired(true);
           }
@@ -124,7 +124,7 @@ export default function Storefront() {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
-        return prev.map(item => 
+        return prev.map(item =>
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
@@ -200,7 +200,7 @@ export default function Storefront() {
         </div>
         <h1 className="text-4xl font-headline font-black tracking-tighter uppercase mb-4">Service Interrupted</h1>
         <p className="text-slate-500 max-w-sm mx-auto font-medium leading-relaxed mb-8">
-          This store's custom domain is currently inactive due to an expired subscription. 
+          This store's custom domain is currently inactive due to an expired subscription.
           If you are the store owner, please renew your subscription in the dashboard.
         </p>
         <Link href={`https://${store.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}`}>
@@ -229,7 +229,7 @@ export default function Storefront() {
               {store.name}
             </h1>
           </Link>
-          
+
           <div className="flex items-center gap-2 sm:gap-4">
             <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
               <SheetTrigger asChild>
@@ -254,7 +254,7 @@ export default function Storefront() {
                     </SheetClose>
                   </div>
                 </SheetHeader>
-                
+
                 <ScrollArea className="flex-1 px-6 py-4">
                   {cart.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center py-20 text-center opacity-20">
@@ -312,9 +312,9 @@ export default function Storefront() {
             </Sheet>
 
             <Link href={`/${subdomain}/overview`}>
-               <Button size="sm" variant="ghost" className="hidden sm:flex rounded-xl h-10 px-4 font-bold text-xs">
-                 Admin
-               </Button>
+              <Button size="sm" variant="ghost" className="hidden sm:flex rounded-xl h-10 px-4 font-bold text-xs">
+                Admin
+              </Button>
             </Link>
           </div>
         </div>
@@ -323,13 +323,13 @@ export default function Storefront() {
       {/* Hero */}
       <section className="relative h-[280px] sm:h-[400px] flex items-center justify-center overflow-hidden bg-slate-900 text-white">
         <div className="absolute inset-0">
-           <img 
-             src={store.homeBanner || "https://picsum.photos/seed/storehero/1200/600"} 
-             className="w-full h-full object-cover opacity-50" 
-             alt="Hero" 
-             data-ai-hint="store banner"
-           />
-           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent" />
+          <img
+            src={store.homeBanner || "https://picsum.photos/seed/storehero/1200/600"}
+            className="w-full h-full object-cover opacity-50"
+            alt="Hero"
+            data-ai-hint="store banner"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent" />
         </div>
         <div className="relative z-10 text-center space-y-4 max-w-3xl px-6">
           <Badge className="bg-primary text-white border-none px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
@@ -353,9 +353,9 @@ export default function Storefront() {
               {store.offerText || "Limited Time Offer! Shop now and save big."}
             </p>
             {store.offerLink && (
-               <Link href={store.offerLink} className="text-white underline font-bold text-[10px] sm:text-xs ml-2">
-                  View Offer
-               </Link>
+              <Link href={store.offerLink} className="text-white underline font-bold text-[10px] sm:text-xs ml-2">
+                View Offer
+              </Link>
             )}
           </div>
         </section>
@@ -388,10 +388,10 @@ export default function Storefront() {
                   <CardContent className="p-0">
                     <Link href={`/${subdomain}/product/${p.slug}`} className="block aspect-square relative overflow-hidden bg-slate-50 border-b border-slate-50">
                       {p.featuredImage ? (
-                        <img 
-                          src={p.featuredImage} 
-                          alt={p.name} 
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                        <img
+                          src={p.featuredImage}
+                          alt={p.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-100">
@@ -430,20 +430,20 @@ export default function Storefront() {
             {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 pt-8">
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="rounded-xl h-9 w-9" 
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-xl h-9 w-9"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                
+
                 <div className="flex items-center gap-1 px-4">
                   {Array.from({ length: totalPages }).map((_, i) => (
-                    <Button 
-                      key={i} 
+                    <Button
+                      key={i}
                       variant={currentPage === i + 1 ? "default" : "ghost"}
                       size="sm"
                       className={`h-9 w-9 rounded-xl font-bold ${currentPage === i + 1 ? 'shadow-lg shadow-primary/20' : ''}`}
@@ -454,10 +454,10 @@ export default function Storefront() {
                   ))}
                 </div>
 
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="rounded-xl h-9 w-9" 
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-xl h-9 w-9"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 >
@@ -469,17 +469,70 @@ export default function Storefront() {
         )}
       </section>
 
-      <footer className="bg-white border-t border-slate-100 py-12 px-6">
-        <div className="max-w-7xl mx-auto text-center space-y-6">
-            <Link href={`/${subdomain}`} className="flex items-center justify-center gap-2">
-              <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">
-                <ShoppingBag className="w-4 h-4" />
-              </div>
-              <span className="text-lg font-headline font-black tracking-tighter uppercase">{store.name}</span>
-            </Link>
-            <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
-              &copy; {new Date().getFullYear()} NEXUSCART POWERED
+      <footer className="bg-white border-t border-slate-100 pt-16 pb-12 px-6">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 text-center md:text-left">
+            <div className="space-y-4 md:col-span-2">
+              <Link href={`/${subdomain}`} className="flex items-center justify-center md:justify-start gap-2.5">
+                <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-sm">
+                  <ShoppingBag className="w-5 h-5" />
+                </div>
+                <span className="text-xl font-headline font-black tracking-tight uppercase text-slate-900">{store.name}</span>
+              </Link>
+              <p className="text-slate-500 text-sm max-w-sm mx-auto md:mx-0 font-medium leading-relaxed">
+                Discover the best collection curated specifically for you. Quality products, fast delivery, and exceptional service.
+              </p>
             </div>
+
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Shop</h4>
+              <ul className="space-y-2.5 text-sm font-bold text-slate-600">
+                <li><Link href={`/${subdomain}`} className="hover:text-primary transition-colors">All Products</Link></li>
+                <li><Link href={`/${subdomain}`} className="hover:text-primary transition-colors">Featured Items</Link></li>
+              </ul>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Support</h4>
+              <ul className="space-y-2.5 text-sm font-bold text-slate-600">
+                <li><Link href="#" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+                <li><Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="pt-8 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col items-center md:items-start gap-2">
+              <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
+                &copy; {new Date().getFullYear()} {store.name.toUpperCase()}
+              </div>
+              <div className="flex items-center gap-3 opacity-30">
+                <div className="w-5 h-5 bg-slate-200 rounded-md" />
+                <div className="w-5 h-5 bg-slate-200 rounded-md" />
+                <div className="w-5 h-5 bg-slate-200 rounded-md" />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <div className="hidden sm:flex items-center gap-2 text-slate-300">
+                <ShieldCheck className="w-4 h-4" />
+                <span className="text-[9px] font-black uppercase tracking-widest">Secure Payments</span>
+              </div>
+
+              {/* Powered by IHut.Shop - Shown for free/expired plans */}
+              {(!store.subscription || isSubscriptionExpired) && (
+                <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100 hover:bg-white hover:shadow-md transition-all group">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Powered by</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 bg-primary rounded-[4px] flex items-center justify-center">
+                      <ShoppingCart className="w-2.5 h-2.5 text-white" />
+                    </div>
+                    <span className="text-[10px] font-headline font-black tracking-tight text-primary uppercase">IHut.Shop</span>
+                  </div>
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
       </footer>
     </div>

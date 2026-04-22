@@ -8,19 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  ShoppingCart, Plus, Store, ExternalLink, LogOut, Loader2, 
-  User, Settings, LayoutDashboard, ShieldCheck, Phone, 
+import {
+  ShoppingCart, Plus, Store, ExternalLink, LogOut, Loader2,
+  User, Settings, LayoutDashboard, ShieldCheck, Phone,
   Globe, Sparkles, ChevronRight, CheckCircle2, Shield,
   MoreVertical, Trash2, Lock, AlertTriangle, Hammer, Power, X, CreditCard, AlertCircle
 } from "lucide-react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { getStoreUrl } from "@/lib/utils";
@@ -49,7 +49,7 @@ export default function RedesignedDashboard() {
   const [vaultPIN, setVaultPIN] = useState("");
   const [currentVaultPIN, setCurrentVaultPIN] = useState("");
   const [savingVault, setSavingVault] = useState(false);
-  
+
   const router = useRouter();
   const { toast } = useToast();
 
@@ -69,14 +69,14 @@ export default function RedesignedDashboard() {
         const data = docSnapshot.data();
         // Fetch subscription for each store with mandatory ownerId filter
         const subQ = query(
-          collection(firestore, "stores", docSnapshot.id, "subscription"), 
+          collection(firestore, "stores", docSnapshot.id, "subscription"),
           where("ownerId", "==", uid),
           limit(1)
         );
         const subSnap = await getDocs(subQ);
         let subData = null;
         let planData = null;
-        
+
         if (!subSnap.empty) {
           subData = subSnap.docs[0].data();
           const planRef = doc(firestore, "subscriptionPlans", subData.planId);
@@ -85,7 +85,7 @@ export default function RedesignedDashboard() {
             planData = planSnap.data();
           }
         }
-        
+
         return { id: docSnapshot.id, ...data, subscription: subData, plan: planData };
       }));
       setStores(storeList);
@@ -117,7 +117,7 @@ export default function RedesignedDashboard() {
   const handleUpdateProfile = async () => {
     if (!user || !firestore) return;
     setUpdating(true);
-    
+
     const userRef = doc(firestore, "users", user.uid);
     const updateData = {
       fullName: profileData.fullName,
@@ -146,7 +146,7 @@ export default function RedesignedDashboard() {
       return;
     }
     setCreating(true);
-    
+
     const storeData = {
       name: newStore.name,
       subdomain: newStore.subdomain.toLowerCase(),
@@ -166,7 +166,7 @@ export default function RedesignedDashboard() {
       }
 
       const docRef = await addDoc(collection(firestore, "stores"), storeData);
-      
+
       // Default to Free Plan for secondary stores
       const freePlanQ = query(collection(firestore, "subscriptionPlans"), where("price", "==", 0), where("isActive", "==", true));
       const freePlanSnap = await getDocs(freePlanQ);
@@ -283,7 +283,7 @@ export default function RedesignedDashboard() {
               <ShoppingCart className="text-white w-6 h-6" />
             </div>
             <div className="hidden xs:block">
-              <span className="text-xl font-headline font-black text-slate-900 tracking-tighter">NexusCart</span>
+              <span className="text-xl font-headline font-black text-slate-900 tracking-tighter">IHut.Shop</span>
               <span className="text-[10px] block font-bold text-primary uppercase tracking-widest leading-none">Console</span>
             </div>
           </div>
@@ -295,7 +295,7 @@ export default function RedesignedDashboard() {
                 {profileData.role === 'admin' ? 'Super Admin' : 'Store Owner'}
               </span>
             </div>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-11 w-11 rounded-xl border-2 border-primary/10 p-0 hover:bg-primary/5 transition-all">
@@ -355,7 +355,7 @@ export default function RedesignedDashboard() {
                   <h1 className="text-4xl sm:text-5xl font-headline font-black text-slate-900 tracking-tight">Welcome Back</h1>
                   <p className="text-muted-foreground text-lg">Manage your digital commerce empire from a single dashboard.</p>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
                   {profileData.role === 'admin' && (
                     <Button size="lg" variant="outline" className="rounded-2xl border-2 border-indigo-600/20 text-indigo-600 hover:bg-indigo-50 h-14 px-8 text-lg font-bold shadow-xl shadow-indigo-600/5 group" onClick={() => router.push("/saas-admin")}>
@@ -371,30 +371,30 @@ export default function RedesignedDashboard() {
 
             {/* Payment Warning Section */}
             {stores.some(s => s.subscription?.status === 'active' && s.subscription?.currentPeriodEnd && (
-                (() => {
-                  const end = s.subscription.currentPeriodEnd.toDate ? s.subscription.currentPeriodEnd.toDate() : new Date(s.subscription.currentPeriodEnd);
-                  const diff = end.getTime() - new Date().getTime();
-                  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                  return days <= 10 && days > 0;
-                })()
-              )) && (
-              <Card className="rounded-[32px] border-none bg-rose-50 shadow-sm overflow-hidden mb-6">
-                <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-600">
-                      <AlertTriangle className="w-6 h-6" />
+              (() => {
+                const end = s.subscription.currentPeriodEnd.toDate ? s.subscription.currentPeriodEnd.toDate() : new Date(s.subscription.currentPeriodEnd);
+                const diff = end.getTime() - new Date().getTime();
+                const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                return days <= 10 && days > 0;
+              })()
+            )) && (
+                <Card className="rounded-[32px] border-none bg-rose-50 shadow-sm overflow-hidden mb-6">
+                  <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-600">
+                        <AlertTriangle className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-rose-900">Subscription Expiring Soon</h4>
+                        <p className="text-sm text-rose-700/80">One or more of your stores have subscriptions ending within 10 days. Please renew to avoid service interruption.</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-rose-900">Subscription Expiring Soon</h4>
-                      <p className="text-sm text-rose-700/80">One or more of your stores have subscriptions ending within 10 days. Please renew to avoid service interruption.</p>
-                    </div>
-                  </div>
-                  <Button className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold h-11 px-6 shadow-lg shadow-rose-200" onClick={() => setView("stores")}>
-                    Review Subscriptions
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                    <Button className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold h-11 px-6 shadow-lg shadow-rose-200" onClick={() => setView("stores")}>
+                      Review Subscriptions
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
 
             {stores.some(s => s.plan?.price > 0 && s.subscription?.status === 'pending') && (
               <Card className="rounded-[32px] border-none bg-amber-50 shadow-sm overflow-hidden mb-6">
@@ -508,36 +508,36 @@ export default function RedesignedDashboard() {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                           <p className="text-sm font-bold text-primary flex items-center gap-2">
-                             <Globe className="w-3.5 h-3.5" />
-                             {getStoreUrl(store.subdomain).replace("https://", "").replace("http://", "")}
-                           </p>
-                           {store.isMaintenance && (
-                             <Badge className="bg-amber-100 text-amber-700 border-none text-[8px] font-black uppercase flex items-center gap-1">
-                               <Hammer className="w-2.5 h-2.5" /> Maintenance
-                             </Badge>
-                           )}
-                           {store.status === 'offline' && (
-                             <Badge className="bg-slate-100 text-slate-500 border-none text-[8px] font-black uppercase">Offline</Badge>
-                           )}
+                          <p className="text-sm font-bold text-primary flex items-center gap-2">
+                            <Globe className="w-3.5 h-3.5" />
+                            {getStoreUrl(store.subdomain).replace("https://", "").replace("http://", "")}
+                          </p>
+                          {store.isMaintenance && (
+                            <Badge className="bg-amber-100 text-amber-700 border-none text-[8px] font-black uppercase flex items-center gap-1">
+                              <Hammer className="w-2.5 h-2.5" /> Maintenance
+                            </Badge>
+                          )}
+                          {store.status === 'offline' && (
+                            <Badge className="bg-slate-100 text-slate-500 border-none text-[8px] font-black uppercase">Offline</Badge>
+                          )}
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent className="p-8">
-                       <div className="grid grid-cols-2 gap-4 mb-8">
-                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Status</p>
-                             <div className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${store.subscription?.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                <span className="text-xs font-bold capitalize">{store.subscription?.status || 'active'}</span>
-                             </div>
+                      <div className="grid grid-cols-2 gap-4 mb-8">
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Status</p>
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${store.subscription?.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                            <span className="text-xs font-bold capitalize">{store.subscription?.status || 'active'}</span>
                           </div>
-                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Tier</p>
-                             <p className="text-xs font-bold truncate">{store.plan?.name || 'Free Plan'}</p>
-                          </div>
-                       </div>
-                       <Button className="w-full rounded-[24px] h-14 font-black text-lg bg-slate-900 hover:bg-primary transition-all shadow-xl shadow-slate-900/10 group" onClick={() => router.push(`/${store.subdomain}/overview`)}>
+                        </div>
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Tier</p>
+                          <p className="text-xs font-bold truncate">{store.plan?.name || 'Free Plan'}</p>
+                        </div>
+                      </div>
+                      <Button className="w-full rounded-[24px] h-14 font-black text-lg bg-slate-900 hover:bg-primary transition-all shadow-xl shadow-slate-900/10 group" onClick={() => router.push(`/${store.subdomain}/overview`)}>
                         Enter Manager <ChevronRight className="ml-1 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </Button>
                     </CardContent>
@@ -550,185 +550,185 @@ export default function RedesignedDashboard() {
 
         {view === "profile" && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <Card className="rounded-[48px] border-none shadow-xl bg-white overflow-hidden">
-                <CardHeader className="bg-slate-900 text-white p-10">
-                  <CardTitle className="text-3xl font-headline font-black tracking-tight">Admin Profile</CardTitle>
-                </CardHeader>
-                <CardContent className="p-10 space-y-8">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Full Legal Name</Label>
-                        <Input 
-                          placeholder="Admin Full Name" 
-                          className="h-14 rounded-2xl bg-slate-50 border-none px-6 text-lg" 
-                          value={profileData.fullName}
-                          onChange={(e) => setProfileData({...profileData, fullName: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Contact Email</Label>
-                        <Input 
-                          disabled 
-                          value={user?.email || ""} 
-                          className="h-14 rounded-2xl bg-slate-100 border-none px-6 text-lg" 
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Phone</Label>
-                        <Input 
-                          placeholder="+880 1234 567 890" 
-                          className="h-14 rounded-2xl bg-slate-50 border-none px-6 text-lg" 
-                          value={profileData.phone}
-                          onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
-                        />
-                    </div>
-                    <Button className="h-16 rounded-[24px] px-12 text-xl font-black shadow-2xl shadow-primary/20" onClick={handleUpdateProfile} disabled={updating}>
-                        {updating ? <Loader2 className="animate-spin mr-2" /> : <ShieldCheck className="mr-2" />}
-                        Update Global Profile
-                    </Button>
-                </CardContent>
-             </Card>
+            <Card className="rounded-[48px] border-none shadow-xl bg-white overflow-hidden">
+              <CardHeader className="bg-slate-900 text-white p-10">
+                <CardTitle className="text-3xl font-headline font-black tracking-tight">Admin Profile</CardTitle>
+              </CardHeader>
+              <CardContent className="p-10 space-y-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Full Legal Name</Label>
+                    <Input
+                      placeholder="Admin Full Name"
+                      className="h-14 rounded-2xl bg-slate-50 border-none px-6 text-lg"
+                      value={profileData.fullName}
+                      onChange={(e) => setProfileData({ ...profileData, fullName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Contact Email</Label>
+                    <Input
+                      disabled
+                      value={user?.email || ""}
+                      className="h-14 rounded-2xl bg-slate-100 border-none px-6 text-lg"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Phone</Label>
+                  <Input
+                    placeholder="+880 1234 567 890"
+                    className="h-14 rounded-2xl bg-slate-50 border-none px-6 text-lg"
+                    value={profileData.phone}
+                    onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                  />
+                </div>
+                <Button className="h-16 rounded-[24px] px-12 text-xl font-black shadow-2xl shadow-primary/20" onClick={handleUpdateProfile} disabled={updating}>
+                  {updating ? <Loader2 className="animate-spin mr-2" /> : <ShieldCheck className="mr-2" />}
+                  Update Global Profile
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         )}
 
         {view === "settings" && (
-           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl">
-              <Card className="rounded-[48px] border-none shadow-xl bg-white overflow-hidden">
-                <CardHeader className="bg-slate-50 p-10 border-b">
-                   <CardTitle className="text-3xl font-headline font-black tracking-tight text-slate-900">Account Preferences</CardTitle>
-                </CardHeader>
-                <CardContent className="p-10 space-y-12">
-                   <div className="flex items-center justify-between gap-6">
-                      <div>
-                        <h4 className="text-xl font-bold">Billing Management</h4>
-                        <p className="text-slate-500 text-sm">View invoices and manage your active tiers.</p>
-                      </div>
-                      <Button variant="outline" className="rounded-2xl border-2 font-black">Open Billing</Button>
-                   </div>
-                    <div className="flex items-center justify-between gap-6 pt-10 border-t">
-                       <div>
-                         <h4 className="text-xl font-bold">Security Vault</h4>
-                         <p className="text-slate-500 text-sm">Update your account login credentials and security PIN.</p>
-                       </div>
-                       <div className="flex gap-2">
-                          <Button variant="outline" className="rounded-2xl border-2 font-black">Change Password</Button>
-                          <Button className="rounded-2xl font-black shadow-lg shadow-primary/20">Setup 2FA</Button>
-                       </div>
-                    </div>
-                    <div className="flex items-center justify-between gap-6 pt-10 border-t">
-                       <div>
-                         <h4 className="text-xl font-bold text-rose-500">Danger Zone</h4>
-                         <p className="text-slate-500 text-sm">Permanently delete your account and all associated stores.</p>
-                       </div>
-                       <Button variant="ghost" className="text-rose-500 font-bold">Purge Account</Button>
-                    </div>
-                 </CardContent>
-              </Card>
-           </div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl">
+            <Card className="rounded-[48px] border-none shadow-xl bg-white overflow-hidden">
+              <CardHeader className="bg-slate-50 p-10 border-b">
+                <CardTitle className="text-3xl font-headline font-black tracking-tight text-slate-900">Account Preferences</CardTitle>
+              </CardHeader>
+              <CardContent className="p-10 space-y-12">
+                <div className="flex items-center justify-between gap-6">
+                  <div>
+                    <h4 className="text-xl font-bold">Billing Management</h4>
+                    <p className="text-slate-500 text-sm">View invoices and manage your active tiers.</p>
+                  </div>
+                  <Button variant="outline" className="rounded-2xl border-2 font-black">Open Billing</Button>
+                </div>
+                <div className="flex items-center justify-between gap-6 pt-10 border-t">
+                  <div>
+                    <h4 className="text-xl font-bold">Security Vault</h4>
+                    <p className="text-slate-500 text-sm">Update your account login credentials and security PIN.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="rounded-2xl border-2 font-black">Change Password</Button>
+                    <Button className="rounded-2xl font-black shadow-lg shadow-primary/20">Setup 2FA</Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-6 pt-10 border-t">
+                  <div>
+                    <h4 className="text-xl font-bold text-rose-500">Danger Zone</h4>
+                    <p className="text-slate-500 text-sm">Permanently delete your account and all associated stores.</p>
+                  </div>
+                  <Button variant="ghost" className="text-rose-500 font-bold">Purge Account</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </main>
 
       {/* --- CREATE STORE MODAL --- */}
       {isCreateStoreOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsCreateStoreOpen(false)} />
-           <div className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-              <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
-                <Store className="w-8 h-8" />
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsCreateStoreOpen(false)} />
+          <div className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+            <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
+              <Store className="w-8 h-8" />
+            </div>
+            <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">New Brand Identity</h2>
+            <p className="text-slate-500 text-lg mt-2 leading-relaxed">Launch a new store instantly. Secondary stores are placed on the base tier by default.</p>
+
+            <div className="space-y-6 py-8">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Brand Name</Label>
+                <Input
+                  placeholder="e.g. Modern Craft"
+                  value={newStore.name}
+                  onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
+                  className="rounded-2xl h-14 bg-slate-50 border-none text-lg px-6"
+                />
               </div>
-              <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">New Brand Identity</h2>
-              <p className="text-slate-500 text-lg mt-2 leading-relaxed">Launch a new store instantly. Secondary stores are placed on the base tier by default.</p>
-              
-              <div className="space-y-6 py-8">
-                <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Brand Name</Label>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Subdomain</Label>
+                <div className="flex items-center">
                   <Input
-                    placeholder="e.g. Modern Craft"
-                    value={newStore.name}
-                    onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
-                    className="rounded-2xl h-14 bg-slate-50 border-none text-lg px-6"
+                    placeholder="modern"
+                    value={newStore.subdomain}
+                    onChange={(e) => setNewStore({ ...newStore, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+                    className="rounded-l-2xl rounded-r-none h-14 bg-slate-50 border-none text-lg px-6 flex-1"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Subdomain</Label>
-                  <div className="flex items-center">
-                    <Input
-                      placeholder="modern"
-                      value={newStore.subdomain}
-                      onChange={(e) => setNewStore({ ...newStore, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                      className="rounded-l-2xl rounded-r-none h-14 bg-slate-50 border-none text-lg px-6 flex-1"
-                    />
-                    <div className="h-14 bg-slate-200/50 flex items-center px-6 rounded-r-2xl text-sm font-black text-slate-400">
-                      .ihut.shop
-                    </div>
+                  <div className="h-14 bg-slate-200/50 flex items-center px-6 rounded-r-2xl text-sm font-black text-slate-400">
+                    .ihut.shop
                   </div>
                 </div>
               </div>
-              
-              <Button className="w-full h-16 rounded-[24px] text-xl font-black shadow-xl shadow-primary/20" onClick={handleCreateStore} disabled={creating}>
-                {creating ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" />}
-                Launch Brand
-              </Button>
-           </div>
+            </div>
+
+            <Button className="w-full h-16 rounded-[24px] text-xl font-black shadow-xl shadow-primary/20" onClick={handleCreateStore} disabled={creating}>
+              {creating ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" />}
+              Launch Brand
+            </Button>
+          </div>
         </div>
       )}
       {/* --- VAULT PIN MODAL --- */}
       {isVaultModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsVaultModalOpen(false)} />
-           <div className="relative w-full max-w-md bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-              <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
-                <Lock className="w-8 h-8" />
-              </div>
-              <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">
-                {selectedStoreForVault?.managePassword ? "Update Vault PIN" : "Setup Manager Vault"}
-              </h2>
-              <p className="text-slate-500 text-lg mt-2 leading-relaxed">
-                {selectedStoreForVault?.managePassword ? "Change your existing security PIN for this store." : "Set a secure PIN to protect your store's administrative settings."}
-              </p>
-              
-              <div className="space-y-6 py-8">
-                {selectedStoreForVault?.managePassword && (
-                  <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Current Security PIN</Label>
-                    <Input
-                      type="password"
-                      placeholder="Enter Current PIN"
-                      value={currentVaultPIN}
-                      onChange={(e) => setCurrentVaultPIN(e.target.value)}
-                      className="rounded-2xl h-14 bg-slate-50 border-none text-center text-2xl font-bold tracking-[0.5em] px-6 focus:ring-0"
-                      autoFocus
-                    />
-                  </div>
-                )}
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsVaultModalOpen(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-[40px] shadow-2xl border-none p-8 sm:p-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+            <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
+              <Lock className="w-8 h-8" />
+            </div>
+            <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">
+              {selectedStoreForVault?.managePassword ? "Update Vault PIN" : "Setup Manager Vault"}
+            </h2>
+            <p className="text-slate-500 text-lg mt-2 leading-relaxed">
+              {selectedStoreForVault?.managePassword ? "Change your existing security PIN for this store." : "Set a secure PIN to protect your store's administrative settings."}
+            </p>
+
+            <div className="space-y-6 py-8">
+              {selectedStoreForVault?.managePassword && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">
-                    {selectedStoreForVault?.managePassword ? "New Security PIN" : "Security PIN"}
-                  </Label>
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Current Security PIN</Label>
                   <Input
                     type="password"
-                    placeholder="4-8 digit PIN"
-                    value={vaultPIN}
-                    onChange={(e) => setVaultPIN(e.target.value)}
+                    placeholder="Enter Current PIN"
+                    value={currentVaultPIN}
+                    onChange={(e) => setCurrentVaultPIN(e.target.value)}
                     className="rounded-2xl h-14 bg-slate-50 border-none text-center text-2xl font-bold tracking-[0.5em] px-6 focus:ring-0"
-                    autoFocus={!selectedStoreForVault?.managePassword}
+                    autoFocus
                   />
                 </div>
+              )}
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">
+                  {selectedStoreForVault?.managePassword ? "New Security PIN" : "Security PIN"}
+                </Label>
+                <Input
+                  type="password"
+                  placeholder="4-8 digit PIN"
+                  value={vaultPIN}
+                  onChange={(e) => setVaultPIN(e.target.value)}
+                  className="rounded-2xl h-14 bg-slate-50 border-none text-center text-2xl font-bold tracking-[0.5em] px-6 focus:ring-0"
+                  autoFocus={!selectedStoreForVault?.managePassword}
+                />
               </div>
-              
-              <div className="flex gap-4">
-                  <Button variant="outline" className="flex-1 h-14 rounded-2xl font-bold" onClick={() => setIsVaultModalOpen(false)}>Cancel</Button>
-                  <Button 
-                    className="flex-[2] h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" 
-                    onClick={handleSaveVaultPIN} 
-                    disabled={savingVault || !vaultPIN || (selectedStoreForVault?.managePassword && !currentVaultPIN)}
-                  >
-                    {savingVault ? <Loader2 className="animate-spin mr-2" /> : <ShieldCheck className="mr-2" />}
-                    {selectedStoreForVault?.managePassword ? "Update Vault PIN" : "Save Vault PIN"}
-                  </Button>
-              </div>
-           </div>
+            </div>
+
+            <div className="flex gap-4">
+              <Button variant="outline" className="flex-1 h-14 rounded-2xl font-bold" onClick={() => setIsVaultModalOpen(false)}>Cancel</Button>
+              <Button
+                className="flex-[2] h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20"
+                onClick={handleSaveVaultPIN}
+                disabled={savingVault || !vaultPIN || (selectedStoreForVault?.managePassword && !currentVaultPIN)}
+              >
+                {savingVault ? <Loader2 className="animate-spin mr-2" /> : <ShieldCheck className="mr-2" />}
+                {selectedStoreForVault?.managePassword ? "Update Vault PIN" : "Save Vault PIN"}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -40,7 +40,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Store",
       "type": "object",
-      "description": "Represents an individual e-commerce store (tenant) within the NexusCart platform, owned by a user. All store-specific data is isolated by 'storeId'.",
+      "description": "Represents an individual e-commerce store (tenant) within the IHut.Shop platform, owned by a user. All store-specific data is isolated by 'storeId'.",
       "properties": {
         "id": {
           "type": "string",
@@ -52,7 +52,7 @@
         },
         "subdomain": {
           "type": "string",
-          "description": "The unique subdomain assigned to the store (e.g., 'store1' in 'store1.nexuscart.com')."
+          "description": "The unique subdomain assigned to the store (e.g., 'store1' in 'store1.IHut.Shop.com')."
         },
         "ownerId": {
           "type": "string",
@@ -140,44 +140,103 @@
       "type": "object",
       "description": "Represents a customer order placed in a store.",
       "properties": {
-        "id": { "type": "string" },
-        "storeId": { "type": "string" },
+        "id": {
+          "type": "string"
+        },
+        "storeId": {
+          "type": "string"
+        },
         "items": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "productId": { "type": "string" },
-              "name": { "type": "string" },
-              "price": { "type": "number" },
-              "quantity": { "type": "number" },
-              "image": { "type": "string" }
+              "productId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "price": {
+                "type": "number"
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "image": {
+                "type": "string"
+              }
             }
           }
         },
         "customer": {
           "type": "object",
           "properties": {
-            "fullName": { "type": "string" },
-            "email": { "type": "string" },
-            "phone": { "type": "string" },
-            "address": { "type": "string" }
+            "fullName": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "phone": {
+              "type": "string"
+            },
+            "address": {
+              "type": "string"
+            }
           }
         },
-        "total": { "type": "number" },
-        "status": { "type": "string", "enum": ["pending", "processing", "shipped", "completed", "cancelled"] },
-        "paymentMethod": { "type": "string", "enum": ["cod", "manual"] },
-        "paymentStatus": { "type": "string", "enum": ["unpaid", "paid", "refunded"] },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "total": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "processing",
+            "shipped",
+            "completed",
+            "cancelled"
+          ]
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": [
+            "cod",
+            "manual"
+          ]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": [
+            "unpaid",
+            "paid",
+            "refunded"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
       },
-      "required": ["storeId", "items", "customer", "total", "status", "createdAt"]
+      "required": [
+        "storeId",
+        "items",
+        "customer",
+        "total",
+        "status",
+        "createdAt"
+      ]
     },
     "SubscriptionPlan": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SubscriptionPlan",
       "type": "object",
-      "description": "Defines the different subscription tiers or plans available on the NexusCart platform. These plans determine the features and pricing for stores and are managed by the admin.",
+      "description": "Defines the different subscription tiers or plans available on the IHut.Shop platform. These plans determine the features and pricing for stores and are managed by the admin.",
       "properties": {
         "id": {
           "type": "string",
@@ -434,6 +493,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure for NexusCart is designed prioritizing Authorization Independence, Structural Segregation, and consistent Access Modeling to ensure robust security rules and simplified debugging. Authorization Independence is achieved by denormalizing key ownership fields: 'ownerId' from the parent 'Store' document is copied into every 'Product' and 'StoreSubscription' document. This eliminates the need for 'get()' calls in security rules when authorizing access to subcollection documents, allowing atomic operations and preventing rule complexity. Structural Segregation is applied by grouping documents with similar security postures. For example, platform-wide 'SubscriptionPlan' documents are in a root collection, accessible differently (read-only by users, write-only by admins) than user-specific data. User-owned entities like 'UserProfile' use path-based ownership (/userProfiles/{userId}). 'Store' and its subcollections ('products', 'subscription') follow a hierarchical path structure (/stores/{storeId}/products/{productId}, /stores/{storeId}/subscription) with denormalized 'ownerId' to ensure tenant isolation and direct ownership checks. QAPs (Queryable Authorization Patterns) are supported through indexed 'ownerId' and 'storeId' fields in denormalized documents, enabling efficient and secure 'list' operations without relying on security rules as filters. Global administrative roles are managed via an 'adminRoles' collection, leveraging document existence for DBAC (Database Access Control)."
+    "reasoning": "The Firestore structure for IHut.Shop is designed prioritizing Authorization Independence, Structural Segregation, and consistent Access Modeling to ensure robust security rules and simplified debugging. Authorization Independence is achieved by denormalizing key ownership fields: 'ownerId' from the parent 'Store' document is copied into every 'Product' and 'StoreSubscription' document. This eliminates the need for 'get()' calls in security rules when authorizing access to subcollection documents, allowing atomic operations and preventing rule complexity. Structural Segregation is applied by grouping documents with similar security postures. For example, platform-wide 'SubscriptionPlan' documents are in a root collection, accessible differently (read-only by users, write-only by admins) than user-specific data. User-owned entities like 'UserProfile' use path-based ownership (/userProfiles/{userId}). 'Store' and its subcollections ('products', 'subscription') follow a hierarchical path structure (/stores/{storeId}/products/{productId}, /stores/{storeId}/subscription) with denormalized 'ownerId' to ensure tenant isolation and direct ownership checks. QAPs (Queryable Authorization Patterns) are supported through indexed 'ownerId' and 'storeId' fields in denormalized documents, enabling efficient and secure 'list' operations without relying on security rules as filters. Global administrative roles are managed via an 'adminRoles' collection, leveraging document existence for DBAC (Database Access Control)."
   }
 }

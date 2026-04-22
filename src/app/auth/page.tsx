@@ -4,11 +4,11 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   updateProfile,
-  onAuthStateChanged 
+  onAuthStateChanged
 } from "firebase/auth";
 import { doc, setDoc, collection, query, where, getDocs, serverTimestamp, addDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -143,7 +143,7 @@ function AuthPageContent() {
         }
       }
 
-      toast({ title: "Welcome to NexusCart!", description: "Your account and store have been created." });
+      toast({ title: "Welcome to IHut.Shop!", description: "Your account and store have been created." });
       router.push("/dashboard");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Signup Error", description: error.message });
@@ -173,7 +173,7 @@ function AuthPageContent() {
             <div className="mx-auto w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
               <ShoppingCart className="text-white w-7 h-7" />
             </div>
-            <CardTitle className="text-3xl font-headline font-bold">NexusCart</CardTitle>
+            <CardTitle className="text-3xl font-headline font-bold">IHut.Shop</CardTitle>
             <CardDescription className="text-white/80">Login to manage your empire.</CardDescription>
           </CardHeader>
           <CardContent className="p-8">
@@ -193,7 +193,7 @@ function AuthPageContent() {
           </CardContent>
           <CardFooter className="flex justify-center p-6 bg-muted/30 border-t">
             <button onClick={() => setIsLogin(false)} className="text-sm font-medium text-primary hover:underline">
-              New to NexusCart? Create an account
+              New to IHut.Shop? Create an account
             </button>
           </CardFooter>
         </Card>
@@ -208,7 +208,7 @@ function AuthPageContent() {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-6 h-6" />
-              <span className="font-headline font-bold text-xl">NexusCart</span>
+              <span className="font-headline font-bold text-xl">IHut.Shop</span>
             </div>
             <div className="text-xs font-medium bg-white/20 px-3 py-1 rounded-full">
               Step {step} of 3
@@ -269,11 +269,11 @@ function AuthPageContent() {
               </div>
               {planId && (
                 <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center gap-3">
-                   <Zap className="text-primary w-5 h-5" />
-                   <div>
-                     <p className="text-xs font-bold text-primary uppercase tracking-widest">Plan Selected</p>
-                     <p className="text-sm font-medium text-slate-600">Your store will be launched on your selected tier.</p>
-                   </div>
+                  <Zap className="text-primary w-5 h-5" />
+                  <div>
+                    <p className="text-xs font-bold text-primary uppercase tracking-widest">Plan Selected</p>
+                    <p className="text-sm font-medium text-slate-600">Your store will be launched on your selected tier.</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -284,7 +284,7 @@ function AuthPageContent() {
           <Button variant="ghost" onClick={() => step > 1 ? setStep(step - 1) : setIsLogin(true)} className="rounded-xl h-12">
             <ChevronLeft className="mr-2 w-4 h-4" /> {step === 1 ? "Back to Login" : "Previous"}
           </Button>
-          
+
           {step < 3 ? (
             <Button onClick={() => {
               if (step === 1 && validateStep1()) setStep(2);

@@ -1,4 +1,4 @@
-# **App Name**: NexusCart
+# **App Name**: IHut.Shop
 
 ## Core Features:
 
@@ -6,7 +6,7 @@
 - Store (Tenant) Management: Functionality for users to create, view, and manage their individual e-commerce stores, each uniquely identified by a store_id and subdomain, with data stored in Firestore collections.
 - Product Catalog & Inventory: Tools for store owners to add, edit, list, and manage product details (name, price, stock) and associated store_id within a dedicated Firestore products collection.
 - AI-Powered Product Descriptions: An integrated generative AI tool to assist store owners in crafting compelling and unique product descriptions based on provided attributes.
-- Multi-tenant Subdomain Routing: Next.js Middleware logic to detect the tenant via subdomain (e.g., store1.nexuscart.com) and dynamically rewrite URLs to the corresponding store's dashboard.
+- Multi-tenant Subdomain Routing: Next.js Middleware logic to detect the tenant via subdomain (e.g., store1.IHut.Shop.com) and dynamically rewrite URLs to the corresponding store's dashboard.
 - Cloud Image Management: Seamless integration with Cloudinary for robust product image uploads (using krishi-bazar preset and dj7pg5slk cloud) and optimized delivery for each store's catalog.
 - Unified Store Dashboard: A responsive and component-rich dashboard layout using Shadcn UI (Sidebar, Navbar, Data Table) for store owners to manage their specific store's products and settings, with data filtered by the authenticated store_id.
 

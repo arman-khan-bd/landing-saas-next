@@ -113,7 +113,7 @@ export default function StoreSettingsPage() {
             const plan = planSnap.data();
             setCurrentPlan({ id: planSnap.id, ...plan });
             setSubscriptionStatus(subData.status);
-            
+
             if (subData.currentPeriodEnd) {
               const end = subData.currentPeriodEnd.toDate ? subData.currentPeriodEnd.toDate() : new Date(subData.currentPeriodEnd);
               setExpiryDate(end);
@@ -214,7 +214,7 @@ export default function StoreSettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-bold">Standard Subdomain</h4>
-                    <p className="text-xs text-muted-foreground">Included with every NexusCart account.</p>
+                    <p className="text-xs text-muted-foreground">Included with every IHut.Shop account.</p>
                   </div>
                   <Badge className="bg-emerald-50 text-emerald-600 border-none px-3 py-1 font-black text-[8px] tracking-widest">LIVE</Badge>
                 </div>
@@ -410,7 +410,7 @@ export default function StoreSettingsPage() {
                     }}>Upgrade Now</Button>
                   </div>
                 )}
-                
+
                 {daysRemaining !== null && daysRemaining <= 0 && (
                   <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-4 text-rose-800">
                     <AlertCircle className="w-6 h-6 text-rose-600" />
@@ -481,12 +481,12 @@ export default function StoreSettingsPage() {
                         ) : (
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button 
+                              <Button
                                 onClick={() => {
                                   setSelectedPlanForPayment(plan);
                                   setSelectedPaymentMethod(null);
                                   setTransactionId("");
-                                }} 
+                                }}
                                 disabled={subscriptionStatus === "pending"}
                                 className="w-full h-12 rounded-xl text-sm font-black uppercase tracking-tight shadow-lg shadow-primary/10"
                               >
@@ -507,8 +507,8 @@ export default function StoreSettingsPage() {
                                       <p className="text-sm text-amber-600 font-medium">No manual payment methods available. Please contact admin.</p>
                                     ) : (
                                       saasPaymentMethods.map(method => (
-                                        <div 
-                                          key={method.id} 
+                                        <div
+                                          key={method.id}
                                           onClick={() => setSelectedPaymentMethod(method)}
                                           className={`p-4 border-2 rounded-2xl transition-all cursor-pointer group ${selectedPaymentMethod?.id === method.id ? 'border-primary bg-primary/5' : 'border-slate-100 bg-slate-50 hover:border-slate-300'}`}
                                         >
@@ -535,7 +535,7 @@ export default function StoreSettingsPage() {
 
                                       <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Transaction ID / Proof</Label>
-                                        <Input 
+                                        <Input
                                           placeholder="Enter the transaction ID or reference"
                                           value={transactionId}
                                           onChange={(e) => setTransactionId(e.target.value)}

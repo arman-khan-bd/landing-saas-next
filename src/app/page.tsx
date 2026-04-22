@@ -38,7 +38,7 @@ export default function Home() {
           <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
             <ShoppingCart className="text-white w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <span className="text-lg sm:text-xl font-headline font-black text-primary tracking-tight">NexusCart</span>
+          <span className="text-lg sm:text-xl font-headline font-black text-primary tracking-tight">IHut.Shop</span>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3">
           <Link href="/auth">
@@ -81,22 +81,22 @@ export default function Home() {
 
         {/* Feature Grid - Compact Android Style */}
         <div id="features" className="mt-20 sm:mt-40 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
-          <FeatureCard 
-            icon={Zap} 
-            title="Instant Subdomains" 
-            desc="Every store gets a unique [brand].ihut.shop address automatically. Zero config." 
+          <FeatureCard
+            icon={Zap}
+            title="Instant Subdomains"
+            desc="Every store gets a unique [brand].ihut.shop address automatically. Zero config."
             accent="accent"
           />
-          <FeatureCard 
-            icon={ShieldCheck} 
-            title="Tenant Isolation" 
-            desc="Your data is strictly isolated with bank-grade security rules. Safe and private." 
+          <FeatureCard
+            icon={ShieldCheck}
+            title="Tenant Isolation"
+            desc="Your data is strictly isolated with bank-grade security rules. Safe and private."
             accent="primary"
           />
-          <FeatureCard 
-            icon={Star} 
-            title="AI Content Engine" 
-            desc="Generate product data and store names using built-in Google Gemini integration." 
+          <FeatureCard
+            icon={Star}
+            title="AI Content Engine"
+            desc="Generate product data and store names using built-in Google Gemini integration."
             accent="accent"
           />
         </div>
@@ -114,7 +114,7 @@ export default function Home() {
             </div>
           ) : plans.length === 0 ? (
             <div className="bg-muted/30 rounded-3xl p-12 border-2 border-dashed text-center opacity-50">
-               <p className="font-bold uppercase tracking-widest text-[10px]">Updating Tiers...</p>
+              <p className="font-bold uppercase tracking-widest text-[10px]">Updating Tiers...</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
@@ -122,7 +122,7 @@ export default function Home() {
                 <Card key={plan.id} className="group relative rounded-[32px] sm:rounded-[40px] border-border/50 bg-white hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col">
                   {plan.price > 50 && (
                     <div className="absolute top-0 right-0 bg-primary text-white px-4 py-1.5 rounded-bl-2xl font-black text-[9px] uppercase tracking-widest z-10 flex items-center gap-1.5 shadow-lg">
-                       <Star className="w-2.5 h-2.5 fill-white" /> Popular
+                      <Star className="w-2.5 h-2.5 fill-white" /> Popular
                     </div>
                   )}
                   <CardHeader className="p-6 sm:p-10 pb-4">
@@ -166,10 +166,10 @@ export default function Home() {
           <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white">
             <ShoppingCart className="w-4 h-4" />
           </div>
-          <span className="text-lg font-headline font-black tracking-tight text-slate-900 uppercase">NexusCart</span>
+          <span className="text-lg font-headline font-black tracking-tight text-slate-900 uppercase">IHut.Shop</span>
         </div>
         <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.4em]">
-          &copy; {new Date().getFullYear()} NEXUSCART CLOUD ENGINE.
+          &copy; {new Date().getFullYear()} IHut.Shop CLOUD ENGINE.
         </p>
       </footer>
     </div>

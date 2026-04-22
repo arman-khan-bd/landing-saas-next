@@ -5,7 +5,7 @@ service cloud.firestore {
 
     /**
      * CORE PHILOSOPHY:
-     * This ruleset implements a multi-tenant e-commerce platform model (NexusCart) focusing on Tenant Isolation 
+     * This ruleset implements a multi-tenant e-commerce platform model (IHut.Shop) focusing on Tenant Isolation 
      * and Authorization Independence. Access control is primarily driven by denormalized ownership fields 
      * (`ownerId`) to ensure high performance and simplify security logic by avoiding cross-document lookups.
      */
