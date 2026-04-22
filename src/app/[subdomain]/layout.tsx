@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
+import { cn, getTenantPath, getConsoleUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmationProvider } from "@/hooks/use-confirm";
 import { useToast } from "@/hooks/use-toast";
@@ -68,7 +67,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     return () => unsubscribe();
   }, [subdomain, router, auth]);
 
-  // Real-time counts for sidebar
   useEffect(() => {
     if (!firestore || !store?.id || !auth?.currentUser) return;
 
@@ -118,13 +116,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     }
 
     try {
-      // 1. Fetch user role first to determine global permissions
       const userRef = doc(firestore, "users", uid);
       const userSnap = await getDoc(userRef);
       const role = userSnap.exists() ? (userSnap.data().role || "user") : "user";
       setUserRole(role);
 
-      // 2. Fetch store data
       const q = query(
         collection(firestore, "stores"),
         where("subdomain", "==", subdomain)
@@ -138,7 +134,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
       const storeData = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
 
-      // 3. Verify access: Owner OR Global Admin
       if (storeData.ownerId !== uid && role !== 'admin') {
         setAccessDenied(true);
       } else {
@@ -159,15 +154,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           }
         }
 
-        // Admins bypass vault password for convenience, or keep it for security?
-        // Let's allow admins to bypass vault too if we want, or keep it.
-        // For now, let's keep it but if they are admin maybe they should see a "Bypass" option.
-        // Actually, if we just keep it, it's safer.
         if (!storeData.managePassword || role === 'admin') {
           setIsPasswordVerified(true);
         }
 
-        // 4. Check subscription status
         if (storeData.subscription) {
           setSubscriptionData(storeData.subscription);
           const end = storeData.subscription.currentPeriodEnd?.toDate 
@@ -194,16 +184,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       setIsPasswordVerified(true);
       const sessionKey = `vault_session_${subdomain}`;
       localStorage.setItem(sessionKey, JSON.stringify({ timestamp: Date.now() }));
-      toast({
-        title: "Vault Unlocked",
-        description: "Management session active for 1 hour.",
-      });
+      toast({ title: "Vault Unlocked" });
     } else {
-      toast({
-        variant: "destructive",
-        title: "Access Denied",
-        description: "Invalid Manager Vault Password. Please try again.",
-      });
+      toast({ variant: "destructive", title: "Access Denied", description: "Invalid PIN." });
     }
   };
 
@@ -211,340 +194,227 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     ? pathname.replace(`/${subdomain}`, "")
     : pathname === `/${subdomain}` ? "/" : pathname;
 
-  const adminSegments = ["overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder", "home-manager"];
+  const adminSegments = ["dashboard", "overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder", "home-manager"];
   const isBuilderEditor = normalizedPath.includes("/builder/") && normalizedPath.split("/").filter(Boolean).length > 1;
   const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`)) && !isBuilderEditor;
 
-  if (loading) {
-    return (
-      <ConfirmationProvider>
-        <div className="flex h-screen items-center justify-center bg-slate-50">
-          <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        </div>
-      </ConfirmationProvider>
-    );
-  }
+  if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
 
   if (isAdminPath && !isPasswordVerified && !accessDenied) {
     return (
-      <ConfirmationProvider>
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-          <Card className="max-w-md w-full p-10 rounded-[40px] shadow-2xl border-none text-center space-y-8">
-            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto">
-              <Lock className="w-10 h-10" />
-            </div>
-            <div>
-              <h2 className="text-3xl font-headline font-black tracking-tight">Manager Vault</h2>
-              <p className="text-muted-foreground mt-2">Enter your management password to continue to the administrative dashboard.</p>
-            </div>
-            <form onSubmit={handleVaultAccess} className="space-y-4">
-              <input
-                type="password"
-                placeholder="Vault Password"
-                className="h-14 rounded-2xl bg-slate-50 border-none text-center text-xl font-bold tracking-widest w-full focus:outline-none focus:ring-2 focus:ring-primary/20"
-                value={managerPassword}
-                onChange={(e) => setManagerPassword(e.target.value)}
-                autoFocus
-              />
-              <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20">
-                <ShieldCheck className="mr-2" /> Unlock Dashboard
-              </Button>
-            </form>
-            <Link href="/dashboard">
-              <Button variant="ghost" className="text-muted-foreground hover:text-primary">
-                <ChevronLeft className="mr-1 w-4 h-4" /> Cancel & Exit
-              </Button>
-            </Link>
-          </Card>
-        </div>
-      </ConfirmationProvider>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+        <Card className="max-w-md w-full p-10 rounded-[40px] shadow-2xl border-none text-center space-y-8">
+          <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto"><Lock className="w-10 h-10" /></div>
+          <div>
+            <h2 className="text-3xl font-headline font-black tracking-tight">Vault PIN</h2>
+            <p className="text-muted-foreground mt-2">Enter your security code to manage this store.</p>
+          </div>
+          <form onSubmit={handleVaultAccess} className="space-y-4">
+            <input type="password" placeholder="••••" className="h-14 rounded-2xl bg-slate-50 border-none text-center text-3xl font-bold tracking-[0.5em] w-full" value={managerPassword} onChange={(e) => setManagerPassword(e.target.value)} autoFocus />
+            <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20">Unlock Dashboard</Button>
+          </form>
+          <Link href={getConsoleUrl()}><Button variant="ghost" className="text-muted-foreground"><ChevronLeft className="mr-1 w-4 h-4" /> Cancel</Button></Link>
+        </Card>
+      </div>
     );
   }
 
   if (accessDenied && isAdminPath) {
     return (
-      <ConfirmationProvider>
-        <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-          <div className="max-w-md w-full text-center space-y-6 bg-white p-12 rounded-[40px] shadow-2xl border border-border/50">
-            <div className="w-24 h-24 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <AlertCircle className="w-12 h-12 text-destructive" />
-            </div>
-            <h2 className="text-3xl font-headline font-bold text-foreground">Access Denied</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              You do not have permission to manage this store. Only the authenticated owner can access this dashboard.
-            </p>
-            <div className="pt-4">
-              <Link href="/dashboard">
-                <Button className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20">
-                  Back to My Dashboard
-                </Button>
-              </Link>
-            </div>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+        <div className="max-w-md w-full text-center space-y-6 bg-white p-12 rounded-[40px] shadow-2xl border border-border/50">
+          <div className="w-24 h-24 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6"><AlertCircle className="w-12 h-12 text-destructive" /></div>
+          <h2 className="text-3xl font-headline font-bold">Access Denied</h2>
+          <p className="text-muted-foreground">You do not have permission to manage this tenant.</p>
+          <Link href={getConsoleUrl()}><Button className="w-full h-14 rounded-2xl text-lg font-bold">Back to My Console</Button></Link>
         </div>
-      </ConfirmationProvider>
+      </div>
     );
   }
 
   const catalogItems = [
-    { title: "Products", icon: ShoppingBag, href: `/${subdomain}/products` },
-    { title: "Categories", icon: Layers, href: `/${subdomain}/categories` },
-    { title: "Sub Categories", icon: Bookmark, href: `/${subdomain}/sub-categories` },
-    { title: "Brands", icon: Store, href: `/${subdomain}/brands` },
-    { title: "Taxes", icon: Percent, href: `/${subdomain}/taxes` },
-    { title: "Tags", icon: Tags, href: `/${subdomain}/tags` },
+    { title: "Products", icon: ShoppingBag, href: "/products" },
+    { title: "Categories", icon: Layers, href: "/categories" },
+    { title: "Sub Categories", icon: Bookmark, href: "/sub-categories" },
+    { title: "Brands", icon: Store, href: "/brands" },
+    { title: "Taxes", icon: Percent, href: "/taxes" },
+    { title: "Tags", icon: Tags, href: "/tags" },
   ];
 
   const salesItems = [
-    { title: "All Orders", icon: Receipt, href: `/${subdomain}/orders`, count: counts.orders },
-    { title: "Uncompleted", icon: AlertCircle, href: `/${subdomain}/orders/uncompleted`, count: counts.uncompleted },
+    { title: "All Orders", icon: Receipt, href: "/orders", count: counts.orders },
+    { title: "Uncompleted", icon: AlertCircle, href: "/orders/uncompleted", count: counts.uncompleted },
   ];
 
   const customerItems = [
-    { title: "All Customers", icon: Users, href: `/${subdomain}/customers` },
-    { title: "Fraud List", icon: AlertCircle, href: `/${subdomain}/customers/fraud` },
+    { title: "All Customers", icon: Users, href: "/customers" },
+    { title: "Fraud List", icon: AlertCircle, href: "/customers/fraud" },
   ];
 
-  if (!isAdminPath) {
-    return (
-      <ConfirmationProvider>
-        <div className="min-h-screen bg-background">
-          {children}
-        </div>
-      </ConfirmationProvider>
-    );
-  }
+  if (!isAdminPath) return <div className="min-h-screen bg-background">{children}</div>;
 
   return (
-    <ConfirmationProvider>
-      <SidebarProvider>
-        <div className="flex min-h-screen w-full overflow-x-hidden">
-          <Sidebar className="border-r border-border/50 bg-white">
-            <SidebarHeader className="p-6 border-b border-border/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shrink-0">
-                  <Store className="w-6 h-6" />
-                </div>
-                <div className="overflow-hidden">
-                  <h3 className="font-headline font-bold text-lg truncate leading-none">{store?.name}</h3>
-                  <p className="text-xs text-muted-foreground truncate">{store?.subdomain}.ihut.shop</p>
-                </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full overflow-x-hidden">
+        <Sidebar className="border-r border-border/50 bg-white">
+          <SidebarHeader className="p-6 border-b border-border/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shrink-0"><Store className="w-6 h-6" /></div>
+              <div className="overflow-hidden">
+                <h3 className="font-headline font-bold text-lg truncate leading-none">{store?.name}</h3>
+                <p className="text-xs text-muted-foreground truncate">{store?.subdomain}.ihut.shop</p>
               </div>
-            </SidebarHeader>
-            <SidebarContent className="p-4 space-y-4">
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={normalizedPath === "/overview"} className="rounded-xl h-11 px-4">
-                    <Link href={`/${subdomain}/overview`} className="flex items-center gap-3">
-                      <LayoutDashboard className={`w-5 h-5 ${normalizedPath === "/overview" ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <span className="font-medium">Overview</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-
-              <Collapsible defaultOpen className="group/collapsible">
-                <SidebarGroup>
-                  <SidebarGroupLabel asChild>
-                    <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
-                      <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Design</span>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </CollapsibleTrigger>
-                  </SidebarGroupLabel>
-                  <CollapsibleContent>
-                    <SidebarGroupContent>
-                      <SidebarMenu className="mt-2">
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild isActive={normalizedPath === "/home-manager"} className="rounded-xl h-10 px-4">
-                            <Link href={`/${subdomain}/home-manager`} className="flex items-center gap-3">
-                              <Home className={`w-4 h-4 ${normalizedPath === "/home-manager" ? 'text-primary' : 'text-muted-foreground'}`} />
-                              <span className="text-sm font-medium">Home Manager</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild isActive={normalizedPath === "/builder"} className="rounded-xl h-10 px-4">
-                            <Link href={`/${subdomain}/builder`} className="flex items-center gap-3">
-                              <PenTool className={`w-4 h-4 ${normalizedPath === "/builder" ? 'text-primary' : 'text-muted-foreground'}`} />
-                              <span className="text-sm font-medium">Landing Page</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </CollapsibleContent>
-                </SidebarGroup>
-              </Collapsible>
-
-              <Collapsible defaultOpen className="group/collapsible">
-                <SidebarGroup>
-                  <SidebarGroupLabel asChild>
-                    <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
-                      <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Catalog</span>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </CollapsibleTrigger>
-                  </SidebarGroupLabel>
-                  <CollapsibleContent>
-                    <SidebarGroupContent>
-                      <SidebarMenu className="mt-2">
-                        {catalogItems.map((item) => (
-                          <SidebarMenuItem key={item.title}>
-                            <SidebarMenuButton asChild isActive={normalizedPath === item.href.replace(`/${subdomain}`, "")} className="rounded-xl h-10 px-4">
-                              <Link href={item.href} className="flex items-center gap-3">
-                                <item.icon className={`w-4 h-4 ${normalizedPath === item.href.replace(`/${subdomain}`, "") ? 'text-primary' : 'text-muted-foreground'}`} />
-                                <span className="text-sm font-medium">{item.title}</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        ))}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </CollapsibleContent>
-                </SidebarGroup>
-              </Collapsible>
-
-              <Collapsible defaultOpen className="group/collapsible">
-                <SidebarGroup>
-                  <SidebarGroupLabel asChild>
-                    <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
-                      <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Sales</span>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </CollapsibleTrigger>
-                  </SidebarGroupLabel>
-                  <CollapsibleContent>
-                    <SidebarGroupContent>
-                      <SidebarMenu className="mt-2">
-                        {salesItems.map((item) => (
-                          <SidebarMenuItem key={item.title}>
-                            <SidebarMenuButton asChild isActive={normalizedPath === item.href.replace(`/${subdomain}`, "")} className="rounded-xl h-10 px-4">
-                              <Link href={item.href} className="flex items-center justify-between gap-3 w-full">
-                                <div className="flex items-center gap-3">
-                                  <item.icon className={`w-4 h-4 ${normalizedPath === item.href.replace(`/${subdomain}`, "") ? 'text-primary' : 'text-muted-foreground'}`} />
-                                  <span className="text-sm font-medium">{item.title}</span>
-                                </div>
-                                {item.count > 0 && (
-                                  <Badge className="h-5 px-2 bg-primary/10 text-primary text-[10px] font-black border-none rounded-full">
-                                    {item.count}
-                                  </Badge>
-                                )}
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        ))}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </CollapsibleContent>
-                </SidebarGroup>
-              </Collapsible>
-
-              <Collapsible defaultOpen className="group/collapsible">
-                <SidebarGroup>
-                  <SidebarGroupLabel asChild>
-                    <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
-                      <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Customers</span>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </CollapsibleTrigger>
-                  </SidebarGroupLabel>
-                  <CollapsibleContent>
-                    <SidebarGroupContent>
-                      <SidebarMenu className="mt-2">
-                        {customerItems.map((item) => (
-                          <SidebarMenuItem key={item.title}>
-                            <SidebarMenuButton asChild isActive={normalizedPath === item.href.replace(`/${subdomain}`, "")} className="rounded-xl h-10 px-4">
-                              <Link href={item.href} className="flex items-center gap-3">
-                                <item.icon className={`w-4 h-4 ${normalizedPath === item.href.replace(`/${subdomain}`, "") ? 'text-primary' : 'text-muted-foreground'}`} />
-                                <span className="text-sm font-medium">{item.title}</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        ))}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </CollapsibleContent>
-                </SidebarGroup>
-              </Collapsible>
-
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={normalizedPath === "/settings"} className="rounded-xl h-11 px-4">
-                    <Link href={`/${subdomain}/settings`} className="flex items-center gap-3">
-                      <Settings className={`w-5 h-5 ${normalizedPath === "/settings" ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <span className="font-medium">Store Settings</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarContent>
-            <div className="mt-auto p-4 border-t border-border/50 space-y-2">
-              {userRole === 'admin' && (
-                <Link href="/saas-admin">
-                  <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-indigo-50 text-indigo-600 h-10 text-sm font-bold">
-                    <ShieldCheck className="w-4 h-4" /> SaaS Admin Panel
-                  </Button>
-                </Link>
-              )}
-              <Link href="/dashboard">
-                <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted h-10 text-sm">
-                  <ChevronLeft className="w-4 h-4" /> Back to Dashboard
-                </Button>
-              </Link>
             </div>
-          </Sidebar>
-
-          <SidebarInset className="bg-background">
-            <header className="flex h-16 shrink-0 items-center justify-between px-4 sm:px-6 border-b border-border/50 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-              <div className="flex items-center gap-3 overflow-hidden">
-                <SidebarTrigger className="md:hidden" />
-                <h2 className="text-lg sm:text-xl font-headline font-bold text-foreground capitalize truncate">
-                  {normalizedPath === "/" ? "Storefront" :
-                    normalizedPath.startsWith("/builder") ? "Landing Page" :
-                      normalizedPath.startsWith("/home-manager") ? "Home Manager" :
-                        normalizedPath.split("/").pop()?.replace('-', ' ')}
-                </h2>
-                {isSubscriptionExpired && (
-                  <Badge variant="destructive" className="ml-2 animate-pulse rounded-full px-3 py-1 font-black text-[10px] tracking-widest uppercase shadow-lg shadow-destructive/20">
-                    EXPIRED
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-                <Link href={`/${subdomain}/notifications`} className="relative p-2 text-muted-foreground hover:text-primary transition-colors hover:bg-primary/5 rounded-full">
-                  <Bell className="w-5 h-5" />
-                  {(counts.orders + counts.uncompleted + counts.system) > 0 && (
-                    <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-black text-white flex items-center justify-center rounded-full border-2 border-white">
-                      {counts.orders + counts.uncompleted + counts.system}
-                    </span>
-                  )}
-                </Link>
-                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
-                  {auth?.currentUser?.email?.[0].toUpperCase()}
-                </div>
-              </div>
-            </header>
-            <main className="flex-1 p-4 sm:p-6 md:p-10 max-w-[100vw]">
-              {isSubscriptionExpired && !normalizedPath.startsWith("/settings") && (
-                <div className="mb-8 p-6 bg-rose-50 border-2 border-rose-200 rounded-[32px] flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-rose-100">
-                  <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 bg-rose-100 rounded-[24px] flex items-center justify-center text-rose-600">
-                      <AlertCircle className="w-10 h-10" />
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-black text-rose-900 uppercase tracking-tight">Access Restricted</h4>
-                      <p className="text-sm text-rose-700/80 max-w-md">Your subscription has expired. Please upgrade or renew your plan in the settings to reactivate all features and keep your custom domain alive.</p>
-                    </div>
-                  </div>
-                  <Link href={`/${subdomain}/settings?tab=subscription`}>
-                    <Button className="rounded-2xl h-14 px-10 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase tracking-tight shadow-xl shadow-rose-200">
-                      Renew Subscription
-                    </Button>
+          </SidebarHeader>
+          <SidebarContent className="p-4 space-y-4">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={normalizedPath === "/dashboard"} className="rounded-xl h-11 px-4">
+                  <Link href={getTenantPath(subdomain, "/dashboard")} className="flex items-center gap-3">
+                    <LayoutDashboard className={`w-5 h-5 ${normalizedPath === "/dashboard" ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <span className="font-medium">Dashboard</span>
                   </Link>
-                </div>
-              )}
-              {children}
-            </main>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
-    </ConfirmationProvider>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarGroup>
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
+                    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Design</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="mt-2">
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={normalizedPath === "/home-manager"} className="rounded-xl h-10 px-4">
+                          <Link href={getTenantPath(subdomain, "/home-manager")} className="flex items-center gap-3">
+                            <Home className={`w-4 h-4 ${normalizedPath === "/home-manager" ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <span className="text-sm font-medium">Home Manager</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={normalizedPath === "/builder"} className="rounded-xl h-10 px-4">
+                          <Link href={getTenantPath(subdomain, "/builder")} className="flex items-center gap-3">
+                            <PenTool className={`w-4 h-4 ${normalizedPath === "/builder" ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <span className="text-sm font-medium">Landing Pages</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarGroup>
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
+                    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Catalog</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="mt-2">
+                      {catalogItems.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild isActive={normalizedPath === item.href} className="rounded-xl h-10 px-4">
+                            <Link href={getTenantPath(subdomain, item.href)} className="flex items-center gap-3">
+                              <item.icon className={`w-4 h-4 ${normalizedPath === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <span className="text-sm font-medium">{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarGroup>
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
+                    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Sales</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="mt-2">
+                      {salesItems.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild isActive={normalizedPath === item.href} className="rounded-xl h-10 px-4">
+                            <Link href={getTenantPath(subdomain, item.href)} className="flex items-center justify-between gap-3 w-full">
+                              <div className="flex items-center gap-3">
+                                <item.icon className={`w-4 h-4 ${normalizedPath === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                                <span className="text-sm font-medium">{item.title}</span>
+                              </div>
+                              {item.count > 0 && <Badge className="h-5 px-2 bg-primary/10 text-primary text-[10px] font-black border-none rounded-full">{item.count}</Badge>}
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={normalizedPath === "/settings"} className="rounded-xl h-11 px-4">
+                  <Link href={getTenantPath(subdomain, "/settings")} className="flex items-center gap-3">
+                    <Settings className={`w-5 h-5 ${normalizedPath === "/settings" ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <span className="font-medium">Settings</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarContent>
+          <div className="mt-auto p-4 border-t border-border/50 space-y-2">
+            <Link href={getConsoleUrl()}>
+              <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted h-10 text-sm">
+                <ChevronLeft className="w-4 h-4" /> Back to Console
+              </Button>
+            </Link>
+          </div>
+        </Sidebar>
+
+        <SidebarInset className="bg-background">
+          <header className="flex h-16 items-center justify-between px-6 border-b border-border/50 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="md:hidden" />
+              <h2 className="text-lg font-headline font-bold text-foreground capitalize">
+                {normalizedPath === "/" ? "Storefront" : normalizedPath.split("/").pop()?.replace('-', ' ')}
+              </h2>
+            </div>
+            <div className="flex items-center gap-4">
+              <Link href={getTenantPath(subdomain, "/notifications")} className="relative p-2 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-full">
+                <Bell className="w-5 h-5" />
+                {(counts.orders + counts.uncompleted + counts.system) > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-black text-white flex items-center justify-center rounded-full border-2 border-white">
+                    {counts.orders + counts.uncompleted + counts.system}
+                  </span>
+                )}
+              </Link>
+              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
+                {auth?.currentUser?.email?.[0].toUpperCase()}
+              </div>
+            </div>
+          </header>
+          <main className="flex-1 p-6 md:p-10">
+            {children}
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }

@@ -28,6 +28,7 @@ export default async function middleware(req: NextRequest) {
   } else if (currentHost.includes(".localhost")) {
     subdomain = currentHost.replace(".localhost", "");
   } else if (!currentHost.includes(rootDomain) && !currentHost.includes("vercel.app")) {
+    // Handling for custom domains (e.g., myshop.com)
     subdomain = currentHost.split(".")[0];
   }
 
@@ -35,20 +36,22 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 3. Prevent loops
+  // 3. Prevent loops if the path already starts with /[subdomain]
   if (url.pathname.startsWith(`/${subdomain}`)) {
     return NextResponse.next();
   }
 
-  // 4. Rewrite
-  // Rewrites https://arman.ihut.shop/ to src/app/[subdomain]/page.tsx
-  const path = url.pathname;
+  // 4. Specific alias for 'overview' -> 'dashboard' within tenant routes
+  let path = url.pathname;
+  if (path === "/overview") path = "/dashboard";
+
+  // 5. Rewrite to dynamic tenant folder
   const rewritePath = `/${subdomain}${path === "/" ? "" : path}${url.search}`;
   
   const response = NextResponse.rewrite(new URL(rewritePath, req.url));
   
-  // Add a debug header to confirm middleware is running and identifying the subdomain
-  response.headers.set("x-subdomain", subdomain);
+  // Add a debug header for development
+  response.headers.set("x-subdomain-tenant", subdomain);
   
   return response;
 }

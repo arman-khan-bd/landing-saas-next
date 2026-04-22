@@ -4,11 +4,39 @@ import { twMerge } from "tailwind-merge"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
 export function getStoreUrl(subdomain: string) {
   const isProd = process.env.NODE_ENV === "production";
-  console.log(isProd, "prod or not")
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
+  
   if (isProd) {
-    return `https://${subdomain}.ihut.shop`;
+    return `https://${subdomain}.${rootDomain}`;
   }
   return `http://localhost:9002/${subdomain}`;
+}
+
+export function getConsoleUrl() {
+  const isProd = process.env.NODE_ENV === "production";
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
+  
+  if (isProd) {
+    return `https://${rootDomain}/dashboard`;
+  }
+  return `http://localhost:9002/dashboard`;
+}
+
+/**
+ * Generates a path that works both on subdomains and main domain path-based access.
+ */
+export function getTenantPath(subdomain: string, path: string) {
+  if (typeof window !== "undefined") {
+    // If we are on a subdomain (e.g., arman.ihut.shop), 
+    // the middleware handles the prefix, so we use relative paths.
+    if (window.location.hostname.includes(`${subdomain}.`)) {
+      return path.startsWith("/") ? path : `/${path}`;
+    }
+  }
+  // Fallback for localhost or main domain path-based access
+  const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+  return `/${subdomain}${cleanPath ? `/${cleanPath}` : ""}`;
 }
