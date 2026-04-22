@@ -248,176 +248,180 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   ];
 
   if (!isAdminPath) return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <div className="flex-1">
-        {children}
+    <ConfirmationProvider>
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="flex-1">
+          {children}
+        </div>
+        <StorefrontFooter store={store} subdomain={subdomain} isSubscriptionExpired={isSubscriptionExpired} />
       </div>
-      <StorefrontFooter store={store} subdomain={subdomain} isSubscriptionExpired={isSubscriptionExpired} />
-    </div>
+    </ConfirmationProvider>
   );
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full overflow-x-hidden">
-        <Sidebar className="border-r border-border/50 bg-white">
-          <SidebarHeader className="p-6 border-b border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shrink-0"><Store className="w-6 h-6" /></div>
-              <div className="overflow-hidden">
-                <h3 className="font-headline font-bold text-lg truncate leading-none">{store?.name}</h3>
-                <p className="text-xs text-muted-foreground truncate">{store?.subdomain}.ihut.shop</p>
+      <ConfirmationProvider>
+        <div className="flex min-h-screen w-full overflow-x-hidden">
+          <Sidebar className="border-r border-border/50 bg-white">
+            <SidebarHeader className="p-6 border-b border-border/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shrink-0"><Store className="w-6 h-6" /></div>
+                <div className="overflow-hidden">
+                  <h3 className="font-headline font-bold text-lg truncate leading-none">{store?.name}</h3>
+                  <p className="text-xs text-muted-foreground truncate">{store?.subdomain}.ihut.shop</p>
+                </div>
               </div>
-            </div>
-          </SidebarHeader>
-          <SidebarContent className="p-4 space-y-4">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={normalizedPath === "/dashboard"} className="rounded-xl h-11 px-4">
-                  <Link href={getTenantPath(subdomain, "/dashboard")} className="flex items-center gap-3">
-                    <LayoutDashboard className={`w-5 h-5 ${normalizedPath === "/dashboard" ? 'text-primary' : 'text-muted-foreground'}`} />
-                    <span className="font-medium">Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
+            </SidebarHeader>
+            <SidebarContent className="p-4 space-y-4">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={normalizedPath === "/dashboard"} className="rounded-xl h-11 px-4">
+                    <Link href={getTenantPath(subdomain, "/dashboard")} className="flex items-center gap-3">
+                      <LayoutDashboard className={`w-5 h-5 ${normalizedPath === "/dashboard" ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <span className="font-medium">Dashboard</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
 
-            <Collapsible defaultOpen className="group/collapsible">
-              <SidebarGroup>
-                <SidebarGroupLabel asChild>
-                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
-                    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Design</span>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                  </CollapsibleTrigger>
-                </SidebarGroupLabel>
-                <CollapsibleContent>
-                  <SidebarGroupContent>
-                    <SidebarMenu className="mt-2">
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={normalizedPath === "/home-manager"} className="rounded-xl h-10 px-4">
-                          <Link href={getTenantPath(subdomain, "/home-manager")} className="flex items-center gap-3">
-                            <Home className={`w-4 h-4 ${normalizedPath === "/home-manager" ? 'text-primary' : 'text-muted-foreground'}`} />
-                            <span className="text-sm font-medium">Home Manager</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={normalizedPath === "/builder"} className="rounded-xl h-10 px-4">
-                          <Link href={getTenantPath(subdomain, "/builder")} className="flex items-center gap-3">
-                            <PenTool className={`w-4 h-4 ${normalizedPath === "/builder" ? 'text-primary' : 'text-muted-foreground'}`} />
-                            <span className="text-sm font-medium">Landing Pages</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </CollapsibleContent>
-              </SidebarGroup>
-            </Collapsible>
-
-            <Collapsible defaultOpen className="group/collapsible">
-              <SidebarGroup>
-                <SidebarGroupLabel asChild>
-                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
-                    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Catalog</span>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                  </CollapsibleTrigger>
-                </SidebarGroupLabel>
-                <CollapsibleContent>
-                  <SidebarGroupContent>
-                    <SidebarMenu className="mt-2">
-                      {catalogItems.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton asChild isActive={normalizedPath === item.href} className="rounded-xl h-10 px-4">
-                            <Link href={getTenantPath(subdomain, item.href)} className="flex items-center gap-3">
-                              <item.icon className={`w-4 h-4 ${normalizedPath === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
-                              <span className="text-sm font-medium">{item.title}</span>
+              <Collapsible defaultOpen className="group/collapsible">
+                <SidebarGroup>
+                  <SidebarGroupLabel asChild>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
+                      <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Design</span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </CollapsibleTrigger>
+                  </SidebarGroupLabel>
+                  <CollapsibleContent>
+                    <SidebarGroupContent>
+                      <SidebarMenu className="mt-2">
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={normalizedPath === "/home-manager"} className="rounded-xl h-10 px-4">
+                            <Link href={getTenantPath(subdomain, "/home-manager")} className="flex items-center gap-3">
+                              <item.icon className={`w-4 h-4 ${normalizedPath === "/home-manager" ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <span className="text-sm font-medium">Home Manager</span>
                             </Link>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </CollapsibleContent>
-              </SidebarGroup>
-            </Collapsible>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={normalizedPath === "/builder"} className="rounded-xl h-10 px-4">
+                            <Link href={getTenantPath(subdomain, "/builder")} className="flex items-center gap-3">
+                              <PenTool className={`w-4 h-4 ${normalizedPath === "/builder" ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <span className="text-sm font-medium">Landing Pages</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                </SidebarGroup>
+              </Collapsible>
 
-            <Collapsible defaultOpen className="group/collapsible">
-              <SidebarGroup>
-                <SidebarGroupLabel asChild>
-                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
-                    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Sales</span>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                  </CollapsibleTrigger>
-                </SidebarGroupLabel>
-                <CollapsibleContent>
-                  <SidebarGroupContent>
-                    <SidebarMenu className="mt-2">
-                      {salesItems.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton asChild isActive={normalizedPath === item.href} className="rounded-xl h-10 px-4">
-                            <Link href={getTenantPath(subdomain, item.href)} className="flex items-center justify-between gap-3 w-full">
-                              <div className="flex items-center gap-3">
+              <Collapsible defaultOpen className="group/collapsible">
+                <SidebarGroup>
+                  <SidebarGroupLabel asChild>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
+                      <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Catalog</span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </CollapsibleTrigger>
+                  </SidebarGroupLabel>
+                  <CollapsibleContent>
+                    <SidebarGroupContent>
+                      <SidebarMenu className="mt-2">
+                        {catalogItems.map((item) => (
+                          <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton asChild isActive={normalizedPath === item.href} className="rounded-xl h-10 px-4">
+                              <Link href={getTenantPath(subdomain, item.href)} className="flex items-center gap-3">
                                 <item.icon className={`w-4 h-4 ${normalizedPath === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
                                 <span className="text-sm font-medium">{item.title}</span>
-                              </div>
-                              {item.count > 0 && <Badge className="h-5 px-2 bg-primary/10 text-primary text-[10px] font-black border-none rounded-full">{item.count}</Badge>}
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </CollapsibleContent>
-              </SidebarGroup>
-            </Collapsible>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                </SidebarGroup>
+              </Collapsible>
 
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={normalizedPath === "/settings"} className="rounded-xl h-11 px-4">
-                  <Link href={getTenantPath(subdomain, "/settings")} className="flex items-center gap-3">
-                    <Settings className={`w-5 h-5 ${normalizedPath === "/settings" ? 'text-primary' : 'text-muted-foreground'}`} />
-                    <span className="font-medium">Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarContent>
-          <div className="mt-auto p-4 border-t border-border/50 space-y-2">
-            <Link href={getConsoleUrl()}>
-              <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted h-10 text-sm">
-                <ChevronLeft className="w-4 h-4" /> Back to Console
-              </Button>
-            </Link>
-          </div>
-        </Sidebar>
+              <Collapsible defaultOpen className="group/collapsible">
+                <SidebarGroup>
+                  <SidebarGroupLabel asChild>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
+                      <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Sales</span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </CollapsibleTrigger>
+                  </SidebarGroupLabel>
+                  <CollapsibleContent>
+                    <SidebarGroupContent>
+                      <SidebarMenu className="mt-2">
+                        {salesItems.map((item) => (
+                          <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton asChild isActive={normalizedPath === item.href} className="rounded-xl h-10 px-4">
+                              <Link href={getTenantPath(subdomain, item.href)} className="flex items-center justify-between gap-3 w-full">
+                                <div className="flex items-center gap-3">
+                                  <item.icon className={`w-4 h-4 ${normalizedPath === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                                  <span className="text-sm font-medium">{item.title}</span>
+                                </div>
+                                {item.count > 0 && <Badge className="h-5 px-2 bg-primary/10 text-primary text-[10px] font-black border-none rounded-full">{item.count}</Badge>}
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                </SidebarGroup>
+              </Collapsible>
 
-        <SidebarInset className="bg-background">
-          <header className="flex h-16 items-center justify-between px-6 border-b border-border/50 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger className="md:hidden" />
-              <h2 className="text-lg font-headline font-bold text-foreground capitalize">
-                {normalizedPath === "/" ? "Storefront" : normalizedPath.split("/").pop()?.replace('-', ' ')}
-              </h2>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link href={getTenantPath(subdomain, "/notifications")} className="relative p-2 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-full">
-                <Bell className="w-5 h-5" />
-                {(counts.orders + counts.uncompleted + counts.system) > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-black text-white flex items-center justify-center rounded-full border-2 border-white">
-                    {counts.orders + counts.uncompleted + counts.system}
-                  </span>
-                )}
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={normalizedPath === "/settings"} className="rounded-xl h-11 px-4">
+                    <Link href={getTenantPath(subdomain, "/settings")} className="flex items-center gap-3">
+                      <Settings className={`w-5 h-5 ${normalizedPath === "/settings" ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <span className="font-medium">Settings</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarContent>
+            <div className="mt-auto p-4 border-t border-border/50 space-y-2">
+              <Link href={getConsoleUrl()}>
+                <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted h-10 text-sm">
+                  <ChevronLeft className="w-4 h-4" /> Back to Console
+                </Button>
               </Link>
-              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
-                {auth?.currentUser?.email?.[0].toUpperCase()}
-              </div>
             </div>
-          </header>
-          <main className="flex-1 p-6 md:p-10">
-            {children}
-          </main>
-        </SidebarInset>
-      </div>
+          </Sidebar>
+
+          <SidebarInset className="bg-background">
+            <header className="flex h-16 items-center justify-between px-6 border-b border-border/50 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+              <div className="flex items-center gap-3">
+                <SidebarTrigger className="md:hidden" />
+                <h2 className="text-lg font-headline font-bold text-foreground capitalize">
+                  {normalizedPath === "/" ? "Storefront" : normalizedPath.split("/").pop()?.replace('-', ' ')}
+                </h2>
+              </div>
+              <div className="flex items-center gap-4">
+                <Link href={getTenantPath(subdomain, "/notifications")} className="relative p-2 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-full">
+                  <Bell className="w-5 h-5" />
+                  {(counts.orders + counts.uncompleted + counts.system) > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-black text-white flex items-center justify-center rounded-full border-2 border-white">
+                      {counts.orders + counts.uncompleted + counts.system}
+                    </span>
+                  )}
+                </Link>
+                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
+                  {auth?.currentUser?.email?.[0].toUpperCase()}
+                </div>
+              </div>
+            </header>
+            <main className="flex-1 p-6 md:p-10">
+              {children}
+            </main>
+          </SidebarInset>
+        </div>
+      </ConfirmationProvider>
     </SidebarProvider>
   );
 }
