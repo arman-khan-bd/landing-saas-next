@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
+import { cn, getTenantPath } from "@/lib/utils";
 
 interface CartItem {
   id: string;
@@ -147,14 +146,14 @@ export default function ProductDetailPage() {
   if (!product) return (
     <div className="flex flex-col h-screen items-center justify-center gap-6 p-6 text-center">
       <h1 className="text-3xl font-black">Item Not Found</h1>
-      <Link href={`/${subdomain}`}>
+      <Link href={getTenantPath(subdomain, "/")}>
         <Button className="rounded-2xl h-12 px-8">Return to Shop</Button>
       </Link>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
+    <div className="min-h-screen bg-slate-50/50 pb-12">
       {/* Mini Nav */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -243,73 +242,6 @@ export default function ProductDetailPage() {
         </section>
       </main>
 
-      <footer className="bg-white border-t border-slate-100 pt-16 pb-12 px-6 mt-12">
-        <div className="max-w-6xl mx-auto space-y-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 text-center md:text-left">
-            <div className="space-y-4 md:col-span-2">
-              <Link href={`/${subdomain}`} className="flex items-center justify-center md:justify-start gap-2.5">
-                <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-sm">
-                  <ShoppingBag className="w-5 h-5" />
-                </div>
-                <span className="text-xl font-headline font-black tracking-tight uppercase text-slate-900">{store?.name || subdomain}</span>
-              </Link>
-              <p className="text-slate-500 text-sm max-w-sm mx-auto md:mx-0 font-medium leading-relaxed">
-                Discover the best collection curated specifically for you. Quality products, fast delivery, and exceptional service.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Shop</h4>
-              <ul className="space-y-2.5 text-sm font-bold text-slate-600">
-                <li><Link href={`/${subdomain}`} className="hover:text-primary transition-colors">All Products</Link></li>
-                <li><Link href={`/${subdomain}`} className="hover:text-primary transition-colors">Featured Items</Link></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Support</h4>
-              <ul className="space-y-2.5 text-sm font-bold text-slate-600">
-                <li><Link href="#" className="hover:text-primary transition-colors">Terms of Service</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex flex-col items-center md:items-start gap-2">
-              <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
-                &copy; {new Date().getFullYear()} {(store?.name || subdomain).toUpperCase()}
-              </div>
-              <div className="flex items-center gap-3 opacity-30">
-                <div className="w-5 h-5 bg-slate-200 rounded-md" />
-                <div className="w-5 h-5 bg-slate-200 rounded-md" />
-                <div className="w-5 h-5 bg-slate-200 rounded-md" />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-6">
-              <div className="hidden sm:flex items-center gap-2 text-slate-300">
-                <ShieldCheck className="w-4 h-4" />
-                <span className="text-[9px] font-black uppercase tracking-widest">Secure Payments</span>
-              </div>
-
-              {/* Powered by IHut.Shop - Shown for free/expired plans */}
-              {(!store?.subscription || isSubscriptionExpired) && (
-                <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100 hover:bg-white hover:shadow-md transition-all group">
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Powered by</span>
-                  <div className="flex items-center gap-1">
-                    <div className="w-4 h-4 bg-primary rounded-[4px] flex items-center justify-center">
-                      <ShoppingCart className="w-2.5 h-2.5 text-white" />
-                    </div>
-                    <span className="text-[10px] font-headline font-black tracking-tight text-primary uppercase">IHut.Shop</span>
-                  </div>
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </footer>
-
       {/* Cart Drawer */}
       <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
         <SheetContent className="w-full sm:max-w-md flex flex-col p-0 border-none rounded-l-[40px] overflow-hidden shadow-2xl">
@@ -364,7 +296,7 @@ export default function ProductDetailPage() {
                 <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Bag Subtotal</span>
                 <span className="text-2xl font-black text-primary">${cartTotal.toFixed(2)}</span>
               </div>
-              <Link href={`/${subdomain}/checkout`} className="w-full">
+              <Link href={getTenantPath(subdomain, "/checkout")} className="w-full">
                 <Button className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={cart.length === 0}>
                   Checkout Now
                 </Button>

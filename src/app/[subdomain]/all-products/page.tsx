@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -16,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { getTenantPath } from "@/lib/utils";
 
 interface CartItem {
   id: string;
@@ -159,11 +159,11 @@ export default function AllProductsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50/30">
+    <div className="min-h-screen bg-slate-50/30 pb-20">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href={`/${subdomain}`} className="flex items-center gap-2">
+          <Link href={getTenantPath(subdomain, "/")} className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-md">
               <ShoppingBag className="w-4 h-4" />
             </div>
@@ -232,7 +232,7 @@ export default function AllProductsPage() {
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Subtotal</span>
                       <span className="text-2xl font-black text-primary">${cartTotal.toFixed(2)}</span>
                     </div>
-                    <Link href={`/${subdomain}/checkout`} className="w-full">
+                    <Link href={getTenantPath(subdomain, "/checkout")} className="w-full">
                       <Button className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={cart.length === 0}>
                         Checkout Now
                       </Button>
@@ -358,12 +358,12 @@ export default function AllProductsPage() {
               {paginatedProducts.map((p) => (
                 <Card key={p.id} className="group bg-white rounded-2xl overflow-hidden border-none shadow-sm hover:shadow-md transition-all active:scale-95">
                   <CardContent className="p-0">
-                    <Link href={`/${subdomain}/product/${p.slug}`} className="block aspect-square relative overflow-hidden bg-slate-50 border-b">
+                    <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block aspect-square relative overflow-hidden bg-slate-50 border-b">
                       {p.featuredImage && <img src={p.featuredImage} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={p.name} />}
                       {p.prevPrice && <div className="absolute top-2 left-2 bg-rose-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Sale</div>}
                     </Link>
                     <div className="p-4 space-y-2">
-                      <Link href={`/${subdomain}/product/${p.slug}`} className="block min-h-[40px]">
+                      <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block min-h-[40px]">
                         <h4 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-2 group-hover:text-primary transition-colors">{p.name}</h4>
                       </Link>
                       <div className="flex items-center justify-between pt-1">
@@ -417,13 +417,6 @@ export default function AllProductsPage() {
           </div>
         )}
       </main>
-
-      <footer className="bg-white border-t py-12 px-6 mt-20 text-center">
-        <Link href={`/${subdomain}`} className="flex items-center justify-center gap-2 opacity-30 hover:opacity-100 transition-opacity">
-          <ShoppingBag className="w-4 h-4" />
-          <span className="text-sm font-headline font-black uppercase tracking-tighter">{store?.name}</span>
-        </Link>
-      </footer>
     </div>
   );
 }

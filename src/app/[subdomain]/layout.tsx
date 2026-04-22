@@ -7,7 +7,7 @@ import { getSubdomain } from "@/lib/subdomain";
 import { collection, query, where, getDocs, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -247,7 +247,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     { title: "Uncompleted", icon: AlertCircle, href: "/orders/uncompleted", count: counts.uncompleted },
   ];
 
-  if (!isAdminPath) return <div className="min-h-screen bg-background">{children}</div>;
+  if (!isAdminPath) return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <div className="flex-1">
+        {children}
+      </div>
+      <StorefrontFooter store={store} subdomain={subdomain} isSubscriptionExpired={isSubscriptionExpired} />
+    </div>
+  );
 
   return (
     <SidebarProvider>
@@ -412,5 +419,78 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         </SidebarInset>
       </div>
     </SidebarProvider>
+  );
+}
+
+function StorefrontFooter({ store, subdomain, isSubscriptionExpired }: { store: any, subdomain: string, isSubscriptionExpired: boolean }) {
+  if (!store) return null;
+  
+  return (
+    <footer className="bg-white border-t border-slate-100 pt-16 pb-12 px-6 mt-auto">
+      <div className="max-w-7xl mx-auto space-y-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 text-center md:text-left">
+          <div className="space-y-4 md:col-span-2">
+            <Link href={getTenantPath(subdomain, "/")} className="flex items-center justify-center md:justify-start gap-2.5">
+              <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-sm">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <span className="text-xl font-headline font-black tracking-tight uppercase text-slate-900">{store?.name || subdomain}</span>
+            </Link>
+            <p className="text-slate-500 text-sm max-w-sm mx-auto md:mx-0 font-medium leading-relaxed">
+              Discover the best collection curated specifically for you. Quality products, fast delivery, and exceptional service.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Shop</h4>
+            <ul className="space-y-2.5 text-sm font-bold text-slate-600">
+              <li><Link href={getTenantPath(subdomain, "/all-products")} className="hover:text-primary transition-colors">All Products</Link></li>
+              <li><Link href={getTenantPath(subdomain, "/")} className="hover:text-primary transition-colors">Featured Items</Link></li>
+            </ul>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Support</h4>
+            <ul className="space-y-2.5 text-sm font-bold text-slate-600">
+              <li><Link href="#" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="pt-8 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
+              &copy; {new Date().getFullYear()} {(store?.name || subdomain).toUpperCase()}
+            </div>
+            <div className="flex items-center gap-3 opacity-30">
+              <div className="w-5 h-5 bg-slate-200 rounded-md" />
+              <div className="w-5 h-5 bg-slate-200 rounded-md" />
+              <div className="w-5 h-5 bg-slate-200 rounded-md" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div className="hidden sm:flex items-center gap-2 text-slate-300">
+              <ShieldCheck className="w-4 h-4" />
+              <span className="text-[9px] font-black uppercase tracking-widest">Secure Payments</span>
+            </div>
+
+            {/* Powered by IHut.Shop - Shown for free/expired plans */}
+            {(!store?.subscription || isSubscriptionExpired) && (
+              <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100 hover:bg-white hover:shadow-md transition-all group">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Powered by</span>
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4 bg-primary rounded-[4px] flex items-center justify-center">
+                    <ShoppingCart className="w-2.5 h-2.5 text-white" />
+                  </div>
+                  <span className="text-[10px] font-headline font-black tracking-tight text-primary uppercase">IHut.Shop</span>
+                </div>
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </footer>
   );
 }
