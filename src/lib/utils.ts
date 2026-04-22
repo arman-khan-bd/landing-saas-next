@@ -25,6 +25,16 @@ export function getConsoleUrl() {
   return `http://localhost:9002/dashboard`;
 }
 
+export function getAuthUrl() {
+  const isProd = process.env.NODE_ENV === "production";
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
+  
+  if (isProd) {
+    return `https://${rootDomain}/auth`;
+  }
+  return `http://localhost:9002/auth`;
+}
+
 /**
  * Generates a path that works both on subdomains and main domain path-based access.
  */

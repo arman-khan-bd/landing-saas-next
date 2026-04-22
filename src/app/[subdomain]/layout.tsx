@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { cn, getTenantPath, getConsoleUrl } from "@/lib/utils";
+import { cn, getTenantPath, getConsoleUrl, getAuthUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmationProvider } from "@/hooks/use-confirm";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +51,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
 
+  const normalizedPath = pathname.startsWith(`/${subdomain}/`)
+    ? pathname.replace(`/${subdomain}`, "")
+    : pathname === `/${subdomain}` ? "/" : pathname;
+
+  const adminSegments = ["dashboard", "overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder", "home-manager"];
+  const isBuilderEditor = normalizedPath.includes("/builder/") && normalizedPath.split("/").filter(Boolean).length > 1;
+  const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`)) && !isBuilderEditor;
+
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -58,14 +66,15 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         await verifyStoreAccess(user.uid);
       } else {
         if (isAdminPath) {
-          router.push("/auth");
+          // If we are on a subdomain dashboard without auth, redirect to root domain auth
+          window.location.href = getAuthUrl();
         } else {
           setLoading(false);
         }
       }
     });
     return () => unsubscribe();
-  }, [subdomain, router, auth]);
+  }, [subdomain, router, auth, isAdminPath]);
 
   useEffect(() => {
     if (!firestore || !store?.id || !auth?.currentUser) return;
@@ -190,14 +199,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     }
   };
 
-  const normalizedPath = pathname.startsWith(`/${subdomain}/`)
-    ? pathname.replace(`/${subdomain}`, "")
-    : pathname === `/${subdomain}` ? "/" : pathname;
-
-  const adminSegments = ["dashboard", "overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder", "home-manager"];
-  const isBuilderEditor = normalizedPath.includes("/builder/") && normalizedPath.split("/").filter(Boolean).length > 1;
-  const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`)) && !isBuilderEditor;
-
   if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
 
   if (isAdminPath && !isPasswordVerified && !accessDenied) {
@@ -244,11 +245,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const salesItems = [
     { title: "All Orders", icon: Receipt, href: "/orders", count: counts.orders },
     { title: "Uncompleted", icon: AlertCircle, href: "/orders/uncompleted", count: counts.uncompleted },
-  ];
-
-  const customerItems = [
-    { title: "All Customers", icon: Users, href: "/customers" },
-    { title: "Fraud List", icon: AlertCircle, href: "/customers/fraud" },
   ];
 
   if (!isAdminPath) return <div className="min-h-screen bg-background">{children}</div>;

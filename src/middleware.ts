@@ -12,12 +12,13 @@ export default async function middleware(req: NextRequest) {
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
 
   // 1. Root domain handling
-  if (
+  const isRootDomain = 
     currentHost === rootDomain || 
     currentHost === `www.${rootDomain}` ||
     currentHost === "localhost" ||
-    currentHost === "127.0.0.1"
-  ) {
+    currentHost === "127.0.0.1";
+
+  if (isRootDomain) {
     return NextResponse.next();
   }
 
@@ -36,16 +37,24 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 3. Prevent loops if the path already starts with /[subdomain]
+  // 3. Auth Redirection: If user is on a subdomain and requests /auth, send them to the root domain auth
+  if (url.pathname === "/auth") {
+    const authUrl = new URL("/auth", `https://${rootDomain}`);
+    // Maintain query params like planId
+    authUrl.search = url.search;
+    return NextResponse.redirect(authUrl);
+  }
+
+  // 4. Prevent loops if the path already starts with /[subdomain]
   if (url.pathname.startsWith(`/${subdomain}`)) {
     return NextResponse.next();
   }
 
-  // 4. Specific alias for 'overview' -> 'dashboard' within tenant routes
+  // 5. Specific alias for 'overview' -> 'dashboard' within tenant routes
   let path = url.pathname;
   if (path === "/overview") path = "/dashboard";
 
-  // 5. Rewrite to dynamic tenant folder
+  // 6. Rewrite to dynamic tenant folder
   const rewritePath = `/${subdomain}${path === "/" ? "" : path}${url.search}`;
   
   const response = NextResponse.rewrite(new URL(rewritePath, req.url));
