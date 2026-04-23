@@ -224,6 +224,17 @@ export default function ProductDetailPage() {
     }
   };
 
+  const updateCartQuantity = (id: string, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id) return { ...item, quantity: Math.max(1, item.quantity + delta) };
+      return item;
+    }));
+  };
+
+  const removeFromCart = (id: string) => setCart(prev => prev.filter(item => item.id !== id));
+
+  const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
   const selectedManualMethod = store?.paymentSettings?.manualMethods?.find((m: any) => m.id === formData.selectedManualMethodId);
 
   if (loading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin w-10 h-10 text-primary" /></div>;
