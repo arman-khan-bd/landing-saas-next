@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { getSubdomain } from "@/lib/subdomain";
 import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ShoppingCart, Loader2, CheckCircle2, Plus, Minus, X, Trash2, ChevronLeft, ShieldCheck, Truck, CreditCard } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Loader2, CheckCircle2, Plus, Minus, X, Trash2, ChevronLeft, ShieldCheck, Truck, CreditCard, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -16,6 +16,7 @@ import { cn, getTenantPath } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
@@ -49,7 +50,6 @@ export default function ProductDetailPage() {
 
   const [product, setProduct] = useState<any>(null);
   const [store, setStore] = useState<any>(null);
-  const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -57,11 +57,15 @@ export default function ProductDetailPage() {
   const [quantity, setItemQuantity] = useState(1);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [clientIp, setClientIp] = useState("");
+  const [selectedShipping, setSelectedShipping] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
-    address: ""
+    address: "",
+    paymentMethod: "cod",
+    selectedManualMethodId: "",
+    transactionId: ""
   });
 
   useEffect(() => {
@@ -97,10 +101,10 @@ export default function ProductDetailPage() {
       if (!storeSnap.empty) {
         const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() } as any;
         setStore(storeData);
-
-        if (storeData.subscription) {
-          const end = storeData.subscription.currentPeriodEnd?.toDate ? storeData.subscription.currentPeriodEnd.toDate() : new Date(storeData.subscription.currentPeriodEnd);
-          setIsSubscriptionExpired(end < new Date());
+        
+        // Auto-select first shipping method if available
+        if (storeData.shippingSettings?.enabled && storeData.shippingSettings.methods?.length > 0) {
+          setSelectedShipping(storeData.shippingSettings.methods[0]);
         }
       }
 
@@ -141,24 +145,16 @@ export default function ProductDetailPage() {
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (id: string) => {
-    setCart(prev => prev.filter(item => item.id !== id));
-  };
-
-  const updateCartQuantity = (id: string, delta: number) => {
-    setCart(prev => prev.map(item => {
-      if (item.id === id) {
-        const newQty = Math.max(1, item.quantity + delta);
-        return { ...item, quantity: newQty };
-      }
-      return item;
-    }));
-  };
-
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!product) return;
     if (!formData.fullName || !formData.phone || !formData.address) {
-      toast({ variant: "destructive", title: "Missing Information", description: "Please fill in all required fields." });
+      toast({ variant: "destructive", title: "তথ্য অসম্পূর্ণ", description: "অনুগ্রহ করে সব প্রয়োজনীয় তথ্য প্রদান করুন।" });
+      return;
+    }
+
+    if (formData.paymentMethod === 'manual' && (!formData.transactionId || !formData.selectedManualMethodId)) {
+      toast({ variant: "destructive", title: "পেমেন্ট তথ্য প্রয়োজন", description: "অনুগ্রহ করে পেমেন্ট মেথড এবং ট্রানজাকশন আইডি প্রদান করুন।" });
       return;
     }
 
@@ -175,15 +171,15 @@ export default function ProductDetailPage() {
         );
         const fraudSnap = await getDocs(fraudQ);
         if (!fraudSnap.empty) {
-          toast({ 
-            variant: "destructive", 
-            title: "Transaction Denied", 
-            description: "Your details have been restricted by the merchant." 
-          });
+          toast({ variant: "destructive", title: "Transaction Denied", description: "Security restriction applied." });
           setIsPlacingOrder(false);
           return;
         }
       }
+
+      const shippingCost = selectedShipping?.cost || 0;
+      const subtotal = Number(product.currentPrice) * quantity;
+      const total = subtotal + shippingCost;
 
       const orderData = {
         storeId: store.id,
@@ -201,30 +197,34 @@ export default function ProductDetailPage() {
           address: formData.address,
           ip: clientIp
         },
-        shipping: { name: "Direct Order", cost: 0 },
-        subtotal: Number(product.currentPrice) * quantity,
-        shippingCost: 0,
-        total: Number(product.currentPrice) * quantity,
-        paymentMethod: "cod",
+        shipping: selectedShipping ? {
+          name: selectedShipping.name,
+          cost: shippingCost
+        } : { name: "Direct Order", cost: 0 },
+        subtotal: subtotal,
+        shippingCost: shippingCost,
+        total: total,
+        paymentMethod: formData.paymentMethod,
+        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
+        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
         status: "pending",
-        paymentStatus: "unpaid",
+        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
         isRead: false,
         createdAt: serverTimestamp(),
       };
 
       await addDoc(collection(db, "orders"), orderData);
-      
-      toast({ title: "অর্ডার সফল হয়েছে!", description: "আপনার অর্ডারটি গ্রহণ করা হয়েছে। শীঘ্রই আপনার সাথে যোগাযোগ করা হবে।" });
-      setFormData({ fullName: "", phone: "", address: "" });
+      toast({ title: "অর্ডার সফল হয়েছে!", description: "আপনার অর্ডারটি গ্রহণ করা হয়েছে।" });
+      setFormData({ fullName: "", phone: "", address: "", paymentMethod: "cod", selectedManualMethodId: "", transactionId: "" });
     } catch (error) {
       console.error(error);
-      toast({ variant: "destructive", title: "Order Failed", description: "Something went wrong." });
+      toast({ variant: "destructive", title: "Order Failed" });
     } finally {
       setIsPlacingOrder(false);
     }
   };
 
-  const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const selectedManualMethod = store?.paymentSettings?.manualMethods?.find((m: any) => m.id === formData.selectedManualMethodId);
 
   if (loading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin w-10 h-10 text-primary" /></div>;
 
@@ -280,7 +280,7 @@ export default function ProductDetailPage() {
             </div>
           </section>
 
-          {/* Product Info & Direct Order */}
+          {/* Product Info & Order Form */}
           <section className="space-y-8">
             <div className="bg-white p-6 sm:p-8 rounded-[32px] shadow-sm border border-slate-100">
               <div className="space-y-3">
@@ -322,50 +322,161 @@ export default function ProductDetailPage() {
 
             {/* Integrated Checkout Form */}
             <Card className="rounded-[40px] border-none shadow-2xl overflow-hidden bg-white ring-4 ring-primary/5">
-              <div className="bg-primary text-white p-6 sm:p-8 text-center">
-                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                   <Truck className="w-6 h-6" />
+              <div className="bg-[#161625] text-white p-6 sm:p-10 text-center">
+                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                   <Truck className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-2xl font-headline font-black tracking-tight uppercase">অর্ডার কনফার্ম করুন</h3>
-                <p className="text-white/70 text-xs mt-1 font-medium">নিচের ফর্মটি পূরণ করে অর্ডারটি সম্পন্ন করুন</p>
+                <h3 className="text-3xl font-headline font-black tracking-tight uppercase">অর্ডার কনফার্ম করুন</h3>
+                <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mt-1">নিরাপদ এবং দ্রুত ডেলিভারি</p>
               </div>
-              <CardContent className="p-6 sm:p-10 space-y-6">
-                <form onSubmit={handlePlaceOrder} className="space-y-5">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">আপনার নাম *</Label>
-                    <Input 
-                      placeholder="যেমন: আরমান আলী" 
-                      className="h-12 rounded-xl bg-slate-50 border-none px-4" 
-                      value={formData.fullName}
-                      onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">মোবাইল নাম্বার *</Label>
-                    <Input 
-                      placeholder="01XXXXXXXXX" 
-                      className="h-12 rounded-xl bg-slate-50 border-none px-4" 
-                      value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">পুরো ঠিকানা *</Label>
-                    <Textarea 
-                      placeholder="যেমন: বাসা/ফ্ল্যাট নাম্বার, রোড, এলাকা, জেলা" 
-                      className="min-h-[100px] rounded-2xl bg-slate-50 border-none p-4" 
-                      value={formData.address}
-                      onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    />
+              <CardContent className="p-6 sm:p-10 space-y-8">
+                <form onSubmit={handlePlaceOrder} className="space-y-8">
+                  {/* Shipping Section */}
+                  {store?.shippingSettings?.enabled && (
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">ডেলিভারি এরিয়া নির্বাচন করুন</Label>
+                      <RadioGroup 
+                        value={selectedShipping?.id} 
+                        onValueChange={(id) => setSelectedShipping(store.shippingSettings.methods.find((m: any) => m.id === id))} 
+                        className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                      >
+                        {store.shippingSettings.methods.map((method: any) => (
+                          <div 
+                            key={method.id} 
+                            className={cn(
+                              "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", 
+                              selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent'
+                            )}
+                            onClick={() => setSelectedShipping(method)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <RadioGroupItem value={method.id} id={`ship-${method.id}`} />
+                              <Label htmlFor={`ship-${method.id}`} className="font-bold cursor-pointer text-xs">{method.name}</Label>
+                            </div>
+                            <span className="font-black text-[10px]">${method.cost}</span>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  )}
+
+                  <div className="space-y-4 pt-4 border-t border-slate-50">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">আপনার তথ্য প্রদান করুন</Label>
+                    <div className="space-y-4">
+                      <Input 
+                        placeholder="আপনার পুরো নাম" 
+                        className="h-12 rounded-xl bg-slate-50 border-none px-4" 
+                        value={formData.fullName}
+                        onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                      />
+                      <Input 
+                        placeholder="মোবাইল নাম্বার" 
+                        className="h-12 rounded-xl bg-slate-50 border-none px-4" 
+                        value={formData.phone}
+                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      />
+                      <Textarea 
+                        placeholder="পুরো ঠিকানা (বাসা/রোড, জেলা)" 
+                        className="min-h-[100px] rounded-2xl bg-slate-50 border-none p-4" 
+                        value={formData.address}
+                        onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      />
+                    </div>
                   </div>
 
-                  <div className="pt-4 space-y-4">
-                    <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between">
-                       <div className="flex items-center gap-3">
-                          <CreditCard className="w-5 h-5 text-primary" />
-                          <span className="text-sm font-bold">ক্যাশ অন ডেলিভারি</span>
-                       </div>
-                       <Badge className="bg-primary text-white border-none rounded-lg text-[9px] px-2 py-0.5">অ্যাক্টিভ</Badge>
+                  {/* Payment Section */}
+                  <div className="space-y-4 pt-4 border-t border-slate-50">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">পেমেন্ট মেথড</Label>
+                    <RadioGroup 
+                      value={formData.paymentMethod} 
+                      onValueChange={(val) => setFormData({...formData, paymentMethod: val})} 
+                      className="grid gap-3"
+                    >
+                      {store?.paymentSettings?.cod && (
+                        <div 
+                          className={cn(
+                            "flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer", 
+                            formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent'
+                          )}
+                          onClick={() => setFormData({...formData, paymentMethod: 'cod'})}
+                        >
+                          <div className="flex items-center gap-3">
+                             <RadioGroupItem value="cod" id="cod-sp" />
+                             <Label htmlFor="cod-sp" className="font-bold cursor-pointer">ক্যাশ অন ডেলিভারি</Label>
+                          </div>
+                          <Truck className="w-5 h-5 text-slate-300" />
+                        </div>
+                      )}
+
+                      {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
+                        <div 
+                          className={cn(
+                            "flex flex-col p-4 rounded-2xl border-2 cursor-pointer", 
+                            formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent'
+                          )}
+                          onClick={() => setFormData({...formData, paymentMethod: 'manual'})}
+                        >
+                          <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-3">
+                                <RadioGroupItem value="manual" id="manual-sp" />
+                                <Label htmlFor="manual-sp" className="font-bold cursor-pointer">বিকাশ/নগদ/রকেট</Label>
+                             </div>
+                             <Smartphone className="w-5 h-5 text-slate-300" />
+                          </div>
+
+                          {formData.paymentMethod === 'manual' && (
+                             <div className="mt-4 pt-4 border-t border-primary/10 space-y-4 animate-in slide-in-from-top-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                   {store.paymentSettings.manualMethods.map((m: any) => (
+                                     <Button 
+                                       key={m.id} 
+                                       type="button" 
+                                       variant="outline" 
+                                       className={cn("h-10 rounded-xl text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white' : '')}
+                                       onClick={(e) => { e.stopPropagation(); setFormData({...formData, selectedManualMethodId: m.id}); }}
+                                     >
+                                        {m.name}
+                                     </Button>
+                                   ))}
+                                </div>
+                                
+                                {selectedManualMethod && (
+                                   <div className="space-y-4">
+                                      <div className="p-4 bg-white rounded-2xl border border-primary/10">
+                                         <p className="text-[10px] font-black text-primary uppercase">নাম্বার: {selectedManualMethod.number}</p>
+                                         <p className="text-[10px] text-slate-500 mt-1 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</p>
+                                      </div>
+                                      <Input 
+                                        placeholder="ট্রানজাকশন আইডি লিখুন" 
+                                        className="h-12 rounded-xl bg-white border-primary/20" 
+                                        value={formData.transactionId}
+                                        onChange={(e) => setFormData({...formData, transactionId: e.target.value.toUpperCase()})}
+                                      />
+                                   </div>
+                                )}
+                             </div>
+                          )}
+                        </div>
+                      )}
+                    </RadioGroup>
+                  </div>
+
+                  {/* Summary & Submit */}
+                  <div className="pt-6 space-y-6">
+                    <div className="bg-slate-50 p-6 rounded-[32px] border space-y-3">
+                      <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                         <span>পণ্য মূল্য</span>
+                         <span>${(Number(product.currentPrice) * quantity).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                         <span>ডেলিভারি চার্জ</span>
+                         <span>${(selectedShipping?.cost || 0).toFixed(2)}</span>
+                      </div>
+                      <Separator className="bg-slate-200" />
+                      <div className="flex justify-between items-end text-3xl font-black text-primary">
+                         <span className="text-[10px] pb-2 text-slate-900 uppercase">মোট</span>
+                         <span>${(Number(product.currentPrice) * quantity + (selectedShipping?.cost || 0)).toFixed(2)}</span>
+                      </div>
                     </div>
 
                     <Button 
@@ -373,14 +484,14 @@ export default function ProductDetailPage() {
                       disabled={isPlacingOrder}
                       className="w-full h-16 rounded-[24px] text-xl font-black shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
                     >
-                      {isPlacingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : "অর্ডার করুন"}
+                      {isPlacingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : "অর্ডার সম্পন্ন করুন"}
                     </Button>
                   </div>
                 </form>
                 
                 <div className="flex items-center justify-center gap-2 text-slate-400">
                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                   <span className="text-[9px] font-black uppercase tracking-[0.2em]">নিরাপদ কেনাকাটা</span>
+                   <span className="text-[9px] font-black uppercase tracking-[0.2em]">নিরাপদ পেমেন্ট ব্যবস্থা</span>
                 </div>
               </CardContent>
             </Card>
