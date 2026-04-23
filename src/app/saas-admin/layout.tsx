@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,7 +14,7 @@ import {
 import { 
   ShieldCheck, Users, Store, CreditCard, LayoutDashboard, 
   ChevronLeft, Loader2, AlertCircle, LogOut, Settings, BarChart,
-  Bell, ArrowLeftRight, Layout
+  Bell, ArrowLeftRight, Layout, Globe
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
   const firestore = useFirestore();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [pendingTransactions, setPendingTransactions] = useState(0);
+  const [pendingDomains, setPendingDomains] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -54,13 +56,17 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
       checkAdmin();
 
       // Listen for pending transactions
-      const q = query(collection(firestore, "saas_transactions"), where("status", "==", "pending"));
-      const unsub = onSnapshot(q, (snap) => {
-        setPendingTransactions(snap.size);
-      }, (error) => {
-        console.error("SaaS Admin pending transactions error:", error);
-      });
-      return () => unsub();
+      const qTx = query(collection(firestore, "saas_transactions"), where("status", "==", "pending"));
+      const unsubTx = onSnapshot(qTx, (snap) => setPendingTransactions(snap.size));
+
+      // Listen for pending domains
+      const qDom = query(collection(firestore, "custom_domain_requests"), where("status", "==", "pending"));
+      const unsubDom = onSnapshot(qDom, (snap) => setPendingDomains(snap.size));
+
+      return () => {
+        unsubTx();
+        unsubDom();
+      };
     }
   }, [user, isUserLoading, firestore, router]);
 
@@ -84,7 +90,8 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
     { title: "Shops", icon: Store, href: "/saas-admin/shops" },
     { title: "Subscriptions", icon: CreditCard, href: "/saas-admin/subscriptions" },
     { title: "Transactions", icon: ArrowLeftRight, href: "/saas-admin/transactions", badge: pendingTransactions },
-    { title: "Notifications", icon: Bell, href: "/saas-admin/notifications", badge: pendingTransactions },
+    { title: "Domain Requests", icon: Globe, href: "/saas-admin/domains", badge: pendingDomains },
+    { title: "Notifications", icon: Bell, href: "/saas-admin/notifications", badge: pendingTransactions + pendingDomains },
   ];
 
   return (

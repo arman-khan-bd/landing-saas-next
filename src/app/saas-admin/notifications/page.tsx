@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   Bell, Check, Trash2, Clock, Loader2, AlertCircle, 
-  ChevronRight, ArrowLeftRight, CreditCard, UserPlus, Info
+  ChevronRight, ArrowLeftRight, CreditCard, UserPlus, Info, Globe
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -21,14 +22,9 @@ export default function AdminNotificationsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Currently, we combine "pending transactions" as notification source
-    // In a future version, we could have a specific 'admin_notifications' collection
-    const q = query(
-      collection(db, "saas_transactions"), 
-      where("status", "==", "pending")
-    );
-
-    const unsub = onSnapshot(q, (snap) => {
+    // Listen for Transactions
+    const qTx = query(collection(db, "saas_transactions"), where("status", "==", "pending"));
+    const unsubTx = onSnapshot(qTx, (snap) => {
       const txNotifs = snap.docs.map(doc => {
         const data = doc.data();
         return {
@@ -41,36 +37,64 @@ export default function AdminNotificationsPage() {
           link: "/saas-admin/transactions",
           createdAt: data.createdAt
         };
-      })
-      .sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
-      .slice(0, 20);
-
-      setNotifications(txNotifs);
-      setLoading(false);
-    }, (error) => {
-      console.error("Firestore Listener Error:", error);
-      setLoading(false);
+      });
+      updateCombined(txNotifs, "tx");
     });
 
-    return () => unsub();
+    // Listen for Domain Requests
+    const qDom = query(collection(db, "custom_domain_requests"), where("status", "==", "pending"));
+    const unsubDom = onSnapshot(qDom, (snap) => {
+      const domNotifs = snap.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          type: "domain",
+          title: "New Custom Domain Request",
+          description: `Store "${data.storeName}" requested to connect ${data.domain}.`,
+          time: data.createdAt?.toDate?.() || new Date(),
+          read: false,
+          link: "/saas-admin/domains",
+          createdAt: data.createdAt
+        };
+      });
+      updateCombined(domNotifs, "dom");
+    });
+
+    return () => {
+      unsubTx();
+      unsubDom();
+    };
   }, []);
+
+  const [rawTx, setRawTx] = useState<any[]>([]);
+  const [rawDom, setRawDom] = useState<any[]>([]);
+
+  const updateCombined = (notifs: any[], key: string) => {
+    if (key === 'tx') setRawTx(notifs);
+    else setRawDom(notifs);
+  };
+
+  useEffect(() => {
+    const combined = [...rawTx, ...rawDom].sort((a, b) => {
+        const tA = a.createdAt?.seconds || 0;
+        const tB = b.createdAt?.seconds || 0;
+        return tB - tA;
+    }).slice(0, 30);
+    setNotifications(combined);
+    setLoading(false);
+  }, [rawTx, rawDom]);
 
   const getIcon = (type: string) => {
     switch (type) {
       case 'transaction': return <ArrowLeftRight className="w-5 h-5 text-indigo-400" />;
+      case 'domain': return <Globe className="w-5 h-5 text-indigo-400" />;
       case 'info': return <Info className="w-5 h-5 text-blue-400" />;
       case 'user': return <UserPlus className="w-5 h-5 text-emerald-400" />;
       default: return <Bell className="w-5 h-5 text-slate-400" />;
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-      </div>
-    );
-  }
+  if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -119,9 +143,9 @@ export default function AdminNotificationsPage() {
                     <p className="text-slate-400 leading-relaxed text-sm">{n.description}</p>
                     
                     <div className="flex items-center gap-6 pt-4">
-                      <a href={n.link} className="flex items-center text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:underline group-hover:translate-x-1 transition-transform">
+                      <Link href={n.link} className="flex items-center text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:underline group-hover:translate-x-1 transition-transform">
                         Take Action <ChevronRight className="w-3 h-3 ml-1" />
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </div>

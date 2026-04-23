@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
-import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle, Smartphone, Lock, Truck, ShieldCheck, Zap, CheckCircle2, Clock, Info } from "lucide-react";
+import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle, Smartphone, Lock, Truck, ShieldCheck, Zap, CheckCircle2, Clock, Info, ArrowUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStoreUrl } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -36,6 +37,12 @@ export default function StoreSettingsPage() {
   const [transactionId, setTransactionId] = useState("");
   const [expiryDate, setExpiryDate] = useState<any>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
+
+  // Domain Request States
+  const [domainRequests, setDomainRequests] = useState<any[]>([]);
+  const [requestingDomain, setRequestingDomain] = useState(false);
+  const [newDomain, setNewDomain] = useState("");
+
   const [settings, setSettings] = useState<any>({
     name: "",
     homePageTitle: "",
@@ -99,7 +106,7 @@ export default function StoreSettingsPage() {
         const sId = snap.docs[0].id;
         setStoreId(sId);
 
-        // Fetch subscription to check Pro status with ownership filter
+        // Fetch subscription to check Pro status
         const subQ = query(
           collection(db, "stores", sId, "subscription"),
           where("ownerId", "==", uid),
@@ -120,13 +127,22 @@ export default function StoreSettingsPage() {
               const diff = end.getTime() - new Date().getTime();
               const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
               setDaysRemaining(days);
-              // Set Pro status only if not expired
               setIsPro(plan.price > 0 && days > 0);
             } else {
               setIsPro(plan.price > 0);
             }
           }
         }
+
+        // Fetch Domain Requests
+        const domQ = query(
+          collection(db, "custom_domain_requests"),
+          where("storeId", "==", sId),
+          where("ownerId", "==", uid)
+        );
+        onSnapshot(domQ, (s) => {
+          setDomainRequests(s.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
 
         // Fetch all plans
         const plansQ = query(collection(db, "subscriptionPlans"), where("isActive", "==", true));
@@ -155,6 +171,29 @@ export default function StoreSettingsPage() {
     }
   };
 
+  const handleRequestDomain = async () => {
+    if (!newDomain || !storeId || !auth.currentUser) return;
+    setRequestingDomain(true);
+    try {
+      await addDoc(collection(db, "custom_domain_requests"), {
+        storeId,
+        storeName: settings.name,
+        subdomain,
+        ownerId: auth.currentUser.uid,
+        domain: newDomain.toLowerCase().trim(),
+        status: "pending",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Request Submitted", description: "Admin will review your custom domain request." });
+      setNewDomain("");
+    } catch (e) {
+      toast({ variant: "destructive", title: "Request Failed" });
+    } finally {
+      setRequestingDomain(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!storeId) return;
     setSaving(true);
@@ -175,7 +214,7 @@ export default function StoreSettingsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-headline font-bold">Store Configuration</h1>
-          <p className="text-muted-foreground">Manage your brand identity, payments, and tier-specific features.</p>
+          <p className="text-muted-foreground text-sm">Manage your brand identity, payments, and tier-specific features.</p>
         </div>
         <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto rounded-xl h-12 px-8 shadow-lg shadow-primary/20 shrink-0">
           {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4" />}
@@ -187,14 +226,13 @@ export default function StoreSettingsPage() {
         <div className="relative">
           <ScrollArea className="w-full">
             <TabsList className="flex w-full grid grid-cols-2 lg:grid-cols-7 h-auto p-1 bg-muted/50 rounded-2xl">
-              <TabsTrigger value="general" className="rounded-xl py-3">General</TabsTrigger>
-              <TabsTrigger value="domains" className="rounded-xl py-3">Domains</TabsTrigger>
-              <TabsTrigger value="branding" className="rounded-xl py-3">Branding</TabsTrigger>
-              <TabsTrigger value="payment" className="rounded-xl py-3">Payment</TabsTrigger>
-              <TabsTrigger value="shipping" className="rounded-xl py-3">Shipping</TabsTrigger>
-              <TabsTrigger value="subscription" className="rounded-xl py-3">Subscription</TabsTrigger>
-              <TabsTrigger value="seo" className="rounded-xl py-3">SEO</TabsTrigger>
-              <TabsTrigger value="analytics" className="rounded-xl py-3">Advanced</TabsTrigger>
+              <TabsTrigger value="general" className="rounded-xl py-3 text-xs font-bold">General</TabsTrigger>
+              <TabsTrigger value="domains" className="rounded-xl py-3 text-xs font-bold">Domains</TabsTrigger>
+              <TabsTrigger value="branding" className="rounded-xl py-3 text-xs font-bold">Branding</TabsTrigger>
+              <TabsTrigger value="payment" className="rounded-xl py-3 text-xs font-bold">Payment</TabsTrigger>
+              <TabsTrigger value="shipping" className="rounded-xl py-3 text-xs font-bold">Shipping</TabsTrigger>
+              <TabsTrigger value="subscription" className="rounded-xl py-3 text-xs font-bold">Subscription</TabsTrigger>
+              <TabsTrigger value="seo" className="rounded-xl py-3 text-xs font-bold">SEO</TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" className="hidden" />
           </ScrollArea>
@@ -209,60 +247,121 @@ export default function StoreSettingsPage() {
               </div>
               <CardDescription>Control how customers access your store online.</CardDescription>
             </CardHeader>
-            <CardContent className="p-8 space-y-8">
+            <CardContent className="p-8 space-y-10">
               <div className="p-6 border rounded-[24px] bg-slate-50 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-bold">Standard Subdomain</h4>
                     <p className="text-xs text-muted-foreground">Included with every IHut.Shop account.</p>
                   </div>
-                  <Badge className="bg-emerald-50 text-emerald-600 border-none px-3 py-1 font-black text-[8px] tracking-widest">LIVE</Badge>
+                  <Badge className="bg-emerald-50 text-emerald-600 border-none px-3 py-1 font-black text-[8px] tracking-widest uppercase">Live</Badge>
                 </div>
                 <div className="flex items-center gap-2 bg-white border px-4 rounded-xl h-12 text-sm font-bold text-primary">
                   {settings.subdomain}.ihut.shop
                 </div>
               </div>
 
-              <div className={`p-6 border-2 border-dashed rounded-[24px] space-y-6 relative overflow-hidden transition-all ${isPro ? 'bg-white border-primary/20' : 'bg-slate-50 opacity-80'}`}>
+              <div className={`p-6 border-2 border-dashed rounded-[24px] space-y-8 relative overflow-hidden transition-all ${isPro ? 'bg-white border-primary/20' : 'bg-slate-50 opacity-80'}`}>
                 {!isPro && (
                   <div className="absolute inset-0 z-10 bg-slate-900/5 backdrop-blur-[1px] flex items-center justify-center">
-                    <div className="bg-white p-6 rounded-3xl shadow-2xl text-center space-y-3 max-w-xs border border-primary/10">
-                      <Lock className="w-8 h-8 text-primary mx-auto" />
-                      <h5 className="font-bold text-lg">Pro Feature</h5>
-                      <p className="text-xs text-muted-foreground">Unlock custom domains by upgrading your store to a paid plan.</p>
-                      <Button onClick={() => setActiveTab("subscription")} className="w-full rounded-xl font-black text-[10px] uppercase tracking-widest">View Plans</Button>
+                    <div className="bg-white p-8 rounded-[32px] shadow-2xl text-center space-y-4 max-w-xs border border-primary/10">
+                      <Lock className="w-10 h-10 text-primary mx-auto" />
+                      <h5 className="font-headline font-black text-xl">PRO FEATURE</h5>
+                      <p className="text-sm text-muted-foreground">Custom domains require an active Pro subscription.</p>
+                      <Button onClick={() => setActiveTab("subscription")} className="w-full h-12 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20">Upgrade Now</Button>
                     </div>
                   </div>
                 )}
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-bold">Custom Domain Mapping</h4>
-                    <p className="text-xs text-muted-foreground">Connect your own brand (e.g. store.mybrand.com).</p>
+                    <h4 className="font-bold text-lg">Request Custom Domain</h4>
+                    <p className="text-xs text-muted-foreground">Connect your own brand (e.g. shop.mybrand.com).</p>
                   </div>
-                  <Badge className="bg-primary/10 text-primary border-none px-3 py-1 font-black text-[8px] tracking-widest uppercase">PRO ONLY</Badge>
+                  <Badge className="bg-primary text-white border-none px-3 py-1 font-black text-[8px] tracking-widest uppercase">PRO</Badge>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Domain</Label>
-                      <Input
-                        placeholder="e.g. shop.luxury.com"
-                        disabled={!isPro}
-                        className="h-12 rounded-xl bg-white"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">DNS Record Type</Label>
-                      <Input disabled value="CNAME" className="h-12 rounded-xl bg-slate-50" />
-                    </div>
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Input
+                      placeholder="e.g. shop.luxury.com"
+                      disabled={!isPro || requestingDomain}
+                      value={newDomain}
+                      onChange={(e) => setNewDomain(e.target.value)}
+                      className="h-14 rounded-xl bg-white text-lg"
+                    />
+                    <Button 
+                      disabled={!isPro || requestingDomain || !newDomain} 
+                      onClick={handleRequestDomain}
+                      className="h-14 px-8 rounded-xl font-black uppercase tracking-tight shadow-xl shadow-primary/20"
+                    >
+                      {requestingDomain ? <Loader2 className="animate-spin w-5 h-5" /> : "Request Domain"}
+                    </Button>
                   </div>
-                  <div className="p-4 bg-slate-900 rounded-2xl text-white space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/80">Configuration</p>
-                    <p className="text-xs font-mono break-all">Point your domain CNAME record to: <span className="text-primary font-bold">host.ihut.shop</span></p>
-                  </div>
-                  <Button disabled={!isPro} className="w-full sm:w-auto h-12 px-8 rounded-xl font-black uppercase tracking-widest">Validate Domain</Button>
+
+                  {domainRequests.length > 0 && (
+                    <div className="space-y-4 pt-6 border-t border-slate-100">
+                      <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Request History</h5>
+                      <div className="grid gap-3">
+                        {domainRequests.map((req) => (
+                          <div key={req.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Globe className="w-4 h-4 text-primary" />
+                                <span className="font-bold text-sm">{req.domain}</span>
+                              </div>
+                              <Badge className={cn(
+                                "border-none px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest",
+                                req.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
+                                req.status === 'rejected' ? 'bg-rose-100 text-rose-600' :
+                                'bg-amber-100 text-amber-600'
+                              )}>
+                                {req.status}
+                              </Badge>
+                            </div>
+
+                            {req.status === 'approved' && req.dnsData && (
+                              <div className="animate-in slide-in-from-top-2 duration-300">
+                                <div className="p-4 bg-slate-900 rounded-xl text-white space-y-4 border-l-4 border-l-primary">
+                                  <div className="flex items-center gap-2 text-primary">
+                                    <ShieldCheck className="w-4 h-4" />
+                                    <p className="text-[9px] font-black uppercase tracking-widest">Approved DNS Configuration</p>
+                                  </div>
+                                  <div className="grid gap-3">
+                                    {req.dnsData.cname && (
+                                      <div className="space-y-1">
+                                        <p className="text-[8px] text-slate-500 uppercase font-black">CNAME Record</p>
+                                        <div className="flex items-center justify-between bg-black/40 p-2 rounded-lg font-mono text-[11px]">
+                                          <span className="text-slate-300">Target: <span className="text-white font-bold">{req.dnsData.cname}</span></span>
+                                          <ArrowUpRight className="w-3 h-3 text-slate-500" />
+                                        </div>
+                                      </div>
+                                    )}
+                                    {req.dnsData.a_record && (
+                                      <div className="space-y-1">
+                                        <p className="text-[8px] text-slate-500 uppercase font-black">A Record (IP)</p>
+                                        <div className="flex items-center justify-between bg-black/40 p-2 rounded-lg font-mono text-[11px]">
+                                          <span className="text-slate-300">Point to: <span className="text-white font-bold">{req.dnsData.a_record}</span></span>
+                                          <ArrowUpRight className="w-3 h-3 text-slate-500" />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 italic pt-2">DNS propagation can take up to 48 hours to complete globally.</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {req.status === 'rejected' && req.rejectionNote && (
+                              <div className="p-4 bg-rose-50 rounded-xl border border-rose-100 text-[11px] text-rose-800 italic">
+                                <strong>Reason:</strong> {req.rejectionNote}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -343,47 +442,6 @@ export default function StoreSettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="analytics" className="mt-6">
-          <Card className="rounded-[32px] border-border/50 shadow-sm overflow-hidden bg-white">
-            <CardHeader className="p-8 bg-slate-900 border-b">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="text-primary h-5 w-5" />
-                <CardTitle className="text-xl font-headline font-bold text-white uppercase tracking-tight">Security Vault</CardTitle>
-              </div>
-              <CardDescription className="text-slate-400">Manage your administrative access controls and protection layers.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-8 space-y-8">
-              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="space-y-1">
-                  <h4 className="font-bold text-lg">Management PIN</h4>
-                  <p className="text-xs text-slate-500">Enable an extra layer of security before accessing the dashboard.</p>
-                </div>
-                <Input
-                  type="password"
-                  placeholder="Enter 4-8 digit PIN"
-                  value={settings.managePassword || ""}
-                  onChange={(e) => setSettings({ ...settings, managePassword: e.target.value })}
-                  className="max-w-[240px] h-12 rounded-xl text-center font-mono text-xl tracking-[0.5em]"
-                />
-              </div>
-
-              <div className="p-8 border-2 border-rose-100 rounded-[32px] bg-rose-50/30 space-y-4">
-                <div className="flex items-center gap-3 text-rose-600">
-                  <AlertCircle className="w-5 h-5" />
-                  <h4 className="font-black uppercase tracking-widest text-xs">Danger Zone</h4>
-                </div>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div>
-                    <p className="font-bold text-slate-900">Permanently Delete Store</p>
-                    <p className="text-xs text-slate-500">This action will erase all products, orders, and customer data. It cannot be undone.</p>
-                  </div>
-                  <Button variant="destructive" className="rounded-xl h-11 px-8 font-bold">Delete This Store</Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="subscription" className="mt-6">
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <Card className="rounded-[32px] border-border/50 shadow-sm overflow-hidden bg-white">
@@ -399,7 +457,7 @@ export default function StoreSettingsPage() {
               <CardContent className="p-8">
                 {daysRemaining !== null && daysRemaining <= 10 && daysRemaining > 0 && (
                   <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-4 text-amber-800">
-                    <AlertTriangle className="w-6 h-6 text-amber-600" />
+                    <AlertCircle className="w-6 h-6 text-amber-600" />
                     <div className="flex-1">
                       <p className="font-bold">Subscription Expiring Soon</p>
                       <p className="text-xs">Your subscription will expire in {daysRemaining} days. Please upgrade or renew to keep your Pro features active.</p>
@@ -545,7 +603,6 @@ export default function StoreSettingsPage() {
                                     </div>
                                   )}
                                 </div>
-
                               </div>
 
                               <DialogFooter>
@@ -557,7 +614,7 @@ export default function StoreSettingsPage() {
                                       const uid = auth.currentUser?.uid;
                                       if (!uid || !storeId || !selectedPaymentMethod || !transactionId) return;
 
-                                      // 1. Create subcollection entry for store-specific tracking
+                                      // 1. Create subcollection entry
                                       await addDoc(collection(db, "stores", storeId, "subscription"), {
                                         planId: plan.id,
                                         planName: plan.name,
@@ -570,7 +627,7 @@ export default function StoreSettingsPage() {
                                         updatedAt: serverTimestamp()
                                       });
 
-                                      // 2. Create global transaction entry for SaaS Admin
+                                      // 2. Create global transaction entry
                                       await addDoc(collection(db, "saas_transactions"), {
                                         storeId: storeId,
                                         storeName: settings.name,
