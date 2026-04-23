@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Save, Tags, Globe, Layout, DollarSign, Package, Video } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Tags, Globe, Layout, DollarSign, Package, Video, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -156,8 +156,8 @@ export default function EditProductPage() {
     },
   }), [imageHandler]);
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpdate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setSaving(true);
     
     try {
@@ -169,7 +169,7 @@ export default function EditProductPage() {
         description: formData.description,
         featuredImage: formData.featuredImage,
         gallery: formData.gallery,
-        tags: formData.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag !== ""),
+        tags: typeof formData.tags === 'string' ? formData.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag !== "") : formData.tags,
         metaKeywords: formData.metaKeywords,
         metaDescription: formData.metaDescription,
         currentPrice: Number(formData.currentPrice),
@@ -217,7 +217,7 @@ export default function EditProductPage() {
             <p className="text-muted-foreground text-sm">Update your product details and stay competitive.</p>
           </div>
         </div>
-        <Button onClick={handleUpdate} className="h-12 px-8 rounded-xl font-bold shadow-lg shadow-primary/20" disabled={saving}>
+        <Button onClick={() => handleUpdate()} className="h-12 px-8 rounded-xl font-bold shadow-lg shadow-primary/20" disabled={saving}>
           {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
           Update Product
         </Button>
@@ -333,7 +333,7 @@ export default function EditProductPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="totalInStock">Old Price ($)</Label>
+                  <Label htmlFor="prevPrice">Old Price ($)</Label>
                   <Input
                     id="prevPrice"
                     type="number"
@@ -431,6 +431,18 @@ export default function EditProductPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Mobile-Friendly Bottom Save Button */}
+      <div className="pt-6 sm:hidden">
+        <Button 
+          onClick={() => handleUpdate()} 
+          className="w-full h-16 rounded-2xl text-xl font-black shadow-2xl shadow-primary/30 uppercase tracking-tight"
+          disabled={saving}
+        >
+          {saving ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : <CheckCircle2 className="mr-2 w-6 h-6" />}
+          Update Changes
+        </Button>
       </div>
     </div>
   );

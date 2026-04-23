@@ -147,8 +147,8 @@ export default function NewProductPage() {
     },
   }), [imageHandler]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setLoading(true);
     
     try {
@@ -238,7 +238,7 @@ export default function NewProductPage() {
             <p className="text-muted-foreground text-sm">Fill in the details to list your product across the globe.</p>
           </div>
         </div>
-        <Button onClick={handleSubmit} className="h-12 px-8 rounded-xl font-bold shadow-lg shadow-primary/20" disabled={loading}>
+        <Button onClick={() => handleSubmit()} className="h-12 px-8 rounded-xl font-bold shadow-lg shadow-primary/20" disabled={loading}>
           {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
           Publish Product
         </Button>
@@ -490,6 +490,18 @@ export default function NewProductPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Mobile-Friendly Bottom Action Button */}
+      <div className="pt-6 sm:hidden">
+        <Button 
+          onClick={() => handleSubmit()} 
+          className="w-full h-16 rounded-2xl text-xl font-black shadow-2xl shadow-primary/30 uppercase tracking-tight"
+          disabled={loading}
+        >
+          {loading ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : <CheckCircle2 className="mr-2 w-6 h-6" />}
+          Launch Product
+        </Button>
       </div>
     </div>
   );
