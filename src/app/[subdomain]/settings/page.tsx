@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
-import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle, Smartphone, Lock, Truck, ShieldCheck, Zap, CheckCircle2, Clock, Info, ArrowUpRight, Copy, Database } from "lucide-react";
+import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle, Smartphone, Lock, Truck, ShieldCheck, Zap, CheckCircle2, Clock, Info, ArrowUpRight, Copy, Database, Image as ImageIcon, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStoreUrl, cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -54,7 +54,6 @@ export default function StoreSettingsPage() {
     email: "",
     logo: "",
     favicon: "",
-    pwaLogo: "",
     selectedTheme: "modern",
     googleAnalyticsId: "",
     facebookPixelId: "",
@@ -240,10 +239,9 @@ export default function StoreSettingsPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="relative">
           <ScrollArea className="w-full">
-            <TabsList className="flex w-full grid grid-cols-2 lg:grid-cols-7 h-auto p-1 bg-muted/50 rounded-2xl">
+            <TabsList className="flex w-full grid grid-cols-2 lg:grid-cols-6 h-auto p-1 bg-muted/50 rounded-2xl">
               <TabsTrigger value="general" className="rounded-xl py-3 text-xs font-bold">General</TabsTrigger>
               <TabsTrigger value="domains" className="rounded-xl py-3 text-xs font-bold">Domains</TabsTrigger>
-              <TabsTrigger value="branding" className="rounded-xl py-3 text-xs font-bold">Branding</TabsTrigger>
               <TabsTrigger value="payment" className="rounded-xl py-3 text-xs font-bold">Payment</TabsTrigger>
               <TabsTrigger value="shipping" className="rounded-xl py-3 text-xs font-bold">Shipping</TabsTrigger>
               <TabsTrigger value="subscription" className="rounded-xl py-3 text-xs font-bold">Subscription</TabsTrigger>
@@ -252,6 +250,65 @@ export default function StoreSettingsPage() {
             <ScrollBar orientation="horizontal" className="hidden" />
           </ScrollArea>
         </div>
+
+        <TabsContent value="general" className="mt-6 space-y-6">
+          <Card className="rounded-[32px] border-border/50 shadow-sm overflow-hidden bg-white">
+            <CardHeader className="p-8 bg-muted/30 border-b">
+              <div className="flex items-center gap-2">
+                <Layout className="text-primary h-5 w-5" />
+                <CardTitle className="text-xl font-headline font-bold">Store Identity</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Store Name</Label>
+                    <Input className="h-12 rounded-xl" value={settings.name} onChange={(e) => setSettings({ ...settings, name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Store Subtitle / Slogan</Label>
+                    <Input className="h-12 rounded-xl" value={settings.homePageTitle} onChange={(e) => setSettings({ ...settings, homePageTitle: e.target.value })} placeholder="e.g. Quality you can trust" />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Primary Contact Email</Label>
+                    <Input className="h-12 rounded-xl" type="email" value={settings.email} onChange={(e) => setSettings({ ...settings, email: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Phone Number</Label>
+                    <Input className="h-12 rounded-xl" value={settings.phone} onChange={(e) => setSettings({ ...settings, phone: e.target.value })} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Store Logo</Label>
+                   <CloudinaryUpload 
+                     value={settings.logo}
+                     onUpload={(url) => setSettings({...settings, logo: url})}
+                     onRemove={() => setSettings({...settings, logo: ""})}
+                   />
+                </div>
+                <div className="space-y-4">
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Favicon (32x32)</Label>
+                   <CloudinaryUpload 
+                     value={settings.favicon}
+                     onUpload={(url) => setSettings({...settings, favicon: url})}
+                     onRemove={() => setSettings({...settings, favicon: ""})}
+                   />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Business Physical Address</Label>
+                <Textarea className="rounded-2xl min-h-[100px]" value={settings.address} onChange={(e) => setSettings({ ...settings, address: e.target.value })} />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="domains" className="mt-6">
           <Card className="rounded-[32px] border-border/50 shadow-sm overflow-hidden bg-white">
@@ -367,23 +424,6 @@ export default function StoreSettingsPage() {
                                       ))}
                                     </TableBody>
                                   </Table>
-
-                                  <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-3">
-                                    <Info className="w-4 h-4 text-amber-600 mt-0.5" />
-                                    <p className="text-[11px] text-amber-800 leading-relaxed">
-                                      Propagating these records typically takes <strong>2-24 hours</strong>. If your site doesn't load immediately, please wait and do not remove the records.
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {req.status === 'rejected' && req.rejectionNote && (
-                              <div className="p-4 bg-rose-50 rounded-xl border border-rose-100 text-xs text-rose-800 flex items-start gap-3">
-                                <AlertCircle className="w-4 h-4 shrink-0" />
-                                <div>
-                                  <p className="font-bold">Rejection Reason:</p>
-                                  <p className="mt-1">{req.rejectionNote}</p>
                                 </div>
                               </div>
                             )}
@@ -393,6 +433,83 @@ export default function StoreSettingsPage() {
                     </div>
                   )}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="payment" className="mt-6">
+          <Card className="rounded-[32px] border-border/50 shadow-sm overflow-hidden bg-white">
+            <CardHeader className="p-8 bg-muted/30 border-b">
+              <div className="flex items-center gap-2">
+                <CreditCard className="text-primary h-5 w-5" />
+                <CardTitle className="text-xl font-headline font-bold">Payment Methods</CardTitle>
+              </div>
+              <CardDescription>Activate and configure checkout options for your customers.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+              <div className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="space-y-0.5">
+                  <h4 className="font-bold">Cash on Delivery (COD)</h4>
+                  <p className="text-xs text-muted-foreground">Allow customers to pay when they receive the product.</p>
+                </div>
+                <Switch
+                  checked={settings.paymentSettings?.cod}
+                  onCheckedChange={(val) => setSettings({
+                    ...settings,
+                    paymentSettings: { ...settings.paymentSettings, cod: val }
+                  })}
+                />
+              </div>
+
+              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h4 className="font-bold text-indigo-600">Manual / Mobile Payment</h4>
+                    <p className="text-xs text-muted-foreground">Accept payments via bKash, Nagad, or Bank Transfer.</p>
+                  </div>
+                  <Switch
+                    checked={settings.paymentSettings?.manualEnabled}
+                    onCheckedChange={(val) => setSettings({
+                      ...settings,
+                      paymentSettings: { ...settings.paymentSettings, manualEnabled: val }
+                    })}
+                  />
+                </div>
+
+                {settings.paymentSettings?.manualEnabled && (
+                  <div className="animate-in slide-in-from-top-2 duration-300 space-y-4 pt-4 border-t border-slate-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-slate-400">bKash Personal Number</Label>
+                          <Input 
+                            value={settings.paymentSettings.bkashNumber} 
+                            onChange={(e) => setSettings({...settings, paymentSettings: {...settings.paymentSettings, bkashNumber: e.target.value}})}
+                            placeholder="01XXXXXXXXX"
+                            className="h-12 rounded-xl bg-white border-none"
+                          />
+                       </div>
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-slate-400">Nagad Personal Number</Label>
+                          <Input 
+                            value={settings.paymentSettings.nagadNumber} 
+                            onChange={(e) => setSettings({...settings, paymentSettings: {...settings.paymentSettings, nagadNumber: e.target.value}})}
+                            placeholder="01XXXXXXXXX"
+                            className="h-12 rounded-xl bg-white border-none"
+                          />
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Payment Instructions / Extra Details</Label>
+                      <Textarea 
+                        value={settings.paymentSettings.manualDetails} 
+                        onChange={(e) => setSettings({...settings, paymentSettings: {...settings.paymentSettings, manualDetails: e.target.value}})}
+                        placeholder="Enter extra details like Rocket number or Bank Account Info..."
+                        className="rounded-2xl min-h-[120px] bg-white border-none"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -473,251 +590,106 @@ export default function StoreSettingsPage() {
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Card className="rounded-[32px] border-border/50 shadow-sm overflow-hidden bg-white">
-              <CardHeader className="p-8 bg-primary/5 border-b">
-                <div className="flex items-center gap-3">
-                  <Zap className="text-primary h-6 w-6" />
-                  <div>
-                    <CardTitle className="text-2xl font-headline font-black tracking-tight uppercase">Subscription Management</CardTitle>
-                    <CardDescription>Upgrade your store limits and unlock premium features.</CardDescription>
+          <Card className="rounded-[32px] border-border/50 shadow-sm overflow-hidden bg-white">
+            <CardHeader className="p-8 bg-primary/5 border-b">
+              <div className="flex items-center gap-3">
+                <Zap className="text-primary h-6 w-6" />
+                <CardTitle className="text-2xl font-headline font-black tracking-tight uppercase">Subscription Management</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-8">
+              {currentPlan ? (
+                <div className="flex flex-col md:flex-row items-center justify-between p-6 bg-slate-50 rounded-[32px] border border-slate-100 gap-6">
+                  <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20">
+                      <ShieldCheck className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <h4 className="text-2xl font-black">{currentPlan.name}</h4>
+                        <Badge className="bg-emerald-500/10 text-emerald-600 border-none px-3 py-1 font-black text-[10px] tracking-widest uppercase">{subscriptionStatus}</Badge>
+                      </div>
+                      <p className="text-slate-500 text-sm font-medium">Billed every {currentPlan.billingInterval}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-black text-primary">${currentPlan.price}</p>
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Current Tier</p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="p-8">
-                {daysRemaining !== null && daysRemaining <= 10 && daysRemaining > 0 && (
-                  <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-4 text-amber-800">
-                    <AlertCircle className="w-6 h-6 text-amber-600" />
-                    <div className="flex-1">
-                      <p className="font-bold">Subscription Expiring Soon</p>
-                      <p className="text-xs">Your subscription will expire in {daysRemaining} days. Please upgrade or renew to keep your Pro features active.</p>
-                    </div>
-                    <Button variant="outline" size="sm" className="border-amber-300 text-amber-700" onClick={() => {
-                      const element = document.getElementById("plan-selection-grid");
-                      element?.scrollIntoView({ behavior: 'smooth' });
-                    }}>Upgrade Now</Button>
-                  </div>
-                )}
+              ) : (
+                <div className="text-center py-12 bg-slate-50 rounded-[32px] border-2 border-dashed">
+                  <Clock className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <h4 className="font-bold text-lg text-slate-600">No Active Subscription</h4>
+                </div>
+              )}
 
-                {daysRemaining !== null && daysRemaining <= 0 && (
-                  <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-4 text-rose-800">
-                    <AlertCircle className="w-6 h-6 text-rose-600" />
-                    <div className="flex-1">
-                      <p className="font-bold">Subscription Expired</p>
-                      <p className="text-xs">Your subscription has expired. Pro features are now disabled. Upgrade now to restore access.</p>
-                    </div>
-                  </div>
-                )}
-
-                {currentPlan ? (
-                  <div className="flex flex-col md:flex-row items-center justify-between p-6 bg-slate-50 rounded-[32px] border border-slate-100 gap-6">
-                    <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20">
-                        <ShieldCheck className="w-8 h-8" />
+              <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {allPlans.map((plan) => (
+                  <Card key={plan.id} className={`rounded-[40px] border-border/50 bg-white transition-all ${currentPlan?.id === plan.id ? 'border-primary ring-2 ring-primary/10 shadow-xl' : 'hover:shadow-2xl'}`}>
+                    <CardHeader className="p-8 pb-4">
+                      <CardTitle className="text-xl font-black uppercase tracking-tight">{plan.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-8 pt-0 space-y-6">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-4xl font-black text-primary">${plan.price}</span>
+                        <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">/ {plan.billingInterval}</span>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-3">
-                          <h4 className="text-2xl font-black">{currentPlan.name}</h4>
-                          <Badge className="bg-emerald-500/10 text-emerald-600 border-none px-3 py-1 font-black text-[10px] tracking-widest uppercase">{subscriptionStatus}</Badge>
-                        </div>
-                        <p className="text-slate-500 text-sm font-medium">Billed every {currentPlan.billingInterval}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-3xl font-black text-primary">${currentPlan.price}</p>
-                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Current Tier</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 bg-slate-50 rounded-[32px] border-2 border-dashed">
-                    <Clock className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                    <h4 className="font-bold text-lg text-slate-600">No Active Subscription</h4>
-                    <p className="text-sm text-slate-400">Select a plan below to get started with Pro features.</p>
-                  </div>
-                )}
-
-                <div id="plan-selection-grid" className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {allPlans.map((plan) => (
-                    <Card key={plan.id} className={`group relative rounded-[40px] border-border/50 bg-white transition-all duration-500 overflow-hidden flex flex-col ${currentPlan?.id === plan.id ? 'border-primary ring-2 ring-primary/10 shadow-xl' : 'hover:shadow-2xl'}`}>
-                      <CardHeader className="p-8 pb-4">
-                        <CardTitle className="text-xl font-black uppercase tracking-tight mb-1">{plan.name}</CardTitle>
-                        <CardDescription className="text-sm line-clamp-2">{plan.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="p-8 pt-0 flex-1 space-y-6">
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-4xl font-black text-primary">${plan.price}</span>
-                          <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">/ {plan.billingInterval}</span>
-                        </div>
-
-                        <div className="space-y-3">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-2">Privileges</p>
-                          <div className="grid gap-3">
-                            {(plan.features || []).map((feat: string, i: number) => (
-                              <div key={i} className="flex items-center gap-2.5 text-xs font-medium text-slate-600">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                                <span>{feat}</span>
-                              </div>
-                            ))}
+                      <div className="space-y-2">
+                        {(plan.features || []).map((feat: string, i: number) => (
+                          <div key={i} className="flex items-center gap-2.5 text-xs font-medium text-slate-600">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            <span>{feat}</span>
                           </div>
-                        </div>
-                      </CardContent>
-                      <div className="p-8 pt-0">
-                        {currentPlan?.id === plan.id ? (
-                          <Button disabled className="w-full h-12 rounded-xl text-sm font-black uppercase tracking-tight bg-slate-100 text-slate-400">
-                            Active Plan
-                          </Button>
-                        ) : (
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                onClick={() => {
-                                  setSelectedPlanForPayment(plan);
-                                  setSelectedPaymentMethod(null);
-                                  setTransactionId("");
-                                }}
-                                disabled={subscriptionStatus === "pending"}
-                                className="w-full h-12 rounded-xl text-sm font-black uppercase tracking-tight shadow-lg shadow-primary/10"
-                              >
-                                {subscriptionStatus === "pending" ? "Request Pending" : "Select Plan"}
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="rounded-[40px] bg-white border-none shadow-2xl max-w-lg">
-                              <DialogHeader>
-                                <DialogTitle className="text-3xl font-headline font-black tracking-tight">Complete Subscription</DialogTitle>
-                                <DialogDescription>You are subscribing to the <span className="text-primary font-black">{plan.name}</span> plan for <span className="text-primary font-black">${plan.price}/{plan.billingInterval}</span></DialogDescription>
-                              </DialogHeader>
-
-                              <div className="py-6 space-y-6">
-                                <div className="space-y-2">
-                                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Payment Method</p>
-                                  <div className="grid grid-cols-1 gap-3">
-                                    {saasPaymentMethods.length === 0 ? (
-                                      <p className="text-sm text-amber-600 font-medium">No manual payment methods available. Please contact admin.</p>
-                                    ) : (
-                                      saasPaymentMethods.map(method => (
-                                        <div
-                                          key={method.id}
-                                          onClick={() => setSelectedPaymentMethod(method)}
-                                          className={`p-4 border-2 rounded-2xl transition-all cursor-pointer group ${selectedPaymentMethod?.id === method.id ? 'border-primary bg-primary/5' : 'border-slate-100 bg-slate-50 hover:border-slate-300'}`}
-                                        >
-                                          <div className="flex items-center justify-between mb-1">
-                                            <h5 className={`font-bold transition-colors ${selectedPaymentMethod?.id === method.id ? 'text-primary' : 'text-slate-900'}`}>{method.name}</h5>
-                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPaymentMethod?.id === method.id ? 'border-primary bg-primary text-white' : 'border-slate-300'}`}>
-                                              {selectedPaymentMethod?.id === method.id && <CheckCircle2 className="w-3 h-3" />}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      ))
-                                    )}
-                                  </div>
-
-                                  {selectedPaymentMethod && (
-                                    <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
-                                      <div className="p-5 bg-slate-900 rounded-[24px] text-white space-y-3 shadow-xl">
-                                        <div className="flex items-center gap-2 text-primary">
-                                          <Info className="w-4 h-4" />
-                                          <p className="text-[10px] font-black uppercase tracking-widest">Payment Instructions</p>
-                                        </div>
-                                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{selectedPaymentMethod.details}</p>
-                                      </div>
-
-                                      <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Transaction ID / Proof</Label>
-                                        <Input
-                                          placeholder="Enter the transaction ID or reference"
-                                          value={transactionId}
-                                          onChange={(e) => setTransactionId(e.target.value)}
-                                          className="h-12 rounded-xl border-slate-200 focus:ring-primary focus:border-primary"
-                                        />
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              <DialogFooter>
-                                <Button
-                                  disabled={!selectedPaymentMethod || !transactionId}
-                                  className="w-full h-14 rounded-2xl font-black uppercase tracking-tight shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 text-white transition-all disabled:opacity-50 disabled:grayscale"
-                                  onClick={async () => {
-                                    try {
-                                      const uid = auth.currentUser?.uid;
-                                      if (!uid || !storeId || !selectedPaymentMethod || !transactionId) return;
-
-                                      await addDoc(collection(db, "stores", storeId, "subscription"), {
-                                        planId: plan.id,
-                                        planName: plan.name,
-                                        ownerId: uid,
-                                        status: "pending",
-                                        paymentMethodId: selectedPaymentMethod.id,
-                                        paymentMethodName: selectedPaymentMethod.name,
-                                        transactionId: transactionId,
-                                        createdAt: serverTimestamp(),
-                                        updatedAt: serverTimestamp()
-                                      });
-
-                                      await addDoc(collection(db, "saas_transactions"), {
-                                        storeId: storeId,
-                                        storeName: settings.name,
-                                        subdomain: subdomain,
-                                        ownerId: uid,
-                                        planId: plan.id,
-                                        planName: plan.name,
-                                        amount: plan.price,
-                                        paymentMethodId: selectedPaymentMethod.id,
-                                        paymentMethodName: selectedPaymentMethod.name,
-                                        transactionId: transactionId,
-                                        status: "pending",
-                                        createdAt: serverTimestamp(),
-                                        updatedAt: serverTimestamp()
-                                      });
-
-                                      toast({ title: "Request Submitted", description: "Admin will verify your payment soon." });
-                                      setSelectedPaymentMethod(null);
-                                      setTransactionId("");
-                                      fetchSettings();
-                                    } catch (e) {
-                                      toast({ variant: "destructive", title: "Error submitting request" });
-                                    }
-                                  }}
-                                >
-                                  Submit Payment Verification
-                                </Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-                        )}
+                        ))}
                       </div>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        <TabsContent value="general" className="mt-6">
+        <TabsContent value="seo" className="mt-6 space-y-6">
           <Card className="rounded-[32px] border-border/50 shadow-sm overflow-hidden bg-white">
             <CardHeader className="p-8 bg-muted/30 border-b">
               <div className="flex items-center gap-2">
-                <Layout className="text-primary h-5 w-5" />
-                <CardTitle className="text-xl font-headline font-bold">Business Records</CardTitle>
+                <Megaphone className="text-primary h-5 w-5" />
+                <CardTitle className="text-xl font-headline font-bold">Search Engine Optimization</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="p-8 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Legal Store Name</Label>
-                  <Input className="h-12 rounded-xl" value={settings.name} onChange={(e) => setSettings({ ...settings, name: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Primary Contact Email</Label>
-                  <Input className="h-12 rounded-xl" type="email" value={settings.email} onChange={(e) => setSettings({ ...settings, email: e.target.value })} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Business Address</Label>
-                <Textarea className="rounded-2xl min-h-[100px]" value={settings.address} onChange={(e) => setSettings({ ...settings, address: e.target.value })} />
+            <CardContent className="p-8 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Meta Keywords</Label>
+                      <Input 
+                        placeholder="e.g. ecommerce, fashion, store" 
+                        className="h-12 rounded-xl"
+                        value={settings.seo?.keywords}
+                        onChange={(e) => setSettings({...settings, seo: {...settings.seo, keywords: e.target.value}})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Meta Description</Label>
+                      <Textarea 
+                        className="rounded-2xl min-h-[120px]" 
+                        placeholder="Describe your store for Google results..."
+                        value={settings.seo?.description}
+                        onChange={(e) => setSettings({...settings, seo: {...settings.seo, description: e.target.value}})}
+                      />
+                    </div>
+                 </div>
+                 <div className="space-y-4">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Social Share Image (Meta Image)</Label>
+                    <CloudinaryUpload 
+                      value={settings.seo?.metaImage}
+                      onUpload={(url) => setSettings({...settings, seo: {...settings.seo, metaImage: url}})}
+                      onRemove={() => setSettings({...settings, seo: {...settings.seo, metaImage: ""}})}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-2 italic">Recommended size: 1200x630 pixels for optimal social sharing visibility.</p>
+                 </div>
               </div>
             </CardContent>
           </Card>
@@ -726,4 +698,3 @@ export default function StoreSettingsPage() {
     </div>
   );
 }
-

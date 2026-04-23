@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getTenantPath, getConsoleUrl } from "@/lib/utils";
+import Head from "next/head";
 
 interface CartItem {
   id: string;
@@ -63,6 +65,35 @@ export default function Storefront() {
       localStorage.setItem(`cart_${subdomain}`, JSON.stringify(cart));
     }
   }, [cart, subdomain]);
+
+  // Update dynamic page meta
+  useEffect(() => {
+    if (store) {
+      document.title = `${store.name} | ${store.homePageTitle || 'Official Store'}`;
+      
+      // Update meta description if exists
+      if (store.seo?.description) {
+        let metaDesc = document.querySelector('meta[name="description"]');
+        if (!metaDesc) {
+          metaDesc = document.createElement('meta');
+          metaDesc.setAttribute('name', 'description');
+          document.head.appendChild(metaDesc);
+        }
+        metaDesc.setAttribute('content', store.seo.description);
+      }
+
+      // Update favicon if exists
+      if (store.favicon) {
+        let link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'shortcut icon';
+          document.head.appendChild(link);
+        }
+        link.href = store.favicon;
+      }
+    }
+  }, [store]);
 
   const fetchStoreData = async () => {
     setLoading(true);
@@ -132,8 +163,14 @@ export default function Storefront() {
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href={getTenantPath(subdomain, "/")} className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-md"><ShoppingBag className="w-4 h-4" /></div>
-            <h1 className="text-lg font-headline font-black tracking-tighter text-slate-900 uppercase">{store.name}</h1>
+            {store.logo ? (
+              <img src={store.logo} className="h-10 w-auto object-contain max-w-[120px]" alt={store.name} />
+            ) : (
+              <>
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-md"><ShoppingBag className="w-4 h-4" /></div>
+                <h1 className="text-lg font-headline font-black tracking-tighter text-slate-900 uppercase">{store.name}</h1>
+              </>
+            )}
           </Link>
 
           <div className="flex items-center gap-2">
