@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -298,7 +297,7 @@ export default function EditProductPage() {
             <CardContent className="p-6 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentPrice">Price ($)</Label>
+                  <Label htmlFor="currentPrice">New Price ($)</Label>
                   <Input
                     id="currentPrice"
                     type="number"
@@ -309,6 +308,17 @@ export default function EditProductPage() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="totalInStock">Old Price ($)</Label>
+                  <Input
+                    id="prevPrice"
+                    type="number"
+                    value={formData.prevPrice}
+                    onChange={(e) => setFormData({ ...formData, prevPrice: e.target.value })}
+                    className="rounded-xl h-11"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
                   <Label htmlFor="totalInStock">Stock</Label>
                   <Input
                     id="totalInStock"
@@ -319,7 +329,6 @@ export default function EditProductPage() {
                     className="rounded-xl h-11"
                   />
                 </div>
-              </div>
             </CardContent>
           </Card>
 

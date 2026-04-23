@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -358,7 +357,7 @@ export default function NewProductPage() {
             <CardContent className="p-6 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentPrice">Current Price ($)</Label>
+                  <Label htmlFor="currentPrice">New Price ($)</Label>
                   <Input
                     id="currentPrice"
                     type="number"
@@ -371,7 +370,7 @@ export default function NewProductPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="prevPrice">Prev. Price ($)</Label>
+                  <Label htmlFor="prevPrice">Old Price ($)</Label>
                   <Input
                     id="prevPrice"
                     type="number"

@@ -60,3 +60,7 @@
     @apply font-headline;
   }
 }
+
+.ql-editor{
+  min-height: 250px;
+}
