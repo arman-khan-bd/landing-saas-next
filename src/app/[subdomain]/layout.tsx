@@ -298,7 +298,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                         <SidebarMenuItem>
                           <SidebarMenuButton asChild isActive={normalizedPath === "/home-manager"} className="rounded-xl h-10 px-4">
                             <Link href={getTenantPath(subdomain, "/home-manager")} className="flex items-center gap-3">
-                              <item.icon className={`w-4 h-4 ${normalizedPath === "/home-manager" ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <Home className={`w-4 h-4 ${normalizedPath === "/home-manager" ? 'text-primary' : 'text-muted-foreground'}`} />
                               <span className="text-sm font-medium">Home Manager</span>
                             </Link>
                           </SidebarMenuButton>
