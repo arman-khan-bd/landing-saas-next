@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, Smartphone, ShieldAlert } from "lucide-react";
+import { ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, Smartphone, ShieldAlert, SmartphoneIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 interface CartItem {
   id: string;
@@ -44,7 +45,9 @@ export default function CheckoutPage() {
     email: "",
     phone: "",
     address: "",
-    paymentMethod: "cod"
+    paymentMethod: "cod",
+    selectedManualMethodId: "",
+    transactionId: ""
   });
 
   useEffect(() => {
@@ -157,6 +160,11 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (formData.paymentMethod === 'manual' && !formData.transactionId) {
+      toast({ variant: "destructive", title: "Transaction ID Required", description: "Please enter your payment Transaction ID." });
+      return;
+    }
+
     setIsPlacingOrder(true);
     try {
       // --- FRAUD SHIELD CHECK ---
@@ -199,8 +207,10 @@ export default function CheckoutPage() {
         shippingCost: shippingCost,
         total: cartTotal,
         paymentMethod: formData.paymentMethod,
+        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
+        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
         status: "pending",
-        paymentStatus: "unpaid",
+        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
         isRead: false,
         createdAt: serverTimestamp(),
       };
@@ -222,6 +232,8 @@ export default function CheckoutPage() {
       setIsPlacingOrder(false);
     }
   };
+
+  const selectedManualMethod = store?.paymentSettings?.manualMethods?.find((m: any) => m.id === formData.selectedManualMethodId);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
 
@@ -264,9 +276,9 @@ export default function CheckoutPage() {
             <section className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                  <Truck className="w-5 h-5" />
+                  <User className="w-5 h-5" />
                 </div>
-                <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Shipping Information</h2>
+                <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Customer Information</h2>
               </div>
 
               <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
@@ -319,7 +331,7 @@ export default function CheckoutPage() {
                   <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
                     <Truck className="w-5 h-5" />
                   </div>
-                  <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Shipping Method</h2>
+                  <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Shipping Zone</h2>
                 </div>
 
                 <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
@@ -335,7 +347,10 @@ export default function CheckoutPage() {
                       {store.shippingSettings.methods.map((method: any) => (
                         <div 
                           key={method.id}
-                          className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer ${selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50'}`}
+                          className={cn(
+                            "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer",
+                            selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50'
+                          )}
                           onClick={() => setSelectedShipping(method)}
                         >
                           <div className="flex items-center gap-4">
@@ -358,7 +373,7 @@ export default function CheckoutPage() {
                 <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
                   <CreditCard className="w-5 h-5" />
                 </div>
-                <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Payment Method</h2>
+                <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Payment Strategy</h2>
               </div>
 
               <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
@@ -366,61 +381,86 @@ export default function CheckoutPage() {
                   <RadioGroup value={formData.paymentMethod} onValueChange={(val) => setFormData({...formData, paymentMethod: val})} className="space-y-4">
                     {store?.paymentSettings?.cod && (
                       <div 
-                        className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer ${formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50'}`}
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer",
+                          formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50'
+                        )}
                         onClick={() => setFormData({...formData, paymentMethod: 'cod'})}
                       >
                         <div className="flex items-center gap-4">
                           <RadioGroupItem value="cod" id="cod" className="border-primary text-primary" />
                           <div>
                             <Label htmlFor="cod" className="font-bold text-base cursor-pointer">Cash on Delivery</Label>
-                            <p className="text-xs text-muted-foreground">Pay when you receive the product.</p>
+                            <p className="text-xs text-muted-foreground">Standard risk-free payment at delivery.</p>
                           </div>
                         </div>
                         <Truck className="w-5 h-5 text-slate-300" />
                       </div>
                     )}
 
-                    {store?.paymentSettings?.manualEnabled && (
+                    {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
                       <div 
-                        className={`flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer ${formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50'}`}
+                        className={cn(
+                          "flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer",
+                          formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50'
+                        )}
                         onClick={() => setFormData({...formData, paymentMethod: 'manual'})}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
                             <RadioGroupItem value="manual" id="manual" className="border-primary text-primary" />
                             <div>
-                              <Label htmlFor="manual" className="font-bold text-base cursor-pointer">Manual Payment</Label>
-                              <p className="text-xs text-muted-foreground">Mobile Banking / Bank Transfer.</p>
+                              <Label htmlFor="manual" className="font-bold text-base cursor-pointer">Manual Payment / Mobile Banking</Label>
+                              <p className="text-xs text-muted-foreground">Direct transfer via digital wallets.</p>
                             </div>
                           </div>
-                          <CreditCard className="w-5 h-5 text-slate-300" />
+                          <SmartphoneIcon className="w-5 h-5 text-slate-300" />
                         </div>
+                        
                         {formData.paymentMethod === 'manual' && (
-                          <div className="mt-4 p-5 bg-white/80 rounded-2xl border border-primary/10 space-y-4 animate-in slide-in-from-top-2 duration-300">
-                             <div className="flex items-center gap-2 text-primary">
-                               <Smartphone className="w-4 h-4" />
-                               <span className="text-[10px] font-black uppercase tracking-widest">Payment Numbers</span>
-                             </div>
-                             
-                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {store.paymentSettings.bkashNumber && (
-                                  <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
-                                     <span className="text-xs font-black text-pink-600">bKash</span>
-                                     <span className="text-sm font-mono font-bold">{store.paymentSettings.bkashNumber}</span>
-                                  </div>
-                                )}
-                                {store.paymentSettings.nagadNumber && (
-                                  <div className="flex justify-between items-center p-3 bg-orange-50 rounded-xl">
-                                     <span className="text-xs font-black text-orange-600">Nagad</span>
-                                     <span className="text-sm font-mono font-bold">{store.paymentSettings.nagadNumber}</span>
-                                  </div>
-                                )}
+                          <div className="mt-6 p-6 bg-white/80 rounded-2xl border border-primary/10 space-y-6 animate-in slide-in-from-top-2 duration-300">
+                             <div className="space-y-4">
+                                <Label className="text-[10px] font-black uppercase text-slate-400">Select Provider</Label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                   {store.paymentSettings.manualMethods.map((method: any) => (
+                                     <div 
+                                       key={method.id}
+                                       onClick={(e) => { e.stopPropagation(); setFormData({...formData, selectedManualMethodId: method.id}); }}
+                                       className={cn(
+                                         "p-4 rounded-xl border-2 transition-all text-center",
+                                         formData.selectedManualMethodId === method.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-50 bg-slate-50 hover:bg-slate-100'
+                                       )}
+                                     >
+                                        <p className="text-xs font-black uppercase tracking-tight">{method.name}</p>
+                                     </div>
+                                   ))}
+                                </div>
                              </div>
 
-                             {store.paymentSettings.manualDetails && (
-                               <div className="text-[11px] leading-relaxed text-slate-600 pt-3 border-t border-slate-100 italic" 
-                                    dangerouslySetInnerHTML={{ __html: store.paymentSettings.manualDetails.replace(/\n/g, '<br/>') }} />
+                             {selectedManualMethod && (
+                               <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 space-y-3">
+                                  <div className="flex justify-between items-center">
+                                     <span className="text-[10px] font-black uppercase text-primary">Number</span>
+                                     <span className="text-lg font-mono font-black text-slate-900 select-all">{selectedManualMethod.number}</span>
+                                  </div>
+                                  {selectedManualMethod.instructions && (
+                                    <div className="text-[11px] leading-relaxed text-slate-600 bg-white/50 p-3 rounded-lg border border-primary/5 italic">
+                                       {selectedManualMethod.instructions}
+                                    </div>
+                                  )}
+                               </div>
                              )}
+
+                             <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400">Transaction ID (TranxID) *</Label>
+                                <Input 
+                                  placeholder="Enter the 10-digit ID from your SMS" 
+                                  className="h-12 rounded-xl bg-white border-primary/20 font-mono text-center text-lg"
+                                  value={formData.transactionId}
+                                  onChange={(e) => setFormData({...formData, transactionId: e.target.value.toUpperCase()})}
+                                />
+                                <p className="text-[9px] text-slate-400 text-center uppercase font-bold tracking-widest">Provide the reference from your payment confirmation</p>
+                             </div>
                           </div>
                         )}
                       </div>
@@ -432,7 +472,7 @@ export default function CheckoutPage() {
           </div>
 
           <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Order Summary</h2>
+            <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Cart Intelligence</h2>
             <Card className="rounded-[40px] border-none shadow-xl bg-white overflow-hidden sticky top-24">
               <CardContent className="p-8 space-y-6">
                 <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
@@ -452,18 +492,18 @@ export default function CheckoutPage() {
 
                 <div className="space-y-3 pt-6 border-t border-slate-100">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Subtotal</span>
+                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Net Value</span>
                     <span className="font-bold">${cartSubtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Shipping ({selectedShipping?.name || 'Free'})</span>
+                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Logistics ({selectedShipping?.name || 'Free'})</span>
                     <span className={cn("font-black", shippingCost > 0 ? "text-slate-900" : "text-emerald-500")}>
                       {shippingCost > 0 ? `$${shippingCost.toFixed(2)}` : 'FREE'}
                     </span>
                   </div>
                   <Separator className="bg-slate-50" />
                   <div className="flex justify-between items-end pt-2">
-                    <span className="text-slate-900 font-black uppercase tracking-tight text-lg">Total</span>
+                    <span className="text-slate-900 font-black uppercase tracking-tight text-lg leading-none">Order Total</span>
                     <span className="text-3xl font-black text-primary tracking-tighter">${cartTotal.toFixed(2)}</span>
                   </div>
                 </div>
@@ -473,12 +513,12 @@ export default function CheckoutPage() {
                   disabled={isPlacingOrder || cart.length === 0}
                   onClick={handlePlaceOrder}
                 >
-                  {isPlacingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : "Place Order Now"}
+                  {isPlacingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : "Deploy Order Now"}
                 </Button>
 
                 <div className="flex items-center justify-center gap-2 text-slate-400">
                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                   <span className="text-[9px] font-black uppercase tracking-[0.2em]">Secure Checkout</span>
+                   <span className="text-[9px] font-black uppercase tracking-[0.2em]">Secure Global Checkout</span>
                 </div>
               </CardContent>
             </Card>
@@ -488,3 +528,4 @@ export default function CheckoutPage() {
     </div>
   );
 }
+

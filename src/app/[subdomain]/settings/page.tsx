@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
-import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle, Smartphone, Lock, Truck, ShieldCheck, Zap, CheckCircle2, Clock, Info, ArrowUpRight, Copy, Database, Image as ImageIcon, Search } from "lucide-react";
+import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle, Smartphone, Lock, Truck, ShieldCheck, Zap, CheckCircle2, Clock, Info, ArrowUpRight, Copy, Database, Image as ImageIcon, Search, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStoreUrl, cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -62,10 +62,7 @@ export default function StoreSettingsPage() {
     paymentSettings: {
       cod: true,
       manualEnabled: false,
-      manualDetails: "",
-      bkashNumber: "",
-      nagadNumber: "",
-      rocketNumber: ""
+      manualMethods: []
     },
     seo: {
       metaImage: "",
@@ -166,7 +163,11 @@ export default function StoreSettingsPage() {
         setSettings((prev: any) => ({
           ...prev,
           ...data,
-          paymentSettings: { ...prev.paymentSettings, ...data.paymentSettings },
+          paymentSettings: { 
+            ...prev.paymentSettings, 
+            ...data.paymentSettings,
+            manualMethods: data.paymentSettings?.manualMethods || []
+          },
           seo: { ...prev.seo, ...data.seo },
           shopConfig: { ...prev.shopConfig, ...data.shopConfig },
           socialLinks: { ...prev.socialLinks, ...data.socialLinks },
@@ -219,6 +220,44 @@ export default function StoreSettingsPage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copied to clipboard" });
+  };
+
+  const addManualPaymentMethod = () => {
+    const newMethod = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: "",
+      number: "",
+      instructions: ""
+    };
+    setSettings({
+      ...settings,
+      paymentSettings: {
+        ...settings.paymentSettings,
+        manualMethods: [...(settings.paymentSettings.manualMethods || []), newMethod]
+      }
+    });
+  };
+
+  const removeManualPaymentMethod = (id: string) => {
+    setSettings({
+      ...settings,
+      paymentSettings: {
+        ...settings.paymentSettings,
+        manualMethods: settings.paymentSettings.manualMethods.filter((m: any) => m.id !== id)
+      }
+    });
+  };
+
+  const updateManualPaymentMethod = (id: string, field: string, value: string) => {
+    setSettings({
+      ...settings,
+      paymentSettings: {
+        ...settings.paymentSettings,
+        manualMethods: settings.paymentSettings.manualMethods.map((m: any) => 
+          m.id === id ? { ...m, [field]: value } : m
+        )
+      }
+    });
   };
 
   if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
@@ -348,7 +387,7 @@ export default function StoreSettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-bold text-lg">Request Custom Domain</h4>
-                    <p className="text-xs text-muted-foreground">Connect your own brand (e.g. shop.mybrand.com).</p>
+                    <p className="text-xs text-muted-foreground">Connect your own brand (e.g. shop.luxury.com).</p>
                   </div>
                   <Badge className="bg-primary text-white border-none px-3 py-1 font-black text-[8px] tracking-widest uppercase">PRO</Badge>
                 </div>
@@ -478,35 +517,57 @@ export default function StoreSettingsPage() {
                 </div>
 
                 {settings.paymentSettings?.manualEnabled && (
-                  <div className="animate-in slide-in-from-top-2 duration-300 space-y-4 pt-4 border-t border-slate-200">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase text-slate-400">bKash Personal Number</Label>
-                          <Input 
-                            value={settings.paymentSettings.bkashNumber} 
-                            onChange={(e) => setSettings({...settings, paymentSettings: {...settings.paymentSettings, bkashNumber: e.target.value}})}
-                            placeholder="01XXXXXXXXX"
-                            className="h-12 rounded-xl bg-white border-none"
-                          />
-                       </div>
-                       <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase text-slate-400">Nagad Personal Number</Label>
-                          <Input 
-                            value={settings.paymentSettings.nagadNumber} 
-                            onChange={(e) => setSettings({...settings, paymentSettings: {...settings.paymentSettings, nagadNumber: e.target.value}})}
-                            placeholder="01XXXXXXXXX"
-                            className="h-12 rounded-xl bg-white border-none"
-                          />
-                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-slate-400">Payment Instructions / Extra Details</Label>
-                      <Textarea 
-                        value={settings.paymentSettings.manualDetails} 
-                        onChange={(e) => setSettings({...settings, paymentSettings: {...settings.paymentSettings, manualDetails: e.target.value}})}
-                        placeholder="Enter extra details like Rocket number or Bank Account Info..."
-                        className="rounded-2xl min-h-[120px] bg-white border-none"
-                      />
+                  <div className="animate-in slide-in-from-top-2 duration-300 space-y-6 pt-4 border-t border-slate-200">
+                    <div className="space-y-4">
+                      {settings.paymentSettings.manualMethods?.map((method: any, idx: number) => (
+                        <div key={method.id} className="p-5 bg-white rounded-2xl border border-slate-200 space-y-4 shadow-sm relative group">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute top-2 right-2 h-8 w-8 text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => removeManualPaymentMethod(method.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-[10px] font-black uppercase text-slate-400">Provider Name</Label>
+                              <Input 
+                                value={method.name} 
+                                onChange={(e) => updateManualPaymentMethod(method.id, "name", e.target.value)}
+                                placeholder="e.g. bKash Personal"
+                                className="h-11 rounded-xl bg-slate-50 border-none"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-[10px] font-black uppercase text-slate-400">Account Number</Label>
+                              <Input 
+                                value={method.number} 
+                                onChange={(e) => updateManualPaymentMethod(method.id, "number", e.target.value)}
+                                placeholder="01XXXXXXXXX"
+                                className="h-11 rounded-xl bg-slate-50 border-none"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400">Payment Instructions</Label>
+                            <Input 
+                              value={method.instructions} 
+                              onChange={(e) => updateManualPaymentMethod(method.id, "instructions", e.target.value)}
+                              placeholder="e.g. Send Money to this number and provide TranxID"
+                              className="h-11 rounded-xl bg-slate-50 border-none"
+                            />
+                          </div>
+                        </div>
+                      ))}
+
+                      <Button 
+                        onClick={addManualPaymentMethod}
+                        variant="outline"
+                        className="w-full h-12 border-dashed border-2 rounded-xl text-indigo-600 font-bold gap-2"
+                      >
+                        <Plus className="w-4 h-4" /> Add Mobile Banking / Manual Method
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -698,3 +759,4 @@ export default function StoreSettingsPage() {
     </div>
   );
 }
+
