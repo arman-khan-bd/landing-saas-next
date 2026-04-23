@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,7 +13,7 @@ import {
 import { 
   ShieldCheck, Users, Store, CreditCard, LayoutDashboard, 
   ChevronLeft, Loader2, AlertCircle, LogOut, Settings, BarChart,
-  Bell, ArrowLeftRight
+  Bell, ArrowLeftRight, Layout
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -80,6 +79,7 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
 
   const menuItems = [
     { title: "Overview", icon: BarChart, href: "/saas-admin/overview" },
+    { title: "Landing Page", icon: Layout, href: "/saas-admin/landing-page" },
     { title: "Users", icon: Users, href: "/saas-admin/users" },
     { title: "Shops", icon: Store, href: "/saas-admin/shops" },
     { title: "Subscriptions", icon: CreditCard, href: "/saas-admin/subscriptions" },

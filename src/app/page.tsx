@@ -1,21 +1,39 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ShoppingCart, ShieldCheck, Zap, LogIn, CheckCircle2, Loader2, Star } from "lucide-react";
+import { 
+  ArrowRight, ShoppingCart, ShieldCheck, Zap, LogIn, 
+  CheckCircle2, Loader2, Star, Smartphone, Globe, 
+  Sparkles, Rocket, Lock, TrendingUp, MousePointer2 
+} from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
+// Icon mapping helper
+const ICON_MAP: Record<string, any> = {
+  Zap, ShieldCheck, Star, Smartphone, Globe, 
+  Sparkles, Rocket, Lock, CheckCircle2, TrendingUp, MousePointer2
+};
+
 export default function Home() {
   const [plans, setPlans] = useState<any[]>([]);
+  const [features, setFeatures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchPlans();
+    
+    // Real-time listener for features
+    const featuresQ = query(collection(db, "platformFeatures"), orderBy("order", "asc"));
+    const unsubFeatures = onSnapshot(featuresQ, (snap) => {
+      setFeatures(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => unsubFeatures();
   }, []);
 
   const fetchPlans = async () => {
@@ -79,26 +97,40 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Feature Grid - Compact Android Style */}
+        {/* Dynamic Feature Grid */}
         <div id="features" className="mt-20 sm:mt-40 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
-          <FeatureCard
-            icon={Zap}
-            title="Instant Subdomains"
-            desc="Every store gets a unique [brand].ihut.shop address automatically. Zero config."
-            accent="accent"
-          />
-          <FeatureCard
-            icon={ShieldCheck}
-            title="Tenant Isolation"
-            desc="Your data is strictly isolated with bank-grade security rules. Safe and private."
-            accent="primary"
-          />
-          <FeatureCard
-            icon={Star}
-            title="AI Content Engine"
-            desc="Generate product data and store names using built-in Google Gemini integration."
-            accent="accent"
-          />
+          {features.length > 0 ? (
+            features.map((feature) => (
+              <FeatureCard
+                key={feature.id}
+                icon={ICON_MAP[feature.icon] || Zap}
+                title={feature.title}
+                desc={feature.description}
+                accent={feature.accent || 'primary'}
+              />
+            ))
+          ) : (
+            <>
+              <FeatureCard
+                icon={Zap}
+                title="Instant Subdomains"
+                desc="Every store gets a unique [brand].ihut.shop address automatically. Zero config."
+                accent="accent"
+              />
+              <FeatureCard
+                icon={ShieldCheck}
+                title="Tenant Isolation"
+                desc="Your data is strictly isolated with bank-grade security rules. Safe and private."
+                accent="primary"
+              />
+              <FeatureCard
+                icon={Star}
+                title="AI Content Engine"
+                desc="Generate product data and store names using built-in Google Gemini integration."
+                accent="accent"
+              />
+            </>
+          )}
         </div>
 
         {/* Pricing Section - Compact Cards */}

@@ -10,8 +10,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
+        body: ['"Anek Bangla"', 'Inter', 'sans-serif'],
+        headline: ['"Anek Bangla"', 'Space Grotesk', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
