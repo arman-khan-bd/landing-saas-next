@@ -22,7 +22,7 @@ import {
   Sparkles, PlusCircle, LayoutGrid,
   MoveVertical, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon,
   Paintbrush, GripVertical, Copy, Layers,
-  ChevronUp, ChevronDown as ChevronDownIcon
+  ChevronUp, ChevronDown as ChevronDownIcon, Truck, CreditCard
 } from "lucide-react";
 import {
   DndContext,
@@ -61,6 +61,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 // --- Types ---
 type BlockType =
@@ -136,6 +137,7 @@ function PageBuilderInner() {
   const [saving, setSaving] = useState(false);
   const [pageTitle, setPageTitle] = useState("");
   const [blocks, setBlocks] = useState<Block[]>([]);
+  const [store, setStore] = useState<any>(null);
   const [pageStyle, setPageStyle] = useState<PageStyle>({
     backgroundColor: "#FFFFFF",
     backgroundImage: "",
@@ -178,6 +180,12 @@ function PageBuilderInner() {
         setPageTitle(data.title || "Untitled Page");
         if (data.pageStyle) {
           setPageStyle(data.pageStyle);
+        }
+
+        const storeQ = query(collection(firestore, "stores"), where("subdomain", "==", subdomain));
+        const storeSnap = await getDocs(storeQ);
+        if(!storeSnap.empty) {
+            setStore({ id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() });
         }
 
         const prodQ = query(collection(firestore, "products"), where("storeId", "==", data.storeId));
@@ -596,7 +604,7 @@ function PageBuilderInner() {
               <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("desktop")} className="rounded-md h-7 px-2.5 font-bold text-[9px] uppercase tracking-wider">
                 <Monitor className="w-3.5 h-3.5 mr-1.5" /> Desktop
               </Button>
-              <Button variant="mobile" variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("mobile")} className="rounded-md h-7 px-2.5 font-bold text-[9px] uppercase tracking-wider">
+              <Button variant={viewMode === "mobile" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("mobile")} className="rounded-md h-7 px-2.5 font-bold text-[9px] uppercase tracking-wider">
                 <Smartphone className="w-3.5 h-3.5 mr-1.5" /> Mobile
               </Button>
             </div>
@@ -645,6 +653,7 @@ function PageBuilderInner() {
                           key={block.id}
                           block={block}
                           products={products}
+                          store={store}
                           isSelected={selectedBlockId === block.id}
                           onSelect={(id?: string) => {
                             setSelectedBlockId(id || block.id);
@@ -746,7 +755,7 @@ function PageBuilderInner() {
                }}
             >
               <div className="h-full">
-                {blocks.map(block => <BlockRenderer key={block.id} block={block} products={products} isPreview viewMode={viewMode} />)}
+                {blocks.map(block => <BlockRenderer key={block.id} block={block} products={products} store={store} isPreview viewMode={viewMode} />)}
               </div>
             </div>
           </div>
@@ -804,7 +813,7 @@ function PropertySection({ label, icon: Icon, children }: any) {
   );
 }
 
-function CanvasBlockWrapper({ block, products, isSelected, onSelect, onRemove, onInsertRequest, viewMode, onAddNested }: any) {
+function CanvasBlockWrapper({ block, products, store, isSelected, onSelect, onRemove, onInsertRequest, viewMode, onAddNested }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
   
   const style = {
@@ -860,6 +869,7 @@ function CanvasBlockWrapper({ block, products, isSelected, onSelect, onRemove, o
         <BlockRenderer 
           block={block} 
           products={products} 
+          store={store}
           viewMode={viewMode} 
           onAddNested={onAddNested}
           isBuilder
@@ -1092,7 +1102,7 @@ function PropertyEditor({ block, products, onChange }: any) {
   }
 }
 
-function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop", onAddNested, isBuilder, onSelect, onRemove, onInsertRequest }: any) {
+function BlockRenderer({ block, products, store, isPreview = false, viewMode = "desktop", onAddNested, isBuilder, onSelect, onRemove, onInsertRequest }: any) {
   const isHidden = (viewMode === "desktop" && block.style?.hideDesktop) || (viewMode === "mobile" && block.style?.hideMobile);
   if (isHidden && isPreview) return null;
 
@@ -1142,6 +1152,7 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
                 key={child.id} 
                 block={child} 
                 products={products} 
+                store={store}
                 viewMode={viewMode} 
                 onAddNested={onAddNested}
                 onSelect={(id?: string) => onSelect(id || child.id)}
@@ -1149,7 +1160,7 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
                 onInsertRequest={onInsertRequest}
               />
             ) : (
-              <BlockRenderer key={child.id} block={child} products={products} isPreview={isPreview} viewMode={viewMode} />
+              <BlockRenderer key={child.id} block={child} products={products} store={store} isPreview={isPreview} viewMode={viewMode} />
             )
           ))}
 
@@ -1268,8 +1279,8 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
         <div style={style} className="px-4 w-full max-w-5xl mx-auto text-left">
           <Card className="rounded-[32px] shadow-lg border-none overflow-hidden bg-white">
             <div className="bg-slate-900 text-white p-6 text-center">
-              <h3 className="text-xl md:text-2xl font-headline font-bold mb-1 tracking-tighter uppercase">Secure Checkout</h3>
-              <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[8px]">Encrypted Terminal</p>
+              <h3 className="text-xl md:text-2xl font-headline font-bold mb-1 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3>
+              <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[8px]">নিরাপদ পেমেন্ট ব্যবস্থা</p>
             </div>
             <div className="p-5 space-y-6">
                {mainProd ? (
@@ -1284,8 +1295,35 @@ function BlockRenderer({ block, products, isPreview = false, viewMode = "desktop
                     <CheckCircle className="text-primary w-6 h-6" />
                  </div>
                ) : (
-                 <div className="p-6 text-center border-2 border-dashed rounded-xl opacity-20 font-bold tracking-widest text-[10px]">PRODUCT_MISSING</div>
+                 <div className="p-6 text-center border-2 border-dashed rounded-xl opacity-20 font-bold tracking-widest text-[10px]">পণ্য নির্বাচন করুন</div>
                )}
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                  <div className="space-y-3">
+                    <Label className="text-[8px] font-black uppercase text-slate-400">আপনার তথ্য</Label>
+                    <Input placeholder="নাম" className="h-10 rounded-xl bg-slate-50 border-none text-xs" />
+                    <Input placeholder="মোবাইল" className="h-10 rounded-xl bg-slate-50 border-none text-xs" />
+                    <Textarea placeholder="ঠিকানা" className="h-20 rounded-xl bg-slate-50 border-none text-xs" />
+                  </div>
+                  <div className="space-y-4">
+                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                        <div className="flex justify-between text-[10px] font-bold">
+                           <span>পণ্য মূল্য</span>
+                           <span>${mainProd?.currentPrice || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px] font-bold text-emerald-600">
+                           <span>ডেলিভারি</span>
+                           <span>FREE</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between text-xl font-black text-primary">
+                           <span className="text-[10px] pt-1.5 text-slate-900">মোট</span>
+                           <span>${mainProd?.currentPrice || 0}</span>
+                        </div>
+                     </div>
+                     <Button className="w-full h-12 rounded-2xl font-black uppercase text-xs">অর্ডার করুন</Button>
+                  </div>
+               </div>
             </div>
           </Card>
         </div>

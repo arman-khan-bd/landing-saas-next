@@ -1,18 +1,20 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useFirestore } from "@/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { 
-  Loader2, AlertCircle, CheckCircle
-} from "lucide-react";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, limit } from "firebase/firestore";
+import { Loader2, AlertCircle, CheckCircle, Truck, CreditCard, ShieldCheck, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 // --- Types ---
@@ -64,13 +66,14 @@ export default function RenderDynamicPage() {
   const { subdomain, slug } = useParams();
   const db = useFirestore();
   const [page, setPage] = useState<any>(null);
+  const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!subdomain || !slug) return;
+      if (!subdomain || !slug || !db) return;
       setLoading(true);
       setError(null);
       try {
@@ -80,9 +83,10 @@ export default function RenderDynamicPage() {
           setError("Store not found");
           return;
         }
-        const storeId = storeSnap.docs[0].id;
+        const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
+        setStore(storeData);
 
-        const pageQ = query(collection(db, "pages"), where("storeId", "==", storeId), where("slug", "==", slug));
+        const pageQ = query(collection(db, "pages"), where("storeId", "==", storeData.id), where("slug", "==", slug));
         const pageSnap = await getDocs(pageQ);
         if (pageSnap.empty) {
           setError("Page not found");
@@ -90,7 +94,7 @@ export default function RenderDynamicPage() {
         }
         setPage(pageSnap.docs[0].data());
 
-        const prodQ = query(collection(db, "products"), where("storeId", "==", storeId));
+        const prodQ = query(collection(db, "products"), where("storeId", "==", storeData.id));
         const prodSnap = await getDocs(prodQ);
         setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
@@ -131,14 +135,14 @@ export default function RenderDynamicPage() {
     >
       <div className="py-0">
         {page.config?.map((block: Block) => (
-          <BlockRenderer key={block.id} block={block} products={products} />
+          <BlockRenderer key={block.id} block={block} products={products} store={store} subdomain={subdomain as string} />
         ))}
       </div>
     </div>
   );
 }
 
-function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
+function BlockRenderer({ block, products, store, subdomain }: { block: Block, products: any[], store: any, subdomain: string }) {
   const hideOnDesktop = block.style?.hideDesktop;
   const hideOnMobile = block.style?.hideMobile;
 
@@ -198,7 +202,7 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
       return (
         <div style={style} className={cn("grid gap-6 px-6 max-w-6xl mx-auto", "grid-cols-1", gridClass, animClass, responsiveClass)}>
           {block.children?.map(child => (
-            <BlockRenderer key={child.id} block={child} products={products} />
+            <BlockRenderer key={child.id} block={child} products={products} store={store} subdomain={subdomain} />
           ))}
         </div>
       );
@@ -301,50 +305,245 @@ function BlockRenderer({ block, products }: { block: Block, products: any[] }) {
       const mainProd = products.find(p => p.id === block.content?.mainProductId);
       return (
         <div style={style} className={cn("px-6 max-w-5xl mx-auto", animClass, responsiveClass)}>
-          <Card className="rounded-[40px] shadow-2xl border-none overflow-hidden text-left bg-white">
-            <div className="bg-[#161625] text-white p-10 md:p-14 text-center">
-              <h3 className="text-4xl md:text-5xl font-headline font-bold mb-4 tracking-tighter">COMPLETE ORDER</h3>
-              <p className="text-white/60 font-medium uppercase tracking-[0.3em] text-xs">Secure Checkout Environment</p>
-            </div>
-            <div className="p-8 md:p-14 space-y-12">
-              {mainProd && (
-                <div className="flex flex-col md:flex-row justify-between items-center p-8 bg-slate-50 rounded-[32px] border border-slate-100 gap-8">
-                  <div className="flex items-center gap-8">
-                    <img src={mainProd.featuredImage} className="w-24 h-24 rounded-2xl object-cover shadow-lg" />
-                    <div>
-                      <h4 className="text-2xl font-bold tracking-tight">{mainProd.name}</h4>
-                      <p className="text-primary font-black text-3xl mt-1">${mainProd.currentPrice}</p>
-                    </div>
-                  </div>
-                  <CheckCircle className="text-primary w-12 h-12" />
-                </div>
-              )}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 border-t">
-                <div className="space-y-6">
-                  <h4 className="font-bold text-xl text-slate-400 uppercase tracking-widest">Logistic Records</h4>
-                  <div className="space-y-4">
-                    <Input placeholder="Full Legal Name" className="rounded-2xl h-14 bg-slate-50 border-none px-6 text-lg" />
-                    <Input placeholder="Contact Phone" className="rounded-2xl h-14 bg-slate-50 border-none px-6 text-lg" />
-                    <Textarea placeholder="Full Delivery Address" className="rounded-3xl min-h-[120px] bg-slate-50 border-none p-6 text-lg" />
-                  </div>
-                </div>
-                <div className="space-y-6">
-                  <h4 className="font-bold text-xl text-slate-400 uppercase tracking-widest">Order Summary</h4>
-                  <div className="bg-slate-50 p-10 rounded-[40px] border space-y-5">
-                    <div className="flex justify-between text-4xl font-black text-primary border-t pt-8 mt-4">
-                      <span>TOTAL</span>
-                      <span>${mainProd?.currentPrice || 0}</span>
-                    </div>
-                  </div>
-                  <Button className="w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/40 transition-transform hover:scale-[1.02]">Place Order Now</Button>
-                </div>
-              </div>
-            </div>
-          </Card>
+          <LandingPageOrderForm product={mainProd} store={store} />
         </div>
       );
 
     default:
       return null;
   }
+}
+
+function LandingPageOrderForm({ product, store }: { product: any, store: any }) {
+  const { toast } = useToast();
+  const db = useFirestore();
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [clientIp, setClientIp] = useState("");
+  const [selectedShipping, setSelectedShipping] = useState<any>(null);
+
+  const [formData, setFormData] = useState({
+    fullName: "",
+    phone: "",
+    address: "",
+    paymentMethod: "cod",
+    selectedManualMethodId: "",
+    transactionId: ""
+  });
+
+  useEffect(() => {
+    fetch("https://api.ipify.org?format=json")
+      .then(res => res.json())
+      .then(data => setClientIp(data.ip))
+      .catch(err => console.error("IP Capture Error:", err));
+
+    if (store?.shippingSettings?.enabled && store.shippingSettings.methods?.length > 0) {
+      setSelectedShipping(store.shippingSettings.methods[0]);
+    }
+  }, [store]);
+
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product) return;
+    if (!formData.fullName || !formData.phone || !formData.address) {
+      toast({ variant: "destructive", title: "তথ্য অসম্পূর্ণ", description: "অনুগ্রহ করে সব প্রয়োজনীয় তথ্য প্রদান করুন।" });
+      return;
+    }
+
+    if (formData.paymentMethod === 'manual' && (!formData.transactionId || !formData.selectedManualMethodId)) {
+      toast({ variant: "destructive", title: "পেমেন্ট তথ্য প্রয়োজন", description: "অনুগ্রহ করে পেমেন্ট মেথড এবং ট্রানজাকশন আইডি প্রদান করুন।" });
+      return;
+    }
+
+    setIsPlacingOrder(true);
+    try {
+      // Fraud Check
+      const blockValues = [clientIp, formData.phone].filter(Boolean);
+      if (blockValues.length > 0) {
+        const fraudQ = query(
+          collection(db, "fraud_blocks"),
+          where("storeId", "==", store.id),
+          where("value", "in", blockValues),
+          limit(1)
+        );
+        const fraudSnap = await getDocs(fraudQ);
+        if (!fraudSnap.empty) {
+          toast({ variant: "destructive", title: "Transaction Denied", description: "Security restriction applied." });
+          setIsPlacingOrder(false);
+          return;
+        }
+      }
+
+      const shippingCost = selectedShipping?.cost || 0;
+      const total = Number(product.currentPrice) + shippingCost;
+
+      const orderData = {
+        storeId: store.id,
+        ownerId: store.ownerId,
+        items: [{
+          id: product.id,
+          name: product.name,
+          price: Number(product.currentPrice),
+          image: product.featuredImage || (product.gallery && product.gallery[0]),
+          quantity: 1
+        }],
+        customer: {
+          fullName: formData.fullName,
+          phone: formData.phone,
+          address: formData.address,
+          ip: clientIp
+        },
+        shipping: selectedShipping ? {
+          name: selectedShipping.name,
+          cost: shippingCost
+        } : { name: "Standard", cost: 0 },
+        subtotal: Number(product.currentPrice),
+        shippingCost: shippingCost,
+        total: total,
+        paymentMethod: formData.paymentMethod,
+        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
+        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
+        status: "pending",
+        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
+        isRead: false,
+        createdAt: serverTimestamp(),
+      };
+
+      await addDoc(collection(db, "orders"), orderData);
+      setOrderSuccess(true);
+      toast({ title: "অর্ডার সফল হয়েছে!", description: "আপনার অর্ডারটি গ্রহণ করা হয়েছে।" });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Order Failed" });
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+
+  if (orderSuccess) {
+    return (
+      <Card className="rounded-[40px] shadow-2xl p-12 text-center bg-white animate-in zoom-in-95 duration-500">
+        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto mb-6">
+          <CheckCircle className="w-12 h-12" />
+        </div>
+        <h3 className="text-3xl font-headline font-black text-slate-900 uppercase">THANK YOU!</h3>
+        <p className="text-slate-500 mt-2">আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে।</p>
+      </Card>
+    );
+  }
+
+  const selectedManualMethod = store?.paymentSettings?.manualMethods?.find((m: any) => m.id === formData.selectedManualMethodId);
+
+  return (
+    <Card className="rounded-[40px] shadow-2xl border-none overflow-hidden text-left bg-white">
+      <div className="bg-[#161625] text-white p-10 md:p-14 text-center">
+        <h3 className="text-4xl md:text-5xl font-headline font-black mb-4 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3>
+        <p className="text-white/60 font-medium uppercase tracking-[0.3em] text-xs">নিরাপদ এবং দ্রুত ডেলিভারি</p>
+      </div>
+      <div className="p-8 md:p-14 space-y-12">
+        {product ? (
+          <div className="flex flex-col md:flex-row justify-between items-center p-8 bg-slate-50 rounded-[32px] border border-slate-100 gap-8">
+            <div className="flex items-center gap-8">
+              <img src={product.featuredImage} className="w-24 h-24 rounded-2xl object-cover shadow-lg" alt="" />
+              <div>
+                <h4 className="text-2xl font-bold tracking-tight">{product.name}</h4>
+                <p className="text-primary font-black text-3xl mt-1">${product.currentPrice}</p>
+              </div>
+            </div>
+            <CheckCircle className="text-primary w-12 h-12" />
+          </div>
+        ) : (
+          <div className="p-12 text-center border-2 border-dashed rounded-[32px] opacity-20 font-bold uppercase tracking-widest">পণ্য নির্বাচন করা হয়নি</div>
+        )}
+
+        <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 border-t">
+          <div className="space-y-6">
+            <h4 className="font-bold text-xl text-slate-400 uppercase tracking-widest">আপনার তথ্য</h4>
+            <div className="space-y-4">
+              <Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-slate-50 border-none px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
+              <Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-slate-50 border-none px-6 text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+              <Textarea placeholder="পুরো ঠিকানা (বাসা/রোড, জেলা)" className="rounded-3xl min-h-[120px] bg-slate-50 border-none p-6 text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+            </div>
+
+            {store?.shippingSettings?.enabled && (
+              <div className="space-y-4">
+                <h4 className="font-bold text-sm text-slate-400 uppercase tracking-widest">ডেলিভারি এরিয়া</h4>
+                <RadioGroup value={selectedShipping?.id} onValueChange={(id) => setSelectedShipping(store.shippingSettings.methods.find((m: any) => m.id === id))} className="grid gap-3">
+                  {store.shippingSettings.methods.map((method: any) => (
+                    <div key={method.id} className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50')}>
+                      <div className="flex items-center gap-3">
+                        <RadioGroupItem value={method.id} id={method.id} />
+                        <Label htmlFor={method.id} className="font-bold cursor-pointer">{method.name}</Label>
+                      </div>
+                      <span className="font-bold text-sm">{method.cost > 0 ? `$${method.cost}` : 'Free'}</span>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-6">
+            <h4 className="font-bold text-xl text-slate-400 uppercase tracking-widest">পেমেন্ট মেথড</h4>
+            <div className="space-y-4">
+               <RadioGroup value={formData.paymentMethod} onValueChange={(v) => setFormData({...formData, paymentMethod: v})} className="grid gap-3">
+                  {store?.paymentSettings?.cod && (
+                    <div className={cn("flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50')} onClick={() => setFormData({...formData, paymentMethod: 'cod'})}>
+                       <RadioGroupItem value="cod" id="cod-lp" />
+                       <Label htmlFor="cod-lp" className="font-bold flex-1 cursor-pointer">ক্যাশ অন ডেলিভারি</Label>
+                       <Truck className="w-5 h-5 text-slate-300" />
+                    </div>
+                  )}
+                  {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
+                    <div className={cn("flex flex-col p-4 rounded-2xl border-2 cursor-pointer", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50')} onClick={() => setFormData({...formData, paymentMethod: 'manual'})}>
+                       <div className="flex items-center gap-3">
+                          <RadioGroupItem value="manual" id="manual-lp" />
+                          <Label htmlFor="manual-lp" className="font-bold flex-1 cursor-pointer">বিকাশ/নগদ/ম্যানুয়াল</Label>
+                          <Smartphone className="w-5 h-5 text-slate-300" />
+                       </div>
+                       {formData.paymentMethod === 'manual' && (
+                         <div className="mt-4 space-y-4 pt-4 border-t border-primary/10">
+                            <div className="grid grid-cols-2 gap-2">
+                               {store.paymentSettings.manualMethods.map((m: any) => (
+                                 <Button key={m.id} type="button" variant="outline" className={cn("h-10 rounded-xl text-[10px] font-bold", formData.selectedManualMethodId === m.id ? 'bg-primary text-white' : '')} onClick={(e) => { e.stopPropagation(); setFormData({...formData, selectedManualMethodId: m.id}); }}>{m.name}</Button>
+                               ))}
+                            </div>
+                            {selectedManualMethod && (
+                              <div className="space-y-3">
+                                 <div className="p-3 bg-white rounded-xl border border-primary/20">
+                                    <p className="text-[10px] font-black uppercase text-primary">নাম্বার: {selectedManualMethod.number}</p>
+                                    <p className="text-[10px] text-slate-500 mt-1 italic">{selectedManualMethod.instructions}</p>
+                                 </div>
+                                 <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData({...formData, transactionId: e.target.value.toUpperCase()})} />
+                              </div>
+                            )}
+                         </div>
+                       )}
+                    </div>
+                  )}
+               </RadioGroup>
+            </div>
+
+            <div className="bg-slate-50 p-10 rounded-[40px] border space-y-5">
+              <div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest">
+                 <span>পণ্য মূল্য</span>
+                 <span>${product?.currentPrice || 0}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest">
+                 <span>ডেলিভারি চার্জ</span>
+                 <span>${selectedShipping?.cost || 0}</span>
+              </div>
+              <div className="flex justify-between text-4xl font-black text-primary border-t pt-8 mt-4">
+                <span>মোট</span>
+                <span>${(Number(product?.currentPrice || 0) + (selectedShipping?.cost || 0)).toFixed(2)}</span>
+              </div>
+            </div>
+            <Button type="submit" disabled={isPlacingOrder || !product} className="w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/40 transition-transform hover:scale-[1.02]">
+               {isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </Card>
+  );
 }
