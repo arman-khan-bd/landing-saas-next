@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { db, auth } from "@/lib/firebase";
@@ -20,13 +20,18 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import "react-quill-new/dist/quill.snow.css";
 
 // Dynamic import for ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false, loading: () => <div className="h-64 bg-muted animate-pulse rounded-md" /> });
+const ReactQuill = dynamic(() => import("react-quill-new"), { 
+  ssr: false, 
+  loading: () => <div className="h-64 bg-muted animate-pulse rounded-md" /> 
+});
 
 export default function NewProductPage() {
   const { subdomain } = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const quillRef = useRef<any>(null);
+
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -59,6 +64,53 @@ export default function NewProductPage() {
       setFormData(prev => ({ ...prev, slug: generatedSlug }));
     }
   }, [formData.name]);
+
+  const imageHandler = useCallback(() => {
+    const input = document.createElement("input");
+    input.setAttribute("type", "file");
+    input.setAttribute("accept", "image/*");
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+      uploadData.append("upload_preset", "krishi-bazar");
+
+      try {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/dj7pg5slk/image/upload`, {
+          method: "POST",
+          body: uploadData,
+        });
+        const data = await res.json();
+        const quill = quillRef.current?.getEditor();
+        if (quill) {
+          const range = quill.getSelection(true);
+          quill.insertEmbed(range.index, "image", data.secure_url);
+        }
+      } catch (error) {
+        console.error("Editor image upload error:", error);
+        toast({ variant: "destructive", title: "Image upload failed" });
+      }
+    };
+  }, [toast]);
+
+  const modules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['link', 'image'],
+        ['clean'],
+      ],
+      handlers: {
+        image: imageHandler,
+      },
+    },
+  }), [imageHandler]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,9 +257,11 @@ export default function NewProductPage() {
                 <Label>Full Description</Label>
                 <div className="rounded-xl overflow-hidden border border-input">
                   <ReactQuill
+                    ref={quillRef}
                     theme="snow"
                     value={formData.description}
                     onChange={(val) => setFormData({ ...formData, description: val })}
+                    modules={modules}
                     className="min-h-[250px]"
                   />
                 </div>
