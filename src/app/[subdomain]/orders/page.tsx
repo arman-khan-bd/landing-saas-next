@@ -1,24 +1,29 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from "firebase/firestore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, MoreHorizontal, Eye, Receipt, ShoppingCart, CheckCircle, Clock, XCircle, Calendar, DollarSign } from "lucide-react";
+import { Search, MoreHorizontal, Eye, Receipt, ShoppingCart, CheckCircle, Clock, XCircle, Calendar, DollarSign, Loader2, PackageCheck } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 export default function OrdersPage() {
   const { subdomain } = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [stats, setStats] = useState({ revenue: 0, count: 0 });
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -57,13 +62,19 @@ export default function OrdersPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'completed': return <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-none rounded-lg px-2 py-0.5 font-bold flex items-center gap-1 text-[10px]"><CheckCircle className="w-3 h-3" /> Completed</Badge>;
-      case 'shipped': return <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-none rounded-lg px-2 py-0.5 font-bold flex items-center gap-1 text-[10px]"><ShoppingCart className="w-3 h-3" /> Shipped</Badge>;
-      case 'processing': return <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-none rounded-lg px-2 py-0.5 font-bold flex items-center gap-1 text-[10px]"><Clock className="w-3 h-3" /> Processing</Badge>;
-      case 'cancelled': return <Badge className="bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-none rounded-lg px-2 py-0.5 font-bold flex items-center gap-1 text-[10px]"><XCircle className="w-3 h-3" /> Cancelled</Badge>;
-      default: return <Badge className="bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 border-none rounded-lg px-2 py-0.5 font-bold flex items-center gap-1 text-[10px]"><Clock className="w-3 h-3" /> Pending</Badge>;
+  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
+    setUpdatingId(orderId);
+    try {
+      await updateDoc(doc(db, "orders", orderId), {
+        status: newStatus,
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Status Updated", description: `Order #${orderId.slice(0, 8)} is now ${newStatus}.` });
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    } catch (error) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -102,8 +113,8 @@ export default function OrdersPage() {
         <Card className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden">
           <div className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Growth</p>
-              <h3 className="text-xl font-black mt-0.5">+100%</h3>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Platform Tier</p>
+              <h3 className="text-xl font-black mt-0.5">Premium</h3>
             </div>
             <div className="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center text-violet-600"><Calendar className="w-4 h-4" /></div>
           </div>
@@ -131,12 +142,14 @@ export default function OrdersPage() {
                   <TableHead className="py-3 px-4 font-bold uppercase tracking-widest text-[9px]">ID & Date</TableHead>
                   <TableHead className="py-3 px-4 font-bold uppercase tracking-widest text-[9px]">Customer</TableHead>
                   <TableHead className="py-3 px-4 font-bold uppercase tracking-widest text-[9px]">Financials</TableHead>
-                  <TableHead className="py-3 px-4 font-bold uppercase tracking-widest text-[9px]">Status</TableHead>
+                  <TableHead className="py-3 px-4 font-bold uppercase tracking-widest text-[9px]">Fulfillment Status</TableHead>
                   <TableHead className="py-3 px-4 text-right font-bold uppercase tracking-widest text-[9px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.length === 0 ? (
+                {loading ? (
+                  <TableRow><TableCell colSpan={5} className="py-10 text-center"><Loader2 className="animate-spin mx-auto w-6 h-6 text-primary" /></TableCell></TableRow>
+                ) : filteredOrders.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="py-20 text-center text-muted-foreground opacity-50">
                        <ShoppingCart className="w-12 h-12 mx-auto mb-4" />
@@ -163,7 +176,27 @@ export default function OrdersPage() {
                         <span className="text-[9px] uppercase font-bold text-slate-400 tracking-tight">{order.paymentMethod}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="py-3 px-4">{getStatusBadge(order.status)}</TableCell>
+                    <TableCell className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <Select 
+                          value={order.status} 
+                          onValueChange={(val) => handleStatusUpdate(order.id, val)}
+                          disabled={updatingId === order.id}
+                        >
+                          <SelectTrigger className="w-32 h-8 rounded-lg text-[10px] font-black uppercase tracking-tighter border-none bg-slate-50">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-none shadow-2xl">
+                            <SelectItem value="pending" className="text-[10px] font-bold">Pending</SelectItem>
+                            <SelectItem value="processing" className="text-[10px] font-bold">Processing</SelectItem>
+                            <SelectItem value="shipped" className="text-[10px] font-bold">Shipped</SelectItem>
+                            <SelectItem value="completed" className="text-[10px] font-bold">Completed</SelectItem>
+                            <SelectItem value="cancelled" className="text-[10px] font-bold text-rose-500">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {updatingId === order.id && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
+                      </div>
+                    </TableCell>
                     <TableCell className="py-3 px-4 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -189,7 +222,7 @@ export default function OrdersPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:hidden">
+      <div className="grid grid-cols-1 gap-3 md:hidden pb-10">
         {filteredOrders.map((order) => (
           <Card key={order.id} className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden p-4 space-y-3">
               <div className="flex justify-between items-start">
@@ -198,7 +231,24 @@ export default function OrdersPage() {
                   <h4 className="text-base font-bold text-slate-900 mt-1 leading-tight">{order.customer?.fullName}</h4>
                   <span className="text-[11px] text-muted-foreground">{order.customer?.phone}</span>
                 </div>
-                {getStatusBadge(order.status)}
+                <div className="flex flex-col items-end gap-2">
+                   <Select 
+                      value={order.status} 
+                      onValueChange={(val) => handleStatusUpdate(order.id, val)}
+                      disabled={updatingId === order.id}
+                    >
+                      <SelectTrigger className="w-24 h-7 rounded-lg text-[9px] font-black uppercase border-none bg-slate-100">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="processing">Processing</SelectItem>
+                        <SelectItem value="shipped">Shipped</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                </div>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-slate-50">
                  <div className="flex flex-col">

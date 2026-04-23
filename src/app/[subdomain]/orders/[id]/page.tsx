@@ -4,13 +4,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useFirestore, useAuth } from "@/firebase";
-import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   ChevronLeft, ShoppingCart, User, Phone, MapPin, 
   Mail, Loader2, Package, Globe, ShieldAlert,
-  ShieldCheck, AlertTriangle, Fingerprint, Lock
+  ShieldCheck, AlertTriangle, Fingerprint, Lock,
+  CreditCard, Smartphone, CheckCircle2, MoreVertical
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -19,6 +20,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { cn } from "@/lib/utils";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function OrderDetailPage() {
   const { subdomain, id } = useParams();
@@ -31,6 +33,7 @@ export default function OrderDetailPage() {
   const [ipData, setIpData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [blocking, setBlocking] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     if (id && db) {
@@ -65,6 +68,38 @@ export default function OrderDetailPage() {
     }
   };
 
+  const handleStatusUpdate = async (newStatus: string) => {
+    setUpdating(true);
+    try {
+      await updateDoc(doc(db, "orders", order.id), {
+        status: newStatus,
+        updatedAt: serverTimestamp()
+      });
+      setOrder({ ...order, status: newStatus });
+      toast({ title: "Fulfillment Updated" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handlePaymentStatusUpdate = async (newStatus: string) => {
+    setUpdating(true);
+    try {
+      await updateDoc(doc(db, "orders", order.id), {
+        paymentStatus: newStatus,
+        updatedAt: serverTimestamp()
+      });
+      setOrder({ ...order, paymentStatus: newStatus });
+      toast({ title: "Payment Status Updated" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleBlockAction = async (type: 'ip' | 'phone' | 'customer' | 'address') => {
     if (!order || !auth.currentUser) return;
     
@@ -92,9 +127,7 @@ export default function OrderDetailPage() {
         createdAt: serverTimestamp(),
         reason: `Manual block from order #${order.id}`,
         customerName: order.customer?.fullName || "Anonymous",
-        metadata: {
-          orderId: order.id,
-        }
+        metadata: { orderId: order.id }
       };
 
       const itemsToBlock: any[] = [];
@@ -112,29 +145,16 @@ export default function OrderDetailPage() {
       }
 
       if (itemsToBlock.length === 0) {
-        toast({ variant: "destructive", title: "No data to block", description: "The required fields are missing from this order." });
+        toast({ variant: "destructive", title: "No data to block" });
         setBlocking(false);
         return;
       }
 
-      // Execute all blocks
       itemsToBlock.forEach(item => {
-        const fullData = { ...baseBlockData, ...item };
-        addDoc(collection(db, "fraud_blocks"), fullData)
-          .catch(async (error) => {
-            const permissionError = new FirestorePermissionError({
-              path: 'fraud_blocks',
-              operation: 'create',
-              requestResourceData: fullData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-          });
+        addDoc(collection(db, "fraud_blocks"), { ...baseBlockData, ...item });
       });
 
-      toast({ 
-        title: "Security Updated", 
-        description: `${itemsToBlock.length} entities successfully added to fraud list.` 
-      });
+      toast({ title: "Security Updated", description: "Identity markers successfully restricted." });
     } catch (error) {
       console.error(error);
       toast({ variant: "destructive", title: "Security Action Failed" });
@@ -160,8 +180,19 @@ export default function OrderDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-           <Badge className="bg-primary/10 text-primary border-none rounded-lg px-3 py-1 font-black text-[10px] uppercase tracking-widest">{order.status}</Badge>
-           <Badge variant="outline" className="rounded-lg px-3 py-1 font-bold text-[10px]">{order.paymentMethod?.toUpperCase()}</Badge>
+           <Select value={order.status} onValueChange={handleStatusUpdate} disabled={updating}>
+              <SelectTrigger className="h-10 rounded-xl bg-primary text-white border-none font-black text-[10px] uppercase tracking-widest px-4 shadow-lg shadow-primary/20">
+                 <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-none shadow-2xl">
+                 <SelectItem value="pending">Pending</SelectItem>
+                 <SelectItem value="processing">Processing</SelectItem>
+                 <SelectItem value="shipped">Shipped</SelectItem>
+                 <SelectItem value="completed">Completed</SelectItem>
+                 <SelectItem value="cancelled" className="text-rose-500">Cancelled</SelectItem>
+              </SelectContent>
+           </Select>
+           <Badge variant="outline" className="h-10 rounded-xl px-4 font-bold text-[10px]">{order.paymentMethod?.toUpperCase()}</Badge>
         </div>
       </div>
 
@@ -214,39 +245,63 @@ export default function OrderDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Technical Metadata */}
+          {/* Payment Intelligence Card */}
           <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
-            <CardHeader className="bg-slate-900 text-white p-6 sm:p-8">
+            <CardHeader className="bg-emerald-50 border-b border-emerald-100 p-6 sm:p-8">
                <div className="flex items-center gap-3">
-                  <Globe className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg font-headline font-bold uppercase tracking-tight">Technical Footprint</CardTitle>
+                  <CreditCard className="w-5 h-5 text-emerald-600" />
+                  <CardTitle className="text-lg font-headline font-bold uppercase tracking-tight text-emerald-900">Payment Evidence</CardTitle>
                </div>
             </CardHeader>
-            <CardContent className="p-6 sm:p-8 space-y-8">
+            <CardContent className="p-6 sm:p-8">
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                      <div className="space-y-1">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Client IP Address</p>
-                        <div className="flex items-center gap-2">
-                           <Fingerprint className="w-4 h-4 text-primary" />
-                           <span className="font-mono text-sm font-bold">{order.customer?.ip || "N/A"}</span>
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Payment Strategy</p>
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center">
+                              {order.paymentMethod === 'cod' ? <Truck className="w-5 h-5 text-slate-400" /> : <Smartphone className="w-5 h-5 text-indigo-600" />}
+                           </div>
+                           <p className="font-bold text-slate-900 uppercase text-sm">
+                              {order.paymentMethod === 'cod' ? "Cash on Delivery" : "Manual / Mobile Banking"}
+                           </p>
                         </div>
                      </div>
-                     <div className="space-y-1">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Geolocation</p>
-                        <p className="text-sm font-bold">
-                           {ipData?.city ? `${ipData.city}, ${ipData.country_name}` : "Scanning Location..."}
-                        </p>
-                     </div>
+
+                     {order.paymentMethod === 'manual' && (
+                       <div className="space-y-4 animate-in slide-in-from-top-2">
+                          <div className="space-y-1">
+                             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Verification Transaction ID</p>
+                             <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-center justify-between">
+                                <span className="font-mono text-lg font-black text-indigo-700 select-all">{order.transactionId || "NONE_PROVIDED"}</span>
+                                <Badge className="bg-indigo-600 text-white border-none uppercase text-[8px] font-black tracking-widest">TRANXID</Badge>
+                             </div>
+                          </div>
+                       </div>
+                     )}
                   </div>
-                  <div className="space-y-4">
+
+                  <div className="space-y-6">
                      <div className="space-y-1">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Network Operator</p>
-                        <p className="text-sm font-bold truncate">{ipData?.org || "Unknown ISP"}</p>
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Payment Status</p>
+                        <Select value={order.paymentStatus || "unpaid"} onValueChange={handlePaymentStatusUpdate} disabled={updating}>
+                          <SelectTrigger className={cn(
+                            "h-12 rounded-xl border-none font-bold text-sm px-4",
+                            order.paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                          )}>
+                             <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-none shadow-2xl">
+                             <SelectItem value="unpaid">Unpaid / Processing</SelectItem>
+                             <SelectItem value="paid" className="text-emerald-600">Verified & Paid</SelectItem>
+                             <SelectItem value="refunded" className="text-rose-500">Refunded</SelectItem>
+                          </SelectContent>
+                        </Select>
                      </div>
-                     <div className="space-y-1">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Digital Signature</p>
-                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed line-clamp-2 italic">Captured during payment authorization phase.</p>
+                     
+                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-3">
+                        <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                        <p className="text-[11px] text-slate-500 leading-tight">Payments are recorded with client IP and timestamps for audit trails.</p>
                      </div>
                   </div>
                </div>
@@ -305,6 +360,28 @@ export default function OrderDetailPage() {
               </CardContent>
            </Card>
 
+           {/* Technical Metadata */}
+           <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-slate-900 text-white">
+              <CardHeader className="p-6 sm:p-8 border-b border-white/5">
+                 <div className="flex items-center gap-3">
+                    <Globe className="w-5 h-5 text-primary" />
+                    <CardTitle className="text-sm font-black uppercase tracking-widest">Network Data</CardTitle>
+                 </div>
+              </CardHeader>
+              <CardContent className="p-6 sm:p-8 space-y-4">
+                  <div className="space-y-1">
+                     <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Source IP</p>
+                     <p className="text-xs font-mono font-bold">{order.customer?.ip || "N/A"}</p>
+                  </div>
+                  <div className="space-y-1">
+                     <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Est. Location</p>
+                     <p className="text-xs font-bold text-slate-300">
+                        {ipData?.city ? `${ipData.city}, ${ipData.country_name}` : "Resolving..."}
+                     </p>
+                  </div>
+              </CardContent>
+           </Card>
+
            {/* Fraud/Block Actions */}
            <Card className="rounded-[32px] border-none bg-rose-50/50 shadow-sm overflow-hidden border-2 border-rose-100">
               <CardHeader className="bg-rose-600 text-white p-6 sm:p-8">
@@ -336,15 +413,6 @@ export default function OrderDetailPage() {
                        {blocking ? "Processing..." : "Block Phone Number"}
                     </Button>
                     <Button 
-                      variant="outline" 
-                      className="rounded-xl h-12 justify-start border-rose-200 text-rose-600 hover:bg-rose-100 font-bold text-xs"
-                      onClick={() => handleBlockAction('address')}
-                      disabled={blocking || !order.customer?.address}
-                    >
-                       <MapPin className="w-4 h-4 mr-2" /> 
-                       {blocking ? "Processing..." : "Block Shipping Address"}
-                    </Button>
-                    <Button 
                       className="rounded-xl h-12 justify-start bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-lg shadow-rose-200"
                       onClick={() => handleBlockAction('customer')}
                       disabled={blocking}
@@ -352,10 +420,6 @@ export default function OrderDetailPage() {
                        <Lock className="w-4 h-4 mr-2" /> 
                        {blocking ? "Locking identity..." : "Block Total Identity"}
                     </Button>
-                 </div>
-                 
-                 <div className="flex items-center gap-2 pt-2 text-[9px] text-rose-400 font-black uppercase tracking-widest">
-                    <ShieldCheck className="w-3 h-3" /> Safe Multi-tenant Shield
                  </div>
               </CardContent>
            </Card>
