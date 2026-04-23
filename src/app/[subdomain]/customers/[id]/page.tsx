@@ -159,7 +159,7 @@ export default function CustomerDetailsPage() {
     }
   };
 
-  const blockIdentifier = async (type: 'phone' | 'email' | 'ip', value: string) => {
+  const blockIdentifier = async (type: 'phone' | 'email' | 'ip' | 'address', value: string) => {
     if (!value || value === "N/A" || !auth.currentUser) {
         toast({ title: "Invalid Action", description: `Cannot block unavailable ${type}.` });
         return;
@@ -314,12 +314,6 @@ export default function CustomerDetailsPage() {
                            </Badge>
                       ))}
                   </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 pt-2">
-                <Button variant="outline" className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border-2">
-                    <Mail className="w-3 h-3 mr-2" /> Message
-                </Button>
               </div>
 
               <div className="pt-6 border-t border-slate-100 space-y-2">
