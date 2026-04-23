@@ -25,7 +25,10 @@ service cloud.firestore {
     }
 
     function isExistingOwner() {
-      return isSignedIn() && resource != null && resource.data.ownerId == request.auth.uid;
+      return isSignedIn() && resource != null && (
+        resource.data.ownerId == request.auth.uid || 
+        resource.data.userId == request.auth.uid
+      );
     }
 
     function isAdmin() {
@@ -68,23 +71,22 @@ service cloud.firestore {
     match /uncompleted_orders/{orderId} {
       // Allow guests to manage their own drafts
       allow create, get, update, delete: if true;
-      // Only the merchant can list abandoned checkouts/customers
+      // Only the merchant can list abandoned checkouts
       allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
     match /fraud_blocks/{blockId} {
-      // Merchant access
-      allow read, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && isDataOwner();
-      allow delete: if isSignedIn() && (isExistingOwner() || isAdmin());
-      
       // Public check during checkout (limited to query results)
       allow list: if (request.query.limit <= 5);
+
+      // Merchant access
+      allow read: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isDataOwner();
+      allow delete: if isSignedIn() && (isExistingOwner() || isAdmin());
     }
 
     match /stores/{storeId} {
-      allow get: if true;
-      allow list: if true;
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isAdmin() || isExistingOwner();
       allow delete: if isAdmin();
@@ -96,14 +98,36 @@ service cloud.firestore {
       }
 
       match /subscription/{id} {
-        // Use read to cover both get and list
         allow read: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
         allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
         allow update, delete: if isAdmin();
       }
     }
 
-    // Global Collections (Scoped by ownerId)
+    // Platform Level / SaaS Admin Collections (Public Read / Admin Write)
+    match /platformFeatures/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /subscriptionPlans/{planId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /saasPaymentMethods/{methodId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /saas_transactions/{id} {
+      allow list: if isAdmin();
+      allow get: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Global Tenant Collections (Scoped by ownerId)
     match /products/{productId} {
       allow get, list: if true;
       allow create: if isSignedIn() && isDataOwner();
@@ -144,23 +168,6 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isSignedIn() && isDataOwner();
       allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-    }
-
-    match /subscriptionPlans/{planId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /saasPaymentMethods/{methodId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /saas_transactions/{id} {
-      allow list: if isAdmin();
-      allow get: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isAdmin();
     }
 
     match /system_notifications/{id} {
