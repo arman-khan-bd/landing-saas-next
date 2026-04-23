@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { getStoreUrl } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function StoreSettingsPage() {
   const { subdomain } = useParams();
@@ -140,8 +142,15 @@ export default function StoreSettingsPage() {
           where("storeId", "==", sId),
           where("ownerId", "==", uid)
         );
+        
         onSnapshot(domQ, (s) => {
           setDomainRequests(s.docs.map(d => ({ id: d.id, ...d.data() })));
+        }, async (err) => {
+          const permissionError = new FirestorePermissionError({
+            path: "custom_domain_requests",
+            operation: "list",
+          });
+          errorEmitter.emit('permission-error', permissionError);
         });
 
         // Fetch all plans
@@ -614,7 +623,6 @@ export default function StoreSettingsPage() {
                                       const uid = auth.currentUser?.uid;
                                       if (!uid || !storeId || !selectedPaymentMethod || !transactionId) return;
 
-                                      // 1. Create subcollection entry
                                       await addDoc(collection(db, "stores", storeId, "subscription"), {
                                         planId: plan.id,
                                         planName: plan.name,
@@ -627,7 +635,6 @@ export default function StoreSettingsPage() {
                                         updatedAt: serverTimestamp()
                                       });
 
-                                      // 2. Create global transaction entry
                                       await addDoc(collection(db, "saas_transactions"), {
                                         storeId: storeId,
                                         storeName: settings.name,

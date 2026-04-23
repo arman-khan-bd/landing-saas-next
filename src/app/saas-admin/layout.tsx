@@ -20,6 +20,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { Badge } from "@/components/ui/badge";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function SaasAdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -54,21 +56,41 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
         }
       };
       checkAdmin();
-
-      // Listen for pending transactions
-      const qTx = query(collection(firestore, "saas_transactions"), where("status", "==", "pending"));
-      const unsubTx = onSnapshot(qTx, (snap) => setPendingTransactions(snap.size));
-
-      // Listen for pending domains
-      const qDom = query(collection(firestore, "custom_domain_requests"), where("status", "==", "pending"));
-      const unsubDom = onSnapshot(qDom, (snap) => setPendingDomains(snap.size));
-
-      return () => {
-        unsubTx();
-        unsubDom();
-      };
     }
   }, [user, isUserLoading, firestore, router]);
+
+  useEffect(() => {
+    if (!firestore || isAdmin !== true) return;
+
+    // Listen for pending transactions
+    const qTx = query(collection(firestore, "saas_transactions"), where("status", "==", "pending"));
+    const unsubTx = onSnapshot(qTx, (snap) => {
+      setPendingTransactions(snap.size);
+    }, async (err) => {
+      const permissionError = new FirestorePermissionError({
+        path: "saas_transactions",
+        operation: "list",
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+
+    // Listen for pending domains
+    const qDom = query(collection(firestore, "custom_domain_requests"), where("status", "==", "pending"));
+    const unsubDom = onSnapshot(qDom, (snap) => {
+      setPendingDomains(snap.size);
+    }, async (err) => {
+      const permissionError = new FirestorePermissionError({
+        path: "custom_domain_requests",
+        operation: "list",
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+
+    return () => {
+      unsubTx();
+      unsubDom();
+    };
+  }, [firestore, isAdmin]);
 
   if (isUserLoading || isAdmin === null) {
     return (

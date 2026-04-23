@@ -11,6 +11,8 @@ import { Bell, ShoppingCart, User, ShieldAlert, Check, Trash2, Clock, Loader2, A
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/hooks/use-confirm";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface Notification {
   id: string;
@@ -72,16 +74,21 @@ export default function NotificationsPage() {
             description: `${data.customer?.fullName || 'A customer'} placed an order for $${data.total?.toFixed(2)}`,
             time: data.createdAt?.toDate?.()?.toLocaleString() || "Recent",
             read: data.isRead || false,
-            createdAt: data.createdAt // Keep raw for sorting
+            createdAt: data.createdAt
           };
         });
         
-        // Client-side sort and limit
         const sortedNotifs = orderNotifs
           .sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
           .slice(0, 15);
 
         updateCombinedNotifications(sortedNotifs, "orders");
+      }, async (err) => {
+        const permissionError = new FirestorePermissionError({
+          path: "orders",
+          operation: "list",
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
 
       // 2. Listen for Drafts
@@ -101,16 +108,21 @@ export default function NotificationsPage() {
             description: `${data.customer?.fullName || 'Someone'} started checking out with $${data.total?.toFixed(2)} worth of items.`,
             time: data.lastUpdated?.toDate?.()?.toLocaleString() || "Recent",
             read: data.isRead || false,
-            lastUpdated: data.lastUpdated // Keep raw for sorting
+            lastUpdated: data.lastUpdated
           };
         });
 
-        // Client-side sort and limit
         const sortedDrafts = draftNotifs
           .sort((a: any, b: any) => (b.lastUpdated?.seconds || 0) - (a.lastUpdated?.seconds || 0))
           .slice(0, 15);
 
         updateCombinedNotifications(sortedDrafts, "drafts");
+      }, async (err) => {
+        const permissionError = new FirestorePermissionError({
+          path: "uncompleted_orders",
+          operation: "list",
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
 
       // 3. Listen for System Notifications
@@ -133,6 +145,12 @@ export default function NotificationsPage() {
           };
         });
         updateCombinedNotifications(systemNotifs, "system");
+      }, async (err) => {
+        const permissionError = new FirestorePermissionError({
+          path: "system_notifications",
+          operation: "list",
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
 
       return () => {
@@ -190,10 +208,8 @@ export default function NotificationsPage() {
     try {
       const batch = writeBatch(db);
       
-      // Update local state first for instant feedback
       setNotifications(notifications.map(n => ({ ...n, read: true })));
 
-      // Collect all unread notification IDs and their collection names
       notifications.filter(n => !n.read).forEach(n => {
         const collectionName = n.type === 'order' ? 'orders' : 
                              n.type === 'draft' ? 'uncompleted_orders' : 'system_notifications';
@@ -210,14 +226,11 @@ export default function NotificationsPage() {
 
   const deleteNotification = async (e: React.MouseEvent, id: string, type: string) => {
     e.stopPropagation();
-    // For now, archive only removes from UI as requested behavior focuses on "read" status.
-    // If you want permanent deletion, we can add deleteDoc here.
     setNotifications(notifications.filter(n => n.id !== id));
   };
 
   const handleNotificationClick = async (n: Notification) => {
     try {
-      // Mark as read in DB if it's currently unread
       if (!n.read) {
         const collectionName = n.type === 'order' ? 'orders' : 
                              n.type === 'draft' ? 'uncompleted_orders' : 'system_notifications';
@@ -226,10 +239,8 @@ export default function NotificationsPage() {
         await updateDoc(docRef, updateData);
       }
 
-      // Mark as read locally
       setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
       
-      // Navigate to appropriate detail page
       if (n.type === 'order') {
         router.push(`/${subdomain}/orders`);
       } else if (n.type === 'draft') {
@@ -237,7 +248,6 @@ export default function NotificationsPage() {
       }
     } catch (error) {
       console.error("Error updating notification status:", error);
-      // Still navigate even if DB update fails
       if (n.type === 'order') router.push(`/${subdomain}/orders`);
       else if (n.type === 'draft') router.push(`/${subdomain}/orders/uncompleted/${n.id}`);
     }

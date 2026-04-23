@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,6 +18,8 @@ import { cn, getTenantPath, getConsoleUrl, getAuthUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmationProvider } from "@/hooks/use-confirm";
 import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   const { subdomain: paramsSubdomain } = useParams();
@@ -67,7 +70,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         await verifyStoreAccess(user.uid);
       } else {
         if (isAdminPath) {
-          // If we are on a subdomain dashboard without auth, redirect to root domain auth
           window.location.href = getAuthUrl();
         } else {
           setLoading(false);
@@ -102,15 +104,33 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
     const unsubOrders = onSnapshot(ordersQ, (snap) => {
       setCounts(prev => ({ ...prev, orders: snap.size }));
-    }, (err) => console.error("Real-time orders sync error:", err));
+    }, async (err) => {
+      const permissionError = new FirestorePermissionError({
+        path: "orders",
+        operation: "list",
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
 
     const unsubUncompleted = onSnapshot(uncompletedQ, (snap) => {
       setCounts(prev => ({ ...prev, uncompleted: snap.size }));
-    }, (err) => console.error("Real-time uncompleted sync error:", err));
+    }, async (err) => {
+      const permissionError = new FirestorePermissionError({
+        path: "uncompleted_orders",
+        operation: "list",
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
 
     const unsubSystem = onSnapshot(systemQ, (snap) => {
       setCounts(prev => ({ ...prev, system: snap.size }));
-    }, (err) => console.error("Real-time system sync error:", err));
+    }, async (err) => {
+      const permissionError = new FirestorePermissionError({
+        path: "system_notifications",
+        operation: "list",
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
 
     return () => {
       unsubOrders();
@@ -500,7 +520,6 @@ function StorefrontFooter({ store, subdomain, isSubscriptionExpired }: { store: 
               <span className="text-[9px] font-black uppercase tracking-widest">Secure Payments</span>
             </div>
 
-            {/* Powered by IHut.Shop - Shown for free/expired plans */}
             {(!store?.subscription || isSubscriptionExpired) && (
               <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100 hover:bg-white hover:shadow-md transition-all group">
                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Powered by</span>
