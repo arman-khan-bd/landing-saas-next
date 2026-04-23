@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Save, Tags, Globe, Layout, DollarSign, Package, Video } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Tags, Globe, Layout, DollarSign, Package, Video, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -29,7 +29,12 @@ export default function NewProductPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const quillRef = useRef<any>(null);
+
+  const [categories, setCategories] = useState<any[]>([]);
+  const [subCategories, setSubCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -45,13 +50,39 @@ export default function NewProductPage() {
     prevPrice: "",
     category: "",
     subCategory: "",
-    childCategory: "",
     brand: "",
     totalInStock: "",
     tax: "0",
     sku: "",
     youtubeLink: "",
   });
+
+  // Fetch Metadata (Categories, Brands, etc.)
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
+        const storeSnap = await getDocs(storeQ);
+        if (storeSnap.empty) return;
+        const storeId = storeSnap.docs[0].id;
+
+        const [catSnap, subSnap, brandSnap] = await Promise.all([
+          getDocs(query(collection(db, "categories"), where("storeId", "==", storeId))),
+          getDocs(query(collection(db, "sub-categories"), where("storeId", "==", storeId))),
+          getDocs(query(collection(db, "brands"), where("storeId", "==", storeId)))
+        ]);
+
+        setCategories(catSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setSubCategories(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setBrands(brandSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (error) {
+        console.error("Meta fetch error:", error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    fetchData();
+  }, [subdomain]);
 
   // Auto-generate slug from name
   useEffect(() => {
@@ -63,6 +94,11 @@ export default function NewProductPage() {
       setFormData(prev => ({ ...prev, slug: generatedSlug }));
     }
   }, [formData.name]);
+
+  const filteredSubCategories = useMemo(() => {
+    if (!formData.category) return [];
+    return subCategories.filter(s => s.categoryId === formData.category);
+  }, [formData.category, subCategories]);
 
   const imageHandler = useCallback(() => {
     const input = document.createElement("input");
@@ -150,13 +186,13 @@ export default function NewProductPage() {
         prevPrice: formData.prevPrice ? Number(formData.prevPrice) : null,
         category: formData.category,
         subCategory: formData.subCategory,
-        childCategory: formData.childCategory,
         brand: formData.brand,
         totalInStock: Number(formData.totalInStock),
         tax: formData.tax,
         sku: formData.sku,
         youtubeLink: formData.youtubeLink,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
 
       addDoc(collection(db, "products"), productData)
@@ -188,6 +224,8 @@ export default function NewProductPage() {
     setFormData(prev => ({ ...prev, gallery: prev.gallery.filter(url => url !== urlToRemove) }));
   };
 
+  if (initialLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-primary w-10 h-10" /></div>;
+
   return (
     <div className="max-w-6xl mx-auto pb-20 space-y-8">
       <div className="flex items-center justify-between">
@@ -208,7 +246,6 @@ export default function NewProductPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Basic Info */}
           <Card className="rounded-3xl border-border/50 shadow-sm overflow-hidden">
             <CardHeader className="bg-muted/30 border-b border-border/50">
               <div className="flex items-center gap-2">
@@ -268,7 +305,6 @@ export default function NewProductPage() {
             </CardContent>
           </Card>
 
-          {/* Media */}
           <Card className="rounded-3xl border-border/50 shadow-sm">
             <CardHeader className="bg-muted/30 border-b border-border/50">
               <div className="flex items-center gap-2">
@@ -311,42 +347,9 @@ export default function NewProductPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* SEO */}
-          <Card className="rounded-3xl border-border/50 shadow-sm">
-            <CardHeader className="bg-muted/30 border-b border-border/50">
-              <div className="flex items-center gap-2">
-                <Globe className="w-5 h-5 text-primary" />
-                <CardTitle className="text-xl font-headline font-bold">SEO Optimization</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="metaKeywords">Meta Keywords</Label>
-                <Input
-                  id="metaKeywords"
-                  placeholder="keyword1, keyword2, keyword3"
-                  value={formData.metaKeywords}
-                  onChange={(e) => setFormData({ ...formData, metaKeywords: e.target.value })}
-                  className="rounded-xl h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="metaDescription">Meta Description</Label>
-                <Textarea
-                  id="metaDescription"
-                  placeholder="Write a SEO friendly description for search engines..."
-                  className="rounded-xl h-24 resize-none"
-                  value={formData.metaDescription}
-                  onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
-                />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         <div className="space-y-8">
-          {/* Pricing & Inventory */}
           <Card className="rounded-3xl border-border/50 shadow-sm">
             <CardHeader className="bg-muted/30 border-b border-border/50">
               <div className="flex items-center gap-2">
@@ -409,58 +412,49 @@ export default function NewProductPage() {
                   className="rounded-xl h-11"
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tax">Tax (%)</Label>
-                <Select value={formData.tax} onValueChange={(val) => setFormData({ ...formData, tax: val })}>
-                  <SelectTrigger className="rounded-xl h-11">
-                    <SelectValue placeholder="Select Tax" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="0">Zero Tax (0%)</SelectItem>
-                    <SelectItem value="5">Standard (5%)</SelectItem>
-                    <SelectItem value="10">Premium (10%)</SelectItem>
-                    <SelectItem value="15">High (15%)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </CardContent>
           </Card>
 
-          {/* Categories & Brands */}
           <Card className="rounded-3xl border-border/50 shadow-sm">
             <CardHeader className="bg-muted/30 border-b border-border/50">
               <div className="flex items-center gap-2">
                 <Tags className="w-5 h-5 text-primary" />
-                <CardTitle className="text-xl font-headline font-bold">Categories</CardTitle>
+                <CardTitle className="text-xl font-headline font-bold">Organization</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })}>
+                <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val, subCategory: "" })}>
                   <SelectTrigger className="rounded-xl h-11">
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value="electronics">Electronics</SelectItem>
-                    <SelectItem value="fashion">Fashion</SelectItem>
-                    <SelectItem value="home">Home & Living</SelectItem>
-                    <SelectItem value="beauty">Beauty</SelectItem>
+                    {categories.length === 0 ? (
+                      <p className="p-4 text-xs text-muted-foreground text-center italic">No categories found</p>
+                    ) : (
+                      categories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <Label>Sub Category</Label>
-                <Select value={formData.subCategory} onValueChange={(val) => setFormData({ ...formData, subCategory: val })}>
+                <Select 
+                  value={formData.subCategory} 
+                  onValueChange={(val) => setFormData({ ...formData, subCategory: val })}
+                  disabled={!formData.category || filteredSubCategories.length === 0}
+                >
                   <SelectTrigger className="rounded-xl h-11">
-                    <SelectValue placeholder="Select Sub Category" />
+                    <SelectValue placeholder={formData.category ? "Select Sub Category" : "Choose Category First"} />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value="mens">Men's Wear</SelectItem>
-                    <SelectItem value="womens">Women's Wear</SelectItem>
-                    <SelectItem value="accessories">Accessories</SelectItem>
+                    {filteredSubCategories.map(sub => (
+                      <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -472,10 +466,13 @@ export default function NewProductPage() {
                     <SelectValue placeholder="Select Brand" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value="apple">Apple</SelectItem>
-                    <SelectItem value="nike">Nike</SelectItem>
-                    <SelectItem value="samsung">Samsung</SelectItem>
-                    <SelectItem value="generic">Generic</SelectItem>
+                    {brands.length === 0 ? (
+                      <p className="p-4 text-xs text-muted-foreground text-center italic">No brands found</p>
+                    ) : (
+                      brands.map(brand => (
+                        <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>

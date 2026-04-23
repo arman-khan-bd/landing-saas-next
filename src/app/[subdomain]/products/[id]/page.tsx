@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { db, auth } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,10 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const quillRef = useRef<any>(null);
+
+  const [categories, setCategories] = useState<any[]>([]);
+  const [subCategories, setSubCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
 
   const [formData, setFormData] = useState<any>({
     name: "",
@@ -72,6 +76,22 @@ export default function EditProductPage() {
           totalInStock: data.totalInStock?.toString() || "",
           tags: Array.isArray(data.tags) ? data.tags.join(", ") : data.tags || "",
         });
+
+        // Fetch Metadata for the store
+        const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
+        const storeSnap = await getDocs(storeQ);
+        if (!storeSnap.empty) {
+          const storeId = storeSnap.docs[0].id;
+          const [catSnap, subSnap, brandSnap] = await Promise.all([
+            getDocs(query(collection(db, "categories"), where("storeId", "==", storeId))),
+            getDocs(query(collection(db, "sub-categories"), where("storeId", "==", storeId))),
+            getDocs(query(collection(db, "brands"), where("storeId", "==", storeId)))
+          ]);
+          setCategories(catSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          setSubCategories(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          setBrands(brandSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }
+
       } else {
         toast({ variant: "destructive", title: "Product not found" });
         router.push(`/${subdomain}/products`);
@@ -83,6 +103,11 @@ export default function EditProductPage() {
       setLoading(false);
     }
   };
+
+  const filteredSubCategories = useMemo(() => {
+    if (!formData.category) return [];
+    return subCategories.filter(s => s.categoryId === formData.category);
+  }, [formData.category, subCategories]);
 
   const imageHandler = useCallback(() => {
     const input = document.createElement("input");
@@ -342,18 +367,58 @@ export default function EditProductPage() {
             <CardContent className="p-6 space-y-6">
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })}>
+                <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val, subCategory: "" })}>
                   <SelectTrigger className="rounded-xl h-11">
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value="electronics">Electronics</SelectItem>
-                    <SelectItem value="fashion">Fashion</SelectItem>
-                    <SelectItem value="home">Home & Living</SelectItem>
-                    <SelectItem value="beauty">Beauty</SelectItem>
+                    {categories.length === 0 ? (
+                      <p className="p-4 text-xs text-muted-foreground text-center italic">No categories found</p>
+                    ) : (
+                      categories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <Label>Sub Category</Label>
+                <Select 
+                  value={formData.subCategory} 
+                  onValueChange={(val) => setFormData({ ...formData, subCategory: val })}
+                  disabled={!formData.category || filteredSubCategories.length === 0}
+                >
+                  <SelectTrigger className="rounded-xl h-11">
+                    <SelectValue placeholder={formData.category ? "Select Sub Category" : "Choose Category First"} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {filteredSubCategories.map(sub => (
+                      <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Brand</Label>
+                <Select value={formData.brand} onValueChange={(val) => setFormData({ ...formData, brand: val })}>
+                  <SelectTrigger className="rounded-xl h-11">
+                    <SelectValue placeholder="Select Brand" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {brands.length === 0 ? (
+                      <p className="p-4 text-xs text-muted-foreground text-center italic">No brands found</p>
+                    ) : (
+                      brands.map(brand => (
+                        <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="tags">Tags</Label>
                 <Input
