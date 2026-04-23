@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,13 +14,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
-import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle, Smartphone, Lock, Truck, ShieldCheck, Zap, CheckCircle2, Clock, Info, ArrowUpRight } from "lucide-react";
+import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle, Smartphone, Lock, Truck, ShieldCheck, Zap, CheckCircle2, Clock, Info, ArrowUpRight, Copy, Database } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStoreUrl, cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function StoreSettingsPage() {
   const { subdomain } = useParams();
@@ -215,6 +217,11 @@ export default function StoreSettingsPage() {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied to clipboard" });
+  };
+
   if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
@@ -310,13 +317,13 @@ export default function StoreSettingsPage() {
                   {domainRequests.length > 0 && (
                     <div className="space-y-4 pt-6 border-t border-slate-100">
                       <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Request History</h5>
-                      <div className="grid gap-3">
+                      <div className="grid gap-4">
                         {domainRequests.map((req) => (
-                          <div key={req.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                          <div key={req.id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-6">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <Globe className="w-4 h-4 text-primary" />
-                                <span className="font-bold text-sm">{req.domain}</span>
+                                <Globe className="w-5 h-5 text-primary" />
+                                <span className="font-bold text-base">{req.domain}</span>
                               </div>
                               <Badge className={cn(
                                 "border-none px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest",
@@ -328,41 +335,56 @@ export default function StoreSettingsPage() {
                               </Badge>
                             </div>
 
-                            {req.status === 'approved' && req.dnsData && (
+                            {req.status === 'approved' && req.dnsRecords && Array.isArray(req.dnsRecords) && (
                               <div className="animate-in slide-in-from-top-2 duration-300">
-                                <div className="p-4 bg-slate-900 rounded-xl text-white space-y-4 border-l-4 border-l-primary">
+                                <div className="p-6 bg-white rounded-2xl border-2 border-primary/10 space-y-6 shadow-sm">
                                   <div className="flex items-center gap-2 text-primary">
-                                    <ShieldCheck className="w-4 h-4" />
-                                    <p className="text-[9px] font-black uppercase tracking-widest">Approved DNS Configuration</p>
+                                    <ShieldCheck className="w-5 h-5" />
+                                    <p className="text-[10px] font-black uppercase tracking-widest">Global DNS Configuration</p>
                                   </div>
-                                  <div className="grid gap-3">
-                                    {req.dnsData.cname && (
-                                      <div className="space-y-1">
-                                        <p className="text-[8px] text-slate-500 uppercase font-black">CNAME Record</p>
-                                        <div className="flex items-center justify-between bg-black/40 p-2 rounded-lg font-mono text-[11px]">
-                                          <span className="text-slate-300">Target: <span className="text-white font-bold">{req.dnsData.cname}</span></span>
-                                          <ArrowUpRight className="w-3 h-3 text-slate-500" />
-                                        </div>
-                                      </div>
-                                    )}
-                                    {req.dnsData.a_record && (
-                                      <div className="space-y-1">
-                                        <p className="text-[8px] text-slate-500 uppercase font-black">A Record (IP)</p>
-                                        <div className="flex items-center justify-between bg-black/40 p-2 rounded-lg font-mono text-[11px]">
-                                          <span className="text-slate-300">Point to: <span className="text-white font-bold">{req.dnsData.a_record}</span></span>
-                                          <ArrowUpRight className="w-3 h-3 text-slate-500" />
-                                        </div>
-                                      </div>
-                                    )}
+                                  
+                                  <Table>
+                                    <TableHeader className="bg-slate-50">
+                                      <TableRow className="hover:bg-transparent">
+                                        <TableHead className="text-[10px] font-black uppercase">Type</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Host</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Value</TableHead>
+                                        <TableHead className="text-right"></TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {req.dnsRecords.map((r: any, idx: number) => (
+                                        <TableRow key={idx}>
+                                          <TableCell><Badge variant="outline" className="font-bold bg-primary/5 text-primary border-primary/10">{r.type}</Badge></TableCell>
+                                          <TableCell className="font-mono text-xs">{r.host}</TableCell>
+                                          <TableCell className="font-mono text-xs max-w-[200px] truncate">{r.value}</TableCell>
+                                          <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100" onClick={() => copyToClipboard(r.value)}>
+                                              <Copy className="w-3.5 h-3.5" />
+                                            </Button>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+
+                                  <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-3">
+                                    <Info className="w-4 h-4 text-amber-600 mt-0.5" />
+                                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                                      Propagating these records typically takes <strong>2-24 hours</strong>. If your site doesn't load immediately, please wait and do not remove the records.
+                                    </p>
                                   </div>
-                                  <p className="text-[10px] text-slate-500 italic pt-2">DNS propagation can take up to 48 hours to complete globally.</p>
                                 </div>
                               </div>
                             )}
 
                             {req.status === 'rejected' && req.rejectionNote && (
-                              <div className="p-4 bg-rose-50 rounded-xl border border-rose-100 text-[11px] text-rose-800 italic">
-                                <strong>Reason:</strong> {req.rejectionNote}
+                              <div className="p-4 bg-rose-50 rounded-xl border border-rose-100 text-xs text-rose-800 flex items-start gap-3">
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                <div>
+                                  <p className="font-bold">Rejection Reason:</p>
+                                  <p className="mt-1">{req.rejectionNote}</p>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -704,3 +726,4 @@ export default function StoreSettingsPage() {
     </div>
   );
 }
+
