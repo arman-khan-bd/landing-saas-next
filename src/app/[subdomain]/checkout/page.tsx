@@ -438,29 +438,31 @@ export default function CheckoutPage() {
                              </div>
 
                              {selectedManualMethod && (
-                               <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 space-y-3">
-                                  <div className="flex justify-between items-center">
-                                     <span className="text-[10px] font-black uppercase text-primary">Number</span>
-                                     <span className="text-lg font-mono font-black text-slate-900 select-all">{selectedManualMethod.number}</span>
-                                  </div>
-                                  {selectedManualMethod.instructions && (
-                                    <div className="text-[11px] leading-relaxed text-slate-600 bg-white/50 p-3 rounded-lg border border-primary/5 italic">
-                                       {selectedManualMethod.instructions}
+                               <>
+                                 <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 space-y-3">
+                                    <div className="flex justify-between items-center">
+                                       <span className="text-[10px] font-black uppercase text-primary">Number</span>
+                                       <span className="text-lg font-mono font-black text-slate-900 select-all">{selectedManualMethod.number}</span>
                                     </div>
-                                  )}
-                               </div>
-                             )}
+                                    {selectedManualMethod.instructions && (
+                                      <div className="text-[11px] leading-relaxed text-slate-600 bg-white/50 p-3 rounded-lg border border-primary/5 italic whitespace-pre-wrap">
+                                         {selectedManualMethod.instructions}
+                                      </div>
+                                    )}
+                                 </div>
 
-                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400">Transaction ID (TranxID) *</Label>
-                                <Input 
-                                  placeholder="Enter the 10-digit ID from your SMS" 
-                                  className="h-12 rounded-xl bg-white border-primary/20 font-mono text-center text-lg"
-                                  value={formData.transactionId}
-                                  onChange={(e) => setFormData({...formData, transactionId: e.target.value.toUpperCase()})}
-                                />
-                                <p className="text-[9px] text-slate-400 text-center uppercase font-bold tracking-widest">Provide the reference from your payment confirmation</p>
-                             </div>
+                                 <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-slate-400">Transaction ID (TranxID) *</Label>
+                                    <Input 
+                                      placeholder="Enter the 10-digit ID from your SMS" 
+                                      className="h-12 rounded-xl bg-white border-primary/20 font-mono text-center text-lg"
+                                      value={formData.transactionId}
+                                      onChange={(e) => setFormData({...formData, transactionId: e.target.value.toUpperCase()})}
+                                    />
+                                    <p className="text-[9px] text-slate-400 text-center uppercase font-bold tracking-widest">Provide the reference from your payment confirmation</p>
+                                 </div>
+                               </>
+                             )}
                           </div>
                         )}
                       </div>
@@ -528,4 +530,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-

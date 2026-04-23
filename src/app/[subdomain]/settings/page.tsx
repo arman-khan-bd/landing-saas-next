@@ -551,11 +551,11 @@ export default function StoreSettingsPage() {
                           </div>
                           <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase text-slate-400">Payment Instructions</Label>
-                            <Input 
+                            <Textarea 
                               value={method.instructions} 
                               onChange={(e) => updateManualPaymentMethod(method.id, "instructions", e.target.value)}
-                              placeholder="e.g. Send Money to this number and provide TranxID"
-                              className="h-11 rounded-xl bg-slate-50 border-none"
+                              placeholder="Detailed payment instructions for this method..."
+                              className="rounded-xl bg-slate-50 border-none min-h-[100px]"
                             />
                           </div>
                         </div>
@@ -759,4 +759,3 @@ export default function StoreSettingsPage() {
     </div>
   );
 }
-
