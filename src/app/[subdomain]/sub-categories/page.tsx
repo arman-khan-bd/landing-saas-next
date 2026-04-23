@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, Loader2, Bookmark, Search, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +27,7 @@ export default function SubCategoriesPage() {
   const [editingSub, setEditingSub] = useState<any>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { toast } = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     fetchData();
@@ -100,7 +101,15 @@ export default function SubCategoriesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this?")) return;
+    const isConfirmed = await confirm({
+      title: "Delete Sub-category",
+      message: "Are you sure you want to permanently delete this sub-category? This action cannot be reversed.",
+      confirmText: "Confirm Delete",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
+
     try {
       await deleteDoc(doc(db, "sub-categories", id));
       toast({ title: "Deleted" });

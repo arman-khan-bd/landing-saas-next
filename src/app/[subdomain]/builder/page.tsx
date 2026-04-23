@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -21,12 +20,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { getStoreUrl } from "@/lib/utils";
 
 export default function PageManager() {
   const { subdomain } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [pages, setPages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -87,7 +88,15 @@ export default function PageManager() {
   };
 
   const handleDeletePage = async (id: string) => {
-    if (!confirm("Delete this page? This cannot be undone.")) return;
+    const isConfirmed = await confirm({
+      title: "Delete Page",
+      message: "Are you sure you want to permanently delete this landing page? This action cannot be undone.",
+      confirmText: "Delete Permanently",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
+
     try {
       await deleteDoc(doc(db, "pages", id));
       toast({ title: "Page deleted" });

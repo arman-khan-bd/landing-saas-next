@@ -11,14 +11,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Search, MoreHorizontal, Edit, Trash2, Package, MoreVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 
 export default function ProductsPage() {
   const { subdomain } = useParams();
   const router = useRouter();
+  const { toast } = useToast();
+  const confirm = useConfirm();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchProducts();
@@ -44,7 +46,15 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
+    const isConfirmed = await confirm({
+      title: "Delete Product",
+      message: "Are you sure you want to permanently delete this product? This action cannot be undone.",
+      confirmText: "Delete Permanently",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
+
     try {
       await deleteDoc(doc(db, "products", id));
       toast({ title: "Product deleted" });

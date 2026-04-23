@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, Loader2, Layers, Search, Edit, MoreVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -25,6 +26,7 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     fetchStoreAndCategories();
@@ -93,7 +95,15 @@ export default function CategoriesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this category?")) return;
+    const isConfirmed = await confirm({
+      title: "Delete Category",
+      message: "Are you sure you want to remove this category? Products linked to this category may lose their classification.",
+      confirmText: "Delete Category",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
+
     try {
       await deleteDoc(doc(db, "categories", id));
       toast({ title: "Category deleted" });
@@ -243,7 +253,7 @@ export default function CategoriesPage() {
         </>
       )}
 
-      {/* Edit Dialog - Reuse isDialogOpen or separate */}
+      {/* Edit Dialog */}
       {editingCategory && (
         <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>
           <DialogContent className="rounded-3xl max-w-[95vw] sm:max-w-md">

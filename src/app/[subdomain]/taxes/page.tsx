@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, Loader2, Percent, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
@@ -21,9 +21,10 @@ export default function TaxesPage() {
   const [processing, setProcessing] = useState(false);
   const [storeId, setStoreId] = useState("");
   const [newTax, setNewTax] = useState({ name: "", percentage: "" });
-  const [editingTax, setEditingTax] = useState<any>(null);
+  const [editingTax, setEditingTag] = useState<any>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { toast } = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     fetchTaxes();
@@ -79,7 +80,7 @@ export default function TaxesPage() {
         percentage: Number(editingTax.percentage),
       });
       toast({ title: "Tax updated" });
-      setEditingTax(null);
+      setEditingTag(null);
       fetchTaxes();
     } catch (error) {
       toast({ variant: "destructive", title: "Error updating" });
@@ -89,7 +90,15 @@ export default function TaxesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this tax setting?")) return;
+    const isConfirmed = await confirm({
+      title: "Delete Tax Setting",
+      message: "Are you sure you want to delete this tax configuration? This will remove it from all products associated with it.",
+      confirmText: "Delete Permanently",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
+
     try {
       await deleteDoc(doc(db, "taxes", id));
       toast({ title: "Tax deleted" });
@@ -149,7 +158,7 @@ export default function TaxesPage() {
                     <TableCell className="text-right">
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={() => setEditingTax({ ...item })}>
+                          <Button variant="ghost" size="icon" onClick={() => setEditingTag({ ...item })}>
                             <Edit className="w-4 h-4 text-primary" />
                           </Button>
                         </DialogTrigger>
@@ -158,11 +167,11 @@ export default function TaxesPage() {
                           <div className="space-y-4 py-4">
                             <div className="space-y-2">
                               <Label>Tax Name</Label>
-                              <Input value={editingTax?.name || ""} onChange={(e) => setEditingTax({ ...editingTax, name: e.target.value })} />
+                              <Input value={editingTax?.name || ""} onChange={(e) => setEditingTag({ ...editingTax, name: e.target.value })} />
                             </div>
                             <div className="space-y-2">
                               <Label>Percentage (%)</Label>
-                              <Input type="number" value={editingTax?.percentage || ""} onChange={(e) => setEditingTax({ ...editingTax, percentage: e.target.value })} />
+                              <Input type="number" value={editingTax?.percentage || ""} onChange={(e) => setEditingTag({ ...editingTax, percentage: e.target.value })} />
                             </div>
                           </div>
                           <DialogFooter>

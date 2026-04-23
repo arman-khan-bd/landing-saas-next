@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, Loader2, Store, Search, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
@@ -26,6 +26,7 @@ export default function BrandsPage() {
   const [editingBrand, setEditingBrand] = useState<any>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { toast } = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     fetchBrands();
@@ -90,7 +91,15 @@ export default function BrandsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this brand?")) return;
+    const isConfirmed = await confirm({
+      title: "Delete Brand",
+      message: "Are you sure you want to remove this brand from your catalog?",
+      confirmText: "Delete Brand",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
+
     try {
       await deleteDoc(doc(db, "brands", id));
       toast({ title: "Brand deleted" });

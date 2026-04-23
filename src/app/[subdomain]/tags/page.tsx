@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Loader2, Tags, Search, Edit, MoreVertical } from "lucide-react";
+import { Plus, Trash2, Loader2, Tags as TagsIcon, Search, Edit, MoreVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -24,6 +25,7 @@ export default function TagsPage() {
   const [newTag, setNewTag] = useState("");
   const [editingTag, setEditingTag] = useState<any>(null);
   const { toast } = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     fetchTags();
@@ -87,7 +89,15 @@ export default function TagsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this tag?")) return;
+    const isConfirmed = await confirm({
+      title: "Delete Tag",
+      message: "Are you sure you want to delete this tag? It will be removed from all products using it.",
+      confirmText: "Confirm Delete",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) return;
+
     try {
       await deleteDoc(doc(db, "tags", id));
       toast({ title: "Tag deleted" });
@@ -126,7 +136,7 @@ export default function TagsPage() {
         <div className="flex h-40 items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 bg-muted/10 rounded-[32px] border-2 border-dashed">
-          <Tags className="w-16 h-16 mx-auto mb-4 opacity-10" />
+          <TagsIcon className="w-16 h-16 mx-auto mb-4 opacity-10" />
           <p className="text-muted-foreground">No tags found.</p>
         </div>
       ) : (
