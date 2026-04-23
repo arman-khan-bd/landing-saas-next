@@ -224,17 +224,84 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
         <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 border-t">
           <div className="space-y-6">
             <h4 className="font-bold text-xl text-slate-400 uppercase tracking-widest">আপনার তথ্য</h4>
-            <div className="space-y-4"><Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-slate-50 border-none px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} /><Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-slate-50 border-none px-6 text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} /><Textarea placeholder="পুরো ঠিকানা (বাসা/রোড, জেলা)" className="rounded-3xl min-h-[120px] bg-slate-50 border-none p-6 text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} /></div>
-            {store?.shippingSettings?.enabled && <div className="space-y-4"><h4 className="font-bold text-sm text-slate-400 uppercase tracking-widest">ডেলিভারি এরিয়া</h4><RadioGroup value={selectedShipping?.id} onValueChange={(id) => setSelectedShipping(store.shippingSettings.methods.find((m: any) => m.id === id))} className="grid gap-3">{store.shippingSettings.methods.map((method: any) => <div key={method.id} className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} onClick={() => setSelectedShipping(method)}><div className="flex items-center gap-3"><RadioGroupItem value={method.id} id={`ship-lp-${method.id}`} /><Label htmlFor={`ship-lp-${method.id}`} className="font-bold cursor-pointer">{method.name}</Label></div><span className="font-bold text-sm">{method.cost > 0 ? `$${method.cost}` : 'Free'}</span></div>)}</RadioGroup></div>}
+            <div className="space-y-4"><Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-slate-50 border-none px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData(prev => ({...prev, fullName: e.target.value}))} /><Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-slate-50 border-none px-6 text-lg" value={formData.phone} onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} /><Textarea placeholder="পুরো ঠিকানা (বাসা/রোড, জেলা)" className="rounded-3xl min-h-[120px] bg-slate-50 border-none p-6 text-lg" value={formData.address} onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))} /></div>
+            {store?.shippingSettings?.enabled && (
+              <div className="space-y-4">
+                <h4 className="font-bold text-sm text-slate-400 uppercase tracking-widest">ডেলিভারি এরিয়া</h4>
+                <div className="grid gap-3">
+                  {store.shippingSettings.methods.map((method: any) => (
+                    <div 
+                      key={method.id} 
+                      className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} 
+                      onClick={() => setSelectedShipping(method)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedShipping?.id === method.id ? 'border-primary' : 'border-slate-300')}>
+                          {selectedShipping?.id === method.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
+                        <span className="font-bold cursor-pointer">{method.name}</span>
+                      </div>
+                      <span className="font-bold text-sm">{method.cost > 0 ? `$${method.cost}` : 'Free'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div className="space-y-6">
             <h4 className="font-bold text-xl text-slate-400 uppercase tracking-widest">পেমেন্ট মেথড</h4>
-            <RadioGroup value={formData.paymentMethod} onValueChange={(v) => setFormData(prev => ({ ...prev, paymentMethod: v, ...(v === 'cod' && { selectedManualMethodId: "", transactionId: "" }) }))} className="grid gap-3">
-              {store?.paymentSettings?.cod && <div className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}><div className="flex items-center gap-3"><RadioGroupItem value="cod" id="cod-lp" /><Label htmlFor="cod-lp" className="font-bold flex-1 cursor-pointer">ক্যাশ অন ডেলিভারি</Label></div><Truck className="w-5 h-5 text-slate-300" /></div>}
-              {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && <div className={cn("flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}><div className="flex items-center justify-between"><div className="flex items-center gap-3"><RadioGroupItem value="manual" id="manual-lp" /><Label htmlFor="manual-lp" className="font-bold flex-1 cursor-pointer">বিকাশ/নগদ/ম্যানুয়াল</Label></div><Smartphone className="w-5 h-5 text-slate-300" /></div>{formData.paymentMethod === 'manual' && <div className="mt-4 space-y-4 pt-4 border-t border-primary/10"><div className="grid grid-cols-2 gap-2">{store.paymentSettings.manualMethods.map((m: any) => <Button key={m.id} type="button" variant="outline" className={cn("h-10 rounded-xl text-[10px] font-bold", formData.selectedManualMethodId === m.id ? 'bg-primary text-white' : '')} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: m.id})); }}>{m.name}</Button>)}</div>{store?.paymentSettings?.manualMethods?.find((m: any) => m.id === formData.selectedManualMethodId) && <div className="space-y-3" onClick={(e) => e.stopPropagation()}><div className="p-3 bg-white rounded-xl border border-primary/20"><p className="text-[10px] font-black uppercase text-primary">নাম্বার: {store.paymentSettings.manualMethods.find((m: any) => m.id === formData.selectedManualMethodId).number}</p><p className="text-[10px] text-slate-500 mt-1 italic">{store.paymentSettings.manualMethods.find((m: any) => m.id === formData.selectedManualMethodId).instructions}</p></div><Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData({...formData, transactionId: e.target.value.toUpperCase()})} /></div>}</div>}</div>}
-            </RadioGroup>
+            <div className="grid gap-3">
+              {store?.paymentSettings?.cod && (
+                <div 
+                  className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} 
+                  onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
+                      {formData.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                    </div>
+                    <span className="font-bold flex-1 cursor-pointer">ক্যাশ অন ডেলিভারি</span>
+                  </div>
+                  <Truck className="w-5 h-5 text-slate-300" />
+                </div>
+              )}
+              {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
+                <div 
+                  className={cn("flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} 
+                  onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                       <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'manual' ? 'border-primary' : 'border-slate-300')}>
+                         {formData.paymentMethod === 'manual' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                       </div>
+                       <span className="font-bold cursor-pointer">বিকাশ/নগদ/ম্যানুয়াল</span>
+                    </div>
+                    <Smartphone className="w-5 h-5 text-slate-300" />
+                  </div>
+                  {formData.paymentMethod === 'manual' && (
+                    <div className="mt-4 space-y-4 pt-4 border-t border-primary/10" onClick={(e) => e.stopPropagation()}>
+                      <div className="grid grid-cols-2 gap-2">
+                        {store.paymentSettings.manualMethods.map((m: any) => (
+                          <Button key={m.id} type="button" variant="outline" className={cn("h-10 rounded-xl text-[10px] font-bold", formData.selectedManualMethodId === m.id ? 'bg-primary text-white' : '')} onClick={() => setFormData(prev => ({...prev, selectedManualMethodId: m.id}))}>{m.name}</Button>
+                        ))}
+                      </div>
+                      {selectedManualMethod && (
+                        <div className="space-y-3">
+                          <div className="p-3 bg-white rounded-xl border border-primary/20">
+                            <p className="text-[10px] font-black uppercase text-primary">নাম্বার: {selectedManualMethod.number}</p>
+                            <p className="text-[10px] text-slate-500 mt-1 italic">{selectedManualMethod.instructions}</p>
+                          </div>
+                          <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="bg-slate-50 p-10 rounded-[40px] border space-y-5"><div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest"><span>পণ্য মূল্য</span><span>${product?.currentPrice || 0}</span></div><div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest"><span>ডেলিভারি চার্জ</span><span>${selectedShipping?.cost || 0}</span></div><div className="flex justify-between text-4xl font-black text-primary border-t pt-8 mt-4"><span>মোট</span><span>${(Number(product?.currentPrice || 0) + (selectedShipping?.cost || 0)).toFixed(2)}</span></div></div>
-            <Button type="submit" disabled={isPlacingOrder || !product} className="w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/40 transition-transform hover:scale-[1.02]">{isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}</Button>
+            <Button type="button" onClick={handlePlaceOrder} disabled={isPlacingOrder || !product} className="w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/40 transition-transform hover:scale-[1.02]">{isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}</Button>
           </div>
         </form>
       </div>

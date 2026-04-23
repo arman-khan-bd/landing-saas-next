@@ -257,44 +257,92 @@ export default function CheckoutPage() {
             {store?.shippingSettings?.enabled && store.shippingSettings.methods?.length > 0 && (
               <section className="space-y-6">
                 <div className="flex items-center gap-3"><div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500"><Truck className="w-5 h-5" /></div><h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Shipping Zone</h2></div>
-                <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white"><CardContent className="p-6 sm:p-8"><RadioGroup value={selectedShipping?.id} onValueChange={(id) => setSelectedShipping(store.shippingSettings.methods.find((m: any) => m.id === id))} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {store.shippingSettings.methods.map((method: any) => (
-                    <div key={method.id} className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} onClick={() => setSelectedShipping(method)}><div className="flex items-center gap-4"><RadioGroupItem value={method.id} id={`ship-ch-${method.id}`} /><div className="min-w-0"><Label htmlFor={`ship-ch-${method.id}`} className="font-bold text-base cursor-pointer truncate block">{method.name}</Label><p className="text-xs text-muted-foreground">{method.cost > 0 ? `$${method.cost.toFixed(2)}` : 'Free Delivery'}</p></div></div></div>
-                  ))}
-                </RadioGroup></CardContent></Card>
+                <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
+                  <CardContent className="p-6 sm:p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {store.shippingSettings.methods.map((method: any) => (
+                        <div 
+                          key={method.id} 
+                          className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} 
+                          onClick={() => setSelectedShipping(method)}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedShipping?.id === method.id ? 'border-primary' : 'border-slate-300')}>
+                              {selectedShipping?.id === method.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="font-bold text-base cursor-pointer truncate block">{method.name}</span>
+                              <p className="text-xs text-muted-foreground">{method.cost > 0 ? `$${method.cost.toFixed(2)}` : 'Free Delivery'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               </section>
             )}
 
             <section className="space-y-6">
               <div className="flex items-center gap-3"><div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent"><CreditCard className="w-5 h-5" /></div><h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Payment Strategy</h2></div>
-              <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white"><CardContent className="p-6 sm:p-8"><RadioGroup value={formData.paymentMethod} onValueChange={(val) => setFormData(prev => ({ ...prev, paymentMethod: val, ...(val === 'cod' && { selectedManualMethodId: "", transactionId: "" }) }))} className="space-y-4">
-                {store?.paymentSettings?.cod && (
-                  <div className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}>
-                    <div className="flex items-center gap-4"><RadioGroupItem value="cod" id="cod-ch" /><Label htmlFor="cod-ch" className="font-bold text-base cursor-pointer">Cash on Delivery</Label></div>
-                    <Truck className="w-5 h-5 text-slate-300" />
-                  </div>
-                )}
-                {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
-                  <div className={cn("flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}>
-                    <div className="flex items-center justify-between"><div className="flex items-center gap-4"><RadioGroupItem value="manual" id="manual-ch" /><Label htmlFor="manual-ch" className="font-bold text-base cursor-pointer">Manual Payment</Label></div><SmartphoneIcon className="w-5 h-5 text-slate-300" /></div>
-                    {formData.paymentMethod === 'manual' && (
-                      <div className="mt-6 p-6 bg-white/80 rounded-2xl border border-primary/10 space-y-6 animate-in slide-in-from-top-2">
-                        <div className="space-y-4"><Label className="text-[10px] font-black uppercase text-slate-400">Select Provider</Label><div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {store.paymentSettings.manualMethods.map((method: any) => (
-                            <div key={method.id} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: method.id})); }} className={cn("p-4 rounded-xl border-2 transition-all text-center cursor-pointer", formData.selectedManualMethodId === method.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-50 bg-slate-50 hover:bg-slate-100')}><p className="text-xs font-black uppercase tracking-tight">{method.name}</p></div>
-                          ))}
-                        </div></div>
-                        {selectedManualMethod && (
-                          <div className="space-y-6" onClick={(e) => e.stopPropagation()}>
-                            <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 space-y-3"><div className="flex justify-between items-center"><span className="text-[10px] font-black uppercase text-primary">Number</span><span className="text-lg font-mono font-black text-slate-900 select-all">{selectedManualMethod.number}</span></div>{selectedManualMethod.instructions && <div className="text-[11px] leading-relaxed text-slate-600 bg-white/50 p-3 rounded-lg border border-primary/5 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</div>}</div>
-                            <div className="space-y-2"><Label className="text-[10px] font-black uppercase text-slate-400">Transaction ID *</Label><Input placeholder="Enter the ID from your SMS" className="h-12 rounded-xl bg-white border-primary/20 font-mono text-center text-lg" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} /></div>
-                          </div>
-                        )}
+              <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
+                <CardContent className="p-6 sm:p-8 space-y-4">
+                  {store?.paymentSettings?.cod && (
+                    <div 
+                      className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} 
+                      onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
+                          {formData.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
+                        <span className="font-bold text-base cursor-pointer">Cash on Delivery</span>
                       </div>
-                    )}
-                  </div>
-                )}
-              </RadioGroup></CardContent></Card>
+                      <Truck className="w-5 h-5 text-slate-300" />
+                    </div>
+                  )}
+                  {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
+                    <div 
+                      className={cn("flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} 
+                      onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'manual' ? 'border-primary' : 'border-slate-300')}>
+                            {formData.paymentMethod === 'manual' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                          </div>
+                          <span className="font-bold text-base cursor-pointer">Manual Payment</span>
+                        </div>
+                        <SmartphoneIcon className="w-5 h-5 text-slate-300" />
+                      </div>
+                      {formData.paymentMethod === 'manual' && (
+                        <div className="mt-6 p-6 bg-white/80 rounded-2xl border border-primary/10 space-y-6 animate-in slide-in-from-top-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="space-y-4">
+                            <Label className="text-[10px] font-black uppercase text-slate-400">Select Provider</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {store.paymentSettings.manualMethods.map((method: any) => (
+                                <div key={method.id} onClick={() => setFormData(prev => ({...prev, selectedManualMethodId: method.id}))} className={cn("p-4 rounded-xl border-2 transition-all text-center cursor-pointer", formData.selectedManualMethodId === method.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-50 bg-slate-50 hover:bg-slate-100')}><p className="text-xs font-black uppercase tracking-tight">{method.name}</p></div>
+                              ))}
+                            </div>
+                          </div>
+                          {selectedManualMethod && (
+                            <div className="space-y-6">
+                              <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 space-y-3">
+                                <div className="flex justify-between items-center"><span className="text-[10px] font-black uppercase text-primary">Number</span><span className="text-lg font-mono font-black text-slate-900 select-all">{selectedManualMethod.number}</span></div>
+                                {selectedManualMethod.instructions && <div className="text-[11px] leading-relaxed text-slate-600 bg-white/50 p-3 rounded-lg border border-primary/5 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</div>}
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400">Transaction ID *</Label>
+                                <Input placeholder="Enter the ID from your SMS" className="h-12 rounded-xl bg-white border-primary/20 font-mono text-center text-lg" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </section>
           </div>
 
