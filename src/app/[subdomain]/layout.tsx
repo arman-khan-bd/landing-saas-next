@@ -7,7 +7,7 @@ import { getSubdomain } from "@/lib/subdomain";
 import { collection, query, where, getDocs, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home, ShoppingCart } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home, ShoppingCart, WifiOff } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const { toast } = useToast();
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -101,15 +102,15 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
     const unsubOrders = onSnapshot(ordersQ, (snap) => {
       setCounts(prev => ({ ...prev, orders: snap.size }));
-    });
+    }, (err) => console.error("Real-time orders sync error:", err));
 
     const unsubUncompleted = onSnapshot(uncompletedQ, (snap) => {
       setCounts(prev => ({ ...prev, uncompleted: snap.size }));
-    });
+    }, (err) => console.error("Real-time uncompleted sync error:", err));
 
     const unsubSystem = onSnapshot(systemQ, (snap) => {
       setCounts(prev => ({ ...prev, system: snap.size }));
-    });
+    }, (err) => console.error("Real-time system sync error:", err));
 
     return () => {
       unsubOrders();
@@ -125,6 +126,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     }
 
     try {
+      setIsOffline(false);
       const userRef = doc(firestore, "users", uid);
       const userSnap = await getDoc(userRef);
       const role = userSnap.exists() ? (userSnap.data().role || "user") : "user";
@@ -180,8 +182,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Access verification error:", error);
+      if (error.code === 'unavailable' || error.message?.includes('offline')) {
+        setIsOffline(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -200,6 +205,21 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   };
 
   if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
+
+  if (isOffline && isAdminPath) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+        <Card className="max-w-md w-full p-12 rounded-[40px] shadow-2xl border-none text-center space-y-6">
+          <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-500 mx-auto">
+            <WifiOff className="w-10 h-10" />
+          </div>
+          <h2 className="text-3xl font-headline font-black">Connection Error</h2>
+          <p className="text-muted-foreground">We are having trouble reaching the database. Please check your network and try again.</p>
+          <Button onClick={() => window.location.reload()} className="w-full h-14 rounded-2xl text-lg font-bold">Reload Console</Button>
+        </Card>
+      </div>
+    );
+  }
 
   if (isAdminPath && !isPasswordVerified && !accessDenied) {
     return (

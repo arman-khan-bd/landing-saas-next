@@ -3,16 +3,19 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { ShoppingBag, DollarSign, Package, TrendingUp, Clock } from "lucide-react";
+import { ShoppingBag, DollarSign, Package, TrendingUp, Clock, WifiOff, RefreshCw, Loader2 } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
+import { Button } from "@/components/ui/button";
 
 export default function StoreDashboard() {
   const { subdomain } = useParams();
   const [stats, setStats] = useState({ products: 0, orders: 0, revenue: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -22,10 +25,15 @@ export default function StoreDashboard() {
     const user = auth.currentUser;
     if (!user) return;
 
+    setLoading(true);
+    setIsOffline(false);
     try {
       const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQuery);
-      if (storeSnap.empty) return;
+      if (storeSnap.empty) {
+        setLoading(false);
+        return;
+      }
       const storeId = storeSnap.docs[0].id;
 
       const [prodSnap, orderSnap] = await Promise.all([
@@ -49,8 +57,14 @@ export default function StoreDashboard() {
       });
 
       setRecentOrders(allOrders.slice(0, 5));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Dashboard Fetch Error:", error);
+      // Detect offline error specifically
+      if (error.code === 'unavailable' || error.message?.includes('offline')) {
+        setIsOffline(true);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,6 +81,32 @@ export default function StoreDashboard() {
       color: "hsl(var(--primary))",
     },
   };
+
+  if (loading) return (
+    <div className="flex h-96 items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <p className="text-xs font-black uppercase tracking-widest text-slate-400">Syncing Intelligence</p>
+      </div>
+    </div>
+  );
+
+  if (isOffline) return (
+    <div className="flex h-96 items-center justify-center p-6">
+      <Card className="max-w-md w-full rounded-[32px] border-dashed border-2 p-10 text-center space-y-6">
+        <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-500">
+          <WifiOff className="w-8 h-8" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-slate-900">Connectivity Issue</h3>
+          <p className="text-sm text-slate-500 mt-1">We couldn't reach the server to fetch your latest data. Please check your internet connection.</p>
+        </div>
+        <Button onClick={fetchStats} className="w-full rounded-xl gap-2 font-bold h-12">
+          <RefreshCw className="w-4 h-4" /> Retry Connection
+        </Button>
+      </Card>
+    </div>
+  );
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">

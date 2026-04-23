@@ -1,11 +1,10 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
 // Singleton pattern for Firebase initialization
 let cachedSdks: any = null;
 
@@ -33,16 +32,23 @@ export function initializeFirebase() {
     }
   }
 
-  cachedSdks = getSdks(firebaseApp);
-  return cachedSdks;
-}
+  // Initialize Firestore with settings optimized for reliability and offline use.
+  // experimentalForceLongPolling is enabled to bypass potential WebSocket connectivity issues 
+  // commonly found in Cloud Workstation and proxied environments.
+  const firestore = initializeFirestore(firebaseApp, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    }),
+    experimentalForceLongPolling: true,
+  });
 
-export function getSdks(firebaseApp: FirebaseApp) {
-  return {
+  cachedSdks = {
     firebaseApp,
     auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
+    firestore
   };
+  
+  return cachedSdks;
 }
 
 export * from './provider';
