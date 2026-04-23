@@ -212,11 +212,13 @@ export default function Storefront() {
                 <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block aspect-square relative overflow-hidden bg-slate-50">
                   <img src={p.featuredImage} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 </Link>
-                <div className="p-3 sm:p-4 space-y-2">
+                <div className="p-3 sm:p-4 space-y-3">
                   <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block min-h-[32px]"><h4 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-2 leading-tight group-hover:text-primary transition-colors">{p.name}</h4></Link>
-                  <div className="flex items-center justify-between gap-2 pt-1">
+                  <div className="space-y-2 pt-1">
                     <p className="text-primary font-black text-sm sm:text-base">${Number(p.currentPrice || 0).toFixed(2)}</p>
-                    <Button size="icon" variant="secondary" className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl" onClick={(e) => { e.preventDefault(); addToCart(p); }}><Plus className="w-4 h-4" /></Button>
+                    <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block w-full">
+                      <Button className="w-full h-9 rounded-xl text-[10px] font-black uppercase tracking-widest">এখনি কিনুন</Button>
+                    </Link>
                   </div>
                 </div>
               </CardContent>

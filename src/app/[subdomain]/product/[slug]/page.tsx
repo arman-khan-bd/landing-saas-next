@@ -4,15 +4,20 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { getSubdomain } from "@/lib/subdomain";
-import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ShoppingCart, Loader2, CheckCircle2, Plus, Minus, X, Trash2, ChevronLeft, ShieldCheck } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Loader2, CheckCircle2, Plus, Minus, X, Trash2, ChevronLeft, ShieldCheck, Truck, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, getTenantPath } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 interface CartItem {
   id: string;
@@ -25,6 +30,7 @@ interface CartItem {
 export default function ProductDetailPage() {
   const { subdomain: paramsSubdomain, slug } = useParams();
   const [subdomain, setSubdomain] = useState<string>("");
+  const { toast } = useToast();
 
   useEffect(() => {
     let sub = typeof paramsSubdomain === 'string' ? paramsSubdomain.toLowerCase() : '';
@@ -49,8 +55,21 @@ export default function ProductDetailPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [quantity, setItemQuantity] = useState(1);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [clientIp, setClientIp] = useState("");
+
+  const [formData, setFormData] = useState({
+    fullName: "",
+    phone: "",
+    address: ""
+  });
 
   useEffect(() => {
+    fetch("https://api.ipify.org?format=json")
+      .then(res => res.json())
+      .then(data => setClientIp(data.ip))
+      .catch(err => console.error("IP Capture Error:", err));
+
     if (subdomain && slug) {
       fetchProductData();
       const savedCart = localStorage.getItem(`cart_${subdomain}`);
@@ -73,21 +92,18 @@ export default function ProductDetailPage() {
   const fetchProductData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Store Data
       const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain), limit(1));
       const storeSnap = await getDocs(storeQ);
       if (!storeSnap.empty) {
         const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() } as any;
         setStore(storeData);
 
-        // Check expiry
         if (storeData.subscription) {
           const end = storeData.subscription.currentPeriodEnd?.toDate ? storeData.subscription.currentPeriodEnd.toDate() : new Date(storeData.subscription.currentPeriodEnd);
           setIsSubscriptionExpired(end < new Date());
         }
       }
 
-      // 2. Fetch Product Data
       const q = query(collection(db, "products"), where("slug", "==", slug), limit(1));
       const snap = await getDocs(q);
 
@@ -139,6 +155,75 @@ export default function ProductDetailPage() {
     }));
   };
 
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.fullName || !formData.phone || !formData.address) {
+      toast({ variant: "destructive", title: "Missing Information", description: "Please fill in all required fields." });
+      return;
+    }
+
+    setIsPlacingOrder(true);
+    try {
+      // Fraud Check
+      const blockValues = [clientIp, formData.phone].filter(Boolean);
+      if (blockValues.length > 0) {
+        const fraudQ = query(
+          collection(db, "fraud_blocks"),
+          where("storeId", "==", store.id),
+          where("value", "in", blockValues),
+          limit(1)
+        );
+        const fraudSnap = await getDocs(fraudQ);
+        if (!fraudSnap.empty) {
+          toast({ 
+            variant: "destructive", 
+            title: "Transaction Denied", 
+            description: "Your details have been restricted by the merchant." 
+          });
+          setIsPlacingOrder(false);
+          return;
+        }
+      }
+
+      const orderData = {
+        storeId: store.id,
+        ownerId: store.ownerId,
+        items: [{
+          id: product.id,
+          name: product.name,
+          price: Number(product.currentPrice),
+          image: selectedImage,
+          quantity: quantity
+        }],
+        customer: {
+          fullName: formData.fullName,
+          phone: formData.phone,
+          address: formData.address,
+          ip: clientIp
+        },
+        shipping: { name: "Direct Order", cost: 0 },
+        subtotal: Number(product.currentPrice) * quantity,
+        shippingCost: 0,
+        total: Number(product.currentPrice) * quantity,
+        paymentMethod: "cod",
+        status: "pending",
+        paymentStatus: "unpaid",
+        isRead: false,
+        createdAt: serverTimestamp(),
+      };
+
+      await addDoc(collection(db, "orders"), orderData);
+      
+      toast({ title: "অর্ডার সফল হয়েছে!", description: "আপনার অর্ডারটি গ্রহণ করা হয়েছে। শীঘ্রই আপনার সাথে যোগাযোগ করা হবে।" });
+      setFormData({ fullName: "", phone: "", address: "" });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Order Failed", description: "Something went wrong." });
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
   if (loading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin w-10 h-10 text-primary" /></div>;
@@ -153,8 +238,7 @@ export default function ProductDetailPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-12">
-      {/* Mini Nav */}
+    <div className="min-h-screen bg-slate-50/50 pb-20">
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <Button variant="ghost" size="sm" className="rounded-xl font-bold gap-1 text-slate-500 h-9" onClick={() => router.back()}>
@@ -173,73 +257,135 @@ export default function ProductDetailPage() {
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-8 p-4 sm:p-6 lg:p-10">
-        {/* Visual Gallery */}
-        <section className="space-y-4">
-          <div className="aspect-square rounded-[32px] overflow-hidden bg-white shadow-xl shadow-slate-200 border border-white">
-            <img src={selectedImage} className="w-full h-full object-cover" alt={product.name} />
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {[product.featuredImage, ...(product.gallery || [])].filter(Boolean).map((img, i) => (
-              <button
-                key={i}
-                onClick={() => setSelectedImage(img)}
-                className={cn(
-                  "w-16 h-16 rounded-2xl overflow-hidden shrink-0 border-2 transition-all",
-                  selectedImage === img ? 'border-primary' : 'border-transparent opacity-60 hover:opacity-100'
-                )}
-              >
-                <img src={img} className="w-full h-full object-cover" alt="" />
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Product Info */}
-        <section className="space-y-8 mt-6 lg:mt-0 bg-white p-6 sm:p-10 rounded-[32px] shadow-sm border border-slate-100 lg:sticky lg:top-24 h-fit">
-          <div className="space-y-3">
-            <Badge className="bg-emerald-50 text-emerald-600 hover:bg-emerald-50 border-none px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest">
-              Official Product
-            </Badge>
-            <h1 className="text-3xl lg:text-5xl font-headline font-black tracking-tighter text-slate-900 leading-[0.95]">
-              {product.name}
-            </h1>
-            <div className="flex items-center gap-4">
-              <p className="text-3xl lg:text-4xl font-black text-primary tracking-tight">${Number(product.currentPrice).toFixed(2)}</p>
-              {product.prevPrice && <p className="text-lg text-slate-300 line-through">${Number(product.prevPrice).toFixed(2)}</p>}
+      <main className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          {/* Visual Gallery */}
+          <section className="space-y-4">
+            <div className="aspect-square rounded-[32px] overflow-hidden bg-white shadow-xl shadow-slate-200 border border-white">
+              <img src={selectedImage} className="w-full h-full object-cover" alt={product.name} />
             </div>
-          </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {[product.featuredImage, ...(product.gallery || [])].filter(Boolean).map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedImage(img)}
+                  className={cn(
+                    "w-16 h-16 rounded-2xl overflow-hidden shrink-0 border-2 transition-all",
+                    selectedImage === img ? 'border-primary' : 'border-transparent opacity-60 hover:opacity-100'
+                  )}
+                >
+                  <img src={img} className="w-full h-full object-cover" alt="" />
+                </button>
+              ))}
+            </div>
+          </section>
 
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-              <div className="flex items-center bg-slate-50 rounded-2xl p-1 h-12 border border-slate-100">
-                <button onClick={() => setItemQuantity(q => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-white rounded-xl transition-all"><Minus className="w-4 h-4" /></button>
-                <span className="w-10 text-center font-black text-base">{quantity}</span>
-                <button onClick={() => setItemQuantity(q => q + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-white rounded-xl transition-all"><Plus className="w-4 h-4" /></button>
+          {/* Product Info & Direct Order */}
+          <section className="space-y-8">
+            <div className="bg-white p-6 sm:p-8 rounded-[32px] shadow-sm border border-slate-100">
+              <div className="space-y-3">
+                <Badge className="bg-emerald-50 text-emerald-600 border-none px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest">
+                  অফিসিয়াল প্রোডাক্ট
+                </Badge>
+                <h1 className="text-3xl lg:text-5xl font-headline font-black tracking-tighter text-slate-900 leading-[0.95]">
+                  {product.name}
+                </h1>
+                <div className="flex items-center gap-4">
+                  <p className="text-3xl lg:text-4xl font-black text-primary tracking-tight">${Number(product.currentPrice).toFixed(2)}</p>
+                  {product.prevPrice && <p className="text-lg text-slate-300 line-through">${Number(product.prevPrice).toFixed(2)}</p>}
+                </div>
               </div>
-              <Button size="lg" className="flex-1 h-12 rounded-2xl text-base font-black shadow-xl shadow-primary/20" onClick={addToCart}>
-                Add to Bag
-              </Button>
+
+              <div className="space-y-6 mt-8">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                  <div className="flex items-center bg-slate-50 rounded-2xl p-1 h-12 border border-slate-100">
+                    <button onClick={() => setItemQuantity(q => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-white rounded-xl transition-all"><Minus className="w-4 h-4" /></button>
+                    <span className="w-10 text-center font-black text-base">{quantity}</span>
+                    <button onClick={() => setItemQuantity(q => q + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-white rounded-xl transition-all"><Plus className="w-4 h-4" /></button>
+                  </div>
+                  <Button size="lg" className="flex-1 h-12 rounded-2xl text-base font-black shadow-xl shadow-primary/20" onClick={addToCart}>
+                    কার্টে যোগ করুন
+                  </Button>
+                </div>
+              </div>
+
+              <Separator className="my-8 bg-slate-100" />
+
+              <div className="space-y-3">
+                <h3 className="font-headline font-black text-sm uppercase tracking-widest text-slate-400">বিবরণ</h3>
+                <div
+                  className="text-slate-600 text-sm leading-relaxed prose prose-sm prose-slate max-w-none"
+                  dangerouslySetInnerHTML={{ __html: product.description || "No detailed description available." }}
+                />
+              </div>
             </div>
-          </div>
 
-          <Separator className="bg-slate-100" />
+            {/* Integrated Checkout Form */}
+            <Card className="rounded-[40px] border-none shadow-2xl overflow-hidden bg-white ring-4 ring-primary/5">
+              <div className="bg-primary text-white p-6 sm:p-8 text-center">
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                   <Truck className="w-6 h-6" />
+                </div>
+                <h3 className="text-2xl font-headline font-black tracking-tight uppercase">অর্ডার কনফার্ম করুন</h3>
+                <p className="text-white/70 text-xs mt-1 font-medium">নিচের ফর্মটি পূরণ করে অর্ডারটি সম্পন্ন করুন</p>
+              </div>
+              <CardContent className="p-6 sm:p-10 space-y-6">
+                <form onSubmit={handlePlaceOrder} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">আপনার নাম *</Label>
+                    <Input 
+                      placeholder="যেমন: আরমান আলী" 
+                      className="h-12 rounded-xl bg-slate-50 border-none px-4" 
+                      value={formData.fullName}
+                      onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">মোবাইল নাম্বার *</Label>
+                    <Input 
+                      placeholder="01XXXXXXXXX" 
+                      className="h-12 rounded-xl bg-slate-50 border-none px-4" 
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">পুরো ঠিকানা *</Label>
+                    <Textarea 
+                      placeholder="যেমন: বাসা/ফ্ল্যাট নাম্বার, রোড, এলাকা, জেলা" 
+                      className="min-h-[100px] rounded-2xl bg-slate-50 border-none p-4" 
+                      value={formData.address}
+                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    />
+                  </div>
 
-          <div className="space-y-3">
-            <h3 className="font-headline font-black text-sm uppercase tracking-widest text-slate-400">Description</h3>
-            <div
-              className="text-slate-600 text-sm leading-relaxed prose prose-sm prose-slate max-w-none"
-              dangerouslySetInnerHTML={{ __html: product.description || "No detailed description available." }}
-            />
-          </div>
+                  <div className="pt-4 space-y-4">
+                    <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between">
+                       <div className="flex items-center gap-3">
+                          <CreditCard className="w-5 h-5 text-primary" />
+                          <span className="text-sm font-bold">ক্যাশ অন ডেলিভারি</span>
+                       </div>
+                       <Badge className="bg-primary text-white border-none rounded-lg text-[9px] px-2 py-0.5">অ্যাক্টিভ</Badge>
+                    </div>
 
-          <div className="pt-4">
-            <div className="flex items-center gap-2 text-slate-400">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="text-[10px] font-black uppercase tracking-widest">IHut.Shop Verified Seller</span>
-            </div>
-          </div>
-        </section>
+                    <Button 
+                      type="submit" 
+                      disabled={isPlacingOrder}
+                      className="w-full h-16 rounded-[24px] text-xl font-black shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
+                    >
+                      {isPlacingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : "অর্ডার করুন"}
+                    </Button>
+                  </div>
+                </form>
+                
+                <div className="flex items-center justify-center gap-2 text-slate-400">
+                   <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                   <span className="text-[9px] font-black uppercase tracking-[0.2em]">নিরাপদ কেনাকাটা</span>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        </div>
       </main>
 
       {/* Cart Drawer */}
@@ -249,7 +395,7 @@ export default function ProductDetailPage() {
             <div className="flex items-center justify-between">
               <SheetTitle className="text-2xl font-headline font-black text-white flex items-center gap-3 uppercase tracking-tight">
                 <ShoppingCart className="w-6 h-6 text-primary" />
-                Your Bag
+                আপনার ব্যাগ
               </SheetTitle>
               <SheetClose className="text-white/60 hover:text-white transition-colors">
                 <X className="w-7 h-7" />
@@ -293,7 +439,7 @@ export default function ProductDetailPage() {
           <SheetFooter className="p-8 bg-white border-t shrink-0">
             <div className="w-full space-y-4">
               <div className="flex justify-between items-end mb-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Bag Subtotal</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-400">মোট মূল্য</span>
                 <span className="text-2xl font-black text-primary">${cartTotal.toFixed(2)}</span>
               </div>
               <Link href={getTenantPath(subdomain, "/checkout")} className="w-full">
@@ -301,11 +447,6 @@ export default function ProductDetailPage() {
                   Checkout Now
                 </Button>
               </Link>
-              <SheetClose asChild>
-                <Button variant="ghost" className="w-full h-10 rounded-xl text-slate-400 font-bold uppercase tracking-widest text-[9px] hover:bg-slate-50">
-                  Continue Shopping
-                </Button>
-              </SheetClose>
             </div>
           </SheetFooter>
         </SheetContent>
