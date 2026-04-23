@@ -83,7 +83,6 @@ export default function CheckoutPage() {
       if (!storeSnap.empty) {
         const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
         setStore(storeData);
-        
         if (storeData.shippingSettings?.enabled && storeData.shippingSettings.methods?.length > 0) {
           setSelectedShipping(storeData.shippingSettings.methods[0]);
         }
@@ -163,7 +162,7 @@ export default function CheckoutPage() {
 
     setIsPlacingOrder(true);
     try {
-      const blockValues = [clientIp, formData.email, formData.phone].filter(Boolean);
+      const blockValues = [clientIp, formData.phone].filter(Boolean);
       if (blockValues.length > 0) {
         const fraudQ = query(
           collection(db, "fraud_blocks"),
@@ -173,11 +172,7 @@ export default function CheckoutPage() {
         );
         const fraudSnap = await getDocs(fraudQ);
         if (!fraudSnap.empty) {
-          toast({ 
-            variant: "destructive", 
-            title: "Transaction Denied", 
-            description: "Your details have been restricted by the merchant. Please use different details or contact support." 
-          });
+          toast({ variant: "destructive", title: "Transaction Denied", description: "Your details have been restricted by the merchant." });
           setIsPlacingOrder(false);
           return;
         }
@@ -211,18 +206,16 @@ export default function CheckoutPage() {
       };
 
       await addDoc(collection(db, "orders"), orderData);
-      
       if (draftId) {
         await deleteDoc(doc(db, "uncompleted_orders", draftId));
         localStorage.removeItem(`draftId_${subdomain}`);
       }
-
       localStorage.removeItem(`cart_${subdomain}`);
       setOrderSuccess(true);
       toast({ title: "Order Placed!", description: "Your order has been successfully received." });
     } catch (error) {
       console.error(error);
-      toast({ variant: "destructive", title: "Order Failed", description: "Something went wrong while placing your order." });
+      toast({ variant: "destructive", title: "Order Failed" });
     } finally {
       setIsPlacingOrder(false);
     }
@@ -235,16 +228,10 @@ export default function CheckoutPage() {
   if (orderSuccess) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center animate-in fade-in duration-700">
-        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-6">
-          <CheckCircle2 className="w-12 h-12" />
-        </div>
+        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-6"><CheckCircle2 className="w-12 h-12" /></div>
         <h1 className="text-3xl font-headline font-black text-slate-900 tracking-tight">THANK YOU!</h1>
         <p className="text-slate-500 mt-2 max-w-sm mx-auto">Your order has been placed successfully. We'll contact you soon for confirmation.</p>
-        <div className="mt-10 flex flex-col gap-3 w-full max-w-xs">
-          <Link href={`/${subdomain}`}>
-            <Button className="w-full rounded-2xl h-14 font-bold text-lg shadow-xl shadow-primary/20">Back to Store</Button>
-          </Link>
-        </div>
+        <div className="mt-10 flex flex-col gap-3 w-full max-w-xs"><Link href={`/${subdomain}`}><Button className="w-full rounded-2xl h-14 font-bold text-lg shadow-xl shadow-primary/20">Back to Store</Button></Link></div>
       </div>
     );
   }
@@ -253,14 +240,8 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-slate-50/50 pb-20">
       <nav className="bg-white border-b border-slate-100 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Button variant="ghost" className="rounded-xl font-bold gap-2 text-slate-500" onClick={() => router.back()}>
-            <ChevronLeft className="w-4 h-4" /> Back
-          </Button>
-          <Link href={`/${subdomain}`} className="flex items-center gap-2">
-            <h1 className="text-lg font-headline font-black tracking-tighter text-slate-900 uppercase">
-              {store?.name}
-            </h1>
-          </Link>
+          <Button variant="ghost" className="rounded-xl font-bold gap-2 text-slate-500" onClick={() => router.back()}><ChevronLeft className="w-4 h-4" /> Back</Button>
+          <Link href={`/${subdomain}`} className="flex items-center gap-2"><h1 className="text-lg font-headline font-black tracking-tighter text-slate-900 uppercase">{store?.name}</h1></Link>
           <div className="w-20" />
         </div>
       </nav>
@@ -269,215 +250,51 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           <div className="lg:col-span-3 space-y-8">
             <section className="space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                  <User className="w-5 h-5" />
-                </div>
-                <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Customer Information</h2>
-              </div>
-
-              <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
-                <CardContent className="p-6 sm:p-8 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name *</Label>
-                      <Input 
-                        placeholder="John Doe" 
-                        className="h-12 rounded-xl bg-slate-50 border-none px-4" 
-                        value={formData.fullName}
-                        onChange={(e) => setFormData(prev => ({...prev, fullName: e.target.value}))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contact Number *</Label>
-                      <Input 
-                        placeholder="01XXXXXXXXX" 
-                        className="h-12 rounded-xl bg-slate-50 border-none px-4" 
-                        value={formData.phone}
-                        onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address (Optional)</Label>
-                    <Input 
-                      placeholder="john@example.com" 
-                      className="h-12 rounded-xl bg-slate-50 border-none px-4" 
-                      value={formData.email}
-                      onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Delivery Address *</Label>
-                    <Textarea 
-                      placeholder="Flat, House, Street, Area, City" 
-                      className="min-h-[100px] rounded-2xl bg-slate-50 border-none p-4" 
-                      value={formData.address}
-                      onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="flex items-center gap-3"><div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><User className="w-5 h-5" /></div><h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Customer Information</h2></div>
+              <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white"><CardContent className="p-6 sm:p-8 space-y-6"><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name *</Label><Input placeholder="John Doe" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.fullName} onChange={(e) => setFormData(prev => ({...prev, fullName: e.target.value}))} /></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contact Number *</Label><Input placeholder="01XXXXXXXXX" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.phone} onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} /></div></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address (Optional)</Label><Input placeholder="john@example.com" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.email} onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))} /></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Delivery Address *</Label><Textarea placeholder="Flat, House, Street, Area, City" className="min-h-[100px] rounded-2xl bg-slate-50 border-none p-4" value={formData.address} onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))} /></div></CardContent></Card>
             </section>
 
             {store?.shippingSettings?.enabled && store.shippingSettings.methods?.length > 0 && (
               <section className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
-                    <Truck className="w-5 h-5" />
-                  </div>
-                  <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Shipping Zone</h2>
-                </div>
-
-                <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
-                  <CardContent className="p-6 sm:p-8">
-                    <RadioGroup 
-                      value={selectedShipping?.id} 
-                      onValueChange={(id) => {
-                        const method = store.shippingSettings.methods.find((m: any) => m.id === id);
-                        setSelectedShipping(method);
-                      }} 
-                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                    >
-                      {store.shippingSettings.methods.map((method: any) => (
-                        <div 
-                          key={method.id}
-                          className={cn(
-                            "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer",
-                            selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50'
-                          )}
-                          onClick={() => setSelectedShipping(method)}
-                        >
-                          <div className="flex items-center gap-4">
-                            <RadioGroupItem value={method.id} id={method.id} className="border-primary text-primary" />
-                            <div>
-                              <Label htmlFor={method.id} className="font-bold text-base cursor-pointer">{method.name}</Label>
-                              <p className="text-xs text-muted-foreground">{method.cost > 0 ? `$${method.cost.toFixed(2)}` : 'Free Delivery'}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </CardContent>
-                </Card>
+                <div className="flex items-center gap-3"><div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500"><Truck className="w-5 h-5" /></div><h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Shipping Zone</h2></div>
+                <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white"><CardContent className="p-6 sm:p-8"><RadioGroup value={selectedShipping?.id} onValueChange={(id) => setSelectedShipping(store.shippingSettings.methods.find((m: any) => m.id === id))} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {store.shippingSettings.methods.map((method: any) => (
+                    <div key={method.id} className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} onClick={() => setSelectedShipping(method)}><div className="flex items-center gap-4"><RadioGroupItem value={method.id} id={`ship-ch-${method.id}`} /><div className="min-w-0"><Label htmlFor={`ship-ch-${method.id}`} className="font-bold text-base cursor-pointer truncate block">{method.name}</Label><p className="text-xs text-muted-foreground">{method.cost > 0 ? `$${method.cost.toFixed(2)}` : 'Free Delivery'}</p></div></div></div>
+                  ))}
+                </RadioGroup></CardContent></Card>
               </section>
             )}
 
             <section className="space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
-                  <CreditCard className="w-5 h-5" />
-                </div>
-                <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Payment Strategy</h2>
-              </div>
-
-              <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
-                <CardContent className="p-6 sm:p-8">
-                  <RadioGroup 
-                    value={formData.paymentMethod} 
-                    onValueChange={(val) => setFormData(prev => ({
-                      ...prev, 
-                      paymentMethod: val,
-                      ...(val === 'cod' && { selectedManualMethodId: "", transactionId: "" })
-                    }))} 
-                    className="space-y-4"
-                  >
-                    {store?.paymentSettings?.cod && (
-                      <div 
-                        className={cn(
-                          "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer",
-                          formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50'
-                        )}
-                        onClick={() => setFormData(prev => ({
-                          ...prev, 
-                          paymentMethod: 'cod',
-                          selectedManualMethodId: "", 
-                          transactionId: ""
-                        }))}
-                      >
-                        <div className="flex items-center gap-4">
-                          <RadioGroupItem value="cod" id="cod" className="border-primary text-primary" />
-                          <div>
-                            <Label htmlFor="cod" className="font-bold text-base cursor-pointer">Cash on Delivery</Label>
-                            <p className="text-xs text-muted-foreground">Standard risk-free payment at delivery.</p>
-                          </div>
-                        </div>
-                        <Truck className="w-5 h-5 text-slate-300" />
-                      </div>
-                    )}
-
-                    {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
-                      <div 
-                        className={cn(
-                          "flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer",
-                          formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50'
-                        )}
-                        onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <RadioGroupItem value="manual" id="manual" className="border-primary text-primary" />
-                            <div>
-                              <Label htmlFor="manual" className="font-bold text-base cursor-pointer">Manual Payment / Mobile Banking</Label>
-                              <p className="text-xs text-muted-foreground">Direct transfer via digital wallets.</p>
-                            </div>
-                          </div>
-                          <SmartphoneIcon className="w-5 h-5 text-slate-300" />
-                        </div>
-                        
-                        {formData.paymentMethod === 'manual' && (
-                          <div className="mt-6 p-6 bg-white/80 rounded-2xl border border-primary/10 space-y-6 animate-in slide-in-from-top-2 duration-300">
-                             <div className="space-y-4">
-                                <Label className="text-[10px] font-black uppercase text-slate-400">Select Provider</Label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                   {store.paymentSettings.manualMethods.map((method: any) => (
-                                     <div 
-                                       key={method.id}
-                                       onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: method.id})); }}
-                                       className={cn(
-                                         "p-4 rounded-xl border-2 transition-all text-center",
-                                         formData.selectedManualMethodId === method.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-50 bg-slate-50 hover:bg-slate-100'
-                                       )}
-                                     >
-                                        <p className="text-xs font-black uppercase tracking-tight">{method.name}</p>
-                                     </div>
-                                   ))}
-                                </div>
-                             </div>
-
-                             {selectedManualMethod && (
-                               <div className="space-y-6" onClick={(e) => e.stopPropagation()}>
-                                 <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 space-y-3">
-                                    <div className="flex justify-between items-center">
-                                       <span className="text-[10px] font-black uppercase text-primary">Number</span>
-                                       <span className="text-lg font-mono font-black text-slate-900 select-all">{selectedManualMethod.number}</span>
-                                    </div>
-                                    {selectedManualMethod.instructions && (
-                                      <div className="text-[11px] leading-relaxed text-slate-600 bg-white/50 p-3 rounded-lg border border-primary/5 italic whitespace-pre-wrap">
-                                         {selectedManualMethod.instructions}
-                                      </div>
-                                    )}
-                                 </div>
-
-                                 <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase text-slate-400">Transaction ID (TranxID) *</Label>
-                                    <Input 
-                                      placeholder="Enter the 10-digit ID from your SMS" 
-                                      className="h-12 rounded-xl bg-white border-primary/20 font-mono text-center text-lg"
-                                      value={formData.transactionId}
-                                      onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))}
-                                    />
-                                    <p className="text-[9px] text-slate-400 text-center uppercase font-bold tracking-widest">Provide the reference from your payment confirmation</p>
-                                 </div>
-                               </div>
-                             )}
+              <div className="flex items-center gap-3"><div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent"><CreditCard className="w-5 h-5" /></div><h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Payment Strategy</h2></div>
+              <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white"><CardContent className="p-6 sm:p-8"><RadioGroup value={formData.paymentMethod} onValueChange={(val) => setFormData(prev => ({ ...prev, paymentMethod: val, ...(val === 'cod' && { selectedManualMethodId: "", transactionId: "" }) }))} className="space-y-4">
+                {store?.paymentSettings?.cod && (
+                  <div className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}>
+                    <div className="flex items-center gap-4"><RadioGroupItem value="cod" id="cod-ch" /><Label htmlFor="cod-ch" className="font-bold text-base cursor-pointer">Cash on Delivery</Label></div>
+                    <Truck className="w-5 h-5 text-slate-300" />
+                  </div>
+                )}
+                {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
+                  <div className={cn("flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}>
+                    <div className="flex items-center justify-between"><div className="flex items-center gap-4"><RadioGroupItem value="manual" id="manual-ch" /><Label htmlFor="manual-ch" className="font-bold text-base cursor-pointer">Manual Payment</Label></div><SmartphoneIcon className="w-5 h-5 text-slate-300" /></div>
+                    {formData.paymentMethod === 'manual' && (
+                      <div className="mt-6 p-6 bg-white/80 rounded-2xl border border-primary/10 space-y-6 animate-in slide-in-from-top-2">
+                        <div className="space-y-4"><Label className="text-[10px] font-black uppercase text-slate-400">Select Provider</Label><div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {store.paymentSettings.manualMethods.map((method: any) => (
+                            <div key={method.id} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: method.id})); }} className={cn("p-4 rounded-xl border-2 transition-all text-center cursor-pointer", formData.selectedManualMethodId === method.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-50 bg-slate-50 hover:bg-slate-100')}><p className="text-xs font-black uppercase tracking-tight">{method.name}</p></div>
+                          ))}
+                        </div></div>
+                        {selectedManualMethod && (
+                          <div className="space-y-6" onClick={(e) => e.stopPropagation()}>
+                            <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 space-y-3"><div className="flex justify-between items-center"><span className="text-[10px] font-black uppercase text-primary">Number</span><span className="text-lg font-mono font-black text-slate-900 select-all">{selectedManualMethod.number}</span></div>{selectedManualMethod.instructions && <div className="text-[11px] leading-relaxed text-slate-600 bg-white/50 p-3 rounded-lg border border-primary/5 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</div>}</div>
+                            <div className="space-y-2"><Label className="text-[10px] font-black uppercase text-slate-400">Transaction ID *</Label><Input placeholder="Enter the ID from your SMS" className="h-12 rounded-xl bg-white border-primary/20 font-mono text-center text-lg" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} /></div>
                           </div>
                         )}
                       </div>
                     )}
-                  </RadioGroup>
-                </CardContent>
-              </Card>
+                  </div>
+                )}
+              </RadioGroup></CardContent></Card>
             </section>
           </div>
 
@@ -487,49 +304,16 @@ export default function CheckoutPage() {
               <CardContent className="p-8 space-y-6">
                 <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                   {cart.map((item) => (
-                    <div key={item.id} className="flex gap-4 items-center">
-                      <div className="w-16 h-16 rounded-xl bg-slate-50 border overflow-hidden shrink-0">
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-xs line-clamp-1">{item.name}</h4>
-                        <p className="text-slate-400 text-[10px] font-bold">Qty: {item.quantity} × ${item.price.toFixed(2)}</p>
-                      </div>
-                      <p className="font-black text-sm text-slate-900">${(item.price * item.quantity).toFixed(2)}</p>
-                    </div>
+                    <div key={item.id} className="flex gap-4 items-center"><div className="w-16 h-16 rounded-xl bg-slate-50 border overflow-hidden shrink-0"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div><div className="flex-1 min-w-0"><h4 className="font-bold text-xs line-clamp-1">{item.name}</h4><p className="text-slate-400 text-[10px] font-bold">Qty: {item.quantity} × ${item.price.toFixed(2)}</p></div><p className="font-black text-sm text-slate-900">${(item.price * item.quantity).toFixed(2)}</p></div>
                   ))}
                 </div>
-
                 <div className="space-y-3 pt-6 border-t border-slate-100">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Net Value</span>
-                    <span className="font-bold">${cartSubtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Logistics ({selectedShipping?.name || 'Free'})</span>
-                    <span className={cn("font-black", shippingCost > 0 ? "text-slate-900" : "text-emerald-500")}>
-                      {shippingCost > 0 ? `$${shippingCost.toFixed(2)}` : 'FREE'}
-                    </span>
-                  </div>
-                  <Separator className="bg-slate-50" />
-                  <div className="flex justify-between items-end pt-2">
-                    <span className="text-slate-900 font-black uppercase tracking-tight text-lg leading-none">Order Total</span>
-                    <span className="text-3xl font-black text-primary tracking-tighter">${cartTotal.toFixed(2)}</span>
-                  </div>
+                  <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Net Value</span><span className="font-bold">${cartSubtotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Logistics</span><span className={cn("font-black", shippingCost > 0 ? "text-slate-900" : "text-emerald-500")}>{shippingCost > 0 ? `$${shippingCost.toFixed(2)}` : 'FREE'}</span></div>
+                  <Separator className="bg-slate-50" /><div className="flex justify-between items-end pt-2"><span className="text-slate-900 font-black uppercase tracking-tight text-lg leading-none">Order Total</span><span className="text-3xl font-black text-primary tracking-tighter">${cartTotal.toFixed(2)}</span></div>
                 </div>
-
-                <Button 
-                  className="w-full h-16 rounded-[24px] text-xl font-black shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95" 
-                  disabled={isPlacingOrder || cart.length === 0}
-                  onClick={handlePlaceOrder}
-                >
-                  {isPlacingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : "Deploy Order Now"}
-                </Button>
-
-                <div className="flex items-center justify-center gap-2 text-slate-400">
-                   <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                   <span className="text-[9px] font-black uppercase tracking-[0.2em]">Secure Global Checkout</span>
-                </div>
+                <Button className="w-full h-16 rounded-[24px] text-xl font-black shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95" disabled={isPlacingOrder || cart.length === 0} onClick={handlePlaceOrder}>{isPlacingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : "Deploy Order Now"}</Button>
+                <div className="flex items-center justify-center gap-2 text-slate-400"><ShieldCheck className="w-4 h-4 text-emerald-500" /><span className="text-[9px] font-black uppercase tracking-[0.2em]">Secure Global Checkout</span></div>
               </CardContent>
             </Card>
           </div>
