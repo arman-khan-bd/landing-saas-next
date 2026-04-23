@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -357,7 +356,6 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
 
     setIsPlacingOrder(true);
     try {
-      // Fraud Check
       const blockValues = [clientIp, formData.phone].filter(Boolean);
       if (blockValues.length > 0) {
         const fraudQ = query(
@@ -460,9 +458,9 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
           <div className="space-y-6">
             <h4 className="font-bold text-xl text-slate-400 uppercase tracking-widest">আপনার তথ্য</h4>
             <div className="space-y-4">
-              <Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-slate-50 border-none px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
-              <Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-slate-50 border-none px-6 text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-              <Textarea placeholder="পুরো ঠিকানা (বাসা/রোড, জেলা)" className="rounded-3xl min-h-[120px] bg-slate-50 border-none p-6 text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+              <Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-slate-50 border-none px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData(prev => ({...prev, fullName: e.target.value}))} />
+              <Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-slate-50 border-none px-6 text-lg" value={formData.phone} onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} />
+              <Textarea placeholder="পুরো ঠিকানা (বাসা/রোড, জেলা)" className="rounded-3xl min-h-[120px] bg-slate-50 border-none p-6 text-lg" value={formData.address} onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))} />
             </div>
 
             {store?.shippingSettings?.enabled && (
@@ -470,7 +468,7 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
                 <h4 className="font-bold text-sm text-slate-400 uppercase tracking-widest">ডেলিভারি এরিয়া</h4>
                 <RadioGroup value={selectedShipping?.id} onValueChange={(id) => setSelectedShipping(store.shippingSettings.methods.find((m: any) => m.id === id))} className="grid gap-3">
                   {store.shippingSettings.methods.map((method: any) => (
-                    <div key={method.id} className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50')}>
+                    <div key={method.id} className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} onClick={() => setSelectedShipping(method)}>
                       <div className="flex items-center gap-3">
                         <RadioGroupItem value={method.id} id={method.id} />
                         <Label htmlFor={method.id} className="font-bold cursor-pointer">{method.name}</Label>
@@ -486,16 +484,41 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
           <div className="space-y-6">
             <h4 className="font-bold text-xl text-slate-400 uppercase tracking-widest">পেমেন্ট মেথড</h4>
             <div className="space-y-4">
-               <RadioGroup value={formData.paymentMethod} onValueChange={(v) => setFormData({...formData, paymentMethod: v})} className="grid gap-3">
+               <RadioGroup 
+                 value={formData.paymentMethod} 
+                 onValueChange={(v) => setFormData(prev => ({
+                   ...prev, 
+                   paymentMethod: v,
+                   ...(v === 'cod' && { selectedManualMethodId: "", transactionId: "" })
+                 }))} 
+                 className="grid gap-3"
+                >
                   {store?.paymentSettings?.cod && (
-                    <div className={cn("flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50')} onClick={() => setFormData({...formData, paymentMethod: 'cod'})}>
+                    <div 
+                      className={cn(
+                        "flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all", 
+                        formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent'
+                      )} 
+                      onClick={() => setFormData(prev => ({
+                        ...prev, 
+                        paymentMethod: 'cod',
+                        selectedManualMethodId: "", 
+                        transactionId: ""
+                      }))}
+                    >
                        <RadioGroupItem value="cod" id="cod-lp" />
                        <Label htmlFor="cod-lp" className="font-bold flex-1 cursor-pointer">ক্যাশ অন ডেলিভারি</Label>
                        <Truck className="w-5 h-5 text-slate-300" />
                     </div>
                   )}
                   {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
-                    <div className={cn("flex flex-col p-4 rounded-2xl border-2 cursor-pointer", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50')} onClick={() => setFormData({...formData, paymentMethod: 'manual'})}>
+                    <div 
+                      className={cn(
+                        "flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all", 
+                        formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent'
+                      )} 
+                      onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
+                    >
                        <div className="flex items-center gap-3">
                           <RadioGroupItem value="manual" id="manual-lp" />
                           <Label htmlFor="manual-lp" className="font-bold flex-1 cursor-pointer">বিকাশ/নগদ/ম্যানুয়াল</Label>
@@ -505,16 +528,32 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
                          <div className="mt-4 space-y-4 pt-4 border-t border-primary/10">
                             <div className="grid grid-cols-2 gap-2">
                                {store.paymentSettings.manualMethods.map((m: any) => (
-                                 <Button key={m.id} type="button" variant="outline" className={cn("h-10 rounded-xl text-[10px] font-bold", formData.selectedManualMethodId === m.id ? 'bg-primary text-white' : '')} onClick={(e) => { e.stopPropagation(); setFormData({...formData, selectedManualMethodId: m.id}); }}>{m.name}</Button>
+                                 <Button 
+                                   key={m.id} 
+                                   type="button" 
+                                   variant="outline" 
+                                   className={cn("h-10 rounded-xl text-[10px] font-bold", formData.selectedManualMethodId === m.id ? 'bg-primary text-white' : '')} 
+                                   onClick={(e) => { 
+                                     e.stopPropagation(); 
+                                     setFormData(prev => ({...prev, selectedManualMethodId: m.id})); 
+                                   }}
+                                 >
+                                   {m.name}
+                                 </Button>
                                ))}
                             </div>
                             {selectedManualMethod && (
-                              <div className="space-y-3">
+                              <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
                                  <div className="p-3 bg-white rounded-xl border border-primary/20">
                                     <p className="text-[10px] font-black uppercase text-primary">নাম্বার: {selectedManualMethod.number}</p>
-                                    <p className="text-[10px] text-slate-500 mt-1 italic">{selectedManualMethod.instructions}</p>
+                                    <p className="text-[10px] text-slate-500 mt-1 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</p>
                                  </div>
-                                 <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData({...formData, transactionId: e.target.value.toUpperCase()})} />
+                                 <Input 
+                                   placeholder="ট্রানজাকশন আইডি লিখুন" 
+                                   className="h-12 rounded-xl bg-white border-primary/20" 
+                                   value={formData.transactionId} 
+                                   onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} 
+                                 />
                               </div>
                             )}
                          </div>

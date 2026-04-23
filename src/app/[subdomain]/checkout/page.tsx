@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -51,7 +50,6 @@ export default function CheckoutPage() {
   });
 
   useEffect(() => {
-    // Capture IP Address
     fetch("https://api.ipify.org?format=json")
       .then(res => res.json())
       .then(data => setClientIp(data.ip))
@@ -67,7 +65,6 @@ export default function CheckoutPage() {
           if (parsedCart.length === 0) {
             router.push(`/${subdomain}`);
           }
-          // Resume Draft
           const savedDraftId = localStorage.getItem(`draftId_${subdomain}`);
           if (savedDraftId) setDraftId(savedDraftId);
         } catch (e) {
@@ -87,7 +84,6 @@ export default function CheckoutPage() {
         const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
         setStore(storeData);
         
-        // Auto-select first shipping method if available
         if (storeData.shippingSettings?.enabled && storeData.shippingSettings.methods?.length > 0) {
           setSelectedShipping(storeData.shippingSettings.methods[0]);
         }
@@ -167,7 +163,6 @@ export default function CheckoutPage() {
 
     setIsPlacingOrder(true);
     try {
-      // --- FRAUD SHIELD CHECK ---
       const blockValues = [clientIp, formData.email, formData.phone].filter(Boolean);
       if (blockValues.length > 0) {
         const fraudQ = query(
@@ -201,7 +196,7 @@ export default function CheckoutPage() {
         },
         shipping: selectedShipping ? {
           name: selectedShipping.name,
-          cost: selectedShipping.cost
+          cost: shippingCost
         } : { name: "Free Shipping", cost: 0 },
         subtotal: cartSubtotal,
         shippingCost: shippingCost,
@@ -290,7 +285,7 @@ export default function CheckoutPage() {
                         placeholder="John Doe" 
                         className="h-12 rounded-xl bg-slate-50 border-none px-4" 
                         value={formData.fullName}
-                        onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                        onChange={(e) => setFormData(prev => ({...prev, fullName: e.target.value}))}
                       />
                     </div>
                     <div className="space-y-2">
@@ -299,7 +294,7 @@ export default function CheckoutPage() {
                         placeholder="01XXXXXXXXX" 
                         className="h-12 rounded-xl bg-slate-50 border-none px-4" 
                         value={formData.phone}
-                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))}
                       />
                     </div>
                   </div>
@@ -309,7 +304,7 @@ export default function CheckoutPage() {
                       placeholder="john@example.com" 
                       className="h-12 rounded-xl bg-slate-50 border-none px-4" 
                       value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))}
                     />
                   </div>
                   <div className="space-y-2">
@@ -318,7 +313,7 @@ export default function CheckoutPage() {
                       placeholder="Flat, House, Street, Area, City" 
                       className="min-h-[100px] rounded-2xl bg-slate-50 border-none p-4" 
                       value={formData.address}
-                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))}
                     />
                   </div>
                 </CardContent>
@@ -378,14 +373,27 @@ export default function CheckoutPage() {
 
               <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
                 <CardContent className="p-6 sm:p-8">
-                  <RadioGroup value={formData.paymentMethod} onValueChange={(val) => setFormData({...formData, paymentMethod: val})} className="space-y-4">
+                  <RadioGroup 
+                    value={formData.paymentMethod} 
+                    onValueChange={(val) => setFormData(prev => ({
+                      ...prev, 
+                      paymentMethod: val,
+                      ...(val === 'cod' && { selectedManualMethodId: "", transactionId: "" })
+                    }))} 
+                    className="space-y-4"
+                  >
                     {store?.paymentSettings?.cod && (
                       <div 
                         className={cn(
                           "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer",
                           formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50'
                         )}
-                        onClick={() => setFormData({...formData, paymentMethod: 'cod'})}
+                        onClick={() => setFormData(prev => ({
+                          ...prev, 
+                          paymentMethod: 'cod',
+                          selectedManualMethodId: "", 
+                          transactionId: ""
+                        }))}
                       >
                         <div className="flex items-center gap-4">
                           <RadioGroupItem value="cod" id="cod" className="border-primary text-primary" />
@@ -404,7 +412,7 @@ export default function CheckoutPage() {
                           "flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer",
                           formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50'
                         )}
-                        onClick={() => setFormData({...formData, paymentMethod: 'manual'})}
+                        onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
@@ -425,7 +433,7 @@ export default function CheckoutPage() {
                                    {store.paymentSettings.manualMethods.map((method: any) => (
                                      <div 
                                        key={method.id}
-                                       onClick={(e) => { e.stopPropagation(); setFormData({...formData, selectedManualMethodId: method.id}); }}
+                                       onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: method.id})); }}
                                        className={cn(
                                          "p-4 rounded-xl border-2 transition-all text-center",
                                          formData.selectedManualMethodId === method.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-50 bg-slate-50 hover:bg-slate-100'
@@ -438,7 +446,7 @@ export default function CheckoutPage() {
                              </div>
 
                              {selectedManualMethod && (
-                               <>
+                               <div className="space-y-6" onClick={(e) => e.stopPropagation()}>
                                  <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 space-y-3">
                                     <div className="flex justify-between items-center">
                                        <span className="text-[10px] font-black uppercase text-primary">Number</span>
@@ -457,11 +465,11 @@ export default function CheckoutPage() {
                                       placeholder="Enter the 10-digit ID from your SMS" 
                                       className="h-12 rounded-xl bg-white border-primary/20 font-mono text-center text-lg"
                                       value={formData.transactionId}
-                                      onChange={(e) => setFormData({...formData, transactionId: e.target.value.toUpperCase()})}
+                                      onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))}
                                     />
                                     <p className="text-[9px] text-slate-400 text-center uppercase font-bold tracking-widest">Provide the reference from your payment confirmation</p>
                                  </div>
-                               </>
+                               </div>
                              )}
                           </div>
                         )}

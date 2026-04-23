@@ -102,7 +102,6 @@ export default function ProductDetailPage() {
         const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() } as any;
         setStore(storeData);
         
-        // Auto-select first shipping method if available
         if (storeData.shippingSettings?.enabled && storeData.shippingSettings.methods?.length > 0) {
           setSelectedShipping(storeData.shippingSettings.methods[0]);
         }
@@ -160,7 +159,6 @@ export default function ProductDetailPage() {
 
     setIsPlacingOrder(true);
     try {
-      // Fraud Check
       const blockValues = [clientIp, formData.phone].filter(Boolean);
       if (blockValues.length > 0) {
         const fraudQ = query(
@@ -400,16 +398,26 @@ export default function ProductDetailPage() {
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">পেমেন্ট মেথড</Label>
                     <RadioGroup 
                       value={formData.paymentMethod} 
-                      onValueChange={(val) => setFormData({...formData, paymentMethod: val})} 
+                      onValueChange={(val) => setFormData(prev => ({
+                        ...prev, 
+                        paymentMethod: val,
+                        // Reset manual specific fields if switching to COD
+                        ...(val === 'cod' && { selectedManualMethodId: "", transactionId: "" })
+                      }))} 
                       className="grid gap-3"
                     >
                       {store?.paymentSettings?.cod && (
                         <div 
                           className={cn(
-                            "flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer", 
+                            "flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", 
                             formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent'
                           )}
-                          onClick={() => setFormData({...formData, paymentMethod: 'cod'})}
+                          onClick={() => setFormData(prev => ({
+                            ...prev, 
+                            paymentMethod: 'cod',
+                            selectedManualMethodId: "", 
+                            transactionId: ""
+                          }))}
                         >
                           <div className="flex items-center gap-3">
                              <RadioGroupItem value="cod" id="cod-sp" />
@@ -422,10 +430,10 @@ export default function ProductDetailPage() {
                       {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
                         <div 
                           className={cn(
-                            "flex flex-col p-4 rounded-2xl border-2 cursor-pointer", 
+                            "flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all", 
                             formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent'
                           )}
-                          onClick={() => setFormData({...formData, paymentMethod: 'manual'})}
+                          onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
                         >
                           <div className="flex items-center justify-between">
                              <div className="flex items-center gap-3">
@@ -444,7 +452,10 @@ export default function ProductDetailPage() {
                                        type="button" 
                                        variant="outline" 
                                        className={cn("h-10 rounded-xl text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white' : '')}
-                                       onClick={(e) => { e.stopPropagation(); setFormData({...formData, selectedManualMethodId: m.id}); }}
+                                       onClick={(e) => { 
+                                         e.stopPropagation(); 
+                                         setFormData(prev => ({...prev, selectedManualMethodId: m.id})); 
+                                       }}
                                      >
                                         {m.name}
                                      </Button>
@@ -452,7 +463,7 @@ export default function ProductDetailPage() {
                                 </div>
                                 
                                 {selectedManualMethod && (
-                                   <div className="space-y-4">
+                                   <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
                                       <div className="p-4 bg-white rounded-2xl border border-primary/10">
                                          <p className="text-[10px] font-black text-primary uppercase">নাম্বার: {selectedManualMethod.number}</p>
                                          <p className="text-[10px] text-slate-500 mt-1 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</p>
@@ -461,7 +472,7 @@ export default function ProductDetailPage() {
                                         placeholder="ট্রানজাকশন আইডি লিখুন" 
                                         className="h-12 rounded-xl bg-white border-primary/20" 
                                         value={formData.transactionId}
-                                        onChange={(e) => setFormData({...formData, transactionId: e.target.value.toUpperCase()})}
+                                        onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))}
                                       />
                                    </div>
                                 )}
