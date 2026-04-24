@@ -62,6 +62,7 @@ import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
 
 // --- Types ---
 type BlockType =
@@ -330,6 +331,22 @@ function PageBuilderInner() {
       ...item,
       children: item.children ? removeNestedBlock(item.children, id) : undefined
     }));
+  };
+
+  const moveBlock = (id: string, direction: 'up' | 'down') => {
+    const moveInArray = (arr: Block[]): Block[] => {
+      const index = arr.findIndex(b => b.id === id);
+      if (index !== -1) {
+        const newArr = [...arr];
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        if (targetIndex >= 0 && targetIndex < newArr.length) {
+          [newArr[index], newArr[targetIndex]] = [newArr[targetIndex], newArr[index]];
+        }
+        return newArr;
+      }
+      return arr.map(b => b.children ? { ...b, children: moveInArray(b.children) } : b);
+    };
+    setBlocks(prev => moveInArray(prev));
   };
 
   const handleDragEnd = (event: any) => {
@@ -655,11 +672,14 @@ function PageBuilderInner() {
                           products={products}
                           store={store}
                           isSelected={selectedBlockId === block.id}
+                          isMobile={isMobile}
                           onSelect={(id?: string) => {
                             setSelectedBlockId(id || block.id);
                             if (isMobile) setOpenMobile(true);
                           }}
                           onRemove={(id?: string) => removeBlock(id || block.id)}
+                          onMoveUp={(id?: string) => moveBlock(id || block.id, 'up')}
+                          onMoveDown={(id?: string) => moveBlock(id || block.id, 'down')}
                           onInsertRequest={onInsertRequest}
                           viewMode={viewMode}
                           onAddNested={(parentId: string) => {
@@ -813,8 +833,8 @@ function PropertySection({ label, icon: Icon, children }: any) {
   );
 }
 
-function CanvasBlockWrapper({ block, products, store, isSelected, onSelect, onRemove, onInsertRequest, viewMode, onAddNested }: any) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
+function CanvasBlockWrapper({ block, products, store, isSelected, isMobile, onSelect, onRemove, onMoveUp, onMoveDown, onInsertRequest, viewMode, onAddNested }: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id, disabled: isMobile });
   
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -838,9 +858,20 @@ function CanvasBlockWrapper({ block, products, store, isSelected, onSelect, onRe
     >
       {isSelected && (
         <div className="absolute -top-7 left-0 flex items-center gap-2 bg-primary text-white rounded-t-lg px-2.5 py-1 text-[8px] font-black uppercase tracking-widest z-50 shadow-lg">
-          <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing hover:bg-white/20 p-0.5 rounded mr-1">
-            <GripVertical className="w-3 h-3" />
-          </div>
+          {!isMobile ? (
+            <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing hover:bg-white/20 p-0.5 rounded mr-1">
+              <GripVertical className="w-3 h-3" />
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 border-r border-white/20 pr-1 mr-1">
+               <Button variant="ghost" size="icon" className="h-5 w-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveUp(); }}>
+                  <ChevronUp className="w-3 h-3" />
+               </Button>
+               <Button variant="ghost" size="icon" className="h-5 w-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveDown(); }}>
+                  <ChevronDownIcon className="w-3 h-3" />
+               </Button>
+            </div>
+          )}
           <div className="flex items-center gap-1.5 border-r border-white/20 pr-2">
             <Button 
               variant="ghost" 
@@ -873,8 +904,11 @@ function CanvasBlockWrapper({ block, products, store, isSelected, onSelect, onRe
           viewMode={viewMode} 
           onAddNested={onAddNested}
           isBuilder
+          isMobile={isMobile}
           onSelect={onSelect}
           onRemove={onRemove}
+          onMoveUp={onMoveUp}
+          onMoveDown={onMoveDown}
           onInsertRequest={onInsertRequest}
         />
       </div>
@@ -1102,7 +1136,7 @@ function PropertyEditor({ block, products, onChange }: any) {
   }
 }
 
-function BlockRenderer({ block, products, store, isPreview = false, viewMode = "desktop", onAddNested, isBuilder, onSelect, onRemove, onInsertRequest }: any) {
+function BlockRenderer({ block, products, store, isPreview = false, viewMode = "desktop", onAddNested, isBuilder, isMobile, onSelect, onRemove, onMoveUp, onMoveDown, onInsertRequest }: any) {
   const isHidden = (viewMode === "desktop" && block.style?.hideDesktop) || (viewMode === "mobile" && block.style?.hideMobile);
   if (isHidden && isPreview) return null;
 
@@ -1154,9 +1188,12 @@ function BlockRenderer({ block, products, store, isPreview = false, viewMode = "
                 products={products} 
                 store={store}
                 viewMode={viewMode} 
+                isMobile={isMobile}
                 onAddNested={onAddNested}
                 onSelect={(id?: string) => onSelect(id || child.id)}
                 onRemove={(id?: string) => onRemove(id || child.id)}
+                onMoveUp={(id?: string) => onMoveUp(id || child.id)}
+                onMoveDown={(id?: string) => onMoveDown(id || child.id)}
                 onInsertRequest={onInsertRequest}
               />
             ) : (
