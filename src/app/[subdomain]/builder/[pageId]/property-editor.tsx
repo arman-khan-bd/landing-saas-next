@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -316,12 +317,38 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
       );
     case "product-order-form":
       return (
-        <div className="space-y-1">
-          <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Select Product</Label>
-          <Select value={block.content?.mainProductId || ""} onValueChange={(v) => onChange({ content: { mainProductId: v } })}>
-            <SelectTrigger className="rounded-lg h-8 border-none bg-black/20 text-white text-[10px]"><SelectValue placeholder="Pick Product" /></SelectTrigger>
+        <div className="space-y-4">
+          <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Selected Products</Label>
+          <div className="space-y-2">
+            {(block.content?.productIds || []).map((pId: string) => {
+              const p = products.find(prod => prod.id === pId);
+              return (
+                <div key={pId} className="flex items-center gap-2 bg-black/20 p-2 rounded-lg">
+                  <span className="text-[10px] text-white flex-1 truncate">{p?.name || "Deleted Product"}</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-white/30 hover:text-rose-400" onClick={() => {
+                    const newIds = block.content.productIds.filter((id: string) => id !== pId);
+                    onChange({ content: { productIds: newIds, mainProductId: newIds[0] || "" } });
+                  }}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+          <Select onValueChange={(v) => {
+            const currentIds = block.content?.productIds || [];
+            if (!currentIds.includes(v)) {
+              const newIds = [...currentIds, v];
+              onChange({ content: { productIds: newIds, mainProductId: newIds[0] } });
+            }
+          }}>
+            <SelectTrigger className="rounded-lg h-8 border-none bg-black/20 text-white text-[10px]">
+              <SelectValue placeholder="Add Product" />
+            </SelectTrigger>
             <SelectContent className="rounded-lg">
-              {products.map(p => <SelectItem key={p.id} value={p.id} className="text-xs">{p.name}</SelectItem>)}
+              {products.filter(p => !(block.content?.productIds || []).includes(p.id)).map(p => (
+                <SelectItem key={p.id} value={p.id} className="text-xs">{p.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

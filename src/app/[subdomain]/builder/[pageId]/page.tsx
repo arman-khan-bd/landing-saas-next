@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -188,7 +189,7 @@ function PageBuilderInner() {
       case "image": return { url: "" };
       case "accordion": return { items: [{ title: "Item 1", content: "Content 1" }] };
       case "button": return { text: "Click Here", link: "#" };
-      case "product-order-form": return { mainProductId: "", shippingType: "free" };
+      case "product-order-form": return { productIds: [], mainProductId: "", shippingType: "free" };
       case "row": return { columns: 2 };
       case "carousel": return { items: [{ id: "1", title: "Slide 1", subtitle: "", imageUrl: "", buttonText: "" }], desktopColumns: 3 };
       case "checked-list": return { items: ["Fast Delivery", "Secure Payments", "Premium Quality"], listStyle: "check" };

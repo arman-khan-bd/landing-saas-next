@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -291,7 +292,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                   <CarouselItem key={item.id} className={cn(carouselColMapping[carouselCols] || "basis-full", "px-1")}>
                     <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-100 h-full flex flex-col">
                       {item.imageUrl ? (
-                        <img src={item.imageUrl} className="w-full aspect-square object-cover" />
+                        <img src={item.imageUrl} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full aspect-square bg-slate-100 flex items-center justify-center opacity-10"><ImageIcon /></div>
                       )}
@@ -348,15 +349,16 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
         </div>
       );
     case "product-order-form":
-      const mainProd = products.find((p: any) => p.id === block.content?.mainProductId);
+      const productIds = block.content?.productIds || (block.content?.mainProductId ? [block.content.mainProductId] : []);
+      const selectedProducts = products.filter(p => productIds.includes(p.id));
       return (
         <div style={style} className="px-4 w-full max-w-5xl mx-auto text-left">
-           {mainProd ? (
-             <LandingPageOrderForm product={mainProd} store={store} />
+           {selectedProducts.length > 0 ? (
+             <LandingPageOrderForm products={selectedProducts} store={store} />
            ) : (
              <div className="p-12 bg-white rounded-[40px] shadow-sm border-2 border-dashed flex flex-col items-center justify-center gap-4 text-slate-300">
                 <CreditCard className="w-10 h-10 opacity-10" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Select product in sidebar to see order form</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Select products in sidebar to see order form</span>
              </div>
            )}
         </div>
@@ -365,13 +367,16 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
   }
 }
 
-function LandingPageOrderForm({ product, store }: { product: any, store: any }) {
+function LandingPageOrderForm({ products, store }: { products: any[], store: any }) {
   const { toast } = useToast();
   const db = useFirestore();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [clientIp, setClientIp] = useState("");
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
+  const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || "");
+
+  const product = products.find(p => p.id === selectedProductId) || products[0];
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -420,7 +425,8 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
       }
 
       const shippingCost = selectedShipping?.cost || 0;
-      const total = Number(product.currentPrice) + shippingCost;
+      const subtotal = Number(product.currentPrice);
+      const total = subtotal + shippingCost;
 
       const orderData = {
         storeId: store.id,
@@ -434,7 +440,7 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
         }],
         customer: { fullName: formData.fullName, phone: formData.phone, address: formData.address, ip: clientIp },
         shipping: selectedShipping ? { name: selectedShipping.name, cost: shippingCost } : { name: "Standard", cost: 0 },
-        subtotal: Number(product.currentPrice),
+        subtotal: subtotal,
         shippingCost: shippingCost,
         total: total,
         paymentMethod: formData.paymentMethod,
@@ -477,6 +483,34 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
         <h3 className="text-4xl md:text-5xl font-headline font-black mb-4 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3>
         <p className="text-white/60 font-medium uppercase tracking-[0.3em] text-xs">নিরাপদ এবং দ্রুত ডেলিভারি</p>
       </div>
+
+      {products.length > 1 && (
+        <div className="p-8 md:p-14 pb-0 space-y-4">
+           <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">আপনার পছন্দের প্যাকেজটি নির্বাচন করুন</Label>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {products.map((p) => (
+                <div 
+                  key={p.id}
+                  onClick={() => setSelectedProductId(p.id)}
+                  className={cn(
+                    "flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer",
+                    selectedProductId === p.id ? "border-primary bg-primary/5" : "bg-slate-50 border-transparent hover:bg-slate-100"
+                  )}
+                >
+                   <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? 'border-primary' : 'border-slate-300')}>
+                      {selectedProductId === p.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                   </div>
+                   <img src={p.featuredImage} className="w-10 h-10 rounded-lg object-cover" alt="" />
+                   <div className="flex-1 min-w-0">
+                      <p className="font-bold text-xs truncate">{p.name}</p>
+                      <p className="text-primary font-black text-sm">${p.currentPrice}</p>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
+      )}
+
       <div className="p-8 md:p-14 space-y-12">
         {product ? (
           <div className="flex flex-col md:flex-row justify-between items-center p-8 bg-slate-50 rounded-[32px] border border-slate-100 gap-8">

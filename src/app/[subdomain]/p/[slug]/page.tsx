@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, limit } from "firebase/firestore";
 import * as LucideIcons from "lucide-react";
-import { Loader2, AlertCircle, CheckCircle, Truck, CreditCard, ShieldCheck, Smartphone, Check } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, Truck, CreditCard, ShieldCheck, Smartphone, Check, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -218,18 +218,24 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
       const carColMapping = { 1: "basis-full", 2: "basis-full md:basis-1/2", 3: "basis-full md:basis-1/3", 4: "basis-full md:basis-1/4" }[block.style?.desktopColumns || 3] || "basis-full";
       return <div style={style} className={cn("px-6 w-full max-w-6xl mx-auto", animClass, responsiveClass)}><Carousel opts={{ align: "start" }} className="w-full"><CarouselContent>{(block.content?.items || []).map((item: any) => <CarouselItem key={item.id} className={cn(carColMapping, "px-2")}><div className="bg-slate-50 rounded-[32px] overflow-hidden border border-slate-100 h-full flex flex-col shadow-sm">{item.imageUrl && <img src={item.imageUrl} className="w-full aspect-square object-cover" />}{(item.title || item.subtitle || item.buttonText) && <div className="p-6 space-y-3 flex-1">{item.title && <h4 className="font-bold text-xl">{item.title}</h4>}{item.subtitle && <p className="text-sm text-muted-foreground line-clamp-3">{item.subtitle}</p>}{item.buttonText && <Button variant="secondary" className="w-full h-12 text-xs uppercase font-black rounded-2xl mt-4">{item.buttonText}</Button>}</div>}</div></CarouselItem>)}</CarouselContent><CarouselPrevious className="left-2 bg-white/80 hover:bg-white border-none shadow-lg text-primary h-12 w-12" /><CarouselNext className="right-2 bg-white/80 hover:bg-white border-none shadow-lg text-primary h-12 w-12" /></Carousel></div>;
     case "product-order-form":
-      return <div style={style} className={cn("px-6 max-w-5xl mx-auto", animClass, responsiveClass)}><LandingPageOrderForm product={products.find(p => p.id === block.content?.mainProductId)} store={store} /></div>;
+      const productIds = block.content?.productIds || (block.content?.mainProductId ? [block.content.mainProductId] : []);
+      const selectedProducts = products.filter(p => productIds.includes(p.id));
+      return <div style={style} className={cn("px-6 max-w-5xl mx-auto", animClass, responsiveClass)}><LandingPageOrderForm products={selectedProducts} store={store} /></div>;
     default: return null;
   }
 }
 
-function LandingPageOrderForm({ product, store }: { product: any, store: any }) {
+function LandingPageOrderForm({ products, store }: { products: any[], store: any }) {
   const { toast } = useToast();
   const db = useFirestore();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [clientIp, setClientIp] = useState("");
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
+  const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || "");
+
+  const product = products.find(p => p.id === selectedProductId) || products[0];
+
   const [formData, setFormData] = useState({ fullName: "", phone: "", address: "", paymentMethod: "cod", selectedManualMethodId: "", transactionId: "" });
 
   useEffect(() => {
@@ -243,23 +249,52 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
     if (formData.paymentMethod === 'manual' && (!formData.transactionId || !formData.selectedManualMethodId)) { toast({ variant: "destructive", title: "পেমেন্ট তথ্য প্রয়োজন" }); return; }
     setIsPlacingOrder(true);
     try {
-      const total = Number(product.currentPrice) + (selectedShipping?.cost || 0);
+      const shippingCost = selectedShipping?.cost || 0;
+      const total = Number(product.currentPrice) + shippingCost;
       await addDoc(collection(db, "orders"), {
         storeId: store.id, ownerId: store.ownerId, items: [{ id: product.id, name: product.name, price: Number(product.currentPrice), image: product.featuredImage || product.gallery?.[0], quantity: 1 }],
         customer: { fullName: formData.fullName, phone: formData.phone, address: formData.address, ip: clientIp },
         shipping: selectedShipping ? { name: selectedShipping.name, cost: selectedShipping.cost } : { name: "Standard", cost: 0 },
-        subtotal: Number(product.currentPrice), shippingCost: selectedShipping?.cost || 0, total, paymentMethod: formData.paymentMethod, transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null, selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null, status: "pending", paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification", isRead: false, createdAt: serverTimestamp(),
+        subtotal: Number(product.currentPrice), shippingCost: shippingCost, total, paymentMethod: formData.paymentMethod, transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null, selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null, status: "pending", paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification", isRead: false, createdAt: serverTimestamp(),
       });
       setOrderSuccess(true);
       toast({ title: "অর্ডার সফল হয়েছে!" });
     } catch (error) { console.error(error); toast({ variant: "destructive", title: "Order Failed" }); } finally { setIsPlacingOrder(false); }
   };
 
-  if (orderSuccess) return <Card className="rounded-[40px] shadow-2xl p-12 text-center bg-white animate-in zoom-in-95 duration-500"><div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto mb-6"><CheckCircle className="w-12 h-12" /></div><h3 className="text-3xl font-headline font-black text-slate-900 uppercase">THANK YOU!</h3><p className="text-slate-500 mt-2">আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে।</p></Card>;
+  if (orderSuccess) return <Card className="rounded-[40px] shadow-2xl p-12 text-center bg-white animate-in zoom-in-95 duration-500"><div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto mb-6"><CheckCircle2 className="w-12 h-12" /></div><h3 className="text-3xl font-headline font-black text-slate-900 uppercase">THANK YOU!</h3><p className="text-slate-500 mt-2">আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে।</p></Card>;
 
   return (
     <Card className="rounded-[40px] shadow-2xl border-none overflow-hidden text-left bg-white">
       <div className="bg-[#161625] text-white p-10 md:p-14 text-center"><h3 className="text-4xl md:text-5xl font-headline font-black mb-4 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3><p className="text-white/60 font-medium uppercase tracking-[0.3em] text-xs">নিরাপদ এবং দ্রুত ডেলিভারি</p></div>
+      
+      {products.length > 1 && (
+        <div className="p-8 md:p-14 pb-0 space-y-4">
+           <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">আপনার পছন্দের প্যাকেজটি নির্বাচন করুন</Label>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {products.map((p) => (
+                <div 
+                  key={p.id}
+                  onClick={() => setSelectedProductId(p.id)}
+                  className={cn(
+                    "flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer",
+                    selectedProductId === p.id ? "border-primary bg-primary/5" : "bg-slate-50 border-transparent hover:bg-slate-100"
+                  )}
+                >
+                   <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? 'border-primary' : 'border-slate-300')}>
+                      {selectedProductId === p.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                   </div>
+                   <img src={p.featuredImage} className="w-10 h-10 rounded-lg object-cover" alt="" />
+                   <div className="flex-1 min-w-0">
+                      <p className="font-bold text-xs truncate">{p.name}</p>
+                      <p className="text-primary font-black text-sm">${p.currentPrice}</p>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
+      )}
+
       <div className="p-8 md:p-14 space-y-12">
         {product ? <div className="flex flex-col md:flex-row justify-between items-center p-8 bg-slate-50 rounded-[32px] border border-slate-100 gap-8"><div className="flex items-center gap-8"><img src={product.featuredImage} className="w-24 h-24 rounded-2xl object-cover shadow-lg" /><div><h4 className="text-2xl font-bold tracking-tight">{product.name}</h4><p className="text-primary font-black text-3xl mt-1">${product.currentPrice}</p></div></div><CheckCircle className="text-primary w-12 h-12" /></div> : <div className="p-12 text-center border-2 border-dashed rounded-[32px] opacity-20 font-bold uppercase tracking-widest">পণ্য নির্বাচন করা হয়নি</div>}
         <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 border-t">
@@ -340,7 +375,7 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
                 </div>
               )}
             </div>
-            <div className="bg-slate-50 p-10 rounded-[40px] border space-y-5"><div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest"><span>পণ্য মূল্য</span><span>${product?.currentPrice || 0}</span></div><div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest"><span>ডেলিভারি চার্জ</span><span>${selectedShipping?.cost || 0}</span></div><div className="flex justify-between text-4xl font-black text-primary border-t pt-8 mt-4"><span>মোট</span><span>${(Number(product?.currentPrice || 0) + (selectedShipping?.cost || 0)).toFixed(2)}</span></div></div>
+            <div className="bg-slate-50 p-10 rounded-[40px] border space-y-5"><div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest"><span>পণ্য মূল্য</span><span>${(Number(product?.currentPrice || 0)).toFixed(2)}</span></div><div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest"><span>ডেলিভারি চার্জ</span><span>${(selectedShipping?.cost || 0).toFixed(2)}</span></div><div className="flex justify-between text-4xl font-black text-primary border-t pt-8 mt-4"><span>মোট</span><span>${(Number(product?.currentPrice || 0) + (selectedShipping?.cost || 0)).toFixed(2)}</span></div></div>
             <Button type="button" onClick={handlePlaceOrder} disabled={isPlacingOrder || !product} className="w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/40 transition-transform hover:scale-[1.02]">{isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}</Button>
           </div>
         </form>

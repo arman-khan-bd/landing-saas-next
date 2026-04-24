@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, limit } from "firebase/firestore";
 import * as LucideIcons from "lucide-react";
-import { Loader2, AlertCircle, CheckCircle, Truck, CreditCard, ShieldCheck, Smartphone, Check } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, Truck, CreditCard, ShieldCheck, Smartphone, Check, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -343,10 +343,11 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
       );
 
     case "product-order-form":
-      const mainProd = products.find(p => p.id === block.content?.mainProductId);
+      const productIds = block.content?.productIds || (block.content?.mainProductId ? [block.content.mainProductId] : []);
+      const selectedProducts = products.filter(p => productIds.includes(p.id));
       return (
         <div style={style} className={cn("px-6 max-w-5xl mx-auto", animClass, responsiveClass)}>
-          <LandingPageOrderForm product={mainProd} store={store} />
+          <LandingPageOrderForm products={selectedProducts} store={store} />
         </div>
       );
 
@@ -355,13 +356,16 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
   }
 }
 
-function LandingPageOrderForm({ product, store }: { product: any, store: any }) {
+function LandingPageOrderForm({ products, store }: { products: any[], store: any }) {
   const { toast } = useToast();
   const db = useFirestore();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [clientIp, setClientIp] = useState("");
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
+  const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || "");
+
+  const product = products.find(p => p.id === selectedProductId) || products[0];
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -465,7 +469,7 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
     return (
       <Card className="rounded-[40px] shadow-2xl p-12 text-center bg-white animate-in zoom-in-95 duration-500">
         <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto mb-6">
-          <CheckCircle className="w-12 h-12" />
+          <CheckCircle2 className="w-12 h-12" />
         </div>
         <h3 className="text-3xl font-headline font-black text-slate-900 uppercase">THANK YOU!</h3>
         <p className="text-slate-500 mt-2">আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে।</p>
@@ -481,6 +485,34 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
         <h3 className="text-4xl md:text-5xl font-headline font-black mb-4 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3>
         <p className="text-white/60 font-medium uppercase tracking-[0.3em] text-xs">নিরাপদ এবং দ্রুত ডেলিভারি</p>
       </div>
+
+      {products.length > 1 && (
+        <div className="p-8 md:p-14 pb-0 space-y-4">
+           <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">আপনার পছন্দের প্যাকেজটি নির্বাচন করুন</Label>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {products.map((p) => (
+                <div 
+                  key={p.id}
+                  onClick={() => setSelectedProductId(p.id)}
+                  className={cn(
+                    "flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer",
+                    selectedProductId === p.id ? "border-primary bg-primary/5" : "bg-slate-50 border-transparent hover:bg-slate-100"
+                  )}
+                >
+                   <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? 'border-primary' : 'border-slate-300')}>
+                      {selectedProductId === p.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                   </div>
+                   <img src={p.featuredImage} className="w-10 h-10 rounded-lg object-cover" alt="" />
+                   <div className="flex-1 min-w-0">
+                      <p className="font-bold text-xs truncate">{p.name}</p>
+                      <p className="text-primary font-black text-sm">${p.currentPrice}</p>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
+      )}
+
       <div className="p-8 md:p-14 space-y-12">
         {product ? (
           <div className="flex flex-col md:flex-row justify-between items-center p-8 bg-slate-50 rounded-[32px] border border-slate-100 gap-8">
