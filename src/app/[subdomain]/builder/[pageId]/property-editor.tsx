@@ -326,7 +326,7 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
       );
     case "product-order-form":
       return (
-        <div className="space-y-4">
+        <div className="space-y-4 max-w-[75%]">
           <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Selected Products</Label>
           <div className="space-y-2">
             {(block.content?.productIds || []).map((pId: string) => {

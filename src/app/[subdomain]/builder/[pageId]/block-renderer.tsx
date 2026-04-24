@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+
 import { useFirestore } from "@/firebase";
 import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -19,9 +20,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { useSortable } from "@dnd-kit/sortable";
+import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+
 import { CSS } from "@dnd-kit/utilities";
 import { Block, BlockType } from "./types";
+import { Label } from "@/components/ui/label";
 
 interface BlockRendererProps {
   block: Block;
@@ -31,6 +34,7 @@ interface BlockRendererProps {
   viewMode?: "desktop" | "mobile";
   isBuilder?: boolean;
   isMobile?: boolean;
+  selectedBlockId?: string | null;
   onSelect?: (id?: string) => void;
   onRemove?: (id?: string) => void;
   onMoveUp?: (id?: string) => void;
@@ -40,7 +44,7 @@ interface BlockRendererProps {
   subdomain?: string;
 }
 
-export function CanvasBlockWrapper({ block, products, store, isSelected, isMobile, onSelect, onRemove, onMoveUp, onMoveDown, onInsertRequest, viewMode, onAddNested }: any) {
+export function CanvasBlockWrapper({ block, products, store, isSelected, isMobile, onSelect, onRemove, onMoveUp, onMoveDown, onInsertRequest, viewMode, onAddNested, selectedBlockId }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id, disabled: isMobile });
   
   const style = {
@@ -112,6 +116,7 @@ export function CanvasBlockWrapper({ block, products, store, isSelected, isMobil
           onAddNested={onAddNested}
           isBuilder
           isMobile={isMobile}
+          selectedBlockId={selectedBlockId}
           onSelect={onSelect}
           onRemove={onRemove}
           onMoveUp={onMoveUp}
@@ -123,7 +128,7 @@ export function CanvasBlockWrapper({ block, products, store, isSelected, isMobil
   );
 }
 
-export function BlockRenderer({ block, products, store, isPreview = false, viewMode = "desktop", onAddNested, isBuilder, isMobile, onSelect, onRemove, onMoveUp, onMoveDown, onInsertRequest }: BlockRendererProps) {
+export function BlockRenderer({ block, products, store, isPreview = false, viewMode = "desktop", onAddNested, isBuilder, isMobile, onSelect, onRemove, onMoveUp, onMoveDown, onInsertRequest, selectedBlockId }: BlockRendererProps) {
   const isHidden = (viewMode === "desktop" && block.style?.hideDesktop) || (viewMode === "mobile" && block.style?.hideMobile);
   if (isHidden && isPreview) return null;
 
@@ -180,6 +185,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
 
           {Array.from({ length: colsCount }).map((_, colIdx) => {
             const colChildren = children.filter(c => (c.style?.columnIndex ?? 0) === colIdx);
+            const colItemIds = colChildren.map(c => c.id);
             
             return (
               <div key={colIdx} className={cn(
@@ -192,26 +198,32 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                    </div>
                 )}
 
-                {colChildren.map((child: any) => (
-                  isBuilder ? (
-                    <CanvasBlockWrapper 
-                      key={child.id} 
-                      block={child} 
-                      products={products} 
-                      store={store}
-                      viewMode={viewMode} 
-                      isMobile={isMobile}
-                      onAddNested={onAddNested}
-                      onSelect={(id?: string) => onSelect?.(id || child.id)}
-                      onRemove={(id?: string) => onRemove?.(id || child.id)}
-                      onMoveUp={(id?: string) => onMoveUp?.(id || child.id)}
-                      onMoveDown={(id?: string) => onMoveDown?.(id || child.id)}
-                      onInsertRequest={onInsertRequest}
-                    />
-                  ) : (
+                {isBuilder ? (
+                  <SortableContext items={colItemIds} strategy={verticalListSortingStrategy}>
+                    {colChildren.map((child: any) => (
+                      <CanvasBlockWrapper 
+                        key={child.id} 
+                        block={child} 
+                        products={products} 
+                        store={store}
+                        viewMode={viewMode} 
+                        isMobile={isMobile}
+                        onAddNested={onAddNested}
+                        isSelected={selectedBlockId === child.id}
+                        selectedBlockId={selectedBlockId}
+                        onSelect={(id?: string) => onSelect?.(id || child.id)}
+                        onRemove={(id?: string) => onRemove?.(id || child.id)}
+                        onMoveUp={(id?: string) => onMoveUp?.(id || child.id)}
+                        onMoveDown={(id?: string) => onMoveDown?.(id || child.id)}
+                        onInsertRequest={onInsertRequest}
+                      />
+                    ))}
+                  </SortableContext>
+                ) : (
+                  colChildren.map((child: any) => (
                     <BlockRenderer key={child.id} block={child} products={products} store={store} isPreview={isPreview} viewMode={viewMode} />
-                  )
-                ))}
+                  ))
+                )}
 
                 {isBuilder && (
                    <Button 

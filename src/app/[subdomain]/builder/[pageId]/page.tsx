@@ -330,11 +330,23 @@ function PageBuilderInner() {
     setActiveDragId(null);
     if (!over || active.id === over.id) return;
 
-    setBlocks((items) => {
+    const reorderRecursive = (items: Block[]): Block[] => {
       const oldIndex = items.findIndex((i) => i.id === active.id);
       const newIndex = items.findIndex((i) => i.id === over.id);
-      return arrayMove(items, oldIndex, newIndex);
-    });
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        return arrayMove(items, oldIndex, newIndex);
+      }
+
+      return items.map(item => {
+        if (item.children && item.children.length > 0) {
+          return { ...item, children: reorderRecursive(item.children) };
+        }
+        return item;
+      });
+    };
+
+    setBlocks(prev => reorderRecursive(prev));
   };
 
   const handleSave = () => {
@@ -716,6 +728,7 @@ function PageBuilderInner() {
                           products={products}
                           store={store}
                           isSelected={selectedBlockId === block.id}
+                          selectedBlockId={selectedBlockId}
                           isMobile={isMobile}
                           onSelect={(id?: string) => {
                             setSelectedBlockId(id || block.id);
@@ -818,7 +831,7 @@ function PageBuilderInner() {
                }}
             >
               <div className="h-full">
-                {blocks.map(block => <BlockRenderer key={block.id} block={block} products={products} store={store} isPreview viewMode={viewMode} />)}
+                {blocks.map(block => <BlockRenderer key={block.id} block={block} products={products} store={store} isPreview viewMode={viewMode} selectedBlockId={selectedBlockId} />)}
               </div>
             </div>
           </div>
