@@ -9,7 +9,8 @@ import * as LucideIcons from "lucide-react";
 import { 
   CheckCircle2, Truck, Smartphone, Loader2, Check,
   ChevronUp, ChevronDown, Plus, Trash2, GripVertical,
-  CheckCircle, CreditCard, ShieldCheck, Image as ImageIcon
+  CheckCircle, CreditCard, ShieldCheck, Image as ImageIcon,
+  Columns
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -163,12 +164,19 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
         <div 
           style={style} 
           className={cn(
-            "grid gap-6 px-4 max-w-6xl mx-auto w-full", 
-            "grid-cols-1 sm:grid-cols-2", // max 2 column in mobile/sm
+            "grid gap-6 px-4 max-w-6xl mx-auto w-full relative", 
+            "grid-cols-1 sm:grid-cols-2", 
             gridClass,
-            isBuilder && "border-2 border-dashed border-primary/10 p-4 sm:p-6 rounded-[40px] bg-slate-50/10 min-h-[100px]"
+            isBuilder && "border-2 border-dashed border-primary/20 p-4 sm:p-10 rounded-[40px] bg-slate-50/10 min-h-[120px] transition-all hover:border-primary/40"
           )}
         >
+          {isBuilder && (
+            <div className="absolute top-3 left-8 px-2 py-0.5 bg-primary/10 rounded-full flex items-center gap-1.5 z-10">
+               <Columns className="w-2.5 h-2.5 text-primary/50" />
+               <span className="text-[7px] font-black text-primary/50 uppercase tracking-widest">Layout Row ({colsCount} Columns)</span>
+            </div>
+          )}
+
           {children.map((child: any) => (
             isBuilder ? (
               <CanvasBlockWrapper 
@@ -551,7 +559,7 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
                             <p className="text-[10px] font-black uppercase text-primary">নাম্বার: {selectedManualMethod.number}</p>
                             <p className="text-[10px] text-slate-500 mt-1 italic">{selectedManualMethod.instructions}</p>
                           </div>
-                          <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
+                          <input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border border-primary/20 px-4 w-full text-sm font-bold" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
                         </div>
                       )}
                     </div>

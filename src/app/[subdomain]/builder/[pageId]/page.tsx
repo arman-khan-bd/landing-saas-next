@@ -56,7 +56,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function PageBuilder() {
   return (
@@ -709,7 +709,7 @@ function PageBuilderInner() {
                       <WidgetGridButton icon={ImageIcon} label="Image Box" onClick={() => handleAddBlock("image")} />
                       <WidgetGridButton icon={Monitor} label="Action Button" onClick={() => handleAddBlock("button")} />
                       <WidgetGridButton icon={Square} label="Styled Card" onClick={() => handleAddBlock("card")} highlight />
-                      {(!activeParentId && !insertInfo) && <WidgetGridButton icon={Columns} label="Grid Row" onClick={() => handleAddBlock("row")} />}
+                      {!activeParentId && <WidgetGridButton icon={Columns} label="Grid Row" onClick={() => handleAddBlock("row")} />}
                       <WidgetGridButton icon={ShoppingCart} label="Order Form" onClick={() => handleAddBlock("product-order-form")} highlight />
                       <WidgetGridButton icon={Layout} label="Carousel" onClick={() => handleAddBlock("carousel")} />
                       <WidgetGridButton icon={CheckCircle} label="Checked List" onClick={() => handleAddBlock("checked-list")} />
