@@ -58,6 +58,8 @@ export interface Block {
 export interface PageStyle {
   backgroundColor?: string;
   backgroundImage?: string;
+  textColor?: string;
+  primaryColor?: string;
   paddingTop?: number;
   paddingBottom?: number;
   themeId?: string;
