@@ -26,6 +26,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { getStoreUrl, cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Block } from "./[pageId]/types";
 
 const THEMES = [
   {
@@ -68,6 +69,76 @@ const THEMES = [
   }
 ];
 
+const getThemeTemplate = (themeId: string): Block[] => {
+  if (themeId === 'laam' || themeId === 'organic') {
+    return [
+      {
+        id: "hero-1",
+        type: "header",
+        content: { text: "Premium Health & Wellness", level: "h2" },
+        style: { textAlign: "center", paddingTop: 60, paddingBottom: 10 }
+      },
+      {
+        id: "hero-2",
+        type: "header",
+        content: { text: "প্রাকৃতিক উপাদানে সুস্থতা", level: "h1" },
+        style: { textAlign: "center", paddingTop: 0, paddingBottom: 20 }
+      },
+      {
+        id: "hero-3",
+        type: "paragraph",
+        content: { text: "হাজার হাজার টাকা অসুস্থ হয়ে নষ্ট করেছেন কিন্তু কোন সমাধান পাননি? আজকের সিদ্ধান্তই আপনার আগামী দিনের শক্তি।" },
+        style: { textAlign: "center", fontSize: 18, paddingBottom: 30 }
+      },
+      {
+        id: "hero-4",
+        type: "button",
+        content: { text: "👇 এখনই অর্ডার করুন", link: "[checkout]" },
+        style: { textAlign: "center", paddingBottom: 60 }
+      },
+      {
+        id: "benefits-row",
+        type: "row",
+        content: { columns: 2 },
+        style: { paddingTop: 40, paddingBottom: 40 },
+        children: [
+          {
+            id: "ben-1",
+            type: "card",
+            content: { title: "শারীরিক দুর্বলতা দূর করে", subtitle: "আপনাকে উপহার দিবে সুখময় দাম্পত্য জীবন।", iconName: "Zap", showIcon: true, listStyle: "check", items: [] },
+            style: { columnIndex: 0, columnSpan: 1 }
+          },
+          {
+            id: "ben-2",
+            type: "card",
+            content: { title: "বাত ব্যথা দূর করে", subtitle: "আপনার জীবনকে দিবে প্রশান্তি।", iconName: "Activity", showIcon: true, listStyle: "check", items: [] },
+            style: { columnIndex: 1, columnSpan: 1 }
+          },
+          {
+            id: "ben-3",
+            type: "card",
+            content: { title: "হার্ট ও ব্লাড প্রেশার", subtitle: "হৃদরোগীদের জন্য এককথায় মহাঔষধ।", iconName: "Heart", showIcon: true, listStyle: "check", items: [] },
+            style: { columnIndex: 0, columnSpan: 1 }
+          },
+          {
+            id: "ben-4",
+            type: "card",
+            content: { title: "১০০% প্রাকৃতিক ও নিরাপদ", subtitle: "কোন পার্শ্বপ্রতিক্রিয়া নেই ইনশাআল্লাহ।", iconName: "ShieldCheck", showIcon: true, listStyle: "check", items: [] },
+            style: { columnIndex: 1, columnSpan: 1 }
+          }
+        ]
+      },
+      {
+        id: "order-form-block",
+        type: "product-order-form",
+        content: { productIds: [] },
+        style: { paddingTop: 60, paddingBottom: 60 }
+      }
+    ];
+  }
+  return [];
+};
+
 export default function PageManager() {
   const { subdomain } = useParams();
   const router = useRouter();
@@ -79,7 +150,6 @@ export default function PageManager() {
   const [isNewPageOpen, setIsNewPageOpen] = useState(false);
   const [newPageData, setNewPageData] = useState({ title: "", slug: "" });
   
-  // Theme Selection States
   const [selectedPageForTheme, setSelectedPageForTheme] = useState<any>(null);
   const [applyingThemeId, setApplyingThemeId] = useState<string | null>(null);
 
@@ -157,13 +227,21 @@ export default function PageManager() {
         textColor: theme.style.textColor,
       };
 
-      await updateDoc(pageRef, {
+      const template = getThemeTemplate(theme.id);
+      const updateData: any = {
         pageStyle: newStyle,
         updatedAt: serverTimestamp()
-      });
+      };
 
-      setPages(prev => prev.map(p => p.id === selectedPageForTheme.id ? { ...p, pageStyle: newStyle } : p));
-      toast({ title: "Theme Applied", description: `"${theme.name}" is now active.` });
+      // Only overwrite config if user requested "set new design" via the manager apply button
+      if (template.length > 0) {
+        updateData.config = template;
+      }
+
+      await updateDoc(pageRef, updateData);
+
+      setPages(prev => prev.map(p => p.id === selectedPageForTheme.id ? { ...p, pageStyle: newStyle, config: template.length > 0 ? template : p.config } : p));
+      toast({ title: "Theme Applied", description: `"${theme.name}" design and styles are now active.` });
       setSelectedPageForTheme(null);
     } catch (error) {
       toast({ variant: "destructive", title: "Apply Failed" });
@@ -311,7 +389,6 @@ export default function PageManager() {
         )}
       </div>
 
-      {/* Theme Selection Modal */}
       <Dialog open={!!selectedPageForTheme} onOpenChange={(open) => !open && setSelectedPageForTheme(null)}>
         <DialogContent className="max-w-3xl rounded-[40px] border-none shadow-2xl p-0 overflow-hidden bg-slate-50 flex flex-col max-h-[90vh]">
           <DialogHeader className="p-8 bg-white border-b shrink-0">

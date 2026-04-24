@@ -830,7 +830,7 @@ function PageBuilderInner() {
               <h2 className="text-sm font-headline font-bold tracking-tight">Full Site Preview</h2>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => setIsPreviewOpen(false)} className="rounded-full h-9 w-9 hover:bg-slate-100"><X className="w-5 h-5" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsPreviewOpen(false)} className="rounded-full h-9 v-9 hover:bg-slate-100"><X className="w-5 h-5" /></Button>
             </div>
           </header>
           

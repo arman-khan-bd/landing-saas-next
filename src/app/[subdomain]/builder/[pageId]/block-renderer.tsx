@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -76,14 +77,14 @@ export function CanvasBlockWrapper({ block, products, store, isSelected, isMobil
         <div className="absolute -top-7 left-0 flex items-center gap-2 bg-primary text-white rounded-t-lg px-2.5 py-1 text-[8px] font-black uppercase tracking-widest z-50 shadow-lg">
           {!isMobile ? (
             <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing hover:bg-white/20 p-0.5 rounded mr-1">
-              GripVertical
+              <GripVertical className="w-2.5 h-2.5" />
             </div>
           ) : (
             <div className="flex items-center gap-1 border-r border-white/20 pr-1 mr-1">
-               <Button variant="ghost" size="icon" className="h-5 w-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveUp(block.id); }}>
+               <Button variant="ghost" size="icon" className="h-5 v-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveUp(block.id); }}>
                   <ChevronUp className="w-3 h-3" />
                </Button>
-               <Button variant="ghost" size="icon" className="h-5 w-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveDown(block.id); }}>
+               <Button variant="ghost" size="icon" className="h-5 v-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveDown(block.id); }}>
                   <ChevronDown className="w-3 h-3" />
                </Button>
             </div>
