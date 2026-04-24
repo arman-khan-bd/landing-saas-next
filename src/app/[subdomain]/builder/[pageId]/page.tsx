@@ -12,7 +12,7 @@ import {
   ArrowLeft, Palette, Box, MousePointer2,
   Sparkles, PlusCircle, LayoutGrid,
   MoveVertical, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon,
-  Paintbrush, gripVertical, Layers,
+  Paintbrush, Layers,
   ChevronUp, ChevronDown as ChevronDownIcon, Truck, CreditCard,
   Star, Heart, Lightbulb, Info, Shield, Zap, Check
 } from "lucide-react";

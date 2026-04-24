@@ -9,7 +9,7 @@ import * as LucideIcons from "lucide-react";
 import { 
   CheckCircle2, Truck, Smartphone, Loader2, Check,
   ChevronUp, ChevronDown, Plus, Trash2, GripVertical,
-  CheckCircle, CreditCard, ShieldCheck
+  CheckCircle, CreditCard, ShieldCheck, Image as ImageIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -147,16 +147,16 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
   };
 
   const gridColsMap: Record<number, string> = {
-    1: "md:grid-cols-1",
-    2: "md:grid-cols-2",
-    3: "md:grid-cols-3",
-    4: "md:grid-cols-4",
+    1: "lg:grid-cols-1",
+    2: "lg:grid-cols-2",
+    3: "lg:grid-cols-3",
+    4: "lg:grid-cols-4",
   };
 
   switch (block.type) {
     case "row":
       const colsCount = block.content?.columns || 1;
-      const gridClass = gridColsMap[colsCount] || "md:grid-cols-1";
+      const gridClass = gridColsMap[colsCount] || "lg:grid-cols-1";
       const children = block.children || [];
 
       return (
@@ -164,9 +164,9 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           style={style} 
           className={cn(
             "grid gap-6 px-4 max-w-6xl mx-auto w-full", 
-            "grid-cols-1", 
+            "grid-cols-1 sm:grid-cols-2", // max 2 column in mobile/sm
             gridClass,
-            isBuilder && "border border-dashed border-primary/20 p-6 rounded-[32px] bg-slate-50/20"
+            isBuilder && "border-2 border-dashed border-primary/10 p-4 sm:p-6 rounded-[40px] bg-slate-50/10 min-h-[100px]"
           )}
         >
           {children.map((child: any) => (
@@ -191,33 +191,15 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           ))}
 
           {isBuilder && (
-            Array.from({ length: Math.max(0, colsCount - children.length) }).map((_, i) => (
-              <div 
-                key={`empty-col-${i}`}
-                className="min-h-[120px] border-2 border-dashed border-slate-200/40 rounded-2xl flex items-center justify-center bg-white/40 group/empty hover:border-primary/40 hover:bg-white transition-all duration-300"
-              >
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="h-10 w-10 rounded-full border-primary/20 text-primary bg-white shadow-sm hover:bg-primary hover:text-white transition-all pointer-events-auto group-hover/empty:scale-110"
-                  onClick={(e) => { e.stopPropagation(); onAddNested?.(block.id); }}
-                >
-                  <Plus className="w-5 h-5" />
-                </Button>
-              </div>
-            ))
-          )}
-          
-          {isBuilder && children.length >= colsCount && (
-             <div className="col-span-full flex justify-center py-4 border-t border-dashed border-slate-100/20 mt-2">
+             <div className="col-span-full flex justify-center py-4 border-t border-dashed border-slate-200/50 mt-4">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="pointer-events-auto h-9 px-6 rounded-full bg-white text-primary border-primary/20 hover:bg-primary hover:text-white transition-all shadow-sm group"
+                  className="pointer-events-auto h-10 px-6 rounded-2xl bg-white text-primary border-primary/20 hover:bg-primary hover:text-white transition-all shadow-sm group font-bold text-[10px] uppercase tracking-widest"
                   onClick={(e) => { e.stopPropagation(); onAddNested?.(block.id); }}
                 >
                   <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
-                  Add to Row
+                  Add component to Column
                 </Button>
              </div>
           )}
@@ -234,8 +216,8 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           <div className="relative z-10 space-y-4">
              {IconComp && <IconComp style={{ color: block.content?.iconColor || "#145DCC" }} size={block.content?.iconSize || 32} className="shrink-0" />}
              <div className="space-y-1">
-                <h4 className="font-bold text-xl">{block.content?.title}</h4>
-                <p className="text-sm opacity-80 leading-relaxed">{block.content?.subtitle}</p>
+                <h4 className="font-bold text-xl">{block.content?.title || "Feature Title"}</h4>
+                <p className="text-sm opacity-80 leading-relaxed">{block.content?.subtitle || "Description placeholder..."}</p>
              </div>
              {(block.content?.items || []).length > 0 && (
                <div className="space-y-2 pt-2">
@@ -264,17 +246,24 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       const HeaderTag = block.content?.level || 'h2';
       const headerSizes: any = { h1: 'text-2xl md:text-5xl', h2: 'text-xl md:text-4xl', h3: 'text-lg md:text-2xl' };
       return <div style={style} className={cn("px-4 w-full font-headline font-bold leading-tight")}>
-        <HeaderTag className={headerSizes[HeaderTag]}>{block.content?.text}</HeaderTag>
+        <HeaderTag className={headerSizes[HeaderTag]}>{block.content?.text || "Section Heading Placeholder"}</HeaderTag>
       </div>;
     case "paragraph":
-      return <div style={style} className="px-4 w-full leading-relaxed whitespace-pre-wrap text-sm opacity-80">{block.content?.text}</div>;
+      return <div style={style} className="px-4 w-full leading-relaxed whitespace-pre-wrap text-sm opacity-80">{block.content?.text || "Your body text content will appear here once you type something into the editor sidebar."}</div>;
     case "image":
       return <div style={style} className="px-4 w-full">
-        {block.content?.url && <img src={block.content.url} className="w-full h-auto shadow-md rounded-xl" alt="" />}
+        {block.content?.url ? (
+          <img src={block.content.url} className="w-full h-auto shadow-md rounded-xl" alt="" />
+        ) : (
+          <div className="w-full aspect-video bg-slate-100 rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200 text-slate-400 gap-2">
+            <ImageIcon className="w-10 h-10 opacity-20" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Image Placeholder</span>
+          </div>
+        )}
       </div>;
     case "button":
       return <div style={style} className="px-4 w-full">
-        <Button size="lg" className="rounded-xl px-8 h-11 font-bold uppercase tracking-widest text-[10px] shadow-md transition-all hover:scale-105">{block.content?.text}</Button>
+        <Button size="lg" className="rounded-xl px-8 h-11 font-bold uppercase tracking-widest text-[10px] shadow-md transition-all hover:scale-105">{block.content?.text || "Action Button"}</Button>
       </div>;
     case "carousel":
       const carouselCols = block.style?.desktopColumns || 3;
@@ -284,35 +273,47 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
         3: "basis-full md:basis-1/3",
         4: "basis-full md:basis-1/4"
       };
+      const carouselItems = block.content?.items || [];
       return (
         <div style={style} className="px-4 w-full max-w-6xl mx-auto">
-          <Carousel opts={{ align: "start" }} className="w-full">
-            <CarouselContent>
-              {(block.content?.items || []).map((item: any) => (
-                <CarouselItem key={item.id} className={cn(carouselColMapping[carouselCols] || "basis-full", "px-1")}>
-                  <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-100 h-full flex flex-col">
-                    {item.imageUrl && <img src={item.imageUrl} className="w-full aspect-square object-cover" />}
-                    {(item.title || item.subtitle || item.buttonText) && (
-                      <div className="p-3 space-y-1.5 flex-1">
-                        {item.title && <h4 className="font-bold text-xs">{item.title}</h4>}
-                        {item.subtitle && <p className="text-[10px] text-muted-foreground line-clamp-2">{item.subtitle}</p>}
-                        {item.buttonText && <Button variant="secondary" className="w-full h-7 text-[8px] uppercase font-black rounded-lg mt-1">{item.buttonText}</Button>}
-                      </div>
-                    )}
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="left-1 h-8 w-8" />
-            <CarouselNext className="right-1 h-8 w-8" />
-          </Carousel>
+          {carouselItems.length > 0 ? (
+            <Carousel opts={{ align: "start" }} className="w-full">
+              <CarouselContent>
+                {carouselItems.map((item: any) => (
+                  <CarouselItem key={item.id} className={cn(carouselColMapping[carouselCols] || "basis-full", "px-1")}>
+                    <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-100 h-full flex flex-col">
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} className="w-full aspect-square object-cover" />
+                      ) : (
+                        <div className="w-full aspect-square bg-slate-100 flex items-center justify-center opacity-10"><ImageIcon /></div>
+                      )}
+                      {(item.title || item.subtitle || item.buttonText) && (
+                        <div className="p-3 space-y-1.5 flex-1">
+                          {item.title && <h4 className="font-bold text-xs">{item.title}</h4>}
+                          {item.subtitle && <p className="text-[10px] text-muted-foreground line-clamp-2">{item.subtitle}</p>}
+                          {item.buttonText && <Button variant="secondary" className="w-full h-7 text-[8px] uppercase font-black rounded-lg mt-1">{item.buttonText}</Button>}
+                        </div>
+                      )}
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-1 h-8 w-8" />
+              <CarouselNext className="right-1 h-8 w-8" />
+            </Carousel>
+          ) : (
+            <div className="p-10 bg-slate-50 rounded-3xl text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest border-2 border-dashed border-slate-200">
+               Empty Carousel Placeholder
+            </div>
+          )}
         </div>
       );
     case "checked-list":
       const listStyle = block.content?.listStyle || "check";
+      const listItems = block.content?.items || ["Point 1", "Point 2", "Point 3"];
       return (
         <div style={style} className="px-4 w-full max-w-6xl mx-auto space-y-2">
-          {(block.content?.items || []).map((item: string, i: number) => {
+          {listItems.map((item: string, i: number) => {
             let prefix;
             if (listStyle === "check") {
               prefix = <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />;
@@ -342,7 +343,14 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       const mainProd = products.find((p: any) => p.id === block.content?.mainProductId);
       return (
         <div style={style} className="px-4 w-full max-w-5xl mx-auto text-left">
-           <LandingPageOrderForm product={mainProd} store={store} />
+           {mainProd ? (
+             <LandingPageOrderForm product={mainProd} store={store} />
+           ) : (
+             <div className="p-12 bg-white rounded-[40px] shadow-sm border-2 border-dashed flex flex-col items-center justify-center gap-4 text-slate-300">
+                <CreditCard className="w-10 h-10 opacity-10" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Select product in sidebar to see order form</span>
+             </div>
+           )}
         </div>
       );
     default: return null;
