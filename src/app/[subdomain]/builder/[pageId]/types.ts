@@ -54,4 +54,8 @@ export interface PageStyle {
   backgroundImage?: string;
   paddingTop?: number;
   paddingBottom?: number;
+  themeId?: string;
+  primaryColor?: string;
+  accentColor?: string;
+  textColor?: string;
 }

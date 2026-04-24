@@ -15,7 +15,8 @@ import {
   MoveVertical, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon,
   Paintbrush, Layers,
   ChevronUp, ChevronDown as ChevronDownIcon, Truck, CreditCard,
-  Star, Heart, Lightbulb, Info, Shield, Zap, Check, LayoutList
+  Star, Heart, Lightbulb, Info, Shield, Zap, Check, LayoutList,
+  Flame, Leaf
 } from "lucide-react";
 import {
   DndContext,
@@ -58,6 +59,29 @@ import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+const THEMES = [
+  {
+    id: "default",
+    name: "Classic Light",
+    style: { backgroundColor: "#FFFFFF", primaryColor: "#145DCC", accentColor: "#26D87F", textColor: "#1a1a1a" }
+  },
+  {
+    id: "organic",
+    name: "Natural Organic",
+    style: {
+      backgroundColor: "#fdf8f0", 
+      primaryColor: "#2d7a3a",    
+      accentColor: "#c9941a",     
+      textColor: "#1a1a1a"
+    }
+  },
+  {
+    id: "midnight",
+    name: "Midnight Pro",
+    style: { backgroundColor: "#0f172a", primaryColor: "#6366f1", accentColor: "#f43f5e", textColor: "#f8fafc" }
+  }
+];
+
 export default function PageBuilder() {
   return (
     <SidebarProvider>
@@ -83,6 +107,7 @@ function PageBuilderInner() {
     backgroundImage: "",
     paddingTop: 40,
     paddingBottom: 40,
+    themeId: "default",
   });
   const [products, setProducts] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
@@ -90,11 +115,11 @@ function PageBuilderInner() {
   const [sidebarTab, setSidebarTab] = useState<"edit" | "advanced">("edit");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isComponentDialogOpen, setIsComponentDialogOpen] = useState(false);
+  const [isThemeDialogOpen, setIsThemeDialogOpen] = useState(false);
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
   const [activeColumnIndex, setActiveColumnIndex] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   
-  // Insertion tracking
   const [insertInfo, setInsertInfo] = useState<{ id: string, position: 'before' | 'after' } | null>(null);
 
   const sensors = useSensors(
@@ -159,7 +184,6 @@ function PageBuilderInner() {
     return findBlockById(blocks, selectedBlockId);
   }, [selectedBlockId, blocks, findBlockById]);
 
-  // Utility to check if a block is a child of a row
   const getParentBlock = useCallback((items: Block[], childId: string): Block | null => {
     for (const item of items) {
       if (item.children?.some(c => c.id === childId)) return item;
@@ -255,7 +279,6 @@ function PageBuilderInner() {
     const index = items.findIndex(i => i.id === relativeId);
     if (index !== -1) {
       const newItems = [...items];
-      // Inherit the same column if inserted relative to a child
       newBlock.style.columnIndex = items[index].style.columnIndex;
       newItems.splice(position === 'before' ? index : index + 1, 0, newBlock);
       return newItems;
@@ -385,6 +408,19 @@ function PageBuilderInner() {
       .finally(() => setSaving(false));
   };
 
+  const applyTheme = (theme: any) => {
+    setPageStyle({
+      ...pageStyle,
+      themeId: theme.id,
+      backgroundColor: theme.style.backgroundColor,
+      primaryColor: theme.style.primaryColor,
+      accentColor: theme.style.accentColor,
+      textColor: theme.style.textColor,
+    });
+    setIsThemeDialogOpen(false);
+    toast({ title: "Theme Applied", description: `"${theme.name}" is now active.` });
+  };
+
   const onInsertRequest = (id: string, position: 'before' | 'after') => {
     setInsertInfo({ id, position });
     setActiveParentId(null);
@@ -409,7 +445,6 @@ function PageBuilderInner() {
   return (
     <div className="flex h-screen w-full bg-slate-50/50 overflow-hidden text-slate-800 select-none">
       
-      {/* --- BRANDED SIDEBAR --- */}
       <Sidebar collapsible="offcanvas" className="border-r-0 bg-primary text-primary-foreground shadow-2xl">
         <SidebarHeader className="p-4 border-b border-white/10 bg-black/10">
           <div className="flex items-center justify-between">
@@ -526,28 +561,6 @@ function PageBuilderInner() {
                                </div>
                              </div>
                            </div>
-
-                           <div className="space-y-2">
-                             <Label className="text-[9px] uppercase font-bold text-white/60">Margin (px)</Label>
-                             <div className="grid grid-cols-2 gap-2">
-                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
-                                 <ArrowUp className="w-2.5 h-2.5 text-white/40" />
-                                 <Input type="number" placeholder="0" value={selectedBlock.style?.marginTop ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginTop: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
-                               </div>
-                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
-                                 <ArrowDown className="w-2.5 h-2.5 text-white/40" />
-                                 <Input type="number" placeholder="0" value={selectedBlock.style?.marginBottom ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginBottom: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
-                               </div>
-                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
-                                 <ArrowLeftIcon className="w-2.5 h-2.5 text-white/40" />
-                                 <Input type="number" placeholder="0" value={selectedBlock.style?.marginLeft ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginLeft: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
-                               </div>
-                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
-                                 <ArrowRightIcon className="w-2.5 h-2.5 text-white/40" />
-                                 <Input type="number" placeholder="0" value={selectedBlock.style?.marginRight ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { marginRight: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
-                               </div>
-                             </div>
-                           </div>
                          </div>
                        </PropertySection>
                        
@@ -561,39 +574,6 @@ function PageBuilderInner() {
                               <Label className="text-[9px] uppercase font-bold text-white/70">Bg Color</Label>
                               <Input type="color" value={selectedBlock.style?.backgroundColor || "#FFFFFF"} onChange={(e) => updateBlock(selectedBlock.id, { style: { backgroundColor: e.target.value } })} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
                             </div>
-                          </div>
-                       </PropertySection>
-
-                       <PropertySection label="Borders & Radius" icon={Layers}>
-                          <div className="space-y-4">
-                             <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                   <Label className="text-[9px] uppercase font-bold text-white/70">Style</Label>
-                                   <Select value={selectedBlock.style?.borderStyle || "none"} onValueChange={(v) => updateBlock(selectedBlock.id, { style: { borderStyle: v } })}>
-                                      <SelectTrigger className="h-8 rounded-lg border-none bg-black/20 text-white text-[10px]"><SelectValue /></SelectTrigger>
-                                      <SelectContent>
-                                         <SelectItem value="none">None</SelectItem>
-                                         <SelectItem value="solid">Solid</SelectItem>
-                                         <SelectItem value="dashed">Dashed</SelectItem>
-                                         <SelectItem value="dotted">Dotted</SelectItem>
-                                      </SelectContent>
-                                   </Select>
-                                </div>
-                                <div className="space-y-1.5">
-                                   <Label className="text-[9px] uppercase font-bold text-white/70">Color</Label>
-                                   <Input type="color" value={selectedBlock.style?.borderColor || "#000000"} onChange={(e) => updateBlock(selectedBlock.id, { style: { borderColor: e.target.value } })} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
-                                </div>
-                             </div>
-                             <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                   <Label className="text-[9px] uppercase font-bold text-white/70">Width ({selectedBlock.style?.borderWidth || 0}px)</Label>
-                                   <Slider value={[selectedBlock.style?.borderWidth || 0]} min={0} max={20} onValueChange={([v]) => updateBlock(selectedBlock.id, { style: { borderWidth: v } })} />
-                                </div>
-                                <div className="space-y-1.5">
-                                   <Label className="text-[9px] uppercase font-bold text-white/70">Radius ({selectedBlock.style?.borderRadius || 0}px)</Label>
-                                   <Slider value={[selectedBlock.style?.borderRadius || 0]} min={0} max={100} onValueChange={([v]) => updateBlock(selectedBlock.id, { style: { borderRadius: v } })} />
-                                </div>
-                             </div>
                           </div>
                        </PropertySection>
 
@@ -641,6 +621,19 @@ function PageBuilderInner() {
                         </div>
                      </PropertySection>
 
+                     <PropertySection label="Brand Accents" icon={Zap}>
+                        <div className="grid grid-cols-2 gap-3">
+                           <div className="space-y-1.5">
+                              <Label className="text-[9px] uppercase font-bold text-white/70">Primary Color</Label>
+                              <Input type="color" value={pageStyle.primaryColor || "#145DCC"} onChange={(e) => setPageStyle({...pageStyle, primaryColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
+                           </div>
+                           <div className="space-y-1.5">
+                              <Label className="text-[9px] uppercase font-bold text-white/70">Accent Color</Label>
+                              <Input type="color" value={pageStyle.accentColor || "#26D87F"} onChange={(e) => setPageStyle({...pageStyle, accentColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
+                           </div>
+                        </div>
+                     </PropertySection>
+
                      <PropertySection label="Global Spacing" icon={MoveVertical}>
                         <div className="space-y-6">
                            <div className="space-y-3">
@@ -652,13 +645,6 @@ function PageBuilderInner() {
                            </div>
                         </div>
                      </PropertySection>
-
-                     <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex flex-col items-center text-center gap-3">
-                        <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-                           <MousePointer2 className="w-5 h-5 text-white/40" />
-                        </div>
-                        <p className="text-[10px] text-white/40 font-medium leading-relaxed">Select any element on the canvas to edit its specific properties.</p>
-                     </div>
                   </div>
                </ScrollArea>
             </div>
@@ -673,7 +659,6 @@ function PageBuilderInner() {
         </SidebarFooter>
       </Sidebar>
 
-      {/* --- MAIN BUILDER INSET --- */}
       <SidebarInset className="flex flex-col h-full bg-slate-50/30">
         <header className="h-14 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-30 sticky top-0">
           <div className="flex items-center gap-4">
@@ -690,6 +675,43 @@ function PageBuilderInner() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Dialog open={isThemeDialogOpen} onOpenChange={setIsThemeDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="rounded-lg px-4 h-9 font-bold text-[10px] bg-white border-slate-200 text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
+                  <Palette className="w-3.5 h-3.5 mr-1.5" /> Page Themes
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-xl rounded-[32px] p-8 border-none overflow-hidden shadow-2xl">
+                 <DialogHeader>
+                    <DialogTitle className="text-3xl font-headline font-black uppercase tracking-tight">Design Gallery</DialogTitle>
+                    <DialogDescription className="text-slate-500 font-medium">Select a visual foundation to start building your brand identity.</DialogDescription>
+                 </DialogHeader>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-8">
+                    {THEMES.map((theme) => (
+                      <button 
+                        key={theme.id}
+                        onClick={() => applyTheme(theme)}
+                        className={cn(
+                          "group p-6 rounded-[32px] border-2 text-left transition-all duration-300 relative overflow-hidden",
+                          pageStyle.themeId === theme.id ? 'border-primary ring-4 ring-primary/5 bg-slate-50' : 'border-slate-100 hover:border-primary/20 hover:bg-slate-50/50'
+                        )}
+                      >
+                         <div className="space-y-1 relative z-10">
+                            <h4 className="font-bold text-lg">{theme.name}</h4>
+                            <div className="flex gap-1.5 pt-2">
+                               <div className="w-5 h-5 rounded-full border shadow-sm" style={{ backgroundColor: theme.style.primaryColor }} />
+                               <div className="w-5 h-5 rounded-full border shadow-sm" style={{ backgroundColor: theme.style.accentColor }} />
+                               <div className="w-5 h-5 rounded-full border shadow-sm" style={{ backgroundColor: theme.style.backgroundColor }} />
+                            </div>
+                         </div>
+                         {theme.id === 'organic' && <Leaf className="absolute -bottom-2 -right-2 w-16 h-16 text-emerald-500/5 group-hover:rotate-12 transition-transform" />}
+                         {theme.id === 'midnight' && <Zap className="absolute -bottom-2 -right-2 w-16 h-16 text-indigo-500/5 group-hover:rotate-12 transition-transform" />}
+                      </button>
+                    ))}
+                 </div>
+              </DialogContent>
+            </Dialog>
+
             <Button variant="outline" size="sm" className="rounded-lg px-4 h-9 font-bold text-[10px] bg-white border-slate-200 text-slate-600 shadow-sm" onClick={() => setIsPreviewOpen(true)}>
               <Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Site
             </Button>
@@ -746,6 +768,7 @@ function PageBuilderInner() {
                             onAddNestedRequest(parentId, colIdx);
                           }}
                           isBuilder={true}
+                          pageStyle={pageStyle}
                         />
                       ))}
                     </div>
@@ -804,7 +827,6 @@ function PageBuilderInner() {
         </div>
       </SidebarInset>
 
-      {/* --- PREVIEW DIALOG --- */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 rounded-none border-none bg-slate-50 flex flex-col overflow-hidden">
           <DialogHeader className="sr-only">
@@ -837,7 +859,7 @@ function PageBuilderInner() {
                }}
             >
               <div className="h-full">
-                {blocks.map(block => <BlockRenderer key={block.id} block={block} products={products} store={store} isPreview viewMode={viewMode} selectedBlockId={selectedBlockId} />)}
+                {blocks.map(block => <BlockRenderer key={block.id} block={block} products={products} store={store} isPreview viewMode={viewMode} selectedBlockId={selectedBlockId} pageStyle={pageStyle} />)}
               </div>
             </div>
           </div>
