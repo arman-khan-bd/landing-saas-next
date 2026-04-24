@@ -804,7 +804,10 @@ function PageBuilderInner() {
                       <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" />
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-xl rounded-[32px] p-0 border-none overflow-hidden shadow-2xl">
+                  <DialogContent 
+                    className="max-w-xl rounded-[32px] p-0 border-none overflow-hidden shadow-2xl"
+                    onCloseAutoFocus={(e) => e.preventDefault()}
+                  >
                     <DialogHeader className="p-5 bg-primary text-white">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-white/20 rounded-xl"><PlusCircle className="w-5 h-5" /></div>
