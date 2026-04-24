@@ -45,7 +45,7 @@ interface BlockRendererProps {
   subdomain?: string;
 }
 
-export function CanvasBlockWrapper({ block, products, store, isSelected, isMobile, onSelect, onRemove, onMoveUp, onMoveDown, onInsertRequest, viewMode, onAddNested, selectedBlockId }: any) {
+export function CanvasBlockWrapper({ block, products, store, isSelected, isMobile, onSelect, onRemove, onMoveUp, onMoveDown, onInsertRequest, viewMode, onAddNested, selectedBlockId, isBuilder }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id, disabled: isMobile });
   
   const style = {
@@ -243,6 +243,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                         onMoveUp={onMoveUp}
                         onMoveDown={onMoveDown}
                         onInsertRequest={onInsertRequest}
+                        isBuilder={isBuilder}
                       />
                     ))}
                   </SortableContext>
@@ -275,7 +276,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           <Accordion type="single" collapsible className="w-full">
             {accItems.map((item: any) => (
               <AccordionItem key={item.id} value={item.id} className="border-b-0 mb-2">
-                <AccordionTrigger className="bg-slate-50 px-6 py-4 rounded-xl hover:bg-slate-100 hover:no-underline font-bold text-sm">
+                <AccordionTrigger className="bg-slate-50 px-6 py-4 rounded-xl hover:bg-slate-100 hover:no-underline font-bold text-sm text-left">
                   {item.title}
                 </AccordionTrigger>
                 <AccordionContent className="px-6 py-4 text-xs text-muted-foreground bg-white rounded-b-xl border border-slate-50 -mt-1">

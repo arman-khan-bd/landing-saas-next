@@ -745,6 +745,7 @@ function PageBuilderInner() {
                           onAddNested={(parentId: string, colIdx?: number) => {
                             onAddNestedRequest(parentId, colIdx);
                           }}
+                          isBuilder={true}
                         />
                       ))}
                     </div>
