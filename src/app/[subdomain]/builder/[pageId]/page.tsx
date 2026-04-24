@@ -74,6 +74,12 @@ const THEMES = [
     style: { backgroundColor: "#fdf8f0", primaryColor: "#2d7a3a", accentColor: "#c9941a", textColor: "#1a1a1a" }
   },
   {
+    id: "laam",
+    name: "Traditional Green",
+    icon: Zap,
+    style: { backgroundColor: "#fdf6e3", primaryColor: "#1a7c3e", accentColor: "#c9920a", textColor: "#1a1a1a" }
+  },
+  {
     id: "midnight",
     name: "Midnight Pro",
     icon: Moon,
@@ -611,7 +617,7 @@ function PageBuilderInner() {
                   <div className="p-4 space-y-6 pb-20">
                      <PropertySection label="Active Tier / Theme" icon={Layers}>
                         <div className="space-y-3">
-                           <div className="grid grid-cols-3 gap-1.5">
+                           <div className="grid grid-cols-4 gap-1.5">
                               {THEMES.map(t => (
                                 <button 
                                   key={t.id} 
@@ -743,6 +749,7 @@ function PageBuilderInner() {
                           isSelected={selectedBlockId === block.id}
                           selectedBlockId={selectedBlockId}
                           isMobile={isMobile}
+                          isBuilder={true}
                           onSelect={handleSelectBlock}
                           onRemove={removeBlock}
                           onMoveUp={(id?: string) => moveBlock(id || block.id, 'up')}
@@ -752,7 +759,6 @@ function PageBuilderInner() {
                           onAddNested={(parentId: string, colIdx?: number) => {
                             onAddNestedRequest(parentId, colIdx);
                           }}
-                          isBuilder={true}
                           pageStyle={pageStyle}
                         />
                       ))}

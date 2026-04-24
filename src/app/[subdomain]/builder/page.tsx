@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { 
   Plus, Search, MoreHorizontal, Edit, Trash2, Layout, 
   ExternalLink, Loader2, Globe, ArrowRight, Eye, PenTool,
-  Palette, Check, Sparkles, Moon, Sun, Leaf
+  Palette, Check, Sparkles, Moon, Sun, Leaf, Zap
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -44,6 +44,18 @@ const THEMES = [
       backgroundColor: "#fdf8f0", 
       primaryColor: "#2d7a3a",    
       accentColor: "#c9941a",     
+      textColor: "#1a1a1a"
+    }
+  },
+  {
+    id: "laam",
+    name: "Traditional Green",
+    description: "Bengali traditional health niche design with green and gold.",
+    icon: Zap,
+    style: {
+      backgroundColor: "#fdf6e3",
+      primaryColor: "#1a7c3e",
+      accentColor: "#c9920a",
       textColor: "#1a1a1a"
     }
   },

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -142,6 +143,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
   if (isHidden && isPreview) return null;
 
   const isOrganic = pageStyle?.themeId === 'organic';
+  const isTraditional = pageStyle?.themeId === 'laam';
 
   const style: any = {
     ...(block.style?.paddingTop !== undefined && { paddingTop: `${block.style.paddingTop}px` }),
@@ -283,13 +285,17 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
               <AccordionItem key={item.id} value={item.id} className="border-b-0 mb-2">
                 <AccordionTrigger className={cn(
                   "px-6 py-4 rounded-xl hover:no-underline font-bold text-sm text-left transition-all",
-                  isOrganic ? "bg-[#fff] border-2 border-[#d9e8da] text-[#1b5e20] hover:bg-[#f0f7f0]" : "bg-slate-50 hover:bg-slate-100"
+                  isOrganic ? "bg-[#fff] border-2 border-[#d9e8da] text-[#1b5e20] hover:bg-[#f0f7f0]" : 
+                  isTraditional ? "bg-[#fff] border-2 border-[#ddd] text-[#1a7c3e] hover:bg-[#e8f5ee]" :
+                  "bg-slate-50 hover:bg-slate-100"
                 )}>
                   {item.title}
                 </AccordionTrigger>
                 <AccordionContent className={cn(
                   "px-6 py-4 text-xs text-muted-foreground bg-white rounded-b-xl border -mt-1",
-                  isOrganic ? "border-[#d9e8da]" : "border-slate-50"
+                  isOrganic ? "border-[#d9e8da]" : 
+                  isTraditional ? "border-[#ddd]" :
+                  "border-slate-50"
                 )}>
                   {item.content}
                 </AccordionContent>
@@ -307,7 +313,8 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           style={style} 
           className={cn(
             "px-4 w-full max-w-6xl mx-auto relative overflow-hidden",
-            isOrganic && !block.style?.borderWidth && "border-l-4 border-[#2d7a3a] bg-white rounded-r-xl shadow-sm"
+            isOrganic && !block.style?.borderWidth && "border-l-4 border-[#2d7a3a] bg-white rounded-r-xl shadow-sm",
+            isTraditional && !block.style?.borderWidth && "border-l-4 border-[#1a7c3e] bg-white rounded-r-xl shadow-sm"
           )}
         >
           {block.content?.bgImage && <img src={block.content.bgImage} className="absolute inset-0 w-full h-full object-cover z-0 opacity-40" alt="" />}
@@ -317,9 +324,9 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             "items-end text-right": cardTextAlign === "right",
             "items-stretch text-justify": cardTextAlign === "justify"
           })}>
-             {IconComp && <IconComp style={{ color: block.content?.iconColor || (isOrganic ? "#2d7a3a" : "#145DCC") }} size={block.content?.iconSize || 32} className="shrink-0 mb-2" />}
+             {IconComp && <IconComp style={{ color: block.content?.iconColor || (isOrganic ? "#2d7a3a" : isTraditional ? "#1a7c3e" : "#145DCC") }} size={block.content?.iconSize || 32} className="shrink-0 mb-2" />}
              <div className="space-y-1 w-full">
-                <h4 className={cn("font-bold text-xl", isOrganic && "text-[#1b5e20]")}>{block.content?.title || "Feature Title"}</h4>
+                <h4 className={cn("font-bold text-xl", (isOrganic || isTraditional) && `text-[${isOrganic ? "#1b5e20" : "#1a7c3e"}]`)}>{block.content?.title || "Feature Title"}</h4>
                 <p className="text-sm opacity-80 leading-relaxed">{block.content?.subtitle || "Description placeholder..."}</p>
              </div>
              {(block.content?.items || []).length > 0 && (
@@ -332,9 +339,9 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                  {block.content.items.map((item: string, i: number) => {
                     let prefix;
                     const lStyle = block.content?.listStyle || "check";
-                    if (lStyle === "check") prefix = <Check className={cn("w-3.5 h-3.5", isOrganic ? "text-[#2d7a3a]" : "text-primary")} />;
+                    if (lStyle === "check") prefix = <Check className={cn("w-3.5 h-3.5", (isOrganic || isTraditional) ? "text-primary" : "text-primary")} />;
                     else if (lStyle === "bullet") prefix = <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />;
-                    else if (lStyle === "number") prefix = <span className={cn("text-[10px] font-bold", isOrganic ? "text-[#2d7a3a]" : "text-primary")}>{i+1}.</span>;
+                    else if (lStyle === "number") prefix = <span className={cn("text-[10px] font-bold", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>{i+1}.</span>;
 
                     return (
                       <div key={i} className="flex items-center gap-2">
@@ -360,10 +367,14 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           className={cn(
             "px-4 w-full font-headline font-bold leading-tight",
             isOrganic && isHeroHeader && "text-center py-8 text-white relative",
+            isTraditional && isHeroHeader && "text-center py-8 text-white relative",
           )}
         >
-          {isOrganic && isHeroHeader && (
-             <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" />
+          {(isOrganic || isTraditional) && isHeroHeader && (
+             <div className={cn(
+               "absolute inset-0 -z-10",
+               isOrganic ? "bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" : "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]"
+             )} />
           )}
           <HeaderTag className={headerSizes[HeaderTag]}>{block.content?.text || "Section Heading Placeholder"}</HeaderTag>
         </div>
@@ -397,7 +408,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             size="lg" 
             className={cn(
               "rounded-xl px-8 h-11 font-bold uppercase tracking-widest text-[10px] shadow-md transition-all hover:scale-105",
-              isOrganic ? "bg-[#c9941a] hover:bg-[#b5830e] text-white" : ""
+              isOrganic || isTraditional ? "bg-[#c9941a] hover:bg-[#b5830e] text-white" : ""
             )} 
             onClick={handleButtonClick}
           >
@@ -456,11 +467,11 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           {listItems.map((item: string, i: number) => {
             let prefix;
             if (listStyle === "check") {
-              prefix = <CheckCircle className={cn("w-3.5 h-3.5 shrink-0", isOrganic ? "text-[#2d7a3a]" : "text-primary")} />;
+              prefix = <CheckCircle className={cn("w-3.5 h-3.5 shrink-0", (isOrganic || isTraditional) ? "text-primary" : "text-primary")} />;
             } else if (listStyle === "bullet") {
               prefix = <div className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0 mx-1" />;
             } else if (listStyle === "number") {
-              prefix = <span className={cn("text-[10px] font-bold w-4 shrink-0", isOrganic ? "text-[#2d7a3a]" : "text-primary")}>{i + 1}.</span>;
+              prefix = <span className={cn("text-[10px] font-bold w-4 shrink-0", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>{i + 1}.</span>;
             }
 
             return (
@@ -478,7 +489,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       return (
         <div style={style} className="px-4 w-full max-w-5xl mx-auto text-left" data-block-type="product-order-form">
            {selectedProducts.length > 0 ? (
-             <LandingPageOrderForm products={selectedProducts} store={store} isOrganic={isOrganic} />
+             <LandingPageOrderForm products={selectedProducts} store={store} isOrganic={isOrganic} isTraditional={isTraditional} />
            ) : (
              <div className="p-12 bg-white rounded-[40px] shadow-sm border-2 border-dashed flex flex-col items-center justify-center gap-4 text-slate-300">
                 <CreditCard className="w-10 h-10 opacity-10" />
@@ -491,7 +502,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
   }
 }
 
-function LandingPageOrderForm({ products, store, isOrganic }: { products: any[], store: any, isOrganic: boolean }) {
+function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { products: any[], store: any, isOrganic: boolean, isTraditional: boolean }) {
   const { toast } = useToast();
   const db = useFirestore();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -604,11 +615,11 @@ function LandingPageOrderForm({ products, store, isOrganic }: { products: any[],
   return (
     <Card className={cn(
       "rounded-[40px] shadow-2xl border-none overflow-hidden text-left bg-white",
-      isOrganic && "border-2 border-[#d9e8da] bg-[#fdf8f0]"
+      (isOrganic || isTraditional) && "border-2 border-[#d9e8da] bg-[#fdf8f0]"
     )}>
       <div className={cn(
         "text-white p-10 md:p-14 text-center",
-        isOrganic ? "bg-[#1b5e20]" : "bg-[#161625]"
+        isOrganic ? "bg-[#1b5e20]" : isTraditional ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]" : "bg-[#161625]"
       )}>
         <h3 className="text-4xl md:text-5xl font-headline font-black mb-4 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3>
         <p className="text-white/60 font-medium uppercase tracking-[0.3em] text-xs">নিরাপদ এবং দ্রুত ডেলিভারি</p>
@@ -625,17 +636,17 @@ function LandingPageOrderForm({ products, store, isOrganic }: { products: any[],
                   className={cn(
                     "flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer",
                     selectedProductId === p.id 
-                      ? (isOrganic ? "border-[#2d7a3a] bg-[#f0f7f0]" : "border-primary bg-primary/5") 
+                      ? (isOrganic || isTraditional ? "border-primary bg-primary/5" : "border-primary bg-primary/5") 
                       : "bg-white border-slate-100 hover:bg-slate-50"
                   )}
                 >
-                   <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? (isOrganic ? 'border-[#2d7a3a]' : 'border-primary') : 'border-slate-300')}>
-                      {selectedProductId === p.id && <div className={cn("w-2 h-2 rounded-full", isOrganic ? "bg-[#2d7a3a]" : "bg-primary")} />}
+                   <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? 'border-primary' : 'border-slate-300')}>
+                      {selectedProductId === p.id && <div className="w-2 h-2 rounded-full bg-primary" />}
                    </div>
                    <img src={p.featuredImage} className="w-10 h-10 rounded-lg object-cover" alt="" />
                    <div className="flex-1 min-w-0">
                       <p className="font-bold text-xs truncate">{p.name}</p>
-                      <p className={cn("font-black text-sm", isOrganic ? "text-[#c0392b]" : "text-primary")}>৳ {p.currentPrice}</p>
+                      <p className={cn("font-black text-sm", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>৳ {p.currentPrice}</p>
                    </div>
                 </div>
               ))}
@@ -647,16 +658,16 @@ function LandingPageOrderForm({ products, store, isOrganic }: { products: any[],
         {product ? (
           <div className={cn(
             "flex flex-col md:flex-row justify-between items-center p-8 rounded-[32px] border gap-8",
-            isOrganic ? "bg-white border-[#d9e8da]" : "bg-slate-50 border-slate-100"
+            isOrganic || isTraditional ? "bg-white border-[#d9e8da]" : "bg-slate-50 border-slate-100"
           )}>
             <div className="flex items-center gap-8">
               <img src={product.featuredImage} className="w-24 h-24 rounded-2xl object-cover shadow-lg" alt="" />
               <div>
                 <h4 className="text-2xl font-bold tracking-tight">{product.name}</h4>
-                <p className={cn("font-black text-3xl mt-1", isOrganic ? "text-[#c0392b]" : "text-primary")}>৳ {product.currentPrice}</p>
+                <p className={cn("font-black text-3xl mt-1", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>৳ {product.currentPrice}</p>
               </div>
             </div>
-            <CheckCircle className={cn("w-12 h-12", isOrganic ? "text-[#2d7a3a]" : "text-primary")} />
+            <CheckCircle className={cn("w-12 h-12", (isOrganic || isTraditional) ? "text-primary" : "text-primary")} />
           </div>
         ) : (
           <div className="p-12 text-center border-2 border-dashed rounded-[32px] opacity-20 font-bold uppercase tracking-widest">পণ্য নির্বাচন করা হয়নি</div>
@@ -664,7 +675,7 @@ function LandingPageOrderForm({ products, store, isOrganic }: { products: any[],
 
         <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 border-t">
           <div className="space-y-6">
-            <h4 className={cn("font-bold text-xl uppercase tracking-widest", isOrganic ? "text-[#1b5e20]" : "text-slate-400")}>আপনার তথ্য</h4>
+            <h4 className={cn("font-bold text-xl uppercase tracking-widest", isOrganic || isTraditional ? "text-primary" : "text-slate-400")}>আপনার তথ্য</h4>
             <div className="space-y-4">
               <Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData(prev => ({...prev, fullName: e.target.value}))} />
               <Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.phone} onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} />
@@ -673,15 +684,15 @@ function LandingPageOrderForm({ products, store, isOrganic }: { products: any[],
           </div>
 
           <div className="space-y-6">
-            <h4 className={cn("font-bold text-xl uppercase tracking-widest", isOrganic ? "text-[#1b5e20]" : "text-slate-400")}>পেমেন্ট মেথড</h4>
+            <h4 className={cn("font-bold text-xl uppercase tracking-widest", isOrganic || isTraditional ? "text-primary" : "text-slate-400")}>পেমেন্ট মেথড</h4>
             <div className="grid gap-3">
               <div 
-                className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? (isOrganic ? 'border-[#2d7a3a] bg-[#f0f7f0]' : 'border-primary bg-primary/5') : 'bg-white border-slate-100')} 
+                className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? (isOrganic || isTraditional ? 'border-primary bg-primary/5' : 'border-primary bg-primary/5') : 'bg-white border-slate-100')} 
                 onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
               >
                 <div className="flex items-center gap-3">
-                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? (isOrganic ? 'border-[#2d7a3a]' : 'border-primary') : 'border-slate-300')}>
-                    {formData.paymentMethod === 'cod' && <div className={cn("w-2 h-2 rounded-full", isOrganic ? "bg-[#2d7a3a]" : "bg-primary")} />}
+                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
+                    {formData.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
                   </div>
                   <span className="font-bold flex-1 cursor-pointer">ক্যাশ অন ডেলিভারি</span>
                 </div>
@@ -689,21 +700,21 @@ function LandingPageOrderForm({ products, store, isOrganic }: { products: any[],
               </div>
             </div>
 
-            <div className={cn("p-10 rounded-[40px] border space-y-5", isOrganic ? "bg-white border-[#d9e8da]" : "bg-slate-50")}>
+            <div className={cn("p-10 rounded-[40px] border space-y-5", isOrganic || isTraditional ? "bg-white border-[#d9e8da]" : "bg-slate-50")}>
               <div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest">
                  <span>পণ্য মূল্য</span>
                  <span>৳ {product?.currentPrice || 0}</span>
               </div>
               <div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest">
                  <span>ডেলিভারি চার্জ</span>
-                 <span className="text-[#2d7a3a]">ফ্রি</span>
+                 <span className="text-primary">ফ্রি</span>
               </div>
-              <div className={cn("flex justify-between text-4xl font-black border-t pt-8 mt-4", isOrganic ? "text-[#1b5e20]" : "text-primary")}>
+              <div className={cn("flex justify-between text-4xl font-black border-t pt-8 mt-4", isOrganic || isTraditional ? "text-primary" : "text-primary")}>
                 <span className="text-xs pt-4 uppercase">মোট</span>
                 <span>৳ {(Number(product?.currentPrice || 0)).toFixed(0)}</span>
               </div>
             </div>
-            <Button type="submit" disabled={isPlacingOrder || !product} className={cn("w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", isOrganic ? "bg-[#2d7a3a] hover:bg-[#1b5e20] shadow-[#2d7a3a]/20" : "shadow-primary/40")}>
+            <Button type="submit" disabled={isPlacingOrder || !product} className={cn("w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", isOrganic || isTraditional ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "shadow-primary/40")}>
                {isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}
             </Button>
           </div>

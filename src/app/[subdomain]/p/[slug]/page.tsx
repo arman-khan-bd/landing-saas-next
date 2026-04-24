@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -125,6 +126,7 @@ export default function RenderDynamicPage() {
 
 function BlockRenderer({ block, products, store, subdomain, pageStyle }: { block: Block, products: any[], store: any, subdomain: string, pageStyle?: PageStyle }) {
   const isOrganic = pageStyle?.themeId === 'organic';
+  const isTraditional = pageStyle?.themeId === 'laam';
   
   const style: any = {
     ...(block.style?.paddingTop !== undefined && { paddingTop: `${block.style.paddingTop}px` }),
@@ -167,8 +169,8 @@ function BlockRenderer({ block, products, store, subdomain, pageStyle }: { block
           <Accordion type="single" collapsible className="w-full">
             {(block.content?.items || []).map((item: any) => (
               <AccordionItem key={item.id} value={item.id} className="border-b-0 mb-2">
-                <AccordionTrigger className={cn("px-6 py-4 rounded-xl hover:no-underline font-bold text-sm text-left transition-all", isOrganic ? "bg-[#fff] border-2 border-[#d9e8da] text-[#1b5e20] hover:bg-[#f0f7f0]" : "bg-slate-50 hover:bg-slate-100")}>{item.title}</AccordionTrigger>
-                <AccordionContent className={cn("px-6 py-4 text-sm text-slate-600 bg-white rounded-b-xl border -mt-1", isOrganic ? "border-[#d9e8da]" : "border-slate-50")}>{item.content}</AccordionContent>
+                <AccordionTrigger className={cn("px-6 py-4 rounded-xl hover:no-underline font-bold text-sm text-left transition-all", (isOrganic || isTraditional) ? "bg-[#fff] border-2 border-[#d9e8da] text-primary hover:bg-[#f0f7f0]" : "bg-slate-50 hover:bg-slate-100")}>{item.title}</AccordionTrigger>
+                <AccordionContent className={cn("px-6 py-4 text-sm text-slate-600 bg-white rounded-b-xl border -mt-1", (isOrganic || isTraditional) ? "border-[#d9e8da]" : "border-slate-50")}>{item.content}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
@@ -179,16 +181,16 @@ function BlockRenderer({ block, products, store, subdomain, pageStyle }: { block
       const IconComp = block.content?.showIcon && block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
       const cardTextAlign = block.style?.textAlign || "left";
       return (
-        <div style={style} className={cn("px-6 w-full max-w-6xl mx-auto relative overflow-hidden", isOrganic && !block.style?.borderWidth && "border-l-4 border-[#2d7a3a] bg-white rounded-r-xl shadow-sm")}>
+        <div style={style} className={cn("px-6 w-full max-w-6xl mx-auto relative overflow-hidden", (isOrganic || isTraditional) && !block.style?.borderWidth && "border-l-4 border-primary bg-white rounded-r-xl shadow-sm")}>
           {block.content?.bgImage && <img src={block.content.bgImage} className="absolute inset-0 w-full h-full object-cover z-0 opacity-40" />}
           <div className={cn("relative z-10 space-y-4 flex flex-col", {"items-start text-left": cardTextAlign === "left", "items-center text-center": cardTextAlign === "center", "items-end text-right": cardTextAlign === "right"})}>
-             {IconComp && <IconComp style={{ color: block.content?.iconColor || (isOrganic ? "#2d7a3a" : "#145DCC") }} size={block.content?.iconSize || 32} className="shrink-0 mb-2" />}
-             <div className="space-y-1 w-full"><h4 className={cn("font-bold text-xl", isOrganic && "text-[#1b5e20]")}>{block.content?.title}</h4><p className="text-sm opacity-80 leading-relaxed">{block.content?.subtitle}</p></div>
+             {IconComp && <IconComp style={{ color: block.content?.iconColor || (isOrganic || isTraditional ? "#1a7c3e" : "#145DCC") }} size={block.content?.iconSize || 32} className="shrink-0 mb-2" />}
+             <div className="space-y-1 w-full"><h4 className={cn("font-bold text-xl", (isOrganic || isTraditional) && "text-primary")}>{block.content?.title}</h4><p className="text-sm opacity-80 leading-relaxed">{block.content?.subtitle}</p></div>
              {(block.content?.items || []).length > 0 && (
                <div className={cn("space-y-2 pt-2 w-full flex flex-col", {"items-start": cardTextAlign === "left", "items-center": cardTextAlign === "center"})}>
                  {block.content.items.map((item: string, i: number) => (
                    <div key={i} className="flex items-center gap-2">
-                     <Check className={cn("w-3.5 h-3.5", isOrganic ? "text-[#2d7a3a]" : "text-primary")} />
+                     <Check className={cn("w-3.5 h-3.5", (isOrganic || isTraditional) ? "text-primary" : "text-primary")} />
                      <span className="text-sm font-medium">{item}</span>
                    </div>
                  ))}
@@ -202,19 +204,24 @@ function BlockRenderer({ block, products, store, subdomain, pageStyle }: { block
       const Tag = block.content?.level || 'h2';
       const isHeroHeader = !block.style?.marginLeft && !block.style?.marginRight;
       return (
-        <div style={style} className={cn("px-6 max-w-6xl mx-auto font-headline font-bold leading-tight", isOrganic && isHeroHeader && "text-center py-12 text-white relative overflow-hidden")}>
-          {isOrganic && isHeroHeader && <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" />}
+        <div style={style} className={cn("px-6 max-w-6xl mx-auto font-headline font-bold leading-tight", (isOrganic || isTraditional) && isHeroHeader && "text-center py-12 text-white relative overflow-hidden")}>
+          {(isOrganic || isTraditional) && isHeroHeader && (
+             <div className={cn(
+               "absolute inset-0 -z-10",
+               isOrganic ? "bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" : "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]"
+             )} />
+          )}
           <Tag className={cn({ h1: 'text-4xl md:text-7xl', h2: 'text-3xl md:text-5xl', h3: 'text-xl md:text-3xl' }[Tag as any] || "text-3xl")}>{block.content?.text}</Tag>
         </div>
       );
     
     case "button":
-      return <div style={style} className="px-6 max-w-6xl mx-auto"><Button size="lg" className={cn("rounded-2xl px-12 h-16 font-bold text-xl shadow-2xl transition-all hover:scale-105", isOrganic ? "bg-[#c9941a] hover:bg-[#b5830e] text-white" : "bg-primary text-white shadow-primary/30")} onClick={handleButtonClick}>{block.content?.text}</Button></div>;
+      return <div style={style} className="px-6 max-w-6xl mx-auto"><Button size="lg" className={cn("rounded-2xl px-12 h-16 font-bold text-xl shadow-2xl transition-all hover:scale-105", (isOrganic || isTraditional) ? "bg-[#c9941a] hover:bg-[#b5830e] text-white" : "bg-primary text-white shadow-primary/30")} onClick={handleButtonClick}>{block.content?.text}</Button></div>;
 
     case "product-order-form":
       const productIds = block.content?.productIds || (block.content?.mainProductId ? [block.content.mainProductId] : []);
       const selectedProducts = products.filter(p => productIds.includes(p.id));
-      return <div style={style} className="px-6 max-w-5xl mx-auto" data-block-type="product-order-form"><LandingPageOrderForm products={selectedProducts} store={store} isOrganic={isOrganic} /></div>;
+      return <div style={style} className="px-6 max-w-5xl mx-auto" data-block-type="product-order-form"><LandingPageOrderForm products={selectedProducts} store={store} isOrganic={isOrganic} isTraditional={isTraditional} /></div>;
 
     case "image":
       return <div style={style} className="px-6 max-w-6xl mx-auto">{block.content?.url && <img src={block.content.url} className="w-full shadow-2xl rounded-xl" />}</div>;
@@ -229,7 +236,7 @@ function BlockRenderer({ block, products, store, subdomain, pageStyle }: { block
   }
 }
 
-function LandingPageOrderForm({ products, store, isOrganic }: { products: any[], store: any, isOrganic: boolean }) {
+function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { products: any[], store: any, isOrganic: boolean, isTraditional: boolean }) {
   const { toast } = useToast();
   const db = useFirestore();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -261,25 +268,25 @@ function LandingPageOrderForm({ products, store, isOrganic }: { products: any[],
   if (orderSuccess) return <Card className="rounded-[40px] shadow-2xl p-12 text-center bg-white animate-in zoom-in-95 duration-500"><div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto mb-6"><CheckCircle2 className="w-12 h-12" /></div><h3 className="text-3xl font-headline font-black text-slate-900 uppercase">THANK YOU!</h3><p className="text-slate-500 mt-2">আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে।</p></Card>;
 
   return (
-    <Card className={cn("rounded-[40px] shadow-2xl border-none overflow-hidden text-left bg-white", isOrganic && "border-2 border-[#d9e8da] bg-[#fdf8f0]")}>
-      <div className={cn("text-white p-10 md:p-14 text-center", isOrganic ? "bg-[#1b5e20]" : "bg-[#161625]")}><h3 className="text-4xl md:text-5xl font-headline font-black mb-4 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3><p className="text-white/60 font-medium uppercase tracking-[0.3em] text-xs">নিরাপদ এবং দ্রুত ডেলিভারি</p></div>
+    <Card className={cn("rounded-[40px] shadow-2xl border-none overflow-hidden text-left bg-white", (isOrganic || isTraditional) && "border-2 border-[#d9e8da] bg-[#fdf8f0]")}>
+      <div className={cn("text-white p-10 md:p-14 text-center", isOrganic ? "bg-[#1b5e20]" : isTraditional ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]" : "bg-[#161625]")}><h3 className="text-4xl md:text-5xl font-headline font-black mb-4 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3><p className="text-white/60 font-medium uppercase tracking-[0.3em] text-xs">নিরাপদ এবং দ্রুত ডেলিভারি</p></div>
       <div className="p-8 md:p-14 space-y-12">
         {products.length > 1 && (
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {products.map(p => (
-                <div key={p.id} onClick={() => setSelectedProductId(p.id)} className={cn("flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedProductId === p.id ? (isOrganic ? "border-[#2d7a3a] bg-[#f0f7f0]" : "border-primary bg-primary/5") : "bg-white border-slate-100")}>
-                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? (isOrganic ? 'border-[#2d7a3a]' : 'border-primary') : 'border-slate-300')}>{selectedProductId === p.id && <div className={cn("w-2 h-2 rounded-full", isOrganic ? "bg-[#2d7a3a]" : "bg-primary")} />}</div>
+                <div key={p.id} onClick={() => setSelectedProductId(p.id)} className={cn("flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedProductId === p.id ? "border-primary bg-primary/5" : "bg-white border-slate-100")}>
+                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? 'border-primary' : 'border-slate-300')}>{selectedProductId === p.id && <div className={cn("w-2 h-2 rounded-full bg-primary")} />}</div>
                   <img src={p.featuredImage} className="w-10 h-10 rounded-lg object-cover" />
-                  <div className="flex-1"><p className="font-bold text-xs truncate">{p.name}</p><p className={cn("font-black text-sm", isOrganic ? "text-[#c0392b]" : "text-primary")}>৳ {p.currentPrice}</p></div>
+                  <div className="flex-1"><p className="font-bold text-xs truncate">{p.name}</p><p className={cn("font-black text-sm", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>৳ {p.currentPrice}</p></div>
                 </div>
               ))}
            </div>
         )}
         <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 border-t">
-          <div className="space-y-4"><Label className={cn("text-[10px] font-black uppercase tracking-widest", isOrganic ? "text-[#1b5e20]" : "text-slate-400")}>আপনার তথ্য</Label><Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} /><Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} /><Textarea placeholder="পুরো ঠিকানা (জেলা সহ)" className="rounded-3xl min-h-[120px] bg-white border-2 border-slate-100 p-6 text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} /></div>
+          <div className="space-y-4"><Label className={cn("text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>আপনার তথ্য</Label><Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} /><Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} /><Textarea placeholder="পুরো ঠিকানা (জেলা সহ)" className="rounded-3xl min-h-[120px] bg-white border-2 border-slate-100 p-6 text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} /></div>
           <div className="space-y-6">
-            <div className={cn("p-10 rounded-[40px] border space-y-5", isOrganic ? "bg-white border-[#d9e8da]" : "bg-slate-50")}><div className="flex justify-between text-muted-foreground font-bold text-xs uppercase tracking-widest"><span>পণ্য মূল্য</span><span>৳ {product?.currentPrice || 0}</span></div><div className="flex justify-between text-muted-foreground font-bold text-xs uppercase tracking-widest"><span>ডেলিভারি চার্জ</span><span className="text-[#2d7a3a]">ফ্রি</span></div><div className={cn("flex justify-between text-4xl font-black border-t pt-8 mt-4", isOrganic ? "text-[#1b5e20]" : "text-primary")}><span className="text-xs pt-4 uppercase">মোট</span><span>৳ {product?.currentPrice || 0}</span></div></div>
-            <Button type="submit" disabled={isPlacingOrder || !product} className={cn("w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", isOrganic ? "bg-[#2d7a3a] hover:bg-[#1b5e20] shadow-[#2d7a3a]/20" : "bg-primary")}>{isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}</Button>
+            <div className={cn("p-10 rounded-[40px] border space-y-5", (isOrganic || isTraditional) ? "bg-white border-[#d9e8da]" : "bg-slate-50")}><div className="flex justify-between text-muted-foreground font-bold text-xs uppercase tracking-widest"><span>পণ্য মূল্য</span><span>৳ {product?.currentPrice || 0}</span></div><div className="flex justify-between text-muted-foreground font-bold text-xs uppercase tracking-widest"><span>ডেলিভারি চার্জ</span><span className="text-primary">ফ্রি</span></div><div className={cn("flex justify-between text-4xl font-black border-t pt-8 mt-4", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}><span className="text-xs pt-4 uppercase">মোট</span><span>৳ {product?.currentPrice || 0}</span></div></div>
+            <Button type="submit" disabled={isPlacingOrder || !product} className={cn("w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", (isOrganic || isTraditional) ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "bg-primary")}>{isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}</Button>
           </div>
         </form>
       </div>
