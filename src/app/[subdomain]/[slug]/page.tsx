@@ -15,10 +15,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getTenantPath } from "@/lib/utils";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // --- Types ---
-type BlockType = "header" | "paragraph" | "image" | "accordion" | "button" | "link" | "carousel" | "checked-list" | "product-order-form" | "row" | "card";
+type BlockType = "header" | "paragraph" | "rich-text" | "image" | "accordion" | "button" | "link" | "carousel" | "checked-list" | "product-order-form" | "row" | "card";
 
 interface Block {
   id: string;
@@ -195,6 +196,25 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
     4: "lg:grid-cols-4",
   };
 
+  const handleButtonClick = () => {
+    const link = block.content?.link;
+    if (!link) return;
+
+    if (link === "[checkout]") {
+      const orderForm = document.querySelector('[data-block-type="product-order-form"]');
+      if (orderForm) {
+        orderForm.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
+    if (link.startsWith("http")) {
+      window.open(link, '_blank');
+    } else {
+      window.location.href = getTenantPath(subdomain, link);
+    }
+  };
+
   switch (block.type) {
     case "row":
       const colsCount = block.content?.columns || 1;
@@ -208,6 +228,24 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
                 ))}
              </div>
           ))}
+        </div>
+      );
+
+    case "accordion":
+      return (
+        <div style={style} className={cn("px-6 max-w-6xl mx-auto", animClass, responsiveClass)}>
+          <Accordion type="single" collapsible className="w-full">
+            {(block.content?.items || []).map((item: any) => (
+              <AccordionItem key={item.id} value={item.id} className="border-b-0 mb-2">
+                <AccordionTrigger className="bg-slate-50 px-6 py-4 rounded-xl hover:bg-slate-100 hover:no-underline font-bold text-sm">
+                  {item.title}
+                </AccordionTrigger>
+                <AccordionContent className="px-6 py-4 text-sm text-slate-600 bg-white rounded-b-xl border border-slate-50 -mt-1">
+                  {item.content}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       );
 
@@ -264,6 +302,16 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
           {block.content?.text}
         </div>
       );
+
+    case "rich-text":
+      return (
+        <div style={style} className={cn("px-6 max-w-6xl mx-auto", animClass, responsiveClass)}>
+          <div 
+            className="prose prose-lg prose-slate max-w-none" 
+            dangerouslySetInnerHTML={{ __html: block.content?.html || "" }} 
+          />
+        </div>
+      );
     
     case "image":
       return (
@@ -275,7 +323,7 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
     case "button":
       return (
         <div style={style} className={cn("px-6 max-w-6xl mx-auto", animClass, responsiveClass)}>
-          <Button size="lg" className="rounded-2xl px-12 h-16 font-bold text-xl shadow-2xl shadow-primary/30 transition-all hover:scale-105">
+          <Button size="lg" className="rounded-2xl px-12 h-16 font-bold text-xl shadow-2xl shadow-primary/30 transition-all hover:scale-105" onClick={handleButtonClick}>
             {block.content?.text}
           </Button>
         </div>
@@ -349,7 +397,7 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
       const productIds = block.content?.productIds || (block.content?.mainProductId ? [block.content.mainProductId] : []);
       const selectedProducts = products.filter(p => productIds.includes(p.id));
       return (
-        <div style={style} className={cn("px-6 max-w-5xl mx-auto", animClass, responsiveClass)}>
+        <div style={style} className={cn("px-6 max-w-5xl mx-auto", animClass, responsiveClass)} data-block-type="product-order-form">
           <LandingPageOrderForm products={selectedProducts} store={store} />
         </div>
       );
@@ -608,7 +656,7 @@ function LandingPageOrderForm({ products, store }: { products: any[], store: any
                             <p className="text-[10px] font-black uppercase text-primary">নাম্বার: {selectedManualMethod.number}</p>
                             <p className="text-[10px] text-slate-500 mt-1 italic">{selectedManualMethod.instructions}</p>
                           </div>
-                          <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
+                          <input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20 px-4 w-full text-sm font-bold" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
                         </div>
                       )}
                     </div>

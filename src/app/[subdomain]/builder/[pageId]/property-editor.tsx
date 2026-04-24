@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
 import { Block } from "./types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +12,14 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Trash2, Zap, Shield, Star, Heart, ShoppingCart, Truck, CreditCard, Lightbulb, Check, Info, Columns } from "lucide-react";
+import { Trash2, Zap, Shield, Star, Heart, ShoppingCart, Truck, CreditCard, Lightbulb, Check, Info, Columns, LayoutList, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import "react-quill-new/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { 
+  ssr: false, 
+  loading: () => <div className="h-48 bg-black/20 animate-pulse rounded-lg" /> 
+});
 
 interface PropertyEditorProps {
   block: Block;
@@ -34,6 +41,54 @@ const ICON_LIST = [
 ];
 
 export function PropertyEditor({ block, products, onChange }: PropertyEditorProps) {
+  const quillRef = useRef<any>(null);
+
+  const imageHandler = useCallback(() => {
+    const input = document.createElement("input");
+    input.setAttribute("type", "file");
+    input.setAttribute("accept", "image/*");
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+      uploadData.append("upload_preset", "krishi-bazar");
+
+      try {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/dj7pg5slk/image/upload`, {
+          method: "POST",
+          body: uploadData,
+        });
+        const data = await res.json();
+        const quill = quillRef.current?.getEditor();
+        if (quill) {
+          const range = quill.getSelection(true);
+          quill.insertEmbed(range.index, "image", data.secure_url);
+        }
+      } catch (error) {
+        console.error("Editor image upload error:", error);
+      }
+    };
+  }, []);
+
+  const modules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['link', 'image'],
+        ['clean'],
+      ],
+      handlers: {
+        image: imageHandler,
+      },
+    },
+  }), [imageHandler]);
+
   switch (block.type) {
     case "header":
       return (
@@ -62,6 +117,71 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
           <Textarea value={block.content?.text || ""} onChange={(e) => onChange({ content: { text: e.target.value } })} className="rounded-lg min-h-[80px] text-xs leading-relaxed border-none bg-black/20 text-white" />
         </div>
       );
+    case "rich-text":
+      return (
+        <div className="space-y-2">
+          <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">HTML Content Builder</Label>
+          <div className="rounded-lg overflow-hidden border border-white/5 bg-white">
+            <ReactQuill
+              ref={quillRef}
+              theme="snow"
+              value={block.content?.html || ""}
+              onChange={(val) => onChange({ content: { html: val } })}
+              modules={modules}
+              className="text-slate-900 h-48"
+            />
+          </div>
+        </div>
+      );
+    case "accordion":
+      return (
+        <div className="space-y-4">
+           <div className="flex items-center justify-between">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Manage Items</Label>
+              <Button variant="ghost" size="sm" className="h-5 text-[8px] text-white/70 hover:text-white" onClick={() => {
+                const newItems = [...(block.content?.items || []), { id: Math.random().toString(36).substr(2, 9), title: `Question ${ (block.content?.items?.length || 0) + 1 }`, content: "" }];
+                onChange({ content: { items: newItems } });
+              }}>+ Add Row</Button>
+           </div>
+           <div className="space-y-2">
+              <Accordion type="single" collapsible className="w-full">
+                {(block.content?.items || []).map((item: any, index: number) => (
+                  <AccordionItem key={item.id} value={item.id} className="border-none mb-1">
+                    <AccordionTrigger className="hover:no-underline py-2 bg-black/20 px-3 rounded-lg text-white">
+                      <span className="text-[9px] font-bold truncate max-w-[150px]">{item.title}</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2 pb-2 space-y-3 px-3 bg-black/40 rounded-b-lg -mt-1">
+                       <Input 
+                         placeholder="Title / Question" 
+                         value={item.title} 
+                         onChange={(e) => {
+                           const newItems = [...block.content.items];
+                           newItems[index].title = e.target.value;
+                           onChange({ content: { items: newItems } });
+                         }}
+                         className="h-7 text-[9px] bg-black/20 border-none text-white"
+                       />
+                       <Textarea 
+                         placeholder="Description / Content" 
+                         value={item.content} 
+                         onChange={(e) => {
+                           const newItems = [...block.content.items];
+                           newItems[index].content = e.target.value;
+                           onChange({ content: { items: newItems } });
+                         }}
+                         className="h-20 text-[9px] bg-black/20 border-none text-white"
+                       />
+                       <Button variant="ghost" size="sm" className="w-full h-6 text-[8px] text-red-400 hover:text-red-300" onClick={() => {
+                         const newItems = block.content.items.filter((_: any, i: number) => i !== index);
+                         onChange({ content: { items: newItems } });
+                       }}>Delete Item</Button>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+           </div>
+        </div>
+      );
     case "image":
       return (
         <div className="space-y-1">
@@ -77,8 +197,25 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
             <Input value={block.content?.text || ""} onChange={(e) => onChange({ content: { text: e.target.value } })} className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />
           </div>
           <div className="space-y-1">
-            <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Link</Label>
-            <Input value={block.content?.link || ""} onChange={(e) => onChange({ content: { link: e.target.value } })} className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />
+            <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Destination Routing</Label>
+            <Select value={block.content?.link || ""} onValueChange={(v) => onChange({ content: { link: v } })}>
+              <SelectTrigger className="rounded-lg h-8 border-none bg-black/20 text-white text-[10px]"><SelectValue placeholder="Select Route" /></SelectTrigger>
+              <SelectContent className="rounded-lg">
+                <SelectItem value="/">Storefront Home</SelectItem>
+                <SelectItem value="/all-products">All Products Catalog</SelectItem>
+                <SelectItem value="[checkout]">Scroll to Checkout Form</SelectItem>
+                <Separator className="my-1" />
+                <SelectItem value="https://">Custom External URL</SelectItem>
+              </SelectContent>
+            </Select>
+            {block.content?.link && block.content.link !== "/" && block.content.link !== "/all-products" && block.content.link !== "[checkout]" && (
+               <Input 
+                 placeholder="Enter full URL..." 
+                 value={block.content.link === "https://" ? "" : block.content.link} 
+                 onChange={(e) => onChange({ content: { link: e.target.value } })} 
+                 className="mt-1.5 h-7 rounded-lg border-none bg-black/20 text-white text-[10px]" 
+               />
+            )}
           </div>
         </div>
       );

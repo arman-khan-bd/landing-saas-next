@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -16,10 +15,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getTenantPath } from "@/lib/utils";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // --- Types ---
-type BlockType = "header" | "paragraph" | "image" | "accordion" | "button" | "link" | "carousel" | "checked-list" | "product-order-form" | "row" | "card";
+type BlockType = "header" | "paragraph" | "rich-text" | "image" | "accordion" | "button" | "link" | "carousel" | "checked-list" | "product-order-form" | "row" | "card";
 
 interface Block {
   id: string;
@@ -121,9 +121,6 @@ export default function RenderDynamicPage() {
 }
 
 function BlockRenderer({ block, products, store, subdomain }: { block: Block, products: any[], store: any, subdomain: string }) {
-  const hideOnDesktop = block.style?.hideDesktop;
-  const hideOnMobile = block.style?.hideMobile;
-
   const style: any = {
     ...(block.style?.paddingTop !== undefined && { paddingTop: `${block.style.paddingTop}px` }),
     ...(block.style?.paddingBottom !== undefined && { paddingBottom: `${block.style.paddingBottom}px` }),
@@ -153,13 +150,50 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
   }
 
   const animClass = block.style?.animation === "fadeIn" ? "animate-in fade-in fill-mode-both duration-700" : block.style?.animation === "slideUp" ? "animate-in slide-in-from-bottom-10 fill-mode-both duration-700" : block.style?.animation === "zoomIn" ? "animate-in zoom-in-95 fill-mode-both duration-700" : "";
-  const responsiveClass = cn(hideOnDesktop ? "md:hidden" : "", hideOnMobile ? "hidden md:block" : "");
+  const responsiveClass = cn(block.style?.hideDesktop ? "md:hidden" : "", block.style?.hideMobile ? "hidden md:block" : "");
+
+  const handleButtonClick = () => {
+    const link = block.content?.link;
+    if (!link) return;
+
+    if (link === "[checkout]") {
+      const orderForm = document.querySelector('[data-block-type="product-order-form"]');
+      if (orderForm) {
+        orderForm.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
+    if (link.startsWith("http")) {
+      window.open(link, '_blank');
+    } else {
+      window.location.href = getTenantPath(subdomain, link);
+    }
+  };
 
   switch (block.type) {
     case "row":
       const gridClass = { 1: "md:grid-cols-1", 2: "md:grid-cols-2", 3: "md:grid-cols-3", 4: "md:grid-cols-4" }[block.content?.columns || 1] || "md:grid-cols-1";
       return <div style={style} className={cn("grid gap-6 px-6 max-w-6xl mx-auto grid-cols-1", gridClass, animClass, responsiveClass)}>{block.children?.map(child => <BlockRenderer key={child.id} block={child} products={products} store={store} subdomain={subdomain} />)}</div>;
     
+    case "accordion":
+      return (
+        <div style={style} className={cn("px-6 max-w-6xl mx-auto", animClass, responsiveClass)}>
+          <Accordion type="single" collapsible className="w-full">
+            {(block.content?.items || []).map((item: any) => (
+              <AccordionItem key={item.id} value={item.id} className="border-b-0 mb-2">
+                <AccordionTrigger className="bg-slate-50 px-6 py-4 rounded-xl hover:bg-slate-100 hover:no-underline font-bold text-sm text-left">
+                  {item.title}
+                </AccordionTrigger>
+                <AccordionContent className="px-6 py-4 text-sm text-slate-600 bg-white rounded-b-xl border border-slate-50 -mt-1">
+                  {item.content}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      );
+
     case "card":
       const IconComp = block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
       return (
@@ -203,10 +237,19 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
       return <div style={style} className={cn("px-6 max-w-6xl mx-auto", animClass, responsiveClass)}><Tag className={cn({ h1: 'text-5xl md:text-7xl', h2: 'text-4xl md:text-5xl', h3: 'text-2xl md:text-3xl' }[Tag as any] || "text-3xl", "font-headline font-bold leading-tight")}>{block.content?.text}</Tag></div>;
     case "paragraph":
       return <div style={style} className={cn("px-6 max-w-6xl mx-auto text-muted-foreground leading-relaxed whitespace-pre-wrap text-lg", animClass, responsiveClass)}>{block.content?.text}</div>;
+    case "rich-text":
+      return (
+        <div style={style} className={cn("px-6 max-w-6xl mx-auto", animClass, responsiveClass)}>
+          <div 
+            className="prose prose-lg prose-slate max-w-none" 
+            dangerouslySetInnerHTML={{ __html: block.content?.html || "" }} 
+          />
+        </div>
+      );
     case "image":
       return <div style={style} className={cn("px-6 max-w-6xl mx-auto", animClass, responsiveClass)}>{block.content?.url && <img src={block.content.url} className="w-full shadow-2xl" style={{ borderRadius: style.borderRadius }} alt="" />}</div>;
     case "button":
-      return <div style={style} className={cn("px-6 max-w-6xl mx-auto", animClass, responsiveClass)}><Button size="lg" className="rounded-2xl px-12 h-16 font-bold text-xl shadow-2xl shadow-primary/30 transition-all hover:scale-105">{block.content?.text}</Button></div>;
+      return <div style={style} className={cn("px-6 max-w-6xl mx-auto", animClass, responsiveClass)}><Button size="lg" className="rounded-2xl px-12 h-16 font-bold text-xl shadow-2xl shadow-primary/30 transition-all hover:scale-105" onClick={handleButtonClick}>{block.content?.text}</Button></div>;
     case "checked-list":
       return <div style={style} className={cn("px-6 max-w-6xl mx-auto space-y-4", animClass, responsiveClass)}>{(block.content?.items || []).map((item: string, i: number) => {
         let prefix = <div className="mt-1 bg-primary/10 p-1.5 rounded-full text-primary shadow-sm"><LucideIcons.CheckCircle className="w-5 h-5 fill-primary text-white" /></div>;
@@ -220,7 +263,7 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
     case "product-order-form":
       const productIds = block.content?.productIds || (block.content?.mainProductId ? [block.content.mainProductId] : []);
       const selectedProducts = products.filter(p => productIds.includes(p.id));
-      return <div style={style} className={cn("px-6 max-w-5xl mx-auto", animClass, responsiveClass)}><LandingPageOrderForm products={selectedProducts} store={store} /></div>;
+      return <div style={style} className={cn("px-6 max-w-5xl mx-auto", animClass, responsiveClass)} data-block-type="product-order-form"><LandingPageOrderForm products={selectedProducts} store={store} /></div>;
     default: return null;
   }
 }
@@ -350,22 +393,22 @@ function LandingPageOrderForm({ products, store }: { products: any[], store: any
                        <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'manual' ? 'border-primary' : 'border-slate-300')}>
                          {formData.paymentMethod === 'manual' && <div className="w-2 h-2 rounded-full bg-primary" />}
                        </div>
-                       <span className="font-bold cursor-pointer">বিকাশ/নগদ/ম্যানুয়াল</span>
+                       <span className="font-bold cursor-pointer">বিকাশ/নগদ/রকেট</span>
                     </div>
                     <Smartphone className="w-5 h-5 text-slate-300" />
                   </div>
                   {formData.paymentMethod === 'manual' && (
-                    <div className="mt-4 space-y-4 pt-4 border-t border-primary/10" onClick={(e) => e.stopPropagation()}>
+                    <div className="mt-4 pt-4 border-t border-primary/10 space-y-4 animate-in slide-in-from-top-2">
                       <div className="grid grid-cols-2 gap-2">
                         {store.paymentSettings.manualMethods.map((m: any) => (
-                          <Button key={m.id} type="button" variant="outline" className={cn("h-10 rounded-xl text-[10px] font-bold", formData.selectedManualMethodId === m.id ? 'bg-primary text-white' : '')} onClick={() => setFormData(prev => ({...prev, selectedManualMethodId: m.id}))}>{m.name}</Button>
+                          <Button key={m.id} type="button" variant="outline" className={cn("h-10 rounded-xl text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white' : '')} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: m.id})); }}>{m.name}</Button>
                         ))}
                       </div>
                       {selectedManualMethod && (
-                        <div className="space-y-3">
-                          <div className="p-3 bg-white rounded-xl border border-primary/20">
-                            <p className="text-[10px] font-black uppercase text-primary">নাম্বার: {selectedManualMethod.number}</p>
-                            <p className="text-[10px] text-slate-500 mt-1 italic">{selectedManualMethod.instructions}</p>
+                        <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="p-4 bg-white rounded-2xl border border-primary/10">
+                            <p className="text-[10px] font-black text-primary uppercase">নাম্বার: {selectedManualMethod.number}</p>
+                            <p className="text-[10px] text-slate-500 mt-1 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</p>
                           </div>
                           <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
                         </div>

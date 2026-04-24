@@ -1,6 +1,7 @@
 export type BlockType =
   | "header"
   | "paragraph"
+  | "rich-text"
   | "image"
   | "accordion"
   | "button"

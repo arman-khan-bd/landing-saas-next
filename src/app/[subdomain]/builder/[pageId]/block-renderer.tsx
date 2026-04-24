@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { cn } from "@/lib/utils";
+import { cn, getTenantPath } from "@/lib/utils";
 
 import { useFirestore } from "@/firebase";
 import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "firebase/firestore";
@@ -11,7 +11,7 @@ import {
   CheckCircle2, Truck, Smartphone, Loader2, Check,
   ChevronUp, ChevronDown, Plus, Trash2, GripVertical,
   CheckCircle, CreditCard, ShieldCheck, Image as ImageIcon,
-  Columns
+  Columns, LayoutList
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 import { CSS } from "@dnd-kit/utilities";
 import { Block, BlockType } from "./types";
@@ -166,6 +167,26 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     4: "lg:grid-cols-4",
   };
 
+  const handleButtonClick = () => {
+    if (isBuilder) return;
+    const link = block.content?.link;
+    if (!link) return;
+
+    if (link === "[checkout]") {
+      const orderForm = document.querySelector('[data-block-type="product-order-form"]');
+      if (orderForm) {
+        orderForm.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
+    if (link.startsWith("http")) {
+      window.open(link, '_blank');
+    } else {
+      window.location.href = getTenantPath(store.subdomain, link);
+    }
+  };
+
   switch (block.type) {
     case "row":
       const colsCount = block.content?.columns || 1;
@@ -247,6 +268,24 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           })}
         </div>
       );
+    case "accordion":
+      const accItems = block.content?.items || [{ id: "1", title: "Item 1", content: "Content 1" }];
+      return (
+        <div style={style} className="px-4 w-full max-w-6xl mx-auto">
+          <Accordion type="single" collapsible className="w-full">
+            {accItems.map((item: any) => (
+              <AccordionItem key={item.id} value={item.id} className="border-b-0 mb-2">
+                <AccordionTrigger className="bg-slate-50 px-6 py-4 rounded-xl hover:bg-slate-100 hover:no-underline font-bold text-sm">
+                  {item.title}
+                </AccordionTrigger>
+                <AccordionContent className="px-6 py-4 text-xs text-muted-foreground bg-white rounded-b-xl border border-slate-50 -mt-1">
+                  {item.content}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      );
     case "card":
       const IconComp = block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
       return (
@@ -292,6 +331,15 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       </div>;
     case "paragraph":
       return <div style={style} className="px-4 w-full leading-relaxed whitespace-pre-wrap text-sm opacity-80">{block.content?.text || "Your body text content will appear here once you type something into the editor sidebar."}</div>;
+    case "rich-text":
+      return (
+        <div style={style} className="px-4 w-full">
+          <div 
+            className="prose prose-sm prose-slate max-w-none prose-p:my-1" 
+            dangerouslySetInnerHTML={{ __html: block.content?.html || "Add your rich text content in the sidebar editor." }} 
+          />
+        </div>
+      );
     case "image":
       return <div style={style} className="px-4 w-full">
         {block.content?.url ? (
@@ -305,7 +353,9 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       </div>;
     case "button":
       return <div style={style} className="px-4 w-full">
-        <Button size="lg" className="rounded-xl px-8 h-11 font-bold uppercase tracking-widest text-[10px] shadow-md transition-all hover:scale-105">{block.content?.text || "Action Button"}</Button>
+        <Button size="lg" className="rounded-xl px-8 h-11 font-bold uppercase tracking-widest text-[10px] shadow-md transition-all hover:scale-105" onClick={handleButtonClick}>
+          {block.content?.text || "Action Button"}
+        </Button>
       </div>;
     case "carousel":
       const carouselCols = block.style?.desktopColumns || 3;
@@ -385,7 +435,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       const productIds = block.content?.productIds || (block.content?.mainProductId ? [block.content.mainProductId] : []);
       const selectedProducts = products.filter(p => productIds.includes(p.id));
       return (
-        <div style={style} className="px-4 w-full max-w-5xl mx-auto text-left">
+        <div style={style} className="px-4 w-full max-w-5xl mx-auto text-left" data-block-type="product-order-form">
            {selectedProducts.length > 0 ? (
              <LandingPageOrderForm products={selectedProducts} store={store} />
            ) : (

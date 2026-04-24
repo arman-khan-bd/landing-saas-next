@@ -15,7 +15,7 @@ import {
   MoveVertical, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon,
   Paintbrush, Layers,
   ChevronUp, ChevronDown as ChevronDownIcon, Truck, CreditCard,
-  Star, Heart, Lightbulb, Info, Shield, Zap, Check
+  Star, Heart, Lightbulb, Info, Shield, Zap, Check, LayoutList
 } from "lucide-react";
 import {
   DndContext,
@@ -205,9 +205,10 @@ function PageBuilderInner() {
     switch (type) {
       case "header": return { text: "Section Heading", level: "h2" };
       case "paragraph": return { text: "Add your text content here..." };
+      case "rich-text": return { html: "<h2>Pro Storytelling Section</h2><p>Use the editor to create beautiful multi-line content with <strong>formatting</strong>.</p>" };
       case "image": return { url: "" };
-      case "accordion": return { items: [{ title: "Item 1", content: "Content 1" }] };
-      case "button": return { text: "Click Here", link: "#" };
+      case "accordion": return { items: [{ id: "1", title: "Why choose our service?", content: "We offer 100% money back guarantee and 24/7 support." }] };
+      case "button": return { text: "Click Here", link: "/" };
       case "product-order-form": return { productIds: [], mainProductId: "", shippingType: "free" };
       case "row": return { columns: 2 };
       case "carousel": return { items: [{ id: "1", title: "Slide 1", subtitle: "", imageUrl: "", buttonText: "" }], desktopColumns: 3 };
@@ -783,10 +784,12 @@ function PageBuilderInner() {
                     </DialogHeader>
                     <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-slate-50/50 max-h-[60vh] overflow-y-auto">
                       <WidgetGridButton icon={Type} label="Large Heading" onClick={() => handleAddBlock("header")} />
-                      <WidgetGridButton icon={List} label="Rich Text" onClick={() => handleAddBlock("paragraph")} />
+                      <WidgetGridButton icon={List} label="Simple Text" onClick={() => handleAddBlock("paragraph")} />
+                      <WidgetGridButton icon={LayoutList} label="Rich Text" onClick={() => handleAddBlock("rich-text")} highlight />
                       <WidgetGridButton icon={ImageIcon} label="Image Box" onClick={() => handleAddBlock("image")} />
                       <WidgetGridButton icon={Monitor} label="Action Button" onClick={() => handleAddBlock("button")} />
                       <WidgetGridButton icon={Square} label="Styled Card" onClick={() => handleAddBlock("card")} highlight />
+                      <WidgetGridButton icon={ChevronDownIcon} label="Accordion" onClick={() => handleAddBlock("accordion")} />
                       {!activeParentId && <WidgetGridButton icon={Columns} label="Grid Row" onClick={() => handleAddBlock("row")} />}
                       <WidgetGridButton icon={ShoppingCart} label="Order Form" onClick={() => handleAddBlock("product-order-form")} highlight />
                       <WidgetGridButton icon={Layout} label="Carousel" onClick={() => handleAddBlock("carousel")} />
