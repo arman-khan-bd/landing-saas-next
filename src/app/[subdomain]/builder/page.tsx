@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { getStoreUrl, cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const THEMES = [
   {
@@ -300,8 +301,8 @@ export default function PageManager() {
 
       {/* Theme Selection Modal */}
       <Dialog open={!!selectedPageForTheme} onOpenChange={(open) => !open && setSelectedPageForTheme(null)}>
-        <DialogContent className="max-w-3xl rounded-[40px] border-none shadow-2xl p-0 overflow-hidden bg-slate-50">
-          <DialogHeader className="p-8 bg-white border-b">
+        <DialogContent className="max-w-3xl rounded-[40px] border-none shadow-2xl p-0 overflow-hidden bg-slate-50 flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-8 bg-white border-b shrink-0">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-primary/10 rounded-2xl text-primary"><Palette className="w-6 h-6" /></div>
               <div>
@@ -311,50 +312,53 @@ export default function PageManager() {
             </div>
           </DialogHeader>
           
-          <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-            {THEMES.map((theme) => {
-              const isCurrent = selectedPageForTheme?.pageStyle?.themeId === theme.id;
-              const isApplying = applyingThemeId === theme.id;
-              const Icon = theme.icon;
+          <ScrollArea className="flex-1">
+            <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+              {THEMES.map((theme) => {
+                const isCurrent = selectedPageForTheme?.pageStyle?.themeId === theme.id;
+                const isApplying = applyingThemeId === theme.id;
+                const Icon = theme.icon;
 
-              return (
-                <Card 
-                  key={theme.id} 
-                  className={cn(
-                    "rounded-[32px] overflow-hidden transition-all duration-300 border-2 cursor-pointer relative",
-                    isCurrent ? 'border-primary ring-4 ring-primary/5 shadow-xl scale-[1.02]' : 'border-white hover:border-primary/20 hover:shadow-lg'
-                  )}
-                  onClick={() => !isCurrent && handleApplyTheme(theme)}
-                >
-                  <div className="p-6 space-y-4">
-                     <div className="flex justify-between items-start">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
-                           <Icon className="w-5 h-5 text-slate-600" />
-                        </div>
-                        {isCurrent && <Check className="w-5 h-5 text-primary" />}
-                     </div>
-                     <div>
-                        <h4 className="font-bold text-base">{theme.name}</h4>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed">{theme.description}</p>
-                     </div>
-                     <div className="flex gap-1.5 pt-2">
-                        <div className="h-4 w-8 rounded-full border shadow-inner" style={{ backgroundColor: theme.style.primaryColor }} />
-                        <div className="h-4 w-8 rounded-full border shadow-inner" style={{ backgroundColor: theme.style.accentColor }} />
-                        <div className="h-4 w-8 rounded-full border shadow-inner" style={{ backgroundColor: theme.style.backgroundColor }} />
-                     </div>
-                     <Button 
-                       variant={isCurrent ? "secondary" : "default"} 
-                       className="w-full h-10 rounded-xl font-black uppercase text-[9px] tracking-widest mt-2"
-                       disabled={isCurrent || !!applyingThemeId}
-                     >
-                        {isApplying ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : isCurrent ? "Active" : "Apply Theme"}
-                     </Button>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-          <div className="p-6 bg-primary/5 text-center">
+                return (
+                  <Card 
+                    key={theme.id} 
+                    className={cn(
+                      "rounded-[32px] overflow-hidden transition-all duration-300 border-2 cursor-pointer relative",
+                      isCurrent ? 'border-primary ring-4 ring-primary/5 shadow-xl scale-[1.02]' : 'border-white hover:border-primary/20 hover:shadow-lg'
+                    )}
+                    onClick={() => !isCurrent && handleApplyTheme(theme)}
+                  >
+                    <div className="p-6 space-y-4">
+                       <div className="flex justify-between items-start">
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                             <Icon className="w-5 h-5 text-slate-600" />
+                          </div>
+                          {isCurrent && <Check className="w-5 h-5 text-primary" />}
+                       </div>
+                       <div>
+                          <h4 className="font-bold text-base">{theme.name}</h4>
+                          <p className="text-[10px] text-muted-foreground leading-relaxed">{theme.description}</p>
+                       </div>
+                       <div className="flex gap-1.5 pt-2">
+                          <div className="h-4 w-8 rounded-full border shadow-inner" style={{ backgroundColor: theme.style.primaryColor }} />
+                          <div className="h-4 w-8 rounded-full border shadow-inner" style={{ backgroundColor: theme.style.accentColor }} />
+                          <div className="h-4 w-8 rounded-full border shadow-inner" style={{ backgroundColor: theme.style.backgroundColor }} />
+                       </div>
+                       <Button 
+                         variant={isCurrent ? "secondary" : "default"} 
+                         className="w-full h-10 rounded-xl font-black uppercase text-[9px] tracking-widest mt-2"
+                         disabled={isCurrent || !!applyingThemeId}
+                       >
+                          {isApplying ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : isCurrent ? "Active" : "Apply Theme"}
+                       </Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </ScrollArea>
+
+          <div className="p-6 bg-primary/5 text-center shrink-0">
              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">iHut Studio Design Engine</p>
           </div>
         </DialogContent>
