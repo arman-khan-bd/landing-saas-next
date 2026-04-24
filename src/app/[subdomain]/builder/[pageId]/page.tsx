@@ -17,7 +17,7 @@ import {
   Paintbrush, Layers,
   ChevronUp, ChevronDown as ChevronDownIcon, Truck, CreditCard,
   Star, Heart, Lightbulb, Info, Shield, Zap, Check, LayoutList,
-  Flame, Leaf, Moon, Sun, Quote
+  Flame, Leaf, Moon, Sun, Quote, Rocket
 } from "lucide-react";
 import {
   DndContext,
@@ -247,6 +247,24 @@ function PageBuilderInner() {
 
   const getInitialContent = (type: BlockType) => {
     switch (type) {
+      case "ultra-hero": return { 
+        badgeText: "BSTI অনুমোদিত • BCSIR ল্যাব টেস্টেড", 
+        title: "অসুস্থ ব্যক্তি ছাড়া সুস্থতার মূল্য কেউ বোঝে না", 
+        subtitle: "শক্তি ও সুস্বাস্থ্যের নির্ভরযোগ্য উপহার",
+        brandTitle: "সাম",
+        brandSubtitle: "প্রাকৃতিক স্বাস্থ্য সুরক্ষা",
+        ctaText: "এখানে অর্ডার করুন",
+        ctaLink: "[checkout]",
+        phoneText: "01621-611589",
+        phoneLink: "tel:01621611589",
+        trustItems: [
+          { iconName: "CheckSquare", label: "BSTI অনুমোদিত" },
+          { iconName: "Microscope", label: "ল্যাব টেস্টেড" },
+          { iconName: "Truck", label: "ফ্রি ডেলিভারি" },
+          { iconName: "Banknote", label: "ক্যাশ অন ডেলিভারি" },
+          { iconName: "RotateCcw", label: "সহজ রিফান্ড" }
+        ]
+      };
       case "quote": return { title: "Reference Headline", text: "Text content goes here...", reference: "Source Citation", iconName: "Quote" };
       case "header": return { text: "Section Heading", level: "h2" };
       case "paragraph": return { text: "Add your text content here..." };
@@ -799,6 +817,7 @@ function PageBuilderInner() {
                       </div>
                     </DialogHeader>
                     <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-slate-50/50 max-h-[60vh] overflow-y-auto">
+                      <WidgetGridButton icon={Rocket} label="Ultra Hero" onClick={() => handleAddBlock("ultra-hero")} highlight />
                       <WidgetGridButton icon={Type} label="Large Heading" onClick={() => handleAddBlock("header")} />
                       <WidgetGridButton icon={List} label="Simple Text" onClick={() => handleAddBlock("paragraph")} />
                       <WidgetGridButton icon={LayoutList} label="Rich Text" onClick={() => handleAddBlock("rich-text")} highlight />

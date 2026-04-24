@@ -12,7 +12,8 @@ export type BlockType =
   | "row"
   | "card"
   | "marquee"
-  | "quote";
+  | "quote"
+  | "ultra-hero";
 
 export interface Block {
   id: string;

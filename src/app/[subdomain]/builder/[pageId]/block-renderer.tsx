@@ -12,7 +12,8 @@ import {
   CheckCircle2, Truck, Smartphone, Loader2, Check,
   ChevronUp, ChevronDown, Plus, Trash2, GripVertical,
   CheckCircle, CreditCard, ShieldCheck, Image as ImageIcon,
-  Columns, LayoutList, Zap, ArrowRight, Star, BookOpen, Quote
+  Columns, LayoutList, Zap, ArrowRight, Star, BookOpen, Quote,
+  Phone, Microscope, Banknote, RotateCcw, CheckSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -193,12 +194,12 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     4: "lg:grid-cols-4",
   };
 
-  const handleButtonClick = () => {
+  const handleButtonClick = (link?: string) => {
     if (isBuilder) return;
-    const link = block.content?.link;
-    if (!link) return;
+    const targetLink = link || block.content?.link;
+    if (!targetLink) return;
 
-    if (link === "[checkout]") {
+    if (targetLink === "[checkout]") {
       const orderForm = document.querySelector('[data-block-type="product-order-form"]');
       if (orderForm) {
         orderForm.scrollIntoView({ behavior: 'smooth' });
@@ -206,14 +207,96 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       return;
     }
 
-    if (link.startsWith("http")) {
-      window.open(link, '_blank');
+    if (targetLink.startsWith("http") || targetLink.startsWith("tel:")) {
+      window.open(targetLink, '_blank');
     } else {
-      window.location.href = getTenantPath(store.subdomain, link);
+      window.location.href = getTenantPath(store.subdomain, targetLink);
     }
   };
 
   switch (block.type) {
+    case "ultra-hero":
+      const trustItems = block.content?.trustItems || [];
+      return (
+        <div style={style} className="w-full relative overflow-hidden">
+           {/* Professional Background */}
+           <div className={cn(
+             "absolute inset-0 -z-10",
+             isOrganic ? "bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" : 
+             isTraditional ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]" :
+             "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950"
+           )} />
+           <div className="absolute inset-0 -z-10 opacity-[0.03]" style={{ backgroundImage: `repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)`, backgroundSize: '10px 10px' }} />
+
+           <div className="max-w-4xl mx-auto px-6 py-16 sm:py-24 text-center flex flex-col items-center">
+              {/* Pill Badge */}
+              <div className="mb-8 inline-flex items-center px-5 py-2 rounded-full bg-yellow-400/10 border border-yellow-400/20 text-yellow-400 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-top-4 duration-700">
+                {block.content?.badgeText || "BSTI অনুমোদিত • BCSIR ল্যাব টেস্টেড"}
+              </div>
+
+              {/* Main Heading */}
+              <h1 className="text-4xl sm:text-7xl font-headline font-black text-white leading-[1.1] sm:leading-[0.95] mb-4 tracking-tighter max-w-3xl">
+                {renderTextWithHighlights(block.content?.title || "অসুস্থ ব্যক্তি ছাড়া সুস্থতার মূল্য কেউ বোঝে না", block.style?.highlightColor)}
+              </h1>
+
+              {/* Subtitle */}
+              <p className="text-lg sm:text-2xl font-bold text-yellow-300/90 mb-10 tracking-tight">
+                {block.content?.subtitle || "শক্তি ও সুস্বাস্থ্যের নির্ভরযোগ্য উপহার"}
+              </p>
+
+              {/* Brand Box */}
+              <div className="bg-white rounded-full px-8 py-3 mb-12 shadow-2xl shadow-black/20 flex items-center gap-4 border-2 border-white/20 animate-pulse">
+                 <span className="text-2xl sm:text-3xl font-black text-[#1a7c3e] tracking-tighter">
+                   "{block.content?.brandTitle || "সাম"}"
+                 </span>
+                 <div className="h-6 w-px bg-slate-200" />
+                 <span className="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-widest pt-1">
+                   {block.content?.brandSubtitle || "প্রাকৃতিক স্বাস্থ্য সুরক্ষা"}
+                 </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 w-full justify-center items-center mb-16">
+                 <Button 
+                   size="lg" 
+                   className="h-16 px-10 rounded-full bg-gradient-to-br from-[#f9a825] to-[#e65c00] text-white font-black text-xl shadow-xl shadow-orange-950/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
+                   onClick={() => handleButtonClick(block.content?.ctaLink || "[checkout]")}
+                 >
+                   <ArrowRight className="w-5 h-5 mr-2" />
+                   {block.content?.ctaText || "এখানে অর্ডার করুন"}
+                 </Button>
+
+                 <Button 
+                   variant="outline"
+                   size="lg" 
+                   className="h-16 px-10 rounded-full border-2 border-white/30 bg-white/5 text-white hover:bg-white/10 font-bold text-lg w-full sm:w-auto"
+                   onClick={() => handleButtonClick(block.content?.phoneLink || "tel:01621611589")}
+                 >
+                   <Phone className="w-5 h-5 mr-2 text-yellow-400" />
+                   {block.content?.phoneText || "01621-611589"}
+                 </Button>
+              </div>
+
+              {/* Trust Ribbon */}
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-6 sm:gap-10 w-full pt-12 border-t border-white/10">
+                 {trustItems.map((item: any, i: number) => {
+                   const TrustIcon = (LucideIcons as any)[item.iconName] || CheckSquare;
+                   return (
+                     <div key={i} className="flex flex-col items-center gap-3 group">
+                        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-emerald-400 shadow-inner group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300">
+                           <TrustIcon className="w-6 h-6" />
+                        </div>
+                        <span className="text-[10px] sm:text-xs font-black text-white/70 uppercase tracking-widest group-hover:text-white transition-colors">
+                          {item.label}
+                        </span>
+                     </div>
+                   );
+                 })}
+              </div>
+           </div>
+        </div>
+      );
+
     case "quote":
       const quoteIcon = block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
       return (
@@ -496,7 +579,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
               isTraditional ? "bg-gradient-to-br from-[#f9a825] to-[#e65c00] hover:opacity-90 text-white shadow-primary/30" : 
               "bg-primary text-white shadow-primary/30"
             )} 
-            onClick={handleButtonClick}
+            onClick={() => handleButtonClick()}
           >
             {block.content?.text || "Action Button"}
           </Button>

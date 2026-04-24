@@ -20,7 +20,7 @@ import {
   Lightbulb, Check, Info, Columns, LayoutList, ChevronRight, Search,
   CheckCircle, Star, User, Settings, Mail, Phone, MapPin, Globe,
   Box, Package, Play, Pause, Sun, Moon, Wind, Tree, Trash, Edit, RefreshCw,
-  Droplets, Activity, BookOpen, Quote
+  Droplets, Activity, BookOpen, Quote, Microscope, Banknote, RotateCcw, CheckSquare, Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import "react-quill-new/dist/quill.snow.css";
@@ -47,7 +47,7 @@ const COMMON_ICONS = [
   "Flag", "Filter", "Folder", "File", "FileText", "Image", "Paperclip", "Maximize", "Minimize", "Move",
   "Play", "Pause", "Stop", "SkipBack", "SkipForward", "Repeat", "Shuffle", "Volume", "VolumeX", "Mic",
   "Sun", "Moon", "Wind", "Umbrella", "Thermometer", "Droplets", "Sunrise", "Sunset", "Mountain", "Tree",
-  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity", "BookOpen", "Quote"
+  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity", "BookOpen", "Quote", "Microscope", "Banknote", "RotateCcw", "CheckSquare"
 ];
 
 export function PropertyEditor({ block, products, onChange }: PropertyEditorProps) {
@@ -106,6 +106,96 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
   }), [imageHandler]);
 
   switch (block.type) {
+    case "ultra-hero":
+      return (
+        <div className="space-y-6">
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Trust Badge Text</Label>
+              <Input value={block.content?.badgeText || ""} onChange={(e) => onChange({ content: { badgeText: e.target.value } })} className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />
+           </div>
+           
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Main Title</Label>
+              <Textarea value={block.content?.title || ""} onChange={(e) => onChange({ content: { title: e.target.value } })} className="rounded-lg min-h-[80px] border-none bg-black/20 text-white text-xs" />
+           </div>
+
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Subtitle</Label>
+              <Input value={block.content?.subtitle || ""} onChange={(e) => onChange({ content: { subtitle: e.target.value } })} className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />
+           </div>
+
+           <Separator className="bg-white/5" />
+
+           <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Brand Name</Label>
+                <Input value={block.content?.brandTitle || ""} onChange={(e) => onChange({ content: { brandTitle: e.target.value } })} className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Brand Slogan</Label>
+                <Input value={block.content?.brandSubtitle || ""} onChange={(e) => onChange({ content: { brandSubtitle: e.target.value } })} className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />
+              </div>
+           </div>
+
+           <Separator className="bg-white/5" />
+
+           <div className="space-y-4">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Action Buttons</Label>
+              <div className="grid gap-3">
+                 <div className="p-3 bg-black/20 rounded-xl space-y-3">
+                    <Label className="text-[7px] font-black text-indigo-400 uppercase">Primary CTA</Label>
+                    <Input placeholder="Button Text" value={block.content?.ctaText || ""} onChange={(e) => onChange({ content: { ctaText: e.target.value } })} className="h-7 text-[10px] bg-black/20 border-none text-white" />
+                    <Input placeholder="Link (e.g. [checkout])" value={block.content?.ctaLink || ""} onChange={(e) => onChange({ content: { ctaLink: e.target.value } })} className="h-7 text-[10px] bg-black/20 border-none text-white" />
+                 </div>
+                 <div className="p-3 bg-black/20 rounded-xl space-y-3">
+                    <Label className="text-[7px] font-black text-yellow-400 uppercase">Phone Button</Label>
+                    <Input placeholder="Phone Number" value={block.content?.phoneText || ""} onChange={(e) => onChange({ content: { phoneText: e.target.value } })} className="h-7 text-[10px] bg-black/20 border-none text-white" />
+                    <Input placeholder="Link (e.g. tel:016...)" value={block.content?.phoneLink || ""} onChange={(e) => onChange({ content: { phoneLink: e.target.value } })} className="h-7 text-[10px] bg-black/20 border-none text-white" />
+                 </div>
+              </div>
+           </div>
+
+           <Separator className="bg-white/5" />
+
+           <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Trust ribbon</Label>
+                <Button variant="ghost" size="sm" className="h-5 text-[8px] text-white/70 hover:text-white" onClick={() => {
+                   const items = [...(block.content?.trustItems || []), { iconName: "CheckSquare", label: "New Item" }];
+                   onChange({ content: { trustItems: items } });
+                }}>+ Add Item</Button>
+              </div>
+              <div className="space-y-2">
+                 {(block.content?.trustItems || []).map((item: any, idx: number) => (
+                   <div key={idx} className="p-3 bg-black/20 rounded-xl space-y-2 relative group">
+                      <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-5 w-5 text-rose-400 opacity-0 group-hover:opacity-100" onClick={() => {
+                         const items = block.content.trustItems.filter((_:any, i:number) => i !== idx);
+                         onChange({ content: { trustItems: items } });
+                      }}><Trash2 className="w-2.5 h-2.5" /></Button>
+                      <div className="grid grid-cols-2 gap-2">
+                         <Select value={item.iconName} onValueChange={(val) => {
+                            const items = [...block.content.trustItems];
+                            items[idx].iconName = val;
+                            onChange({ content: { trustItems: items } });
+                         }}>
+                            <SelectTrigger className="h-7 bg-black/20 border-none text-[9px] text-white"><SelectValue placeholder="Icon" /></SelectTrigger>
+                            <SelectContent className="max-h-[200px]">
+                               {COMMON_ICONS.map(i => <SelectItem key={i} value={i} className="text-[9px]">{i}</SelectItem>)}
+                            </SelectContent>
+                         </Select>
+                         <Input placeholder="Label" value={item.label} onChange={(e) => {
+                            const items = [...block.content.trustItems];
+                            items[idx].label = e.target.value;
+                            onChange({ content: { trustItems: items } });
+                         }} className="h-7 text-[9px] bg-black/20 border-none text-white" />
+                      </div>
+                   </div>
+                 ))}
+              </div>
+           </div>
+        </div>
+      );
+
     case "quote":
       return (
         <div className="space-y-4">
