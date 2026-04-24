@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -77,7 +76,7 @@ export function CanvasBlockWrapper({ block, products, store, isSelected, isMobil
         <div className="absolute -top-7 left-0 flex items-center gap-2 bg-primary text-white rounded-t-lg px-2.5 py-1 text-[8px] font-black uppercase tracking-widest z-50 shadow-lg">
           {!isMobile ? (
             <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing hover:bg-white/20 p-0.5 rounded mr-1">
-              <GripVertical className="w-3 h-3" />
+              GripVertical
             </div>
           ) : (
             <div className="flex items-center gap-1 border-r border-white/20 pr-1 mr-1">
@@ -115,7 +114,7 @@ export function CanvasBlockWrapper({ block, products, store, isSelected, isMobil
       )}
       <div className={cn(
         "relative",
-        isBuilder && block.type !== "row" && "pointer-events-none select-none"
+        isBuilder && block.type !== "row" && "pointer-events-auto"
       )}>
         <BlockRenderer 
           block={block} 
@@ -261,15 +260,13 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                 )}
 
                 {isBuilder && (
-                   <Button 
-                     variant="outline" 
-                     size="sm" 
-                     className="mt-auto pointer-events-auto h-8 border-dashed border-slate-200 text-slate-300 hover:text-primary hover:border-primary/50 text-[8px] uppercase font-bold rounded-xl bg-white/10"
+                   <button 
+                     className="mt-auto pointer-events-auto h-8 border border-dashed border-slate-200 text-slate-300 hover:text-primary hover:border-primary/50 text-[8px] uppercase font-bold rounded-xl bg-white/10 flex items-center justify-center px-3 transition-all"
                      onClick={(e) => { e.stopPropagation(); onAddNested?.(block.id, colIdx); }}
                    >
                      <Plus className="w-3 h-3 mr-1" />
                      Add to Col {colIdx + 1}
-                   </Button>
+                   </button>
                 )}
               </div>
             );
@@ -326,7 +323,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           })}>
              {IconComp && <IconComp style={{ color: block.content?.iconColor || (isOrganic ? "#2d7a3a" : isTraditional ? "#1a7c3e" : "#145DCC") }} size={block.content?.iconSize || 32} className="shrink-0 mb-2" />}
              <div className="space-y-1 w-full">
-                <h4 className={cn("font-bold text-xl", (isOrganic || isTraditional) && `text-[${isOrganic ? "#1b5e20" : "#1a7c3e"}]`)}>{block.content?.title || "Feature Title"}</h4>
+                <h4 className={cn("font-bold text-xl", (isOrganic || isTraditional) && `text-primary`)}>{block.content?.title || "Feature Title"}</h4>
                 <p className="text-sm opacity-80 leading-relaxed">{block.content?.subtitle || "Description placeholder..."}</p>
              </div>
              {(block.content?.items || []).length > 0 && (
@@ -359,18 +356,17 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       const HeaderTag = block.content?.level || 'h2';
       const headerSizes: any = { h1: 'text-2xl md:text-5xl', h2: 'text-xl md:text-4xl', h3: 'text-lg md:text-2xl' };
       
-      const isHeroHeader = !block.style?.marginLeft && !block.style?.marginRight;
+      const themeActive = isOrganic || isTraditional;
 
       return (
         <div 
           style={style} 
           className={cn(
             "px-4 w-full font-headline font-bold leading-tight",
-            isOrganic && isHeroHeader && "text-center py-8 text-white relative",
-            isTraditional && isHeroHeader && "text-center py-8 text-white relative",
+            themeActive && "text-center py-8 text-white relative overflow-hidden",
           )}
         >
-          {(isOrganic || isTraditional) && isHeroHeader && (
+          {themeActive && (
              <div className={cn(
                "absolute inset-0 -z-10",
                isOrganic ? "bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" : "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]"
@@ -408,7 +404,8 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             size="lg" 
             className={cn(
               "rounded-xl px-8 h-11 font-bold uppercase tracking-widest text-[10px] shadow-md transition-all hover:scale-105",
-              isOrganic || isTraditional ? "bg-[#c9941a] hover:bg-[#b5830e] text-white" : ""
+              isOrganic ? "bg-[#c9941a] hover:bg-[#b5830e] text-white" : 
+              isTraditional ? "bg-gradient-to-br from-[#f9a825] to-[#e65c00] hover:opacity-90 text-white" : ""
             )} 
             onClick={handleButtonClick}
           >

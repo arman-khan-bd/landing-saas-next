@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -202,10 +201,10 @@ function BlockRenderer({ block, products, store, subdomain, pageStyle }: { block
 
     case "header":
       const Tag = block.content?.level || 'h2';
-      const isHeroHeader = !block.style?.marginLeft && !block.style?.marginRight;
+      const themeActive = isOrganic || isTraditional;
       return (
-        <div style={style} className={cn("px-6 max-w-6xl mx-auto font-headline font-bold leading-tight", (isOrganic || isTraditional) && isHeroHeader && "text-center py-12 text-white relative overflow-hidden")}>
-          {(isOrganic || isTraditional) && isHeroHeader && (
+        <div style={style} className={cn("px-6 max-w-6xl mx-auto font-headline font-bold leading-tight", themeActive && "text-center py-12 text-white relative overflow-hidden")}>
+          {themeActive && (
              <div className={cn(
                "absolute inset-0 -z-10",
                isOrganic ? "bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" : "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]"
@@ -216,7 +215,22 @@ function BlockRenderer({ block, products, store, subdomain, pageStyle }: { block
       );
     
     case "button":
-      return <div style={style} className="px-6 max-w-6xl mx-auto"><Button size="lg" className={cn("rounded-2xl px-12 h-16 font-bold text-xl shadow-2xl transition-all hover:scale-105", (isOrganic || isTraditional) ? "bg-[#c9941a] hover:bg-[#b5830e] text-white" : "bg-primary text-white shadow-primary/30")} onClick={handleButtonClick}>{block.content?.text}</Button></div>;
+      return (
+        <div style={style} className="px-6 max-w-6xl mx-auto">
+          <Button 
+            size="lg" 
+            className={cn(
+              "rounded-2xl px-12 h-16 font-bold text-xl shadow-2xl transition-all hover:scale-105", 
+              isOrganic ? "bg-[#c9941a] hover:bg-[#b5830e] text-white" : 
+              isTraditional ? "bg-gradient-to-br from-[#f9a825] to-[#e65c00] hover:opacity-90 text-white" : 
+              "bg-primary text-white shadow-primary/30"
+            )} 
+            onClick={handleButtonClick}
+          >
+            {block.content?.text}
+          </Button>
+        </div>
+      );
 
     case "product-order-form":
       const productIds = block.content?.productIds || (block.content?.mainProductId ? [block.content.mainProductId] : []);
