@@ -20,7 +20,7 @@ import {
   Lightbulb, Check, Info, Columns, LayoutList, ChevronRight, Search,
   CheckCircle, Star, User, Settings, Mail, Phone, MapPin, Globe,
   Box, Package, Play, Pause, Sun, Moon, Wind, Tree, Trash, Edit, RefreshCw,
-  Droplets, Activity
+  Droplets, Activity, BookOpen, Quote
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import "react-quill-new/dist/quill.snow.css";
@@ -47,7 +47,7 @@ const COMMON_ICONS = [
   "Flag", "Filter", "Folder", "File", "FileText", "Image", "Paperclip", "Maximize", "Minimize", "Move",
   "Play", "Pause", "Stop", "SkipBack", "SkipForward", "Repeat", "Shuffle", "Volume", "VolumeX", "Mic",
   "Sun", "Moon", "Wind", "Umbrella", "Thermometer", "Droplets", "Sunrise", "Sunset", "Mountain", "Tree",
-  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity"
+  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity", "BookOpen", "Quote"
 ];
 
 export function PropertyEditor({ block, products, onChange }: PropertyEditorProps) {
@@ -106,6 +106,64 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
   }), [imageHandler]);
 
   switch (block.type) {
+    case "quote":
+      return (
+        <div className="space-y-4">
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Quote Title</Label>
+              <Input value={block.content?.title || ""} onChange={(e) => onChange({ content: { title: e.target.value } })} className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />
+           </div>
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Quote Text</Label>
+              <Textarea value={block.content?.text || ""} onChange={(e) => onChange({ content: { text: e.target.value } })} className="rounded-lg min-h-[80px] border-none bg-black/20 text-white text-xs" />
+           </div>
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Source Reference (Citation)</Label>
+              <Input value={block.content?.reference || ""} onChange={(e) => onChange({ content: { reference: e.target.value } })} placeholder="e.g. Sunan Ibn Majah" className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />
+           </div>
+           
+           <Separator className="bg-white/5" />
+
+           <div className="space-y-2">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Decoration Icon</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-white/30" />
+                <Input 
+                  placeholder="Search icons..." 
+                  value={iconSearch} 
+                  onChange={(e) => setIconSearch(e.target.value)} 
+                  className="h-7 text-[10px] pl-7 bg-black/20 border-none text-white" 
+                />
+              </div>
+              <div className="grid grid-cols-6 gap-1 p-1 bg-black/20 rounded-lg max-h-[120px] overflow-y-auto custom-scrollbar">
+                {filteredIcons.map(iconName => {
+                  const Icon = (LucideIcons as any)[iconName];
+                  return (
+                    <button 
+                      key={iconName}
+                      onClick={() => onChange({ content: { iconName } })}
+                      className={cn("p-2 rounded-md transition-all flex items-center justify-center", block.content?.iconName === iconName ? "bg-white text-primary" : "text-white/40 hover:bg-white/5")}
+                      title={iconName}
+                    >
+                      {Icon && <Icon className="w-3.5 h-3.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+           </div>
+
+           <div className="grid grid-cols-2 gap-3 mt-2">
+              <div className="space-y-1">
+                 <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Accent Color</Label>
+                 <Input type="color" value={block.style?.accentColor || "#1a7c3e"} onChange={(e) => onChange({ style: { accentColor: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
+              </div>
+              <div className="space-y-1">
+                 <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Ref Bg Color</Label>
+                 <Input type="color" value={block.style?.refBgColor || "#f0fdf4"} onChange={(e) => onChange({ style: { refBgColor: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
+              </div>
+           </div>
+        </div>
+      );
     case "marquee":
        return (
          <div className="space-y-4">

@@ -12,7 +12,7 @@ import {
   CheckCircle2, Truck, Smartphone, Loader2, Check,
   ChevronUp, ChevronDown, Plus, Trash2, GripVertical,
   CheckCircle, CreditCard, ShieldCheck, Image as ImageIcon,
-  Columns, LayoutList, Zap, ArrowRight, Star
+  Columns, LayoutList, Zap, ArrowRight, Star, BookOpen, Quote
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -214,6 +214,40 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
   };
 
   switch (block.type) {
+    case "quote":
+      const quoteIcon = block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
+      return (
+        <div style={style} className="px-4 w-full max-w-6xl mx-auto">
+           <blockquote 
+             className={cn(
+               "relative bg-white p-8 rounded-3xl shadow-sm border-l-4 overflow-hidden group",
+               (isOrganic || isTraditional) ? "border-primary" : "border-slate-200"
+             )}
+             style={{ borderLeftColor: block.style?.accentColor }}
+           >
+              <div className="flex gap-4 items-start mb-4">
+                 {quoteIcon && React.createElement(quoteIcon, { 
+                   className: "w-8 h-8 shrink-0", 
+                   style: { color: block.style?.accentColor || (isOrganic || isTraditional ? '#1a7c3e' : '#145DCC') } 
+                 })}
+                 <div className="space-y-1 flex-1">
+                    <h4 className="font-bold text-lg text-slate-900">{block.content?.title || "Reference Title"}</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed italic">{block.content?.text || "Quote or reference text goes here..."}</p>
+                 </div>
+              </div>
+              
+              {block.content?.reference && (
+                <div 
+                  className="mt-6 -mx-8 -mb-8 p-4 px-8 bg-emerald-50/50 border-t border-slate-50 flex items-center gap-3 transition-colors group-hover:bg-emerald-50"
+                  style={{ backgroundColor: block.style?.refBgColor }}
+                >
+                   <BookOpen className="w-4 h-4 text-emerald-600" />
+                   <span className="text-xs font-bold text-emerald-800 uppercase tracking-tight">{block.content.reference}</span>
+                </div>
+              )}
+           </blockquote>
+        </div>
+      );
     case "marquee":
       const marqueeItems = block.content?.items || ["Text Point 1", "Text Point 2"];
       return (

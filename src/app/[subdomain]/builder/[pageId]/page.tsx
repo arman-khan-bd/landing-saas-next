@@ -17,7 +17,7 @@ import {
   Paintbrush, Layers,
   ChevronUp, ChevronDown as ChevronDownIcon, Truck, CreditCard,
   Star, Heart, Lightbulb, Info, Shield, Zap, Check, LayoutList,
-  Flame, Leaf, Moon, Sun
+  Flame, Leaf, Moon, Sun, Quote
 } from "lucide-react";
 import {
   DndContext,
@@ -247,6 +247,7 @@ function PageBuilderInner() {
 
   const getInitialContent = (type: BlockType) => {
     switch (type) {
+      case "quote": return { title: "Reference Headline", text: "Text content goes here...", reference: "Source Citation", iconName: "Quote" };
       case "header": return { text: "Section Heading", level: "h2" };
       case "paragraph": return { text: "Add your text content here..." };
       case "rich-text": return { html: "<h2>Pro Storytelling Section</h2><p>Use the editor to create beautiful multi-line content with <strong>formatting</strong>.</p>" };
@@ -805,6 +806,7 @@ function PageBuilderInner() {
                       <WidgetGridButton icon={Monitor} label="Action Button" onClick={() => handleAddBlock("button")} />
                       <WidgetGridButton icon={Square} label="Styled Card" onClick={() => handleAddBlock("card")} highlight />
                       <WidgetGridButton icon={ChevronDownIcon} label="Accordion" onClick={() => handleAddBlock("accordion")} />
+                      <WidgetGridButton icon={Quote} label="Reference Quote" onClick={() => handleAddBlock("quote")} highlight />
                       {!activeParentId && <WidgetGridButton icon={Columns} label="Grid Row" onClick={() => handleAddBlock("row")} />}
                       <WidgetGridButton icon={ShoppingCart} label="Order Form" onClick={() => handleAddBlock("product-order-form")} highlight />
                       <WidgetGridButton icon={Layout} label="Carousel" onClick={() => handleAddBlock("carousel")} />

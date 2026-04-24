@@ -11,7 +11,8 @@ export type BlockType =
   | "product-order-form"
   | "row"
   | "card"
-  | "marquee";
+  | "marquee"
+  | "quote";
 
 export interface Block {
   id: string;
@@ -47,6 +48,8 @@ export interface Block {
     columnIndex?: number;
     columnSpan?: number;
     highlightColor?: string;
+    accentColor?: string;
+    refBgColor?: string;
   };
   children?: Block[];
 }
