@@ -17,7 +17,7 @@ import {
   Paintbrush, Layers,
   ChevronUp, ChevronDown as ChevronDownIcon, Truck, CreditCard,
   Star, Heart, Lightbulb, Info, Shield, Zap, Check, LayoutList,
-  Flame, Leaf
+  Flame, Leaf, Moon, Sun
 } from "lucide-react";
 import {
   DndContext,
@@ -60,6 +60,27 @@ import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+const THEMES = [
+  {
+    id: "default",
+    name: "Classic Light",
+    icon: Sun,
+    style: { backgroundColor: "#FFFFFF", primaryColor: "#145DCC", accentColor: "#26D87F", textColor: "#1a1a1a" }
+  },
+  {
+    id: "organic",
+    name: "Natural Organic",
+    icon: Leaf,
+    style: { backgroundColor: "#fdf8f0", primaryColor: "#2d7a3a", accentColor: "#c9941a", textColor: "#1a1a1a" }
+  },
+  {
+    id: "midnight",
+    name: "Midnight Pro",
+    icon: Moon,
+    style: { backgroundColor: "#0f172a", primaryColor: "#6366f1", accentColor: "#f43f5e", textColor: "#f8fafc" }
+  }
+];
+
 export default function PageBuilder() {
   return (
     <SidebarProvider>
@@ -86,6 +107,8 @@ function PageBuilderInner() {
     paddingTop: 40,
     paddingBottom: 40,
     themeId: "default",
+    primaryColor: "#145DCC",
+    accentColor: "#26D87F",
   });
   const [products, setProducts] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
@@ -122,7 +145,10 @@ function PageBuilderInner() {
         setBlocks(data.config || []);
         setPageTitle(data.title || "Untitled Page");
         if (data.pageStyle) {
-          setPageStyle(data.pageStyle);
+          setPageStyle({
+            ...pageStyle,
+            ...data.pageStyle
+          });
         }
 
         const storeQ = query(collection(firestore, "stores"), where("subdomain", "==", subdomain));
@@ -176,6 +202,17 @@ function PageBuilderInner() {
     if (!selectedBlockId) return null;
     return getParentBlock(blocks, selectedBlockId);
   }, [selectedBlockId, blocks, getParentBlock]);
+
+  const handleApplyTheme = (theme: any) => {
+    setPageStyle({
+      ...pageStyle,
+      themeId: theme.id,
+      backgroundColor: theme.style.backgroundColor,
+      primaryColor: theme.style.primaryColor,
+      accentColor: theme.style.accentColor,
+      textColor: theme.style.textColor,
+    });
+  };
 
   const createBlock = (type: BlockType): Block => {
     return {
@@ -568,14 +605,35 @@ function PageBuilderInner() {
             <div className="flex flex-col h-full overflow-hidden">
                <div className="px-4 py-3 bg-black/20 border-b border-white/10 flex items-center gap-2 shrink-0">
                   <Paintbrush className="w-4 h-4 text-white" />
-                  <span className="font-headline font-bold text-[10px] uppercase tracking-wider text-white">Page Design</span>
+                  <span className="font-headline font-bold text-[10px] uppercase tracking-wider text-white">Theme Settings</span>
                </div>
                <ScrollArea className="flex-1 min-h-0">
                   <div className="p-4 space-y-6 pb-20">
-                     <PropertySection label="Global Background" icon={Palette}>
+                     <PropertySection label="Active Tier / Theme" icon={Layers}>
+                        <div className="space-y-3">
+                           <div className="grid grid-cols-3 gap-1.5">
+                              {THEMES.map(t => (
+                                <button 
+                                  key={t.id} 
+                                  onClick={() => handleApplyTheme(t)}
+                                  className={cn(
+                                    "flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all",
+                                    pageStyle.themeId === t.id ? "bg-white text-primary border-white" : "bg-black/20 text-white/40 border-transparent hover:bg-black/30"
+                                  )}
+                                >
+                                   <t.icon className="w-3.5 h-3.5" />
+                                   <span className="text-[7px] font-black uppercase truncate w-full text-center">{t.name.split(' ')[0]}</span>
+                                </button>
+                              ))}
+                           </div>
+                           <p className="text-[8px] text-white/40 leading-relaxed italic text-center px-1">Applying a theme updates global colors instantly. Components will adapt automatically.</p>
+                        </div>
+                     </PropertySection>
+
+                     <PropertySection label="Global Colors" icon={Palette}>
                         <div className="space-y-4">
                            <div className="space-y-1.5">
-                              <Label className="text-[9px] uppercase font-bold text-white/70">Page Color</Label>
+                              <Label className="text-[9px] uppercase font-bold text-white/70">Background Color</Label>
                               <Input type="color" value={pageStyle.backgroundColor || "#FFFFFF"} onChange={(e) => setPageStyle({...pageStyle, backgroundColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
                            </div>
                            <div className="space-y-1.5">
@@ -585,14 +643,14 @@ function PageBuilderInner() {
                         </div>
                      </PropertySection>
 
-                     <PropertySection label="Brand Accents" icon={Zap}>
+                     <PropertySection label="Accent Strategy" icon={Zap}>
                         <div className="grid grid-cols-2 gap-3">
                            <div className="space-y-1.5">
-                              <Label className="text-[9px] uppercase font-bold text-white/70">Primary Color</Label>
+                              <Label className="text-[9px] uppercase font-bold text-white/70">Primary</Label>
                               <Input type="color" value={pageStyle.primaryColor || "#145DCC"} onChange={(e) => setPageStyle({...pageStyle, primaryColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
                            </div>
                            <div className="space-y-1.5">
-                              <Label className="text-[9px] uppercase font-bold text-white/70">Accent Color</Label>
+                              <Label className="text-[9px] uppercase font-bold text-white/70">Accent</Label>
                               <Input type="color" value={pageStyle.accentColor || "#26D87F"} onChange={(e) => setPageStyle({...pageStyle, accentColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
                            </div>
                         </div>
