@@ -15,7 +15,8 @@ import {
   MoveVertical, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon,
   Paintbrush, Layers,
   ChevronUp, ChevronDown as ChevronDownIcon, Truck, CreditCard,
-  Star, Heart, Lightbulb, Info, Shield, Zap, Check, LayoutList
+  Star, Heart, Lightbulb, Info, Shield, Zap, Check, LayoutList,
+  CheckCircle2
 } from "lucide-react";
 import {
   DndContext,
@@ -48,7 +49,7 @@ import {
   useSidebar
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { Block, BlockType, PageStyle } from "./types";
+import { Block, BlockType, PageStyle, THEME_PRESETS, ThemePreset } from "./types";
 import { PropertySection, WidgetGridButton, AlignButton } from "./components";
 import { PropertyEditor } from "./property-editor";
 import { BlockRenderer, CanvasBlockWrapper } from "./block-renderer";
@@ -81,8 +82,11 @@ function PageBuilderInner() {
   const [pageStyle, setPageStyle] = useState<PageStyle>({
     backgroundColor: "#FFFFFF",
     backgroundImage: "",
+    textColor: "#0F172A",
+    primaryColor: "#145DCC",
     paddingTop: 40,
     paddingBottom: 40,
+    themeId: "classic-light"
   });
   const [products, setProducts] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
@@ -90,6 +94,7 @@ function PageBuilderInner() {
   const [sidebarTab, setSidebarTab] = useState<"edit" | "advanced">("edit");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isComponentDialogOpen, setIsComponentDialogOpen] = useState(false);
+  const [isThemeDialogOpen, setIsThemeDialogOpen] = useState(false);
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
   const [activeColumnIndex, setActiveColumnIndex] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -120,7 +125,10 @@ function PageBuilderInner() {
         setBlocks(data.config || []);
         setPageTitle(data.title || "Untitled Page");
         if (data.pageStyle) {
-          setPageStyle(data.pageStyle);
+          setPageStyle({
+            ...pageStyle,
+            ...data.pageStyle
+          });
         }
 
         const storeQ = query(collection(firestore, "stores"), where("subdomain", "==", subdomain));
@@ -195,7 +203,8 @@ function PageBuilderInner() {
         desktopColumns: type === "carousel" ? 3 : 1,
         columns: type === "row" ? 2 : 1,
         columnIndex: 0,
-        columnSpan: 1
+        columnSpan: 1,
+        textColor: pageStyle.textColor,
       },
       children: type === "row" ? [] : undefined
     };
@@ -218,7 +227,7 @@ function PageBuilderInner() {
         subtitle: "A short description goes here.", 
         iconName: "Zap", 
         iconSize: 32, 
-        iconColor: "#145DCC",
+        iconColor: pageStyle.primaryColor || "#145DCC",
         items: ["Benefit One", "Benefit Two"],
         listStyle: "check",
         bgImage: ""
@@ -404,6 +413,18 @@ function PageBuilderInner() {
     if (isMobile) setOpenMobile(true);
   };
 
+  const applyTheme = (theme: ThemePreset) => {
+    setPageStyle({
+      ...pageStyle,
+      backgroundColor: theme.backgroundColor,
+      textColor: theme.textColor,
+      primaryColor: theme.primaryColor,
+      themeId: theme.id
+    });
+    setIsThemeDialogOpen(false);
+    toast({ title: `Theme "${theme.name}" Applied` });
+  };
+
   if (loading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin text-primary w-12 h-12" /></div>;
 
   return (
@@ -555,11 +576,11 @@ function PageBuilderInner() {
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
                               <Label className="text-[9px] uppercase font-bold text-white/70">Text Color</Label>
-                              <Input type="color" value={selectedBlock.style?.textColor || "#000000"} onChange={(e) => updateBlock(selectedBlock.id, { style: { textColor: e.target.value } })} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
+                              <Input type="color" value={selectedBlock.style?.textColor || pageStyle.textColor} onChange={(e) => updateBlock(selectedBlock.id, { style: { textColor: e.target.value } })} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
                             </div>
                             <div className="space-y-1.5">
                               <Label className="text-[9px] uppercase font-bold text-white/70">Bg Color</Label>
-                              <Input type="color" value={selectedBlock.style?.backgroundColor || "#FFFFFF"} onChange={(e) => updateBlock(selectedBlock.id, { style: { backgroundColor: e.target.value } })} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
+                              <Input type="color" value={selectedBlock.style?.backgroundColor || "transparent"} onChange={(e) => updateBlock(selectedBlock.id, { style: { backgroundColor: e.target.value } })} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
                             </div>
                           </div>
                        </PropertySection>
@@ -628,11 +649,19 @@ function PageBuilderInner() {
                </div>
                <ScrollArea className="flex-1 min-h-0">
                   <div className="p-4 space-y-6 pb-20">
-                     <PropertySection label="Global Background" icon={Palette}>
+                     <PropertySection label="Theme Settings" icon={Sparkles}>
                         <div className="space-y-4">
                            <div className="space-y-1.5">
                               <Label className="text-[9px] uppercase font-bold text-white/70">Page Color</Label>
                               <Input type="color" value={pageStyle.backgroundColor || "#FFFFFF"} onChange={(e) => setPageStyle({...pageStyle, backgroundColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
+                           </div>
+                           <div className="space-y-1.5">
+                              <Label className="text-[9px] uppercase font-bold text-white/70">Text Color</Label>
+                              <Input type="color" value={pageStyle.textColor || "#0F172A"} onChange={(e) => setPageStyle({...pageStyle, textColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
+                           </div>
+                           <div className="space-y-1.5">
+                              <Label className="text-[9px] uppercase font-bold text-white/70">Primary Accent</Label>
+                              <Input type="color" value={pageStyle.primaryColor || "#145DCC"} onChange={(e) => setPageStyle({...pageStyle, primaryColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
                            </div>
                            <div className="space-y-1.5">
                               <Label className="text-[9px] uppercase font-bold text-white/70">Background Image</Label>
@@ -690,6 +719,9 @@ function PageBuilderInner() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" className="rounded-lg px-4 h-9 font-bold text-[10px] text-slate-600 hover:bg-slate-100" onClick={() => setIsThemeDialogOpen(true)}>
+              <Palette className="w-3.5 h-3.5 mr-1.5" /> Themes
+            </Button>
             <Button variant="outline" size="sm" className="rounded-lg px-4 h-9 font-bold text-[10px] bg-white border-slate-200 text-slate-600 shadow-sm" onClick={() => setIsPreviewOpen(true)}>
               <Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Site
             </Button>
@@ -709,7 +741,8 @@ function PageBuilderInner() {
                backgroundPosition: 'center',
                paddingTop: `${pageStyle.paddingTop || 40}px`,
                paddingBottom: `${pageStyle.paddingBottom || 40}px`,
-               minHeight: '100%'
+               minHeight: '100%',
+               color: pageStyle.textColor
             }}
           >
             <div className="py-8 group/canvas">
@@ -804,6 +837,50 @@ function PageBuilderInner() {
         </div>
       </SidebarInset>
 
+      {/* --- THEME DIALOG --- */}
+      <Dialog open={isThemeDialogOpen} onOpenChange={setIsThemeDialogOpen}>
+        <DialogContent className="max-w-2xl rounded-[40px] p-0 border-none overflow-hidden shadow-2xl">
+           <DialogHeader className="p-6 bg-slate-900 text-white">
+              <div className="flex items-center gap-3">
+                 <div className="p-2 bg-indigo-600 rounded-xl"><Palette className="w-5 h-5" /></div>
+                 <div>
+                    <DialogTitle className="text-xl font-headline font-black">Theme Presets</DialogTitle>
+                    <DialogDescription className="text-slate-400 text-[10px] uppercase font-bold tracking-widest">Apply global styles to your landing page</DialogDescription>
+                 </div>
+              </div>
+           </DialogHeader>
+           <div className="p-8 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50">
+              {THEME_PRESETS.map((theme) => (
+                <button 
+                  key={theme.id}
+                  onClick={() => applyTheme(theme)}
+                  className={cn(
+                    "flex flex-col gap-3 p-4 rounded-3xl border-2 transition-all group hover:scale-[1.02] text-left",
+                    pageStyle.themeId === theme.id ? "border-indigo-600 bg-white shadow-xl" : "border-slate-200 bg-white/50 hover:border-slate-300"
+                  )}
+                >
+                   <div className="w-full aspect-video rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden" style={{ backgroundColor: theme.backgroundColor }}>
+                      <div className="absolute top-3 left-4 space-y-1">
+                         <div className="w-8 h-1 rounded-full" style={{ backgroundColor: theme.primaryColor }} />
+                         <div className="w-12 h-1 rounded-full" style={{ backgroundColor: theme.textColor, opacity: 0.2 }} />
+                      </div>
+                      <div className="absolute bottom-3 right-4 flex gap-1">
+                         <div className="w-4 h-4 rounded-md" style={{ backgroundColor: theme.primaryColor }} />
+                      </div>
+                   </div>
+                   <div className="flex items-center justify-between px-1">
+                      <span className="font-bold text-sm">{theme.name}</span>
+                      {pageStyle.themeId === theme.id && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
+                   </div>
+                </button>
+              ))}
+           </div>
+           <DialogFooter className="p-4 bg-white border-t">
+              <Button variant="ghost" onClick={() => setIsThemeDialogOpen(false)} className="rounded-xl font-bold uppercase tracking-widest text-[10px]">Cancel</Button>
+           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* --- PREVIEW DIALOG --- */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 rounded-none border-none bg-slate-50 flex flex-col overflow-hidden">
@@ -834,6 +911,7 @@ function PageBuilderInner() {
                   backgroundPosition: 'center',
                   paddingTop: `${pageStyle.paddingTop || 40}px`,
                   paddingBottom: `${pageStyle.paddingBottom || 40}px`,
+                  color: pageStyle.textColor
                }}
             >
               <div className="h-full">
