@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -59,29 +60,6 @@ import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const THEMES = [
-  {
-    id: "default",
-    name: "Classic Light",
-    style: { backgroundColor: "#FFFFFF", primaryColor: "#145DCC", accentColor: "#26D87F", textColor: "#1a1a1a" }
-  },
-  {
-    id: "organic",
-    name: "Natural Organic",
-    style: {
-      backgroundColor: "#fdf8f0", 
-      primaryColor: "#2d7a3a",    
-      accentColor: "#c9941a",     
-      textColor: "#1a1a1a"
-    }
-  },
-  {
-    id: "midnight",
-    name: "Midnight Pro",
-    style: { backgroundColor: "#0f172a", primaryColor: "#6366f1", accentColor: "#f43f5e", textColor: "#f8fafc" }
-  }
-];
-
 export default function PageBuilder() {
   return (
     <SidebarProvider>
@@ -115,7 +93,6 @@ function PageBuilderInner() {
   const [sidebarTab, setSidebarTab] = useState<"edit" | "advanced">("edit");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isComponentDialogOpen, setIsComponentDialogOpen] = useState(false);
-  const [isThemeDialogOpen, setIsThemeDialogOpen] = useState(false);
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
   const [activeColumnIndex, setActiveColumnIndex] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -408,19 +385,6 @@ function PageBuilderInner() {
       .finally(() => setSaving(false));
   };
 
-  const applyTheme = (theme: any) => {
-    setPageStyle({
-      ...pageStyle,
-      themeId: theme.id,
-      backgroundColor: theme.style.backgroundColor,
-      primaryColor: theme.style.primaryColor,
-      accentColor: theme.style.accentColor,
-      textColor: theme.style.textColor,
-    });
-    setIsThemeDialogOpen(false);
-    toast({ title: "Theme Applied", description: `"${theme.name}" is now active.` });
-  };
-
   const onInsertRequest = (id: string, position: 'before' | 'after') => {
     setInsertInfo({ id, position });
     setActiveParentId(null);
@@ -675,43 +639,6 @@ function PageBuilderInner() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Dialog open={isThemeDialogOpen} onOpenChange={setIsThemeDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="rounded-lg px-4 h-9 font-bold text-[10px] bg-white border-slate-200 text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
-                  <Palette className="w-3.5 h-3.5 mr-1.5" /> Page Themes
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-xl rounded-[32px] p-8 border-none overflow-hidden shadow-2xl">
-                 <DialogHeader>
-                    <DialogTitle className="text-3xl font-headline font-black uppercase tracking-tight">Design Gallery</DialogTitle>
-                    <DialogDescription className="text-slate-500 font-medium">Select a visual foundation to start building your brand identity.</DialogDescription>
-                 </DialogHeader>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-8">
-                    {THEMES.map((theme) => (
-                      <button 
-                        key={theme.id}
-                        onClick={() => applyTheme(theme)}
-                        className={cn(
-                          "group p-6 rounded-[32px] border-2 text-left transition-all duration-300 relative overflow-hidden",
-                          pageStyle.themeId === theme.id ? 'border-primary ring-4 ring-primary/5 bg-slate-50' : 'border-slate-100 hover:border-primary/20 hover:bg-slate-50/50'
-                        )}
-                      >
-                         <div className="space-y-1 relative z-10">
-                            <h4 className="font-bold text-lg">{theme.name}</h4>
-                            <div className="flex gap-1.5 pt-2">
-                               <div className="w-5 h-5 rounded-full border shadow-sm" style={{ backgroundColor: theme.style.primaryColor }} />
-                               <div className="w-5 h-5 rounded-full border shadow-sm" style={{ backgroundColor: theme.style.accentColor }} />
-                               <div className="w-5 h-5 rounded-full border shadow-sm" style={{ backgroundColor: theme.style.backgroundColor }} />
-                            </div>
-                         </div>
-                         {theme.id === 'organic' && <Leaf className="absolute -bottom-2 -right-2 w-16 h-16 text-emerald-500/5 group-hover:rotate-12 transition-transform" />}
-                         {theme.id === 'midnight' && <Zap className="absolute -bottom-2 -right-2 w-16 h-16 text-indigo-500/5 group-hover:rotate-12 transition-transform" />}
-                      </button>
-                    ))}
-                 </div>
-              </DialogContent>
-            </Dialog>
-
             <Button variant="outline" size="sm" className="rounded-lg px-4 h-9 font-bold text-[10px] bg-white border-slate-200 text-slate-600 shadow-sm" onClick={() => setIsPreviewOpen(true)}>
               <Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Site
             </Button>

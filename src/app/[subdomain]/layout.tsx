@@ -8,7 +8,7 @@ import { getSubdomain } from "@/lib/subdomain";
 import { collection, query, where, getDocs, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home, ShoppingCart, WifiOff } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home, ShoppingCart, WifiOff, Palette } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +59,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     ? pathname.replace(`/${subdomain}`, "")
     : pathname === `/${subdomain}` ? "/" : pathname;
 
-  const adminSegments = ["dashboard", "overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder", "home-manager"];
+  const adminSegments = ["dashboard", "overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder", "home-manager", "themes"];
   const isBuilderEditor = normalizedPath.includes("/builder/") && normalizedPath.split("/").filter(Boolean).length > 1;
   const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`)) && !isBuilderEditor;
 
@@ -348,6 +348,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                             <Link href={getTenantPath(subdomain, "/builder")} className="flex items-center gap-3">
                               <PenTool className={`w-4 h-4 ${normalizedPath === "/builder" ? 'text-primary' : 'text-muted-foreground'}`} />
                               <span className="text-sm font-medium">Landing Pages</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={normalizedPath === "/themes"} className="rounded-xl h-10 px-4">
+                            <Link href={getTenantPath(subdomain, "/themes")} className="flex items-center gap-3">
+                              <Palette className={`w-4 h-4 ${normalizedPath === "/themes" ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <span className="text-sm font-medium">Themes</span>
                             </Link>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
