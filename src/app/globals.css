@@ -61,6 +61,38 @@
   }
 }
 
-.ql-editor{
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+}
+
+@keyframes underline-draw {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.text-highlight {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.text-highlight::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0.1em;
+  height: 0.3em;
+  background-color: var(--highlight-color, currentColor);
+  opacity: 0.4;
+  z-index: -1;
+  animation: underline-draw 0.8s ease-out forwards;
+}
+
+.ql-editor {
   min-height: 250px;
 }

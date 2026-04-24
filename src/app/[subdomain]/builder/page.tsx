@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -73,22 +72,28 @@ const getThemeTemplate = (themeId: string): Block[] => {
   if (themeId === 'laam' || themeId === 'organic') {
     return [
       {
+        id: "marquee-1",
+        type: "marquee",
+        content: { items: ["🚚 সারাদেশেই সম্পূর্ণ ফ্রি ডেলিভারি", "💯 ১০০% প্রাকৃতিক উপাদান", "💵 ক্যাশ অন ডেলিভারি সুবিধা"] },
+        style: { paddingTop: 0, paddingBottom: 0 }
+      },
+      {
         id: "hero-1",
         type: "header",
-        content: { text: "Premium Health & Wellness", level: "h2" },
-        style: { textAlign: "center", paddingTop: 60, paddingBottom: 10 }
+        content: { text: "Premium Health & [Wellness]", level: "h2" },
+        style: { textAlign: "center", paddingTop: 60, paddingBottom: 10, highlightColor: "#c9920a" }
       },
       {
         id: "hero-2",
         type: "header",
-        content: { text: "প্রাকৃতিক উপাদানে সুস্থতা", level: "h1" },
-        style: { textAlign: "center", paddingTop: 0, paddingBottom: 20 }
+        content: { text: "প্রাকৃতিক উপাদানে [সুস্থতা]", level: "h1" },
+        style: { textAlign: "center", paddingTop: 0, paddingBottom: 20, highlightColor: "#c9920a" }
       },
       {
         id: "hero-3",
         type: "paragraph",
-        content: { text: "হাজার হাজার টাকা অসুস্থ হয়ে নষ্ট করেছেন কিন্তু কোন সমাধান পাননি? আজকের সিদ্ধান্তই আপনার আগামী দিনের শক্তি।" },
-        style: { textAlign: "center", fontSize: 18, paddingBottom: 30 }
+        content: { text: "হাজার হাজার টাকা অসুস্থ হয়ে নষ্ট করেছেন কিন্তু কোন সমাধান পাননি? [আজকের সিদ্ধান্তই] আপনার আগামী দিনের শক্তি।" },
+        style: { textAlign: "center", fontSize: 18, paddingBottom: 30, highlightColor: "#2d7a3a" }
       },
       {
         id: "hero-4",
@@ -127,6 +132,17 @@ const getThemeTemplate = (themeId: string): Block[] => {
             style: { columnIndex: 1, columnSpan: 1 }
           }
         ]
+      },
+      {
+        id: "faq-section",
+        type: "accordion",
+        content: { 
+          items: [
+            { id: "f1", title: "এটি খাওয়ার নিয়ম কী?", content: "প্রতিদিন সকালে এবং রাতে খাবারের আধা ঘন্টা আগে ১ চামচ করে খেতে হবে।", iconName: "Clock" },
+            { id: "f2", title: "ডেলিভারি চার্জ কত?", content: "আমাদের এই প্যাকেজে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি।", iconName: "Truck" }
+          ] 
+        },
+        style: { paddingTop: 40, paddingBottom: 40 }
       },
       {
         id: "order-form-block",
@@ -233,7 +249,7 @@ export default function PageManager() {
         updatedAt: serverTimestamp()
       };
 
-      // Only overwrite config if user requested "set new design" via the manager apply button
+      // Full Demo Import: Overwrite config with theme structure
       if (template.length > 0) {
         updateData.config = template;
       }

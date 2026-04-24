@@ -10,7 +10,8 @@ export type BlockType =
   | "checked-list"
   | "product-order-form"
   | "row"
-  | "card";
+  | "card"
+  | "marquee";
 
 export interface Block {
   id: string;
@@ -45,6 +46,7 @@ export interface Block {
     columns?: number;
     columnIndex?: number;
     columnSpan?: number;
+    highlightColor?: string;
   };
   children?: Block[];
 }

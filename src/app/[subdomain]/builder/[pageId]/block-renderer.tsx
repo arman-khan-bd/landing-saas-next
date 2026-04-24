@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -46,6 +45,26 @@ interface BlockRendererProps {
   subdomain?: string;
   pageStyle?: PageStyle;
 }
+
+const renderTextWithHighlights = (text: string, highlightColor?: string) => {
+  if (!text) return "";
+  const parts = text.split(/(\[.*?\])/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('[') && part.endsWith(']')) {
+      const word = part.slice(1, -1);
+      return (
+        <span 
+          key={i} 
+          className="text-highlight font-bold" 
+          style={{ '--highlight-color': highlightColor || '#FFD700' } as any}
+        >
+          {word}
+        </span>
+      );
+    }
+    return part;
+  });
+};
 
 export function CanvasBlockWrapper({ block, products, store, isSelected, isMobile, onSelect, onRemove, onMoveUp, onMoveDown, onInsertRequest, viewMode, onAddNested, selectedBlockId, isBuilder, pageStyle }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id, disabled: isMobile });
@@ -194,6 +213,21 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
   };
 
   switch (block.type) {
+    case "marquee":
+      const marqueeItems = block.content?.items || ["Text Point 1", "Text Point 2"];
+      return (
+        <div style={style} className="overflow-hidden bg-primary py-3 w-full">
+           <div className="flex animate-marquee whitespace-nowrap gap-12 items-center">
+              {[...marqueeItems, ...marqueeItems].map((txt, i) => (
+                <div key={i} className="flex items-center gap-2 text-white font-bold text-sm">
+                   <div className="w-4 h-4 bg-white/20 rounded-full flex items-center justify-center text-[10px]">✓</div>
+                   {txt}
+                </div>
+              ))}
+           </div>
+        </div>
+      );
+
     case "row":
       const colsCount = block.content?.columns || 1;
       const gridClass = gridColsMap[colsCount] || "lg:grid-cols-1";
@@ -282,20 +316,31 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             {accItems.map((item: any) => (
               <AccordionItem key={item.id} value={item.id} className="border-b-0 mb-2">
                 <AccordionTrigger className={cn(
-                  "px-6 py-4 rounded-xl hover:no-underline font-bold text-sm text-left transition-all",
+                  "px-6 py-4 rounded-xl hover:no-underline font-bold text-sm text-left transition-all group",
                   isOrganic ? "bg-[#fff] border-2 border-[#d9e8da] text-[#1b5e20] hover:bg-[#f0f7f0]" : 
                   isTraditional ? "bg-[#fff] border-2 border-[#ddd] text-[#1a7c3e] hover:bg-[#e8f5ee]" :
                   "bg-slate-50 hover:bg-slate-100"
                 )}>
-                  {item.title}
+                  <div className="flex items-center gap-3">
+                     {item.iconName && React.createElement((LucideIcons as any)[item.iconName], { className: "w-4 h-4 text-primary shrink-0" })}
+                     <div>
+                        <p>{item.title}</p>
+                        {item.subtitle && <p className="text-[10px] font-normal text-muted-foreground opacity-60">{item.subtitle}</p>}
+                     </div>
+                  </div>
                 </AccordionTrigger>
                 <AccordionContent className={cn(
-                  "px-6 py-4 text-xs text-muted-foreground bg-white rounded-b-xl border -mt-1",
+                  "px-6 py-4 bg-white rounded-b-xl border -mt-1",
                   isOrganic ? "border-[#d9e8da]" : 
                   isTraditional ? "border-[#ddd]" :
                   "border-slate-50"
                 )}>
-                  {item.content}
+                  <div className="flex flex-col md:flex-row gap-4 items-start">
+                     {item.imageUrl && <img src={item.imageUrl} className="w-full md:w-32 aspect-video object-cover rounded-lg border" />}
+                     <div className="text-xs text-muted-foreground leading-relaxed flex-1">
+                        {item.content}
+                     </div>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             ))}
@@ -355,8 +400,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       );
     case "header":
       const HeaderTag = block.content?.level || 'h2';
-      const headerSizes: any = { h1: 'text-2xl md:text-5xl', h2: 'text-xl md:text-4xl', h3: 'text-lg md:text-2xl' };
-      
+      const headerSizes: any = { h1: 'text-3xl md:text-7xl', h2: 'text-2xl md:text-5xl', h3: 'text-xl md:text-3xl' };
       const themeActive = isOrganic || isTraditional;
 
       return (
@@ -364,20 +408,22 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           style={style} 
           className={cn(
             "px-4 w-full font-headline font-bold leading-tight",
-            themeActive && "text-center py-8 text-white relative overflow-hidden",
+            themeActive && !block.style?.backgroundColor && "text-center py-12 text-white relative overflow-hidden",
           )}
         >
-          {themeActive && (
+          {themeActive && !block.style?.backgroundColor && (
              <div className={cn(
                "absolute inset-0 -z-10",
                isOrganic ? "bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" : "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]"
              )} />
           )}
-          <HeaderTag className={headerSizes[HeaderTag]}>{block.content?.text || "Section Heading Placeholder"}</HeaderTag>
+          <HeaderTag className={headerSizes[HeaderTag]}>
+            {renderTextWithHighlights(block.content?.text || "Heading", block.style?.highlightColor)}
+          </HeaderTag>
         </div>
       );
     case "paragraph":
-      return <div style={style} className="px-4 w-full leading-relaxed whitespace-pre-wrap text-sm opacity-80">{block.content?.text || "Your body text content will appear here once you type something into the editor sidebar."}</div>;
+      return <div style={style} className="px-4 w-full leading-relaxed whitespace-pre-wrap text-lg opacity-80">{renderTextWithHighlights(block.content?.text || "Text", block.style?.highlightColor)}</div>;
     case "rich-text":
       return (
         <div style={style} className="px-4 w-full">
@@ -404,9 +450,10 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           <Button 
             size="lg" 
             className={cn(
-              "rounded-xl px-8 h-11 font-bold uppercase tracking-widest text-[10px] shadow-md transition-all hover:scale-105",
-              isOrganic ? "bg-[#c9941a] hover:bg-[#b5830e] text-white" : 
-              isTraditional ? "bg-gradient-to-br from-[#f9a825] to-[#e65c00] hover:opacity-90 text-white" : ""
+              "rounded-2xl px-12 h-16 font-bold text-xl shadow-2xl transition-all hover:scale-105",
+              isOrganic ? "bg-[#c9941a] hover:bg-[#b5830e] text-white shadow-primary/30" : 
+              isTraditional ? "bg-gradient-to-br from-[#f9a825] to-[#e65c00] hover:opacity-90 text-white shadow-primary/30" : 
+              "bg-primary text-white shadow-primary/30"
             )} 
             onClick={handleButtonClick}
           >
@@ -465,7 +512,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           {listItems.map((item: string, i: number) => {
             let prefix;
             if (listStyle === "check") {
-              prefix = <CheckCircle className={cn("w-3.5 h-3.5 shrink-0", (isOrganic || isTraditional) ? "text-primary" : "text-primary")} />;
+              prefix = <CheckCircle className={cn("w-5 h-5 shrink-0", (isOrganic || isTraditional) ? "text-primary" : "text-primary")} />;
             } else if (listStyle === "bullet") {
               prefix = <div className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0 mx-1" />;
             } else if (listStyle === "number") {
@@ -473,9 +520,9 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             }
 
             return (
-              <div key={i} className="flex items-center gap-2">
+              <div key={i} className="flex items-center gap-3">
                 {prefix}
-                <span className="text-xs font-medium">{item}</span>
+                <span className="text-xl font-medium">{item}</span>
               </div>
             );
           })}
@@ -506,7 +553,6 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [clientIp, setClientIp] = useState("");
-  const [selectedShipping, setSelectedShipping] = useState<any>(null);
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || "");
 
   const product = products.find(p => p.id === selectedProductId) || products[0];
@@ -515,9 +561,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
     fullName: "",
     phone: "",
     address: "",
-    paymentMethod: "cod",
-    selectedManualMethodId: "",
-    transactionId: ""
+    paymentMethod: "cod"
   });
 
   useEffect(() => {
@@ -525,42 +569,17 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
       .then(res => res.json())
       .then(data => setClientIp(data.ip))
       .catch(err => console.error("IP Capture Error:", err));
-
-    if (store?.shippingSettings?.enabled && store.shippingSettings.methods?.length > 0) {
-      setSelectedShipping(store.shippingSettings.methods[0]);
-    }
-  }, [store]);
+  }, []);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!product) return;
-    if (!formData.fullName || !formData.phone || !formData.address) {
-      toast({ variant: "destructive", title: "তথ্য অসম্পূর্ণ", description: "অনুগ্রহ করে সব প্রয়োজনীয় তথ্য প্রদান করুন।" });
-      return;
-    }
-
-    if (formData.paymentMethod === 'manual' && (!formData.transactionId || !formData.selectedManualMethodId)) {
-      toast({ variant: "destructive", title: "পেমেন্ট তথ্য প্রয়োজন", description: "অনুগ্রহ করে পেমেন্ট মেথড এবং ট্রানজাকশন আইডি প্রদান করুন।" });
+    if (!product || !formData.fullName || !formData.phone || !formData.address) {
+      toast({ variant: "destructive", title: "তথ্য অসম্পূর্ণ" });
       return;
     }
 
     setIsPlacingOrder(true);
     try {
-      const blockValues = [clientIp, formData.phone].filter(Boolean);
-      if (blockValues.length > 0) {
-        const fraudQ = query(collection(db, "fraud_blocks"), where("storeId", "==", store.id), where("value", "in", blockValues), limit(1));
-        const fraudSnap = await getDocs(fraudQ);
-        if (!fraudSnap.empty) {
-          toast({ variant: "destructive", title: "Transaction Denied", description: "Security restriction applied." });
-          setIsPlacingOrder(false);
-          return;
-        }
-      }
-
-      const shippingCost = selectedShipping?.cost || 0;
-      const subtotal = Number(product.currentPrice);
-      const total = subtotal + shippingCost;
-
       const orderData = {
         storeId: store.id,
         ownerId: store.ownerId,
@@ -568,26 +587,20 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
           id: product.id,
           name: product.name,
           price: Number(product.currentPrice),
-          image: product.featuredImage || (product.gallery && product.gallery[0]),
+          image: product.featuredImage,
           quantity: 1
         }],
-        customer: { fullName: formData.fullName, phone: formData.phone, address: formData.address, ip: clientIp },
-        shipping: selectedShipping ? { name: selectedShipping.name, cost: shippingCost } : { name: "Standard", cost: 0 },
-        subtotal: subtotal,
-        shippingCost: shippingCost,
-        total: total,
-        paymentMethod: formData.paymentMethod,
-        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
-        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
+        customer: { ...formData, ip: clientIp },
+        total: Number(product.currentPrice),
         status: "pending",
-        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
+        paymentStatus: "unpaid",
         isRead: false,
         createdAt: serverTimestamp(),
       };
 
       await addDoc(collection(db, "orders"), orderData);
       setOrderSuccess(true);
-      toast({ title: "অর্ডার সফল হয়েছে!", description: "আপনার অর্ডারটি গ্রহণ করা হয়েছে।" });
+      toast({ title: "অর্ডার সফল হয়েছে!" });
     } catch (error) {
       console.error(error);
       toast({ variant: "destructive", title: "Order Failed" });
@@ -608,8 +621,6 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
     );
   }
 
-  const selectedManualMethod = store?.paymentSettings?.manualMethods?.find((m: any) => m.id === formData.selectedManualMethodId);
-
   return (
     <Card className={cn(
       "rounded-[40px] shadow-2xl border-none overflow-hidden text-left bg-white",
@@ -623,97 +634,51 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
         <p className="text-white/60 font-medium uppercase tracking-[0.3em] text-xs">নিরাপদ এবং দ্রুত ডেলিভারি</p>
       </div>
 
-      {products.length > 1 && (
-        <div className="p-8 md:p-14 pb-0 space-y-4">
-           <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">আপনার পছন্দের প্যাকেজটি নির্বাচন করুন</Label>
+      <div className="p-8 md:p-14 space-y-12">
+        {products.length > 1 && (
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {products.map((p) => (
+              {products.map(p => (
                 <div 
-                  key={p.id}
-                  onClick={() => setSelectedProductId(p.id)}
-                  className={cn(
-                    "flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer",
-                    selectedProductId === p.id 
-                      ? (isOrganic || isTraditional ? "border-primary bg-primary/5" : "border-primary bg-primary/5") 
-                      : "bg-white border-slate-100 hover:bg-slate-50"
-                  )}
+                  key={p.id} 
+                  onClick={() => setSelectedProductId(p.id)} 
+                  className={cn("flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedProductId === p.id ? "border-primary bg-primary/5" : "bg-white border-slate-100")}
                 >
-                   <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? 'border-primary' : 'border-slate-300')}>
-                      {selectedProductId === p.id && <div className="w-2 h-2 rounded-full bg-primary" />}
-                   </div>
-                   <img src={p.featuredImage} className="w-10 h-10 rounded-lg object-cover" alt="" />
-                   <div className="flex-1 min-w-0">
-                      <p className="font-bold text-xs truncate">{p.name}</p>
-                      <p className={cn("font-black text-sm", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>৳ {p.currentPrice}</p>
-                   </div>
+                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? 'border-primary' : 'border-slate-300')}>
+                    {selectedProductId === p.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                  </div>
+                  <img src={p.featuredImage} className="w-10 h-10 rounded-lg object-cover" />
+                  <div className="flex-1">
+                    <p className="font-bold text-xs truncate">{p.name}</p>
+                    <p className={cn("font-black text-sm", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>৳ {p.currentPrice}</p>
+                  </div>
                 </div>
               ))}
            </div>
-        </div>
-      )}
-
-      <div className="p-8 md:p-14 space-y-12">
-        {product ? (
-          <div className={cn(
-            "flex flex-col md:flex-row justify-between items-center p-8 rounded-[32px] border gap-8",
-            isOrganic || isTraditional ? "bg-white border-[#d9e8da]" : "bg-slate-50 border-slate-100"
-          )}>
-            <div className="flex items-center gap-8">
-              <img src={product.featuredImage} className="w-24 h-24 rounded-2xl object-cover shadow-lg" alt="" />
-              <div>
-                <h4 className="text-2xl font-bold tracking-tight">{product.name}</h4>
-                <p className={cn("font-black text-3xl mt-1", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>৳ {product.currentPrice}</p>
-              </div>
-            </div>
-            <CheckCircle className={cn("w-12 h-12", (isOrganic || isTraditional) ? "text-primary" : "text-primary")} />
-          </div>
-        ) : (
-          <div className="p-12 text-center border-2 border-dashed rounded-[32px] opacity-20 font-bold uppercase tracking-widest">পণ্য নির্বাচন করা হয়নি</div>
         )}
-
         <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 border-t">
-          <div className="space-y-6">
-            <h4 className={cn("font-bold text-xl uppercase tracking-widest", isOrganic || isTraditional ? "text-primary" : "text-slate-400")}>আপনার তথ্য</h4>
-            <div className="space-y-4">
-              <Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData(prev => ({...prev, fullName: e.target.value}))} />
-              <Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.phone} onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} />
-              <Textarea placeholder="পুরো ঠিকানা (বাসা/রোড, জেলা)" className="rounded-3xl min-h-[120px] bg-white border-2 border-slate-100 p-6 text-lg" value={formData.address} onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))} />
-            </div>
+          <div className="space-y-4">
+            <Label className={cn("text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>আপনার তথ্য</Label>
+            <Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
+            <Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+            <Textarea placeholder="পুরো ঠিকানা (জেলা সহ)" className="rounded-3xl min-h-[120px] bg-white border-2 border-slate-100 p-6 text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
           </div>
-
           <div className="space-y-6">
-            <h4 className={cn("font-bold text-xl uppercase tracking-widest", isOrganic || isTraditional ? "text-primary" : "text-slate-400")}>পেমেন্ট মেথড</h4>
-            <div className="grid gap-3">
-              <div 
-                className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? (isOrganic || isTraditional ? 'border-primary bg-primary/5' : 'border-primary bg-primary/5') : 'bg-white border-slate-100')} 
-                onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
-                    {formData.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
-                  </div>
-                  <span className="font-bold flex-1 cursor-pointer">ক্যাশ অন ডেলিভারি</span>
-                </div>
-                <Truck className="w-5 h-5 text-slate-300" />
+            <div className={cn("p-10 rounded-[40px] border space-y-5", (isOrganic || isTraditional) ? "bg-white border-[#d9e8da]" : "bg-slate-50")}>
+              <div className="flex justify-between text-muted-foreground font-bold text-xs uppercase tracking-widest">
+                <span>পণ্য মূল্য</span>
+                <span>৳ {product?.currentPrice || 0}</span>
               </div>
-            </div>
-
-            <div className={cn("p-10 rounded-[40px] border space-y-5", isOrganic || isTraditional ? "bg-white border-[#d9e8da]" : "bg-slate-50")}>
-              <div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest">
-                 <span>পণ্য মূল্য</span>
-                 <span>৳ {product?.currentPrice || 0}</span>
+              <div className="flex justify-between text-muted-foreground font-bold text-xs uppercase tracking-widest">
+                <span>ডেলিভারি চার্জ</span>
+                <span className="text-primary">ফ্রি</span>
               </div>
-              <div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest">
-                 <span>ডেলিভারি চার্জ</span>
-                 <span className="text-primary">ফ্রি</span>
-              </div>
-              <div className={cn("flex justify-between text-4xl font-black border-t pt-8 mt-4", isOrganic || isTraditional ? "text-primary" : "text-primary")}>
+              <div className={cn("flex justify-between text-4xl font-black border-t pt-8 mt-4", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>
                 <span className="text-xs pt-4 uppercase">মোট</span>
                 <span>৳ {(Number(product?.currentPrice || 0)).toFixed(0)}</span>
               </div>
             </div>
-            <Button type="submit" disabled={isPlacingOrder || !product} className={cn("w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", isOrganic || isTraditional ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "shadow-primary/40")}>
-               {isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}
+            <Button type="submit" disabled={isPlacingOrder || !product} className={cn("w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", (isOrganic || isTraditional) ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "bg-primary")}>
+              {isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}
             </Button>
           </div>
         </form>
