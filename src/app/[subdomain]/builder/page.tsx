@@ -312,7 +312,7 @@ export default function PageManager() {
             </div>
           </DialogHeader>
           
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 w-full">
             <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
               {THEMES.map((theme) => {
                 const isCurrent = selectedPageForTheme?.pageStyle?.themeId === theme.id;
@@ -358,7 +358,7 @@ export default function PageManager() {
             </div>
           </ScrollArea>
 
-          <div className="p-6 bg-primary/5 text-center shrink-0">
+          <div className="p-6 bg-primary/5 text-center shrink-0 border-t">
              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">iHut Studio Design Engine</p>
           </div>
         </DialogContent>
