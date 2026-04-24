@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -92,6 +91,7 @@ function PageBuilderInner() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isComponentDialogOpen, setIsComponentDialogOpen] = useState(false);
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
+  const [activeColumnIndex, setActiveColumnIndex] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   
   // Insertion tracking
@@ -159,6 +159,23 @@ function PageBuilderInner() {
     return findBlockById(blocks, selectedBlockId);
   }, [selectedBlockId, blocks, findBlockById]);
 
+  // Utility to check if a block is a child of a row
+  const getParentBlock = useCallback((items: Block[], childId: string): Block | null => {
+    for (const item of items) {
+      if (item.children?.some(c => c.id === childId)) return item;
+      if (item.children) {
+        const found = getParentBlock(item.children, childId);
+        if (found) return found;
+      }
+    }
+    return null;
+  }, []);
+
+  const selectedBlockParent = useMemo(() => {
+    if (!selectedBlockId) return null;
+    return getParentBlock(blocks, selectedBlockId);
+  }, [selectedBlockId, blocks, getParentBlock]);
+
   const createBlock = (type: BlockType): Block => {
     return {
       id: Math.random().toString(36).substr(2, 9),
@@ -176,7 +193,9 @@ function PageBuilderInner() {
         hideDesktop: false,
         hideMobile: false,
         desktopColumns: type === "carousel" ? 3 : 1,
-        columns: type === "row" ? 2 : 1
+        columns: type === "row" ? 2 : 1,
+        columnIndex: 0,
+        columnSpan: 1
       },
       children: type === "row" ? [] : undefined
     };
@@ -210,6 +229,10 @@ function PageBuilderInner() {
   const handleAddBlock = (type: BlockType) => {
     const newBlock = createBlock(type);
     
+    if (activeColumnIndex !== null) {
+      newBlock.style.columnIndex = activeColumnIndex;
+    }
+
     if (insertInfo) {
       setBlocks(prev => insertBlockRecursively(prev, insertInfo.id, insertInfo.position, newBlock));
       setInsertInfo(null);
@@ -223,6 +246,7 @@ function PageBuilderInner() {
     setSidebarTab("edit");
     setIsComponentDialogOpen(false);
     setActiveParentId(null);
+    setActiveColumnIndex(null);
     if (isMobile) setOpenMobile(true);
   };
 
@@ -230,6 +254,8 @@ function PageBuilderInner() {
     const index = items.findIndex(i => i.id === relativeId);
     if (index !== -1) {
       const newItems = [...items];
+      // Inherit the same column if inserted relative to a child
+      newBlock.style.columnIndex = items[index].style.columnIndex;
       newItems.splice(position === 'before' ? index : index + 1, 0, newBlock);
       return newItems;
     }
@@ -349,6 +375,14 @@ function PageBuilderInner() {
   const onInsertRequest = (id: string, position: 'before' | 'after') => {
     setInsertInfo({ id, position });
     setActiveParentId(null);
+    setActiveColumnIndex(null);
+    setIsComponentDialogOpen(true);
+  };
+
+  const onAddNestedRequest = (parentId: string, colIdx?: number) => {
+    setActiveParentId(parentId);
+    setActiveColumnIndex(colIdx ?? null);
+    setInsertInfo(null);
     setIsComponentDialogOpen(true);
   };
 
@@ -403,6 +437,36 @@ function PageBuilderInner() {
                     </TabsContent>
 
                     <TabsContent value="advanced" className="mt-0 space-y-6">
+                       {selectedBlockParent?.type === "row" && (
+                         <PropertySection label="Grid Placement" icon={Columns}>
+                            <div className="space-y-4">
+                               <div className="space-y-1">
+                                  <Label className="text-[9px] uppercase font-bold text-white/60">Target Column</Label>
+                                  <Select 
+                                    value={(selectedBlock.style?.columnIndex ?? 0).toString()} 
+                                    onValueChange={(v) => updateBlock(selectedBlock.id, { style: { columnIndex: Number(v) } })}
+                                  >
+                                     <SelectTrigger className="h-8 rounded-lg border-none bg-black/20 text-white text-[10px]">
+                                        <SelectValue />
+                                     </SelectTrigger>
+                                     <SelectContent>
+                                        {Array.from({ length: selectedBlockParent.content?.columns || 1 }).map((_, i) => (
+                                          <SelectItem key={i} value={i.toString()}>Column {i + 1}</SelectItem>
+                                        ))}
+                                     </SelectContent>
+                                  </Select>
+                               </div>
+                               <div className="space-y-3">
+                                  <div className="flex justify-between items-center text-[9px] font-bold text-white/70 uppercase">
+                                    <Label>Column Span</Label>
+                                    <span>{selectedBlock.style?.columnSpan || 1} cols</span>
+                                  </div>
+                                  <Slider value={[selectedBlock.style?.columnSpan || 1]} min={1} max={selectedBlockParent.content?.columns || 4} onValueChange={([v]) => updateBlock(selectedBlock.id, { style: { columnSpan: v } })} className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-primary" />
+                               </div>
+                            </div>
+                         </PropertySection>
+                       )}
+
                        <PropertySection label="Alignment & Text" icon={Type}>
                           <div className="space-y-4">
                             <div className="grid grid-cols-4 gap-1 bg-black/20 p-1 rounded-lg">
@@ -662,10 +726,8 @@ function PageBuilderInner() {
                           onMoveDown={(id?: string) => moveBlock(id || block.id, 'down')}
                           onInsertRequest={onInsertRequest}
                           viewMode={viewMode}
-                          onAddNested={(parentId: string) => {
-                            setActiveParentId(parentId);
-                            setInsertInfo(null);
-                            setIsComponentDialogOpen(true);
+                          onAddNested={(parentId: string, colIdx?: number) => {
+                            onAddNestedRequest(parentId, colIdx);
                           }}
                         />
                       ))}
@@ -687,7 +749,7 @@ function PageBuilderInner() {
                     <Button
                       variant="outline"
                       className="h-12 w-12 rounded-full border-2 border-primary/20 text-primary shadow-xl hover:scale-110 active:scale-95 transition-all bg-white group"
-                      onClick={() => { setActiveParentId(null); setInsertInfo(null); }}
+                      onClick={() => { setActiveParentId(null); setInsertInfo(null); setActiveColumnIndex(null); }}
                     >
                       <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" />
                     </Button>
@@ -699,7 +761,7 @@ function PageBuilderInner() {
                         <div>
                           <DialogTitle className="text-lg font-headline font-bold">Add New Widget</DialogTitle>
                           <DialogDescription className="text-white/70 text-[10px] uppercase font-bold tracking-widest">
-                            {insertInfo ? `Inserting ${insertInfo.position} block` : activeParentId ? "Adding component to row" : "Adding component to page"}
+                            {insertInfo ? `Inserting ${insertInfo.position} block` : activeColumnIndex !== null ? `Adding to Column ${activeColumnIndex + 1}` : "Adding component to page"}
                           </DialogDescription>
                         </div>
                       </div>

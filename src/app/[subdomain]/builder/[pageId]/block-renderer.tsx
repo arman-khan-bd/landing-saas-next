@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -37,7 +36,7 @@ interface BlockRendererProps {
   onMoveUp?: (id?: string) => void;
   onMoveDown?: (id?: string) => void;
   onInsertRequest?: (id: string, position: "before" | "after") => void;
-  onAddNested?: (parentId: string) => void;
+  onAddNested?: (parentId: string, colIdx?: number) => void;
   subdomain?: string;
 }
 
@@ -146,6 +145,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     borderWidth: block.style?.borderWidth ? `${block.style.borderWidth}px` : undefined,
     borderColor: block.style?.borderColor,
     borderRadius: block.style?.borderRadius ? `${block.style.borderRadius}px` : undefined,
+    ...(block.style?.columnSpan !== undefined && { gridColumn: `span ${block.style.columnSpan}` })
   };
 
   const gridColsMap: Record<number, string> = {
@@ -168,7 +168,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             "grid gap-6 px-4 max-w-6xl mx-auto w-full relative", 
             "grid-cols-1 sm:grid-cols-2", 
             gridClass,
-            isBuilder && "border-2 border-dashed border-primary/20 p-4 sm:p-10 rounded-[40px] bg-slate-50/10 min-h-[120px] transition-all hover:border-primary/40"
+            isBuilder && "border-2 border-dashed border-primary/20 p-4 sm:p-6 rounded-[40px] bg-slate-50/5 min-h-[120px] transition-all hover:border-primary/40"
           )}
         >
           {isBuilder && (
@@ -178,40 +178,55 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             </div>
           )}
 
-          {children.map((child: any) => (
-            isBuilder ? (
-              <CanvasBlockWrapper 
-                key={child.id} 
-                block={child} 
-                products={products} 
-                store={store}
-                viewMode={viewMode} 
-                isMobile={isMobile}
-                onAddNested={onAddNested}
-                onSelect={(id?: string) => onSelect?.(id || child.id)}
-                onRemove={(id?: string) => onRemove?.(id || child.id)}
-                onMoveUp={(id?: string) => onMoveUp?.(id || child.id)}
-                onMoveDown={(id?: string) => onMoveDown?.(id || child.id)}
-                onInsertRequest={onInsertRequest}
-              />
-            ) : (
-              <BlockRenderer key={child.id} block={child} products={products} store={store} isPreview={isPreview} viewMode={viewMode} />
-            )
-          ))}
+          {Array.from({ length: colsCount }).map((_, colIdx) => {
+            const colChildren = children.filter(c => (c.style?.columnIndex ?? 0) === colIdx);
+            
+            return (
+              <div key={colIdx} className={cn(
+                "flex flex-col gap-4 min-h-[60px] relative",
+                isBuilder && "border border-dashed border-slate-200/30 p-4 rounded-3xl bg-white/5"
+              )}>
+                {isBuilder && (
+                   <div className="absolute -top-2.5 left-4 px-2 py-0.5 bg-slate-100 rounded-full flex items-center gap-1 z-10 border border-slate-200 shadow-sm">
+                      <span className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Column {colIdx + 1}</span>
+                   </div>
+                )}
 
-          {isBuilder && (
-             <div className="col-span-full flex justify-center py-4 border-t border-dashed border-slate-200/50 mt-4">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="pointer-events-auto h-10 px-6 rounded-2xl bg-white text-primary border-primary/20 hover:bg-primary hover:text-white transition-all shadow-sm group font-bold text-[10px] uppercase tracking-widest"
-                  onClick={(e) => { e.stopPropagation(); onAddNested?.(block.id); }}
-                >
-                  <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
-                  Add component to Column
-                </Button>
-             </div>
-          )}
+                {colChildren.map((child: any) => (
+                  isBuilder ? (
+                    <CanvasBlockWrapper 
+                      key={child.id} 
+                      block={child} 
+                      products={products} 
+                      store={store}
+                      viewMode={viewMode} 
+                      isMobile={isMobile}
+                      onAddNested={onAddNested}
+                      onSelect={(id?: string) => onSelect?.(id || child.id)}
+                      onRemove={(id?: string) => onRemove?.(id || child.id)}
+                      onMoveUp={(id?: string) => onMoveUp?.(id || child.id)}
+                      onMoveDown={(id?: string) => onMoveDown?.(id || child.id)}
+                      onInsertRequest={onInsertRequest}
+                    />
+                  ) : (
+                    <BlockRenderer key={child.id} block={child} products={products} store={store} isPreview={isPreview} viewMode={viewMode} />
+                  )
+                ))}
+
+                {isBuilder && (
+                   <Button 
+                     variant="outline" 
+                     size="sm" 
+                     className="mt-auto pointer-events-auto h-8 border-dashed border-slate-200 text-slate-300 hover:text-primary hover:border-primary/50 text-[8px] uppercase font-bold rounded-xl bg-white/10"
+                     onClick={(e) => { e.stopPropagation(); onAddNested?.(block.id, colIdx); }}
+                   >
+                     <Plus className="w-3 h-3 mr-1" />
+                     Add to Col {colIdx + 1}
+                   </Button>
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     case "card":
@@ -593,7 +608,7 @@ function LandingPageOrderForm({ products, store }: { products: any[], store: any
                             <p className="text-[10px] font-black uppercase text-primary">নাম্বার: {selectedManualMethod.number}</p>
                             <p className="text-[10px] text-slate-500 mt-1 italic">{selectedManualMethod.instructions}</p>
                           </div>
-                          <input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border border-primary/20 px-4 w-full text-sm font-bold" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
+                          <input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20 px-4 w-full text-sm font-bold" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
                         </div>
                       )}
                     </div>

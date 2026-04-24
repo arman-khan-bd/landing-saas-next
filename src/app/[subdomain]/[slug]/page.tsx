@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -52,6 +51,8 @@ interface Block {
     hideMobile?: boolean;
     desktopColumns?: number;
     columns?: number;
+    columnIndex?: number;
+    columnSpan?: number;
   };
   children?: Block[];
 }
@@ -144,9 +145,6 @@ export default function RenderDynamicPage() {
 }
 
 function BlockRenderer({ block, products, store, subdomain }: { block: Block, products: any[], store: any, subdomain: string }) {
-  const hideOnDesktop = block.style?.hideDesktop;
-  const hideOnMobile = block.style?.hideMobile;
-
   const style: any = {
     ...(block.style?.paddingTop !== undefined && { paddingTop: `${block.style.paddingTop}px` }),
     ...(block.style?.paddingBottom !== undefined && { paddingBottom: `${block.style.paddingBottom}px` }),
@@ -168,6 +166,7 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
     borderWidth: block.style?.borderWidth ? `${block.style.borderWidth}px` : undefined,
     borderColor: block.style?.borderColor,
     borderRadius: block.style?.borderRadius ? `${block.style.borderRadius}px` : undefined,
+    ...(block.style?.columnSpan !== undefined && { gridColumn: `span ${block.style.columnSpan}` })
   };
 
   if (block.style?.boxShadow && block.style?.boxShadow !== "none") {
@@ -185,25 +184,29 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
                    block.style?.animation === "zoomIn" ? "animate-in zoom-in-95 fill-mode-both duration-700" : "";
 
   const responsiveClass = cn(
-    hideOnDesktop ? "md:hidden" : "",
-    hideOnMobile ? "hidden md:block" : ""
+    block.style?.hideDesktop ? "md:hidden" : "",
+    block.style?.hideMobile ? "hidden md:block" : ""
   );
 
   const gridColsMap: Record<number, string> = {
-    1: "md:grid-cols-1",
-    2: "md:grid-cols-2",
-    3: "md:grid-cols-3",
-    4: "md:grid-cols-4",
+    1: "lg:grid-cols-1",
+    2: "lg:grid-cols-2",
+    3: "lg:grid-cols-3",
+    4: "lg:grid-cols-4",
   };
 
   switch (block.type) {
     case "row":
       const colsCount = block.content?.columns || 1;
-      const gridClass = gridColsMap[colsCount] || "md:grid-cols-1";
+      const children = block.children || [];
       return (
-        <div style={style} className={cn("grid gap-6 px-6 max-w-6xl mx-auto", "grid-cols-1", gridClass, animClass, responsiveClass)}>
-          {block.children?.map(child => (
-            <BlockRenderer key={child.id} block={child} products={products} store={store} subdomain={subdomain} />
+        <div style={style} className={cn("grid gap-6 px-6 max-w-6xl mx-auto", "grid-cols-1 sm:grid-cols-2", gridColsMap[colsCount] || "lg:grid-cols-1", animClass, responsiveClass)}>
+          {Array.from({ length: colsCount }).map((_, colIdx) => (
+             <div key={colIdx} className="flex flex-col gap-4">
+                {children.filter(c => (c.style?.columnIndex ?? 0) === colIdx).map(child => (
+                   <BlockRenderer key={child.id} block={child} products={products} store={store} subdomain={subdomain} />
+                ))}
+             </div>
           ))}
         </div>
       );

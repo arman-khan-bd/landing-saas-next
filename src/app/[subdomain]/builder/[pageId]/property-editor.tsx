@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from "react";
@@ -12,7 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Trash2, Zap, Shield, Star, Heart, ShoppingCart, Truck, CreditCard, Lightbulb, Check, Info } from "lucide-react";
+import { Trash2, Zap, Shield, Star, Heart, ShoppingCart, Truck, CreditCard, Lightbulb, Check, Info, Columns } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PropertyEditorProps {
@@ -302,17 +301,27 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
       );
     case "row":
       return (
-        <div className="space-y-1">
-          <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Grid Columns</Label>
-          <Select value={block.content?.columns?.toString() || "2"} onValueChange={(v) => onChange({ content: { columns: Number(v) } })}>
-            <SelectTrigger className="rounded-lg h-8 border-none bg-black/20 text-white text-[10px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">1 Column</SelectItem>
-              <SelectItem value="2">2 Columns</SelectItem>
-              <SelectItem value="3">3 Columns</SelectItem>
-              <SelectItem value="4">4 Columns</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="space-y-6">
+          <div className="space-y-1">
+            <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Grid Columns</Label>
+            <Select value={block.content?.columns?.toString() || "2"} onValueChange={(v) => onChange({ content: { columns: Number(v) } })}>
+              <SelectTrigger className="rounded-lg h-8 border-none bg-black/20 text-white text-[10px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 Column</SelectItem>
+                <SelectItem value="2">2 Columns</SelectItem>
+                <SelectItem value="3">3 Columns</SelectItem>
+                <SelectItem value="4">4 Columns</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Component Registry</Label>
+            <div className="p-4 bg-black/20 rounded-2xl border border-white/5 text-center space-y-2">
+               <Columns className="w-5 h-5 text-white/20 mx-auto" />
+               <p className="text-[10px] text-white/40">Manage nested elements directly on the canvas slots.</p>
+            </div>
+          </div>
         </div>
       );
     case "product-order-form":

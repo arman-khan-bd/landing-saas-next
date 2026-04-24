@@ -42,6 +42,8 @@ export interface Block {
     hideMobile?: boolean;
     desktopColumns?: number;
     columns?: number;
+    columnIndex?: number;
+    columnSpan?: number;
   };
   children?: Block[];
 }
