@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -5,12 +6,13 @@ import { useParams, useRouter } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { collection, query, where, getDocs, doc, updateDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card as ShadcnCard } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import * as LucideIcons from "lucide-react";
 import {
   Plus, Save, Trash2, Image as ImageIcon,
   Type, Layout, List, CheckCircle, ShoppingCart,
@@ -21,7 +23,8 @@ import {
   Sparkles, PlusCircle, LayoutGrid,
   MoveVertical, ArrowUp, ArrowDown, ArrowLeft as ArrowLeftIcon, ArrowRight as ArrowRightIcon,
   Paintbrush, GripVertical, Copy, Layers,
-  ChevronUp, ChevronDown as ChevronDownIcon, Truck, CreditCard
+  ChevronUp, ChevronDown as ChevronDownIcon, Truck, CreditCard,
+  Star, Heart, Lightbulb, Info, Shield, Zap, Check
 } from "lucide-react";
 import {
   DndContext,
@@ -74,7 +77,8 @@ type BlockType =
   | "carousel"
   | "checked-list"
   | "product-order-form"
-  | "row";
+  | "row"
+  | "card";
 
 interface Block {
   id: string;
@@ -252,6 +256,16 @@ function PageBuilderInner() {
       case "row": return { columns: 2 };
       case "carousel": return { items: [{ id: "1", title: "Slide 1", subtitle: "", imageUrl: "", buttonText: "" }], desktopColumns: 3 };
       case "checked-list": return { items: ["Fast Delivery", "Secure Payments", "Premium Quality"], listStyle: "check" };
+      case "card": return { 
+        title: "Feature Title", 
+        subtitle: "A short description goes here.", 
+        iconName: "Zap", 
+        iconSize: 32, 
+        iconColor: "#145DCC",
+        items: ["Benefit One", "Benefit Two"],
+        listStyle: "check",
+        bgImage: ""
+      };
       default: return {};
     }
   };
@@ -587,6 +601,39 @@ function PageBuilderInnerContent({
                           </div>
                        </PropertySection>
 
+                       <PropertySection label="Borders & Radius" icon={Layers}>
+                          <div className="space-y-4">
+                             <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                   <Label className="text-[9px] uppercase font-bold text-white/70">Style</Label>
+                                   <Select value={selectedBlock.style?.borderStyle || "none"} onValueChange={(v) => updateBlock(selectedBlock.id, { style: { borderStyle: v } })}>
+                                      <SelectTrigger className="h-8 rounded-lg border-none bg-black/20 text-white text-[10px]"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                         <SelectItem value="none">None</SelectItem>
+                                         <SelectItem value="solid">Solid</SelectItem>
+                                         <SelectItem value="dashed">Dashed</SelectItem>
+                                         <SelectItem value="dotted">Dotted</SelectItem>
+                                      </SelectContent>
+                                   </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                   <Label className="text-[9px] uppercase font-bold text-white/70">Color</Label>
+                                   <Input type="color" value={selectedBlock.style?.borderColor || "#000000"} onChange={(e) => updateBlock(selectedBlock.id, { style: { borderColor: e.target.value } })} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
+                                </div>
+                             </div>
+                             <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                   <Label className="text-[9px] uppercase font-bold text-white/70">Width ({selectedBlock.style?.borderWidth || 0}px)</Label>
+                                   <Slider value={[selectedBlock.style?.borderWidth || 0]} min={0} max={20} onValueChange={([v]) => updateBlock(selectedBlock.id, { style: { borderWidth: v } })} />
+                                </div>
+                                <div className="space-y-1.5">
+                                   <Label className="text-[9px] uppercase font-bold text-white/70">Radius ({selectedBlock.style?.borderRadius || 0}px)</Label>
+                                   <Slider value={[selectedBlock.style?.borderRadius || 0]} min={0} max={100} onValueChange={([v]) => updateBlock(selectedBlock.id, { style: { borderRadius: v } })} />
+                                </div>
+                             </div>
+                          </div>
+                       </PropertySection>
+
                        <PropertySection label="Visibility" icon={Eye}>
                          <div className="space-y-2">
                             <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg border border-white/5">
@@ -781,6 +828,7 @@ function PageBuilderInnerContent({
                       <WidgetGridButton icon={List} label="Rich Text" onClick={() => handleAddBlock("paragraph")} />
                       <WidgetGridButton icon={ImageIcon} label="Image Box" onClick={() => handleAddBlock("image")} />
                       <WidgetGridButton icon={Monitor} label="Action Button" onClick={() => handleAddBlock("button")} />
+                      <WidgetGridButton icon={Square} label="Styled Card" onClick={() => handleAddBlock("card")} highlight />
                       {(!activeParentId && !insertInfo) && <WidgetGridButton icon={Columns} label="Grid Row" onClick={() => handleAddBlock("row")} />}
                       <WidgetGridButton icon={ShoppingCart} label="Order Form" onClick={() => handleAddBlock("product-order-form")} highlight />
                       <WidgetGridButton icon={Layout} label="Carousel" onClick={() => handleAddBlock("carousel")} />
@@ -1017,6 +1065,96 @@ function PropertyEditor({ block, products, onChange }: any) {
           </div>
         </div>
       );
+    case "card":
+      const iconList = [
+        { name: "Zap", icon: Zap },
+        { name: "Shield", icon: Shield },
+        { name: "Star", icon: Star },
+        { name: "Heart", icon: Heart },
+        { name: "ShoppingCart", icon: ShoppingCart },
+        { name: "Truck", icon: Truck },
+        { name: "CreditCard", icon: CreditCard },
+        { name: "Lightbulb", icon: Lightbulb },
+        { name: "Check", icon: Check },
+        { name: "Info", icon: Info }
+      ];
+      return (
+        <div className="space-y-4">
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Title</Label>
+              <Input value={block.content?.title || ""} onChange={(e) => onChange({ content: { title: e.target.value } })} className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />
+           </div>
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Subtitle</Label>
+              <Textarea value={block.content?.subtitle || ""} onChange={(e) => onChange({ content: { subtitle: e.target.value } })} className="rounded-lg min-h-[60px] border-none bg-black/20 text-white text-xs" />
+           </div>
+           <div className="space-y-2">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Pick Icon</Label>
+              <div className="grid grid-cols-5 gap-1.5 p-1.5 bg-black/20 rounded-lg">
+                 {iconList.map(item => (
+                   <button 
+                    key={item.name}
+                    onClick={() => onChange({ content: { iconName: item.name } })}
+                    className={cn("p-1.5 rounded-md transition-all flex items-center justify-center", block.content?.iconName === item.name ? "bg-white text-primary" : "text-white/40 hover:bg-white/5")}
+                   >
+                     <item.icon className="w-3.5 h-3.5" />
+                   </button>
+                 ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Icon Color</Label>
+                    <Input type="color" value={block.content?.iconColor || "#145DCC"} onChange={(e) => onChange({ content: { iconColor: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
+                 </div>
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Icon Size ({block.content?.iconSize || 32}px)</Label>
+                    <Slider value={[block.content?.iconSize || 32]} min={16} max={80} onValueChange={([v]) => onChange({ content: { iconSize: v } })} />
+                 </div>
+              </div>
+           </div>
+           <Separator className="bg-white/5" />
+           <div className="space-y-2">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Card List System</Label>
+              <div className="space-y-1.5">
+                {(block.content?.items || []).map((item: string, idx: number) => (
+                  <div key={idx} className="flex gap-1.5">
+                    <Input value={item} onChange={(e) => {
+                      const newItems = [...block.content.items];
+                      newItems[idx] = e.target.value;
+                      onChange({ content: { items: newItems } });
+                    }} className="h-7 text-[10px] bg-black/20 border-none text-white" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-rose-400" onClick={() => {
+                      const newItems = block.content.items.filter((_: any, i: number) => i !== idx);
+                      onChange({ content: { items: newItems } });
+                    }}><Trash2 className="w-3 h-3" /></Button>
+                  </div>
+                ))}
+                <Button variant="outline" className="w-full h-7 text-[8px] border-dashed border-white/20 text-white/40 bg-transparent" onClick={() => {
+                  const newItems = [...(block.content?.items || []), "New Feature Point"];
+                  onChange({ content: { items: newItems } });
+                }}>+ Add List Item</Button>
+              </div>
+              <div className="mt-2 space-y-1">
+                <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">List Bullet Style</Label>
+                <Select value={block.content?.listStyle || "check"} onValueChange={(v) => onChange({ content: { listStyle: v } })}>
+                   <SelectTrigger className="h-7 rounded-lg border-none bg-black/20 text-white text-[9px]"><SelectValue /></SelectTrigger>
+                   <SelectContent>
+                      <SelectItem value="check">Checkmarks</SelectItem>
+                      <SelectItem value="bullet">Bullets</SelectItem>
+                      <SelectItem value="number">Numeric</SelectItem>
+                      <SelectItem value="roman">Roman</SelectItem>
+                      <SelectItem value="bengali">Bengali</SelectItem>
+                   </SelectContent>
+                </Select>
+              </div>
+           </div>
+           <Separator className="bg-white/5" />
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Card Background Image</Label>
+              <CloudinaryUpload value={block.content?.bgImage || ""} onUpload={(url) => onChange({ content: { bgImage: url } })} onRemove={() => onChange({ content: { bgImage: "" } })} />
+           </div>
+        </div>
+      );
     case "carousel":
       const cols = block.style?.desktopColumns || 3;
       return (
@@ -1206,6 +1344,9 @@ function BlockRenderer({ block, products, store, isPreview = false, viewMode = "
     color: block.style?.textColor,
     fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
     fontWeight: block.style?.fontWeight,
+    borderStyle: block.style?.borderStyle,
+    borderWidth: block.style?.borderWidth ? `${block.style.borderWidth}px` : undefined,
+    borderColor: block.style?.borderColor,
     borderRadius: block.style?.borderRadius ? `${block.style.borderRadius}px` : undefined,
   };
 
@@ -1284,6 +1425,43 @@ function BlockRenderer({ block, products, store, isPreview = false, viewMode = "
                 </Button>
              </div>
           )}
+        </div>
+      );
+    case "card":
+      const IconComp = block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
+      return (
+        <div 
+          style={style} 
+          className={cn("px-4 w-full max-w-6xl mx-auto relative overflow-hidden")}
+        >
+          {block.content?.bgImage && <img src={block.content.bgImage} className="absolute inset-0 w-full h-full object-cover z-0 opacity-40" alt="" />}
+          <div className="relative z-10 space-y-4">
+             {IconComp && <IconComp style={{ color: block.content?.iconColor || "#145DCC" }} size={block.content?.iconSize || 32} className="shrink-0" />}
+             <div className="space-y-1">
+                <h4 className="font-bold text-xl">{block.content?.title}</h4>
+                <p className="text-sm opacity-80 leading-relaxed">{block.content?.subtitle}</p>
+             </div>
+             {(block.content?.items || []).length > 0 && (
+               <div className="space-y-2 pt-2">
+                 {block.content.items.map((item: string, i: number) => {
+                    let prefix;
+                    const lStyle = block.content?.listStyle || "check";
+                    if (lStyle === "check") prefix = <Check className="w-3.5 h-3.5 text-primary" />;
+                    else if (lStyle === "bullet") prefix = <div className="w-1 h-1 rounded-full bg-slate-400" />;
+                    else if (lStyle === "number") prefix = <span className="text-[10px] font-bold text-primary">{i+1}.</span>;
+                    else if (lStyle === "roman") prefix = <span className="text-[10px] font-bold text-primary">{["I", "II", "III", "IV", "V"][i] || i+1}.</span>;
+                    else if (lStyle === "bengali") prefix = <span className="text-[10px] font-bold text-primary">{['০', '১', '২', '৩', '৪'][i] || i+1}.</span>;
+
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        {prefix}
+                        <span className="text-sm font-medium">{item}</span>
+                      </div>
+                    );
+                 })}
+               </div>
+             )}
+          </div>
         </div>
       );
     case "header":
@@ -1368,7 +1546,7 @@ function BlockRenderer({ block, products, store, isPreview = false, viewMode = "
       const mainProd = products.find((p: any) => p.id === block.content?.mainProductId);
       return (
         <div style={style} className="px-4 w-full max-w-5xl mx-auto text-left">
-          <Card className="rounded-[32px] shadow-lg border-none overflow-hidden bg-white">
+          <ShadcnCard className="rounded-[32px] shadow-lg border-none overflow-hidden bg-white">
             <div className="bg-slate-900 text-white p-6 text-center">
               <h3 className="text-xl md:text-2xl font-headline font-bold mb-1 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3>
               <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[8px]">নিরাপদ পেমেন্ট ব্যবস্থা</p>
@@ -1416,7 +1594,7 @@ function BlockRenderer({ block, products, store, isPreview = false, viewMode = "
                   </div>
                </div>
             </div>
-          </Card>
+          </ShadcnCard>
         </div>
       );
     default: return null;
@@ -1433,6 +1611,7 @@ function getBlockIcon(type: BlockType) {
     case "carousel": return <Layout className="w-4 h-4" />;
     case "checked-list": return <CheckCircle className="w-4 h-4" />;
     case "product-order-form": return <ShoppingCart className="w-4 h-4" />;
+    case "card": return <Square className="w-4 h-4" />;
     default: return <Square className="w-4 h-4" />;
   }
 }

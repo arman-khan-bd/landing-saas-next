@@ -1,10 +1,12 @@
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, limit } from "firebase/firestore";
-import { Loader2, AlertCircle, CheckCircle, Truck, CreditCard, ShieldCheck, Smartphone } from "lucide-react";
+import * as LucideIcons from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, Truck, CreditCard, ShieldCheck, Smartphone, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -17,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 // --- Types ---
-type BlockType = "header" | "paragraph" | "image" | "accordion" | "button" | "link" | "carousel" | "checked-list" | "product-order-form" | "row";
+type BlockType = "header" | "paragraph" | "image" | "accordion" | "button" | "link" | "carousel" | "checked-list" | "product-order-form" | "row" | "card";
 
 interface Block {
   id: string;
@@ -157,6 +159,45 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
     case "row":
       const gridClass = { 1: "md:grid-cols-1", 2: "md:grid-cols-2", 3: "md:grid-cols-3", 4: "md:grid-cols-4" }[block.content?.columns || 1] || "md:grid-cols-1";
       return <div style={style} className={cn("grid gap-6 px-6 max-w-6xl mx-auto grid-cols-1", gridClass, animClass, responsiveClass)}>{block.children?.map(child => <BlockRenderer key={child.id} block={child} products={products} store={store} subdomain={subdomain} />)}</div>;
+    
+    case "card":
+      const IconComp = block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
+      return (
+        <div 
+          style={style} 
+          className={cn("px-6 w-full max-w-6xl mx-auto relative overflow-hidden", animClass, responsiveClass)}
+        >
+          {block.content?.bgImage && <img src={block.content.bgImage} className="absolute inset-0 w-full h-full object-cover z-0 opacity-40" alt="" />}
+          <div className="relative z-10 space-y-4">
+             {IconComp && <IconComp style={{ color: block.content?.iconColor || "#145DCC" }} size={block.content?.iconSize || 32} className="shrink-0" />}
+             <div className="space-y-1">
+                <h4 className="font-bold text-xl">{block.content?.title}</h4>
+                <p className="text-sm opacity-80 leading-relaxed">{block.content?.subtitle}</p>
+             </div>
+             {(block.content?.items || []).length > 0 && (
+               <div className="space-y-2 pt-2">
+                 {block.content.items.map((item: string, i: number) => {
+                    let prefix;
+                    const lStyle = block.content?.listStyle || "check";
+                    if (lStyle === "check") prefix = <Check className="w-3.5 h-3.5 text-primary" />;
+                    else if (lStyle === "bullet") prefix = <div className="w-1 h-1 rounded-full bg-slate-400" />;
+                    else if (lStyle === "number") prefix = <span className="text-[10px] font-bold text-primary">{i+1}.</span>;
+                    else if (lStyle === "roman") prefix = <span className="text-[10px] font-bold text-primary">{["I", "II", "III", "IV", "V"][i] || i+1}.</span>;
+                    else if (lStyle === "bengali") prefix = <span className="text-[10px] font-bold text-primary">{['০', '১', '২', '৩', '৪'][i] || i+1}.</span>;
+
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        {prefix}
+                        <span className="text-sm font-medium">{item}</span>
+                      </div>
+                    );
+                 })}
+               </div>
+             )}
+          </div>
+        </div>
+      );
+
     case "header":
       const Tag = block.content?.level || 'h2';
       return <div style={style} className={cn("px-6 max-w-6xl mx-auto", animClass, responsiveClass)}><Tag className={cn({ h1: 'text-5xl md:text-7xl', h2: 'text-4xl md:text-5xl', h3: 'text-2xl md:text-3xl' }[Tag as any] || "text-3xl", "font-headline font-bold leading-tight")}>{block.content?.text}</Tag></div>;
@@ -168,7 +209,7 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
       return <div style={style} className={cn("px-6 max-w-6xl mx-auto", animClass, responsiveClass)}><Button size="lg" className="rounded-2xl px-12 h-16 font-bold text-xl shadow-2xl shadow-primary/30 transition-all hover:scale-105">{block.content?.text}</Button></div>;
     case "checked-list":
       return <div style={style} className={cn("px-6 max-w-6xl mx-auto space-y-4", animClass, responsiveClass)}>{(block.content?.items || []).map((item: string, i: number) => {
-        let prefix = <div className="mt-1 bg-primary/10 p-1.5 rounded-full text-primary shadow-sm"><CheckCircle className="w-5 h-5 fill-primary text-white" /></div>;
+        let prefix = <div className="mt-1 bg-primary/10 p-1.5 rounded-full text-primary shadow-sm"><LucideIcons.CheckCircle className="w-5 h-5 fill-primary text-white" /></div>;
         if (block.content?.listStyle === "bullet") prefix = <div className="mt-4 w-2 h-2 rounded-full bg-primary shrink-0 ml-3 mr-1" />;
         else if (block.content?.listStyle === "number") prefix = <div className="mt-1 bg-primary/10 w-8 h-8 rounded-full flex items-center justify-center text-primary font-black text-sm shrink-0">{i + 1}</div>;
         return <div key={i} className="flex items-start gap-4">{prefix}<span className="text-xl font-medium pt-0.5">{item}</span></div>;
@@ -251,20 +292,19 @@ function LandingPageOrderForm({ product, store }: { product: any, store: any }) 
           <div className="space-y-6">
             <h4 className="font-bold text-xl text-slate-400 uppercase tracking-widest">পেমেন্ট মেথড</h4>
             <div className="grid gap-3">
-              {store?.paymentSettings?.cod && (
-                <div 
-                  className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} 
-                  onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
-                      {formData.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
-                    </div>
-                    <span className="font-bold flex-1 cursor-pointer">ক্যাশ অন ডেলিভারি</span>
+              <div 
+                className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} 
+                onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
+                    {formData.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
                   </div>
-                  <Truck className="w-5 h-5 text-slate-300" />
+                  <span className="font-bold flex-1 cursor-pointer">ক্যাশ অন ডেলিভারি</span>
                 </div>
-              )}
+                <Truck className="w-5 h-5 text-slate-300" />
+              </div>
+              
               {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
                 <div 
                   className={cn("flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} 
