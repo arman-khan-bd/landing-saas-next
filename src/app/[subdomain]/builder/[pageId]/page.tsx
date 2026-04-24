@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { collection, query, where, getDocs, doc, updateDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import * as LucideIcons from "lucide-react";
 import { 
   Plus, Save, Trash2, Image as ImageIcon,
   Type, Layout, List, CheckCircle, ShoppingCart,
@@ -55,6 +56,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 
 export default function PageBuilder() {
   return (
