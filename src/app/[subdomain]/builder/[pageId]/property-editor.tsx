@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useMemo, useCallback, useRef } from "react";
@@ -11,8 +12,13 @@ import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Trash2, Zap, Shield, Star, Heart, ShoppingCart, Truck, CreditCard, Lightbulb, Check, Info, Columns, LayoutList, ChevronRight } from "lucide-react";
+import * as LucideIcons from "lucide-react";
+import { 
+  Trash2, Zap, Shield, Star, Heart, ShoppingCart, Truck, CreditCard, 
+  Lightbulb, Check, Info, Columns, LayoutList, ChevronRight, Search 
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -27,21 +33,32 @@ interface PropertyEditorProps {
   onChange: (updates: any) => void;
 }
 
-const ICON_LIST = [
-  { name: "Zap", icon: Zap },
-  { name: "Shield", icon: Shield },
-  { name: "Star", icon: Star },
-  { name: "Heart", icon: Heart },
-  { name: "ShoppingCart", icon: ShoppingCart },
-  { name: "Truck", icon: Truck },
-  { name: "CreditCard", icon: CreditCard },
-  { name: "Lightbulb", icon: Lightbulb },
-  { name: "Check", icon: Check },
-  { name: "Info", icon: Info }
+// A larger set of 150+ common icons from Lucide
+const COMMON_ICONS = [
+  "Zap", "Shield", "Star", "Heart", "ShoppingCart", "Truck", "CreditCard", "Lightbulb", "Check", "Info",
+  "User", "Settings", "Mail", "Phone", "MapPin", "Calendar", "Clock", "Camera", "Video", "Music",
+  "Globe", "Layers", "Layout", "Box", "Package", "Tag", "Search", "Edit", "Trash", "Archive",
+  "Bell", "Bookmark", "Award", "Badge", "Gift", "Coffee", "Utensils", "Briefcase", "Home", "Key",
+  "Cloud", "CloudUpload", "Download", "Share", "Send", "Link", "Eye", "EyeOff", "Lock", "Unlock",
+  "CheckCircle", "AlertCircle", "AlertTriangle", "HelpCircle", "MinusCircle", "PlusCircle", "XCircle", "ZapOff", "Smartphone", "Tablet",
+  "Monitor", "Tv", "Watch", "Wifi", "Battery", "Bluetooth", "HardDrive", "Cpu", "Server", "Database",
+  "Flag", "Filter", "Folder", "File", "FileText", "Image", "Paperclip", "Maximize", "Minimize", "Move",
+  "Play", "Pause", "Stop", "SkipBack", "SkipForward", "Repeat", "Shuffle", "Volume", "VolumeX", "Mic",
+  "Sun", "Moon", "Wind", "Umbrella", "Thermometer", "Droplets", "Sunrise", "Sunset", "Mountain", "Tree",
+  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Star", "Activity", "TrendUp", "TrendDown",
+  "DollarSign", "Euro", "PoundSterling", "Bitcoin", "Hash", "Percent", "Divide", "Plus", "Minus", "Equal",
+  "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "ChevronUp", "ChevronDown", "ChevronLeft", "ChevronRight", "ChevronsUp", "ChevronsDown",
+  "RotateCcw", "RotateCw", "RefreshCcw", "RefreshCw", "DownloadCloud", "UploadCloud", "ShoppingBag", "CreditCard", "Wallet", "Banknote",
+  "PieChart", "BarChart", "LineChart", "Target", "Trophy", "Rocket", "Anchor", "Compass", "LifeBuoy", "Map"
 ];
 
 export function PropertyEditor({ block, products, onChange }: PropertyEditorProps) {
   const quillRef = useRef<any>(null);
+  const [iconSearch, setIconSearch] = React.useState("");
+
+  const filteredIcons = useMemo(() => {
+    return COMMON_ICONS.filter(i => i.toLowerCase().includes(iconSearch.toLowerCase()));
+  }, [iconSearch]);
 
   const imageHandler = useCallback(() => {
     const input = document.createElement("input");
@@ -230,30 +247,55 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
               <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Subtitle</Label>
               <Textarea value={block.content?.subtitle || ""} onChange={(e) => onChange({ content: { subtitle: e.target.value } })} className="rounded-lg min-h-[60px] border-none bg-black/20 text-white text-xs" />
            </div>
-           <div className="space-y-2">
-              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Pick Icon</Label>
-              <div className="grid grid-cols-5 gap-1.5 p-1.5 bg-black/20 rounded-lg">
-                 {ICON_LIST.map(item => (
-                   <button 
-                    key={item.name}
-                    onClick={() => onChange({ content: { iconName: item.name } })}
-                    className={cn("p-1.5 rounded-md transition-all flex items-center justify-center", block.content?.iconName === item.name ? "bg-white text-primary" : "text-white/40 hover:bg-white/5")}
-                   >
-                     <item.icon className="w-3.5 h-3.5" />
-                   </button>
-                 ))}
-              </div>
-              <div className="grid grid-cols-2 gap-3 mt-2">
-                 <div className="space-y-1">
-                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Icon Color</Label>
-                    <Input type="color" value={block.content?.iconColor || "#145DCC"} onChange={(e) => onChange({ content: { iconColor: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
-                 </div>
-                 <div className="space-y-1">
-                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Icon Size ({block.content?.iconSize || 32}px)</Label>
-                    <Slider value={[block.content?.iconSize || 32]} min={16} max={80} onValueChange={([v]) => onChange({ content: { iconSize: v } })} />
-                 </div>
-              </div>
+
+           <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg border border-white/5">
+              <Label className="text-[9px] font-bold text-white/90 uppercase">Show Icon</Label>
+              <Switch checked={!!block.content?.showIcon} onCheckedChange={(val) => onChange({ content: { showIcon: val } })} />
            </div>
+
+           {block.content?.showIcon && (
+             <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Pick Icon (150+ Library)</Label>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-white/30" />
+                    <Input 
+                      placeholder="Search icons..." 
+                      value={iconSearch} 
+                      onChange={(e) => setIconSearch(e.target.value)} 
+                      className="h-7 text-[10px] pl-7 bg-black/20 border-none text-white" 
+                    />
+                  </div>
+                  <div className="grid grid-cols-6 gap-1 p-1 bg-black/20 rounded-lg max-h-[120px] overflow-y-auto custom-scrollbar">
+                    {filteredIcons.map(iconName => {
+                      const Icon = (LucideIcons as any)[iconName];
+                      return (
+                        <button 
+                          key={iconName}
+                          onClick={() => onChange({ content: { iconName } })}
+                          className={cn("p-2 rounded-md transition-all flex items-center justify-center", block.content?.iconName === iconName ? "bg-white text-primary" : "text-white/40 hover:bg-white/5")}
+                          title={iconName}
+                        >
+                          {Icon && <Icon className="w-3.5 h-3.5" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                   <div className="space-y-1">
+                      <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Icon Color</Label>
+                      <Input type="color" value={block.content?.iconColor || "#145DCC"} onChange={(e) => onChange({ content: { iconColor: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
+                   </div>
+                   <div className="space-y-1">
+                      <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Icon Size ({block.content?.iconSize || 32}px)</Label>
+                      <Slider value={[block.content?.iconSize || 32]} min={16} max={120} onValueChange={([v]) => onChange({ content: { iconSize: v } })} />
+                   </div>
+                </div>
+             </div>
+           )}
+
            <Separator className="bg-white/5" />
            <div className="space-y-2">
               <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Card List System</Label>

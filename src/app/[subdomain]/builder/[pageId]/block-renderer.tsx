@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -288,26 +289,38 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
         </div>
       );
     case "card":
-      const IconComp = block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
+      const IconComp = block.content?.showIcon && block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
+      const cardTextAlign = block.style?.textAlign || "left";
+      
       return (
         <div 
           style={style} 
           className={cn("px-4 w-full max-w-6xl mx-auto relative overflow-hidden")}
         >
           {block.content?.bgImage && <img src={block.content.bgImage} className="absolute inset-0 w-full h-full object-cover z-0 opacity-40" alt="" />}
-          <div className="relative z-10 space-y-4">
-             {IconComp && <IconComp style={{ color: block.content?.iconColor || "#145DCC" }} size={block.content?.iconSize || 32} className="shrink-0" />}
-             <div className="space-y-1">
+          <div className={cn("relative z-10 space-y-4 flex flex-col", {
+            "items-start text-left": cardTextAlign === "left",
+            "items-center text-center": cardTextAlign === "center",
+            "items-end text-right": cardTextAlign === "right",
+            "items-stretch text-justify": cardTextAlign === "justify"
+          })}>
+             {IconComp && <IconComp style={{ color: block.content?.iconColor || "#145DCC" }} size={block.content?.iconSize || 32} className="shrink-0 mb-2" />}
+             <div className="space-y-1 w-full">
                 <h4 className="font-bold text-xl">{block.content?.title || "Feature Title"}</h4>
                 <p className="text-sm opacity-80 leading-relaxed">{block.content?.subtitle || "Description placeholder..."}</p>
              </div>
              {(block.content?.items || []).length > 0 && (
-               <div className="space-y-2 pt-2">
+               <div className={cn("space-y-2 pt-2 w-full flex flex-col", {
+                  "items-start": cardTextAlign === "left",
+                  "items-center": cardTextAlign === "center",
+                  "items-end": cardTextAlign === "right",
+                  "items-stretch": cardTextAlign === "justify"
+               })}>
                  {block.content.items.map((item: string, i: number) => {
                     let prefix;
                     const lStyle = block.content?.listStyle || "check";
                     if (lStyle === "check") prefix = <Check className="w-3.5 h-3.5 text-primary" />;
-                    else if (lStyle === "bullet") prefix = <div className="w-1 h-1 rounded-full bg-slate-400" />;
+                    else if (lStyle === "bullet") prefix = <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />;
                     else if (lStyle === "number") prefix = <span className="text-[10px] font-bold text-primary">{i+1}.</span>;
                     else if (lStyle === "roman") prefix = <span className="text-[10px] font-bold text-primary">{["I", "II", "III", "IV", "V"][i] || i+1}.</span>;
                     else if (lStyle === "bengali") prefix = <span className="text-[10px] font-bold text-primary">{['০', '১', '২', '৩', '৪'][i] || i+1}.</span>;

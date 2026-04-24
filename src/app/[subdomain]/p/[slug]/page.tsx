@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -195,21 +196,33 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
       );
 
     case "card":
-      const IconComp = block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
+      const IconComp = block.content?.showIcon && block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
+      const cardTextAlign = block.style?.textAlign || "left";
+
       return (
         <div 
           style={style} 
           className={cn("px-6 w-full max-w-6xl mx-auto relative overflow-hidden", animClass, responsiveClass)}
         >
           {block.content?.bgImage && <img src={block.content.bgImage} className="absolute inset-0 w-full h-full object-cover z-0 opacity-40" alt="" />}
-          <div className="relative z-10 space-y-4">
+          <div className={cn("relative z-10 space-y-4 flex flex-col", {
+            "items-start text-left": cardTextAlign === "left",
+            "items-center text-center": cardTextAlign === "center",
+            "items-end text-right": cardTextAlign === "right",
+            "items-stretch text-justify": cardTextAlign === "justify"
+          })}>
              {IconComp && <IconComp style={{ color: block.content?.iconColor || "#145DCC" }} size={block.content?.iconSize || 32} className="shrink-0" />}
-             <div className="space-y-1">
+             <div className="space-y-1 w-full">
                 <h4 className="font-bold text-xl">{block.content?.title}</h4>
                 <p className="text-sm opacity-80 leading-relaxed">{block.content?.subtitle}</p>
              </div>
              {(block.content?.items || []).length > 0 && (
-               <div className="space-y-2 pt-2">
+               <div className={cn("space-y-2 pt-2 w-full flex flex-col", {
+                  "items-start": cardTextAlign === "left",
+                  "items-center": cardTextAlign === "center",
+                  "items-end": cardTextAlign === "right",
+                  "items-stretch": cardTextAlign === "justify"
+               })}>
                  {block.content.items.map((item: string, i: number) => {
                     let prefix;
                     const lStyle = block.content?.listStyle || "check";
