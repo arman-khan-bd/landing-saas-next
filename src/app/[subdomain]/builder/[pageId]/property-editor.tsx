@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useMemo, useCallback, useRef } from "react";
@@ -18,7 +19,8 @@ import {
   Trash2, Zap, Shield, Heart, ShoppingCart, Truck, CreditCard, 
   Lightbulb, Check, Info, Columns, LayoutList, ChevronRight, Search,
   CheckCircle, Star, User, Settings, Mail, Phone, MapPin, Globe,
-  Box, Package, Play, Pause, Sun, Moon, Wind, Tree, Trash, Edit, RefreshCw
+  Box, Package, Play, Pause, Sun, Moon, Wind, Tree, Trash, Edit, RefreshCw,
+  Droplets, Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import "react-quill-new/dist/quill.snow.css";
@@ -45,7 +47,7 @@ const COMMON_ICONS = [
   "Flag", "Filter", "Folder", "File", "FileText", "Image", "Paperclip", "Maximize", "Minimize", "Move",
   "Play", "Pause", "Stop", "SkipBack", "SkipForward", "Repeat", "Shuffle", "Volume", "VolumeX", "Mic",
   "Sun", "Moon", "Wind", "Umbrella", "Thermometer", "Droplets", "Sunrise", "Sunset", "Mountain", "Tree",
-  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity", "TrendUp", "TrendDown"
+  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity"
 ];
 
 export function PropertyEditor({ block, products, onChange }: PropertyEditorProps) {
@@ -256,6 +258,17 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
     case "card":
       return (
         <div className="space-y-4">
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Layout Orientation</Label>
+              <Select value={block.content?.layout || "vertical"} onValueChange={(v) => onChange({ content: { layout: v } })}>
+                <SelectTrigger className="rounded-lg h-8 border-none bg-black/20 text-white text-[10px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vertical">Vertical (Stacked)</SelectItem>
+                  <SelectItem value="horizontal">Horizontal (Inline)</SelectItem>
+                </SelectContent>
+              </Select>
+           </div>
+
            <div className="space-y-1">
               <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Title</Label>
               <Input value={block.content?.title || ""} onChange={(e) => onChange({ content: { title: e.target.value } })} className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />

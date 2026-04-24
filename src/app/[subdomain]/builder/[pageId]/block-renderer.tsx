@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -350,6 +351,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     case "card":
       const IconComp = block.content?.showIcon && block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
       const cardTextAlign = block.style?.textAlign || "left";
+      const isHorizontal = block.content?.layout === "horizontal";
       
       return (
         <div 
@@ -361,40 +363,43 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           )}
         >
           {block.content?.bgImage && <img src={block.content.bgImage} className="absolute inset-0 w-full h-full object-cover z-0 opacity-40" alt="" />}
-          <div className={cn("relative z-10 space-y-4 flex flex-col", {
-            "items-start text-left": cardTextAlign === "left",
-            "items-center text-center": cardTextAlign === "center",
-            "items-end text-right": cardTextAlign === "right",
-            "items-stretch text-justify": cardTextAlign === "justify"
-          })}>
-             {IconComp && <IconComp style={{ color: block.content?.iconColor || (isOrganic ? "#2d7a3a" : isTraditional ? "#1a7c3e" : "#145DCC") }} size={block.content?.iconSize || 32} className="shrink-0 mb-2" />}
-             <div className="space-y-1 w-full">
+          <div className={cn("relative z-10 flex", 
+            isHorizontal ? "flex-row items-center gap-4" : "flex-col gap-4",
+            {
+              "items-start text-left": !isHorizontal && cardTextAlign === "left",
+              "items-center text-center": !isHorizontal && cardTextAlign === "center",
+              "items-end text-right": !isHorizontal && cardTextAlign === "right",
+              "items-stretch text-justify": !isHorizontal && cardTextAlign === "justify"
+            }
+          )}>
+             {IconComp && <IconComp style={{ color: block.content?.iconColor || (isOrganic ? "#2d7a3a" : isTraditional ? "#1a7c3e" : "#145DCC") }} size={block.content?.iconSize || 32} className="shrink-0" />}
+             <div className="space-y-1 w-full flex-1">
                 <h4 className={cn("font-bold text-xl", (isOrganic || isTraditional) && `text-primary`)}>{block.content?.title || "Feature Title"}</h4>
                 <p className="text-sm opacity-80 leading-relaxed">{block.content?.subtitle || "Description placeholder..."}</p>
-             </div>
-             {(block.content?.items || []).length > 0 && (
-               <div className={cn("space-y-2 pt-2 w-full flex flex-col", {
-                  "items-start": cardTextAlign === "left",
-                  "items-center": cardTextAlign === "center",
-                  "items-end": cardTextAlign === "right",
-                  "items-stretch": cardTextAlign === "justify"
-               })}>
-                 {block.content.items.map((item: string, i: number) => {
-                    let prefix;
-                    const lStyle = block.content?.listStyle || "check";
-                    if (lStyle === "check") prefix = <Check className={cn("w-3.5 h-3.5", (isOrganic || isTraditional) ? "text-primary" : "text-primary")} />;
-                    else if (lStyle === "bullet") prefix = <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />;
-                    else if (lStyle === "number") prefix = <span className={cn("text-[10px] font-bold", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>{i+1}.</span>;
+                {(block.content?.items || []).length > 0 && (
+                  <div className={cn("space-y-2 pt-2 w-full flex flex-col", {
+                      "items-start": isHorizontal || cardTextAlign === "left",
+                      "items-center": !isHorizontal && cardTextAlign === "center",
+                      "items-end": !isHorizontal && cardTextAlign === "right",
+                      "items-stretch": !isHorizontal && cardTextAlign === "justify"
+                  })}>
+                    {block.content.items.map((item: string, i: number) => {
+                        let prefix;
+                        const lStyle = block.content?.listStyle || "check";
+                        if (lStyle === "check") prefix = <Check className={cn("w-3.5 h-3.5", (isOrganic || isTraditional) ? "text-primary" : "text-primary")} />;
+                        else if (lStyle === "bullet") prefix = <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />;
+                        else if (lStyle === "number") prefix = <span className={cn("text-[10px] font-bold", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>{i+1}.</span>;
 
-                    return (
-                      <div key={i} className="flex items-center gap-2">
-                        {prefix}
-                        <span className="text-sm font-medium">{item}</span>
-                      </div>
-                    );
-                 })}
-               </div>
-             )}
+                        return (
+                          <div key={i} className="flex items-center gap-2">
+                            {prefix}
+                            <span className="text-sm font-medium">{item}</span>
+                          </div>
+                        );
+                    })}
+                  </div>
+                )}
+             </div>
           </div>
         </div>
       );
@@ -402,12 +407,14 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       const HeaderTag = block.content?.level || 'h2';
       const headerSizes: any = { h1: 'text-3xl md:text-7xl', h2: 'text-2xl md:text-5xl', h3: 'text-xl md:text-3xl' };
       const themeActive = isOrganic || isTraditional;
+      const isPill = block.style?.borderRadius && block.style.borderRadius > 20 && block.style.backgroundColor;
 
       return (
         <div 
           style={style} 
           className={cn(
-            "px-4 w-full font-headline font-bold leading-tight",
+            "px-4 font-headline font-bold leading-tight",
+            isPill ? "w-fit mx-auto px-6 py-2" : "w-full",
             themeActive && !block.style?.backgroundColor && "text-center py-12 text-white relative overflow-hidden",
           )}
         >

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -70,6 +71,7 @@ const THEMES = [
 
 const getThemeTemplate = (themeId: string): Block[] => {
   if (themeId === 'laam' || themeId === 'organic') {
+    const isLaam = themeId === 'laam';
     return [
       {
         id: "marquee-1",
@@ -78,60 +80,78 @@ const getThemeTemplate = (themeId: string): Block[] => {
         style: { paddingTop: 0, paddingBottom: 0 }
       },
       {
+        id: "pill-header",
+        type: "header",
+        content: { text: 'কেন "সাম" খাবেন?', level: "h3" },
+        style: { 
+          textAlign: "center", 
+          backgroundColor: isLaam ? "#c9920a" : "#c9941a", 
+          textColor: "#1a1a1a", 
+          borderRadius: 40, 
+          paddingTop: 8, 
+          paddingBottom: 8, 
+          paddingLeft: 24, 
+          paddingRight: 24,
+          fontSize: 14,
+          marginTop: 60,
+          marginBottom: 10
+        }
+      },
+      {
         id: "hero-1",
         type: "header",
-        content: { text: "Premium Health & [Wellness]", level: "h2" },
-        style: { textAlign: "center", paddingTop: 60, paddingBottom: 10, highlightColor: "#c9920a" }
+        content: { text: "যেসব সমস্যায় [সাম কাজ করে]", level: "h2" },
+        style: { textAlign: "center", paddingTop: 10, paddingBottom: 40, highlightColor: isLaam ? "#1a7c3e" : "#2d7a3a" }
       },
       {
-        id: "hero-2",
-        type: "header",
-        content: { text: "প্রাকৃতিক উপাদানে [সুস্থতা]", level: "h1" },
-        style: { textAlign: "center", paddingTop: 0, paddingBottom: 20, highlightColor: "#c9920a" }
-      },
-      {
-        id: "hero-3",
-        type: "paragraph",
-        content: { text: "হাজার হাজার টাকা অসুস্থ হয়ে নষ্ট করেছেন কিন্তু কোন সমাধান পাননি? [আজকের সিদ্ধান্তই] আপনার আগামী দিনের শক্তি।" },
-        style: { textAlign: "center", fontSize: 18, paddingBottom: 30, highlightColor: "#2d7a3a" }
+        id: "benefits-row",
+        type: "row",
+        content: { columns: 2 },
+        style: { paddingTop: 0, paddingBottom: 40 },
+        children: [
+          {
+            id: "ben-1",
+            type: "card",
+            content: { title: "হার্টের সমস্যা", subtitle: "হার্ট ব্লক বা হার্টের সমস্যায় মহাঔষধ", iconName: "Heart", showIcon: true, layout: "horizontal", iconColor: "#c0392b" },
+            style: { columnIndex: 0, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
+          },
+          {
+            id: "ben-2",
+            type: "card",
+            content: { title: "উচ্চ রক্তচাপ", subtitle: "হাই প্রেশারের প্রাকৃতিক সমাধান", iconName: "Droplets", showIcon: true, layout: "horizontal", iconColor: "#c0392b" },
+            style: { columnIndex: 1, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
+          },
+          {
+            id: "ben-3",
+            type: "card",
+            content: { title: "গ্যাস্ট্রিক সমস্যা", subtitle: "বুক জ্বালাপোড়া ও পেট ফাঁপায় উপকারী", iconName: "Square", showIcon: true, layout: "horizontal", iconColor: "#1a7c3e" },
+            style: { columnIndex: 0, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
+          },
+          {
+            id: "ben-4",
+            type: "card",
+            content: { title: "শারীরিক দুর্বলতা", subtitle: "সাধারণ ও বিশেষ দুর্বলতা দূর করে", iconName: "Activity", showIcon: true, layout: "horizontal", iconColor: "#c9920a" },
+            style: { columnIndex: 1, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
+          },
+          {
+            id: "ben-5",
+            type: "card",
+            content: { title: "ঠান্ডা-সর্দি", subtitle: "দীর্ঘস্থায়ী ঠান্ডার সমস্যা থেকে মুক্তি", iconName: "Wind", showIcon: true, layout: "horizontal", iconColor: "#1a7c3e" },
+            style: { columnIndex: 0, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
+          },
+          {
+            id: "ben-6",
+            type: "card",
+            content: { title: "ডায়াবেটিস", subtitle: "ডায়াবেটিস নিয়ন্ত্রণে সহায়তা করে", iconName: "Zap", showIcon: true, layout: "horizontal", iconColor: "#c0392b" },
+            style: { columnIndex: 1, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
+          }
+        ]
       },
       {
         id: "hero-4",
         type: "button",
         content: { text: "👇 এখনই অর্ডার করুন", link: "[checkout]" },
         style: { textAlign: "center", paddingBottom: 60 }
-      },
-      {
-        id: "benefits-row",
-        type: "row",
-        content: { columns: 2 },
-        style: { paddingTop: 40, paddingBottom: 40 },
-        children: [
-          {
-            id: "ben-1",
-            type: "card",
-            content: { title: "শারীরিক দুর্বলতা দূর করে", subtitle: "আপনাকে উপহার দিবে সুখময় দাম্পত্য জীবন।", iconName: "Zap", showIcon: true, listStyle: "check", items: [] },
-            style: { columnIndex: 0, columnSpan: 1 }
-          },
-          {
-            id: "ben-2",
-            type: "card",
-            content: { title: "বাত ব্যথা দূর করে", subtitle: "আপনার জীবনকে দিবে প্রশান্তি।", iconName: "Activity", showIcon: true, listStyle: "check", items: [] },
-            style: { columnIndex: 1, columnSpan: 1 }
-          },
-          {
-            id: "ben-3",
-            type: "card",
-            content: { title: "হার্ট ও ব্লাড প্রেশার", subtitle: "হৃদরোগীদের জন্য এককথায় মহাঔষধ।", iconName: "Heart", showIcon: true, listStyle: "check", items: [] },
-            style: { columnIndex: 0, columnSpan: 1 }
-          },
-          {
-            id: "ben-4",
-            type: "card",
-            content: { title: "১০০% প্রাকৃতিক ও নিরাপদ", subtitle: "কোন পার্শ্বপ্রতিক্রিয়া নেই ইনশাআল্লাহ।", iconName: "ShieldCheck", showIcon: true, listStyle: "check", items: [] },
-            style: { columnIndex: 1, columnSpan: 1 }
-          }
-        ]
       },
       {
         id: "faq-section",
