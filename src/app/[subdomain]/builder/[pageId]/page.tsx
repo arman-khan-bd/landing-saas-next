@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -60,7 +59,7 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 
@@ -403,6 +402,59 @@ function PageBuilderInner() {
   };
 
   if (loading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin text-primary w-12 h-12" /></div>;
+
+  return (
+    <SidebarProvider>
+      <PageBuilderInnerContent 
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        pageStyle={pageStyle}
+        setPageStyle={setPageStyle}
+        blocks={blocks}
+        setBlocks={setBlocks}
+        selectedBlockId={selectedBlockId}
+        setSelectedBlockId={setSelectedBlockId}
+        selectedBlock={selectedBlock}
+        sidebarTab={sidebarTab}
+        setSidebarTab={setSidebarTab}
+        products={products}
+        store={store}
+        subdomain={subdomain as string}
+        saving={saving}
+        handleSave={handleSave}
+        isPreviewOpen={isPreviewOpen}
+        setIsPreviewOpen={setIsPreviewOpen}
+        isComponentDialogOpen={isComponentDialogOpen}
+        setIsComponentDialogOpen={setIsComponentDialogOpen}
+        activeParentId={activeParentId}
+        setActiveParentId={setActiveParentId}
+        insertInfo={insertInfo}
+        setInsertInfo={setInsertInfo}
+        sensors={sensors}
+        activeDragId={activeDragId}
+        setActiveDragId={setActiveDragId}
+        handleDragEnd={handleDragEnd}
+        findBlockById={findBlockById}
+        removeBlock={removeBlock}
+        updateBlock={updateBlock}
+        moveBlock={moveBlock}
+        onInsertRequest={onInsertRequest}
+        isMobile={isMobile}
+        setOpenMobile={setOpenMobile}
+        handleAddBlock={handleAddBlock}
+      />
+    </SidebarProvider>
+  );
+}
+
+function PageBuilderInnerContent({ 
+  viewMode, setViewMode, pageStyle, setPageStyle, blocks, setBlocks, selectedBlockId, setSelectedBlockId,
+  selectedBlock, sidebarTab, setSidebarTab, products, store, subdomain, saving, handleSave, isPreviewOpen, setIsPreviewOpen,
+  isComponentDialogOpen, setIsComponentDialogOpen, activeParentId, setActiveParentId, insertInfo, setInsertInfo,
+  sensors, activeDragId, setActiveDragId, handleDragEnd, findBlockById, removeBlock, updateBlock, moveBlock, onInsertRequest,
+  isMobile, setOpenMobile, handleAddBlock
+}: any) {
+  const router = useRouter();
 
   return (
     <div className="flex h-screen w-full bg-slate-50/50 overflow-hidden text-slate-800 select-none">
@@ -1277,6 +1329,8 @@ function BlockRenderer({ block, products, store, isPreview = false, viewMode = "
                 </CarouselItem>
               ))}
             </CarouselContent>
+            <CarouselPrevious className="left-1 h-8 w-8" />
+            <CarouselNext className="right-1 h-8 w-8" />
           </Carousel>
         </div>
       );

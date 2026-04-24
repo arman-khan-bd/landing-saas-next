@@ -7,7 +7,7 @@ import { collection, query, where, getDocs, addDoc, serverTimestamp, limit } fro
 import { Loader2, AlertCircle, CheckCircle, Truck, CreditCard, ShieldCheck, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -296,6 +296,8 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
                 </CarouselItem>
               ))}
             </CarouselContent>
+            <CarouselPrevious className="left-2 bg-white/80 hover:bg-white border-none shadow-lg text-primary h-12 w-12" />
+            <CarouselNext className="right-2 bg-white/80 hover:bg-white border-none shadow-lg text-primary h-12 w-12" />
           </Carousel>
         </div>
       );

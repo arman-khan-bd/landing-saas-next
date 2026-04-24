@@ -7,7 +7,7 @@ import { collection, query, where, getDocs, addDoc, serverTimestamp, limit } fro
 import { Loader2, AlertCircle, CheckCircle, Truck, CreditCard, ShieldCheck, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -175,7 +175,7 @@ function BlockRenderer({ block, products, store, subdomain }: { block: Block, pr
       })}</div>;
     case "carousel":
       const carColMapping = { 1: "basis-full", 2: "basis-full md:basis-1/2", 3: "basis-full md:basis-1/3", 4: "basis-full md:basis-1/4" }[block.style?.desktopColumns || 3] || "basis-full";
-      return <div style={style} className={cn("px-6 w-full max-w-6xl mx-auto", animClass, responsiveClass)}><Carousel opts={{ align: "start" }} className="w-full"><CarouselContent>{(block.content?.items || []).map((item: any) => <CarouselItem key={item.id} className={cn(carColMapping, "px-2")}><div className="bg-slate-50 rounded-[32px] overflow-hidden border border-slate-100 h-full flex flex-col shadow-sm">{item.imageUrl && <img src={item.imageUrl} className="w-full aspect-square object-cover" />}{(item.title || item.subtitle || item.buttonText) && <div className="p-6 space-y-3 flex-1">{item.title && <h4 className="font-bold text-xl">{item.title}</h4>}{item.subtitle && <p className="text-sm text-muted-foreground line-clamp-3">{item.subtitle}</p>}{item.buttonText && <Button variant="secondary" className="w-full h-12 text-xs uppercase font-black rounded-2xl mt-4">{item.buttonText}</Button>}</div>}</div></CarouselItem>)}</CarouselContent></Carousel></div>;
+      return <div style={style} className={cn("px-6 w-full max-w-6xl mx-auto", animClass, responsiveClass)}><Carousel opts={{ align: "start" }} className="w-full"><CarouselContent>{(block.content?.items || []).map((item: any) => <CarouselItem key={item.id} className={cn(carColMapping, "px-2")}><div className="bg-slate-50 rounded-[32px] overflow-hidden border border-slate-100 h-full flex flex-col shadow-sm">{item.imageUrl && <img src={item.imageUrl} className="w-full aspect-square object-cover" />}{(item.title || item.subtitle || item.buttonText) && <div className="p-6 space-y-3 flex-1">{item.title && <h4 className="font-bold text-xl">{item.title}</h4>}{item.subtitle && <p className="text-sm text-muted-foreground line-clamp-3">{item.subtitle}</p>}{item.buttonText && <Button variant="secondary" className="w-full h-12 text-xs uppercase font-black rounded-2xl mt-4">{item.buttonText}</Button>}</div>}</div></CarouselItem>)}</CarouselContent><CarouselPrevious className="left-2 bg-white/80 hover:bg-white border-none shadow-lg text-primary h-12 w-12" /><CarouselNext className="right-2 bg-white/80 hover:bg-white border-none shadow-lg text-primary h-12 w-12" /></Carousel></div>;
     case "product-order-form":
       return <div style={style} className={cn("px-6 max-w-5xl mx-auto", animClass, responsiveClass)}><LandingPageOrderForm product={products.find(p => p.id === block.content?.mainProductId)} store={store} /></div>;
     default: return null;
