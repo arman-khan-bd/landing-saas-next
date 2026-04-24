@@ -60,7 +60,10 @@ export function CanvasBlockWrapper({ block, products, store, isSelected, isMobil
     <div
       ref={setNodeRef}
       style={style}
-      onClick={(e) => { e.stopPropagation(); onSelect(); }}
+      onClick={(e) => { 
+        e.stopPropagation(); 
+        onSelect(block.id); 
+      }}
       className={cn(
         "relative group/block transition-all duration-300 cursor-pointer min-h-[20px]",
         isSelected ? "ring-2 ring-primary ring-offset-2 z-40 bg-primary/5 rounded-lg" : "hover:bg-primary/5",
@@ -75,10 +78,10 @@ export function CanvasBlockWrapper({ block, products, store, isSelected, isMobil
             </div>
           ) : (
             <div className="flex items-center gap-1 border-r border-white/20 pr-1 mr-1">
-               <Button variant="ghost" size="icon" className="h-5 w-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveUp(); }}>
+               <Button variant="ghost" size="icon" className="h-5 w-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveUp(block.id); }}>
                   <ChevronUp className="w-3 h-3" />
                </Button>
-               <Button variant="ghost" size="icon" className="h-5 w-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveDown(); }}>
+               <Button variant="ghost" size="icon" className="h-5 w-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveDown(block.id); }}>
                   <ChevronDown className="w-3 h-3" />
                </Button>
             </div>
@@ -103,18 +106,21 @@ export function CanvasBlockWrapper({ block, products, store, isSelected, isMobil
             </Button>
           </div>
           <div className="flex items-center gap-1">
-            <Trash2 className="w-3 h-3 cursor-pointer hover:text-red-200" onClick={(e) => { e.stopPropagation(); onRemove(); }} />
+            <Trash2 className="w-3 h-3 cursor-pointer hover:text-red-200" onClick={(e) => { e.stopPropagation(); onRemove(block.id); }} />
           </div>
         </div>
       )}
-      <div className="pointer-events-none">
+      <div className={cn(
+        "relative",
+        isBuilder && block.type !== "row" && "pointer-events-none select-none"
+      )}>
         <BlockRenderer 
           block={block} 
           products={products} 
           store={store}
           viewMode={viewMode} 
           onAddNested={onAddNested}
-          isBuilder
+          isBuilder={isBuilder}
           isMobile={isMobile}
           selectedBlockId={selectedBlockId}
           onSelect={onSelect}
@@ -189,7 +195,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             
             return (
               <div key={colIdx} className={cn(
-                "flex flex-col gap-4 min-h-[60px] relative",
+                "flex flex-col gap-4 min-h-[60px] relative pointer-events-auto",
                 isBuilder && "border border-dashed border-slate-200/30 p-4 rounded-3xl bg-white/5"
               )}>
                 {isBuilder && (
@@ -211,10 +217,10 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                         onAddNested={onAddNested}
                         isSelected={selectedBlockId === child.id}
                         selectedBlockId={selectedBlockId}
-                        onSelect={(id?: string) => onSelect?.(id || child.id)}
-                        onRemove={(id?: string) => onRemove?.(id || child.id)}
-                        onMoveUp={(id?: string) => onMoveUp?.(id || child.id)}
-                        onMoveDown={(id?: string) => onMoveDown?.(id || child.id)}
+                        onSelect={onSelect}
+                        onRemove={onRemove}
+                        onMoveUp={onMoveUp}
+                        onMoveDown={onMoveDown}
                         onInsertRequest={onInsertRequest}
                       />
                     ))}

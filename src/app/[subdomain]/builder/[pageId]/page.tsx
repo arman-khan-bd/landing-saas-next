@@ -398,6 +398,11 @@ function PageBuilderInner() {
     setIsComponentDialogOpen(true);
   };
 
+  const handleSelectBlock = (id: string) => {
+    setSelectedBlockId(id);
+    if (isMobile) setOpenMobile(true);
+  };
+
   if (loading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin text-primary w-12 h-12" /></div>;
 
   return (
@@ -730,11 +735,8 @@ function PageBuilderInner() {
                           isSelected={selectedBlockId === block.id}
                           selectedBlockId={selectedBlockId}
                           isMobile={isMobile}
-                          onSelect={(id?: string) => {
-                            setSelectedBlockId(id || block.id);
-                            if (isMobile) setOpenMobile(true);
-                          }}
-                          onRemove={(id?: string) => removeBlock(id || block.id)}
+                          onSelect={handleSelectBlock}
+                          onRemove={removeBlock}
                           onMoveUp={(id?: string) => moveBlock(id || block.id, 'up')}
                           onMoveDown={(id?: string) => moveBlock(id || block.id, 'down')}
                           onInsertRequest={onInsertRequest}
