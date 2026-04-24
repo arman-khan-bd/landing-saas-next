@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo, useCallback, useRef } from "react";
@@ -33,7 +32,7 @@ interface PropertyEditorProps {
   onChange: (updates: any) => void;
 }
 
-// A larger set of 150+ common icons from Lucide
+// A larger set of 150+ unique common icons from Lucide
 const COMMON_ICONS = [
   "Zap", "Shield", "Star", "Heart", "ShoppingCart", "Truck", "CreditCard", "Lightbulb", "Check", "Info",
   "User", "Settings", "Mail", "Phone", "MapPin", "Calendar", "Clock", "Camera", "Video", "Music",
@@ -45,10 +44,10 @@ const COMMON_ICONS = [
   "Flag", "Filter", "Folder", "File", "FileText", "Image", "Paperclip", "Maximize", "Minimize", "Move",
   "Play", "Pause", "Stop", "SkipBack", "SkipForward", "Repeat", "Shuffle", "Volume", "VolumeX", "Mic",
   "Sun", "Moon", "Wind", "Umbrella", "Thermometer", "Droplets", "Sunrise", "Sunset", "Mountain", "Tree",
-  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Star", "Activity", "TrendUp", "TrendDown",
+  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity", "TrendUp", "TrendDown",
   "DollarSign", "Euro", "PoundSterling", "Bitcoin", "Hash", "Percent", "Divide", "Plus", "Minus", "Equal",
   "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "ChevronUp", "ChevronDown", "ChevronLeft", "ChevronRight", "ChevronsUp", "ChevronsDown",
-  "RotateCcw", "RotateCw", "RefreshCcw", "RefreshCw", "DownloadCloud", "UploadCloud", "ShoppingBag", "CreditCard", "Wallet", "Banknote",
+  "RotateCcw", "RotateCw", "RefreshCcw", "RefreshCw", "DownloadCloud", "UploadCloud", "ShoppingBag", "Wallet", "Banknote",
   "PieChart", "BarChart", "LineChart", "Target", "Trophy", "Rocket", "Anchor", "Compass", "LifeBuoy", "Map"
 ];
 
