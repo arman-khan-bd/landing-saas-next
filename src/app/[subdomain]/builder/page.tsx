@@ -24,7 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { getStoreUrl, cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Block } from "./[pageId]/types";
 
@@ -80,13 +80,36 @@ const getThemeTemplate = (themeId: string): Block[] => {
         style: { paddingTop: 0, paddingBottom: 0 }
       },
       {
+        id: "hero-section",
+        type: "ultra-hero",
+        content: { 
+          badgeText: "BSTI অনুমোদিত • BCSIR ল্যাব টেস্টেড", 
+          title: "অসুস্থ ব্যক্তি ছাড়া [সুস্থতার মূল্য] কেউ বোঝে না", 
+          subtitle: "শক্তি ও সুস্বাস্থ্যের নির্ভরযোগ্য উপহার",
+          brandTitle: "লা'আম",
+          brandSubtitle: "প্রাকৃতিক স্বাস্থ্য সুরক্ষা",
+          ctaText: "অর্ডার করতে ক্লিক করুন",
+          ctaLink: "[checkout]",
+          phoneText: "01606-700289",
+          phoneLink: "tel:01606700289",
+          trustItems: [
+            { iconName: "CheckSquare", label: "BSTI অনুমোদিত" },
+            { iconName: "Microscope", label: "ল্যাব টেস্টেড" },
+            { iconName: "Truck", label: "ফ্রি ডেলিভারি" },
+            { iconName: "Banknote", label: "ক্যাশ অন ডেলিভারি" },
+            { iconName: "RotateCcw", label: "সহজ রিফান্ড" }
+          ]
+        },
+        style: { paddingTop: 40, paddingBottom: 80 }
+      },
+      {
         id: "pill-header",
         type: "header",
-        content: { text: 'কেন "সাম" খাবেন?', level: "h3" },
+        content: { text: 'কেন "লা\'আম" খাবেন?', level: "h3" },
         style: { 
           textAlign: "center", 
           backgroundColor: isLaam ? "#c9920a" : "#c9941a", 
-          textColor: "#1a1a1a", 
+          textColor: "#ffffff", 
           borderRadius: 40, 
           paddingTop: 8, 
           paddingBottom: 8, 
@@ -100,7 +123,7 @@ const getThemeTemplate = (themeId: string): Block[] => {
       {
         id: "hero-1",
         type: "header",
-        content: { text: "যেসব সমস্যায় [সাম কাজ করে]", level: "h2" },
+        content: { text: "যেসব সমস্যায় [মিশ্রণটি কাজ করে]", level: "h2" },
         style: { textAlign: "center", paddingTop: 10, paddingBottom: 40, highlightColor: isLaam ? "#1a7c3e" : "#2d7a3a" }
       },
       {
@@ -112,63 +135,40 @@ const getThemeTemplate = (themeId: string): Block[] => {
           {
             id: "ben-1",
             type: "card",
-            content: { title: "হার্টের সমস্যা", subtitle: "হার্ট ব্লক বা হার্টের সমস্যায় মহাঔষধ", iconName: "Heart", showIcon: true, layout: "horizontal", iconColor: "#c0392b" },
+            content: { title: "শারীরিক দুর্বলতা", subtitle: "আপনাকে দিবে সুখময় দাম্পত্য জীবন", iconName: "Heart", showIcon: true, layout: "horizontal", iconColor: "#c0392b" },
             style: { columnIndex: 0, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
           },
           {
             id: "ben-2",
             type: "card",
-            content: { title: "উচ্চ রক্তচাপ", subtitle: "হাই প্রেশারের প্রাকৃতিক সমাধান", iconName: "Droplets", showIcon: true, layout: "horizontal", iconColor: "#c0392b" },
+            content: { title: "বাত ব্যথা", subtitle: " বাত ও যন্ত্রণাদায়ক ব্যথা দূর করে", iconName: "Activity", showIcon: true, layout: "horizontal", iconColor: "#c9920a" },
             style: { columnIndex: 1, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
           },
           {
             id: "ben-3",
             type: "card",
-            content: { title: "গ্যাস্ট্রিক সমস্যা", subtitle: "বুক জ্বালাপোড়া ও পেট ফাঁপায় উপকারী", iconName: "Square", showIcon: true, layout: "horizontal", iconColor: "#1a7c3e" },
+            content: { title: "সর্দি-ঠান্ডা", subtitle: "স্থায়ী সমাধানের জন্য কার্যকরী", iconName: "Wind", showIcon: true, layout: "horizontal", iconColor: "#1a7c3e" },
             style: { columnIndex: 0, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
           },
           {
             id: "ben-4",
             type: "card",
-            content: { title: "শারীরিক দুর্বলতা", subtitle: "সাধারণ ও বিশেষ দুর্বলতা দূর করে", iconName: "Activity", showIcon: true, layout: "horizontal", iconColor: "#c9920a" },
-            style: { columnIndex: 1, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
-          },
-          {
-            id: "ben-5",
-            type: "card",
-            content: { title: "ঠান্ডা-সর্দি", subtitle: "দীর্ঘস্থায়ী ঠান্ডার সমস্যা থেকে মুক্তি", iconName: "Wind", showIcon: true, layout: "horizontal", iconColor: "#1a7c3e" },
-            style: { columnIndex: 0, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
-          },
-          {
-            id: "ben-6",
-            type: "card",
-            content: { title: "ডায়াবেটিস", subtitle: "ডায়াবেটিস নিয়ন্ত্রণে সহায়তা করে", iconName: "Zap", showIcon: true, layout: "horizontal", iconColor: "#c0392b" },
+            content: { title: "গ্যাস্ট্রিক সমস্যা", subtitle: "বুক জ্বালাপোড়া ও গ্যাস্ট্রিক দূর করে", iconName: "Droplets", showIcon: true, layout: "horizontal", iconColor: "#c0392b" },
             style: { columnIndex: 1, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
           }
         ]
+      },
+      {
+        id: "hadith-quote",
+        type: "quote",
+        content: { title: "কালোজিরা ও শেফা", text: "কালোজিরা সেবন করো, কারণ এতে মৃত্যু ব্যতীত সকল রোগের মহৌষধ রয়েছে।", reference: "সহীহ বুখারী: ৫৬৮৭", iconName: "BookOpen" },
+        style: { paddingTop: 40, paddingBottom: 40 }
       },
       {
         id: "hero-4",
         type: "button",
         content: { text: "👇 এখনই অর্ডার করুন", link: "[checkout]" },
         style: { textAlign: "center", paddingBottom: 60 }
-      },
-      {
-        id: "faq-section",
-        type: "accordion",
-        content: { 
-          items: [
-            { id: "f1", title: "এটি খাওয়ার নিয়ম কী?", content: "প্রতিদিন সকালে এবং রাতে খাবারের আধা ঘন্টা আগে ১ চামচ করে খেতে হবে।", iconName: "Clock" },
-            { id: "f2", title: "ডেলিভারি চার্জ কত?", content: "আমাদের এই প্যাকেজে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি।", iconName: "Truck" }
-          ] 
-        },
-        style: { paddingTop: 40, paddingBottom: 40 }
-      },
-      {
-        id: "order-form-block",
-        type: "product-order-form",
-        content: { productIds: [] },
-        style: { paddingTop: 60, paddingBottom: 60 }
       }
     ];
   }

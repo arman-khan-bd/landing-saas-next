@@ -231,7 +231,7 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                     </div>
                     <div className="space-y-1">
                        <Label className="text-[9px] uppercase font-bold text-white/70">Text Color</Label>
-                       <Input type="color" value={block.content?.textColor || "#1a1a1a"} onChange={(e) => onChange({ { textColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer" />
+                       <Input type="color" value={block.content?.textColor || "#1a1a1a"} onChange={(e) => onChange({ content: { textColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer" />
                     </div>
                  </div>
               </div>
@@ -308,13 +308,13 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
               <div className="grid gap-3">
                  <div className="p-3 bg-black/20 rounded-xl space-y-3">
                     <Label className="text-[7px] font-black text-indigo-400 uppercase">Primary CTA</Label>
-                    <Input placeholder="Button Text" value={block.content?.ctaText || ""} onChange={(e) => onChange({ content: { ctaText: e.target.value } })} className="h-7 text-[10px] bg-black/20 border-none text-white" />
-                    <Input placeholder="Link (e.g. [checkout])" value={block.content?.ctaLink || ""} onChange={(e) => onChange({ content: { ctaLink: e.target.value } })} className="h-7 text-[10px] bg-black/20 border-none text-white" />
+                    <Input placeholder="Button Text" value={block.content?.ctaText || ""} onChange={(e) => onChange({ content: { ctaText: e.target.value } })} className="h-7 text-[10px] font-bold bg-black/20 border-none text-white" />
+                    <Input placeholder="Link (e.g. [checkout])" value={block.content?.ctaLink || ""} onChange={(e) => onChange({ content: { ctaLink: e.target.value } })} className="h-7 text-[10px] font-bold bg-black/20 border-none text-white" />
                  </div>
                  <div className="p-3 bg-black/20 rounded-xl space-y-3">
                     <Label className="text-[7px] font-black text-yellow-400 uppercase">Phone Button</Label>
-                    <Input placeholder="Phone Number" value={block.content?.phoneText || ""} onChange={(e) => onChange({ content: { phoneText: e.target.value } })} className="h-7 text-[10px] bg-black/20 border-none text-white" />
-                    <Input placeholder="Link (e.g. tel:016...)" value={block.content?.phoneLink || ""} onChange={(e) => onChange({ content: { phoneLink: e.target.value } })} className="h-7 text-[10px] bg-black/20 border-none text-white" />
+                    <Input placeholder="Phone Number" value={block.content?.phoneText || ""} onChange={(e) => onChange({ content: { phoneText: e.target.value } })} className="h-7 text-[10px] font-bold bg-black/20 border-none text-white" />
+                    <Input placeholder="Link (e.g. tel:016...)" value={block.content?.phoneLink || ""} onChange={(e) => onChange({ content: { phoneLink: e.target.value } })} className="h-7 text-[10px] font-bold bg-black/20 border-none text-white" />
                  </div>
               </div>
            </div>
