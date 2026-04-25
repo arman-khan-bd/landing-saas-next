@@ -111,6 +111,30 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
     case "navbar":
       return (
         <div className="space-y-6">
+           <PropertySection label="Navigation Logic" icon={Settings}>
+              <div className="space-y-4">
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Bar Position</Label>
+                    <Select value={block.content?.position || "normal"} onValueChange={(val) => onChange({ content: { position: val } })}>
+                       <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                       <SelectContent>
+                          <SelectItem value="normal">Normal Flow</SelectItem>
+                          <SelectItem value="sticky">Sticky (Scrolls)</SelectItem>
+                          <SelectItem value="fixed">Fixed (Pins Top)</SelectItem>
+                       </SelectContent>
+                    </Select>
+                 </div>
+                 <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg">
+                    <Label className="text-[10px] font-bold text-white/90 uppercase">Sticky Header</Label>
+                    <Switch checked={!!block.content?.sticky} onCheckedChange={(val) => onChange({ content: { sticky: val } })} />
+                 </div>
+                 <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg">
+                    <Label className="text-[10px] font-bold text-white/90 uppercase">Transparent</Label>
+                    <Switch checked={!!block.content?.transparent} onCheckedChange={(val) => onChange({ content: { transparent: val } })} />
+                 </div>
+              </div>
+           </PropertySection>
+
            <PropertySection label="Brand Logo" icon={Globe}>
               <div className="space-y-4">
                  <Select value={block.content?.logoType || "text"} onValueChange={(val) => onChange({ content: { logoType: val } })}>
@@ -192,48 +216,15 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
               </div>
            </PropertySection>
 
-           <PropertySection label="CTA Button" icon={MousePointer2}>
-              <div className="space-y-4">
-                 <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg">
-                    <Label className="text-[10px] font-bold text-white/90 uppercase">Show CTA</Label>
-                    <Switch checked={!!block.content?.showCta} onCheckedChange={(val) => onChange({ content: { showCta: val } })} />
+           <PropertySection label="Colors" icon={Palette}>
+              <div className="grid grid-cols-2 gap-3">
+                 <div className="space-y-1">
+                    <Label className="text-[9px] uppercase font-bold text-white/70">Bg Color</Label>
+                    <Input type="color" value={block.content?.backgroundColor || "#ffffff"} onChange={(e) => onChange({ content: { backgroundColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer" />
                  </div>
-                 {block.content?.showCta && (
-                   <div className="space-y-3">
-                      <Input value={block.content?.ctaText || ""} onChange={(e) => onChange({ content: { ctaText: e.target.value } })} placeholder="Button Text" className="h-8 bg-black/20 border-none text-white text-xs" />
-                      <Input value={block.content?.ctaLink || ""} onChange={(e) => onChange({ content: { ctaLink: e.target.value } })} placeholder="Link URL" className="h-8 bg-black/20 border-none text-white text-xs" />
-                      <Select value={block.content?.ctaPosition || "right"} onValueChange={(val) => onChange({ content: { ctaPosition: val } })}>
-                        <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                           <SelectItem value="left">Left Slot</SelectItem>
-                           <SelectItem value="center">Center Slot</SelectItem>
-                           <SelectItem value="right">Right Slot</SelectItem>
-                        </SelectContent>
-                      </Select>
-                   </div>
-                 )}
-              </div>
-           </PropertySection>
-
-           <PropertySection label="Navigation Style" icon={Settings}>
-              <div className="space-y-4">
-                 <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg">
-                    <Label className="text-[10px] font-bold text-white/90 uppercase">Sticky Header</Label>
-                    <Switch checked={!!block.content?.sticky} onCheckedChange={(val) => onChange({ content: { sticky: val } })} />
-                 </div>
-                 <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg">
-                    <Label className="text-[10px] font-bold text-white/90 uppercase">Transparent</Label>
-                    <Switch checked={!!block.content?.transparent} onCheckedChange={(val) => onChange({ content: { transparent: val } })} />
-                 </div>
-                 <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                       <Label className="text-[9px] uppercase font-bold text-white/70">Bg Color</Label>
-                       <Input type="color" value={block.content?.backgroundColor || "#ffffff"} onChange={(e) => onChange({ content: { backgroundColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer" />
-                    </div>
-                    <div className="space-y-1">
-                       <Label className="text-[9px] uppercase font-bold text-white/70">Text Color</Label>
-                       <Input type="color" value={block.content?.textColor || "#1a1a1a"} onChange={(e) => onChange({ content: { textColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer" />
-                    </div>
+                 <div className="space-y-1">
+                    <Label className="text-[9px] uppercase font-bold text-white/70">Text Color</Label>
+                    <Input type="color" value={block.content?.textColor || "#1a1a1a"} onChange={(e) => onChange({ content: { textColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer" />
                  </div>
               </div>
            </PropertySection>
@@ -324,7 +315,7 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
               </div>
            </PropertySection>
 
-           <PropertySection label="Ribbon Aesthetics" icon={Sparkles}>
+           <PropertySection label="Ribbon Aesthetics" icon={LucideIcons.Sparkles}>
               <div className="space-y-4">
                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">

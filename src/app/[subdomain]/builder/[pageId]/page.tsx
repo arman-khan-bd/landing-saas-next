@@ -59,6 +59,8 @@ import { Label } from "@/components/ui/label";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 const THEMES = [
   {
@@ -256,7 +258,7 @@ function PageBuilderInner() {
         logoUrl: "",
         logoIcon: "ShoppingBag",
         logoPosition: "left",
-        sticky: true,
+        position: "normal",
         transparent: false,
         backgroundColor: "#ffffff",
         textColor: "#1a1a1a",
@@ -468,9 +470,17 @@ function PageBuilderInner() {
       .then(() => {
         toast({ title: "Project Published!", description: "Changes are live on your store." });
       })
-      .catch((error) => {
-        console.error(error);
-        toast({ variant: "destructive", title: "Save failed", description: "Database rejected the request." });
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: pageRef.path,
+          operation: 'update',
+          requestResourceData: { 
+            config: sanitizedConfig, 
+            pageStyle: sanitizedStyle,
+            updatedAt: 'SERVER_TIMESTAMP'
+          },
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
       })
       .finally(() => setSaving(false));
   };

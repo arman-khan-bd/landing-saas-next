@@ -210,7 +210,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     if (targetLink.startsWith("http") || targetLink.startsWith("tel:")) {
       window.open(targetLink, '_blank');
     } else {
-      window.location.href = getTenantPath(store.subdomain, targetLink);
+      window.location.href = getTenantPath(store?.subdomain || "", targetLink);
     }
   };
 
@@ -219,7 +219,14 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       const LogoIcon = (LucideIcons as any)[block.content?.logoIcon] || Menu;
       const navItems = block.content?.items || [];
       const showCta = block.content?.showCta;
+      const navPosition = block.content?.position || "normal"; // normal, sticky, fixed
       
+      const posStyles: any = {
+        normal: { position: 'relative' },
+        sticky: { position: 'sticky', top: 0, zIndex: 100 },
+        fixed: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }
+      };
+
       const renderItems = (pos: string) => (
         <div className={cn("flex items-center gap-6", {
           "justify-start": pos === "left",
@@ -259,11 +266,13 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           style={{ 
             backgroundColor: block.content?.transparent ? 'transparent' : (block.content?.backgroundColor || '#ffffff'),
             color: block.content?.textColor || '#1a1a1a',
-            position: block.content?.sticky ? 'sticky' : 'relative',
-            top: 0,
+            ...posStyles[navPosition],
             zIndex: 100
           }} 
-          className={cn("w-full px-6 py-4 border-b border-white/10 backdrop-blur-md")}
+          className={cn(
+            "w-full px-6 py-4 border-b border-white/10 backdrop-blur-md",
+            navPosition === "fixed" && "left-0 right-0"
+          )}
         >
           <div className="max-w-7xl mx-auto grid grid-cols-3 items-center">
             {renderItems("left")}
@@ -293,7 +302,6 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
 
         const s: any = {};
         if (type === 'gradient' && btn === 'cta') {
-          // Default gradient
           s.background = 'linear-gradient(135deg, #f9a825, #e65c00)';
         } else if (type === 'solid' || type === 'gradient') {
           if (bg) s.backgroundColor = bg;
@@ -367,8 +375,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                    size="lg" 
                    style={getButtonStyle('cta')}
                    className={cn(
-                     "h-16 px-10 rounded-full text-white font-black text-xl shadow-xl shadow-orange-950/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto",
-                     !block.content?.ctaType || block.content?.ctaType === 'gradient' ? "" : ""
+                     "h-16 px-10 rounded-full text-white font-black text-xl shadow-xl shadow-orange-950/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
                    )}
                    onClick={() => handleButtonClick(block.content?.ctaLink || "[checkout]")}
                  >
