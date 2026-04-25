@@ -6,8 +6,7 @@ service cloud.firestore {
     /**
      * CORE PHILOSOPHY:
      * This ruleset implements a multi-tenant e-commerce platform model (IHut.Shop) focusing on Tenant Isolation 
-     * and Authorization Independence. Access control is primarily driven by denormalized ownership fields 
-     * (`ownerId`) to ensure high performance and simplify security logic by avoiding cross-document lookups.
+     * and Authorization Independence.
      */
 
     // --- Helper Functions ---
@@ -31,6 +30,13 @@ service cloud.firestore {
       return isSignedIn() && resource != null && (
         resource.data.ownerId == request.auth.uid || 
         resource.data.userId == request.auth.uid
+      );
+    }
+
+    function isStoreOwner(storeId) {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/stores/$(storeId)) &&
+        get(/databases/$(database)/documents/stores/$(storeId)).data.ownerId == request.auth.uid
       );
     }
 
@@ -64,25 +70,18 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      // Anyone can create an order (public checkout)
       allow create: if true;
-      // Only the merchant or admin can view/manage order details
       allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
       allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
     match /uncompleted_orders/{orderId} {
-      // Allow guests to manage their own drafts
       allow create, get, update, delete: if true;
-      // Only the merchant can list abandoned checkouts
       allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
     match /fraud_blocks/{blockId} {
-      // Public check during checkout (limited to query results)
       allow list: if (request.query.limit <= 5);
-
-      // Merchant access
       allow read: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
       allow create: if isSignedIn() && isDataOwner();
       allow delete: if isSignedIn() && (isExistingOwner() || isAdmin());
@@ -107,39 +106,15 @@ service cloud.firestore {
       }
     }
 
-    // Platform Level / SaaS Admin Collections (Public Read / Admin Write)
-    match /platformFeatures/{id} {
+    match /pages/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isSignedIn() && isDataOwner();
+      allow update, delete: if isSignedIn() && (isExistingOwner() || isStoreOwner(resource.data.storeId) || isAdmin());
     }
 
     match /subscriptionPlans/{planId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
-    }
-
-    match /saasPaymentMethods/{methodId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /saas_transactions/{id} {
-      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isAdmin();
-    }
-
-    match /custom_domain_requests/{id} {
-      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isAdmin();
-    }
-
-    // Global Tenant Collections (Scoped by ownerId)
-    match /products/{productId} {
-      allow get, list: if true;
-      allow create: if isSignedIn() && isDataOwner();
-      allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
     match /categories/{id} { 
@@ -172,10 +147,16 @@ service cloud.firestore {
       allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
-    match /pages/{id} { 
-      allow read: if true;
-      allow create: if isSignedIn() && isDataOwner();
-      allow update, delete: if isSignedIn() && (isExistingOwner() || isAdmin());
+    match /saas_transactions/{id} {
+      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /custom_domain_requests/{id} {
+      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
     match /system_notifications/{id} {

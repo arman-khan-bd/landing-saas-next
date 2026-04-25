@@ -219,7 +219,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       const LogoIcon = (LucideIcons as any)[block.content?.logoIcon] || Menu;
       const navItems = block.content?.items || [];
       const showCta = block.content?.showCta;
-      const navPosition = block.content?.position || "normal"; // normal, sticky, fixed
+      const navPosition = block.content?.position || "normal"; 
       
       const posStyles: any = {
         normal: { position: 'relative' },
