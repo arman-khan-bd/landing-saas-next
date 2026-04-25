@@ -62,6 +62,24 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
+import { Badge } from "@/components/ui/badge";
+
+/**
+ * Recursively removes any 'undefined' values from an object, as Firestore doesn't support them.
+ */
+function sanitizeForFirestore(data: any): any {
+  if (Array.isArray(data)) {
+    return data.map(sanitizeForFirestore);
+  }
+  if (data !== null && typeof data === 'object') {
+    return Object.fromEntries(
+      Object.entries(data)
+        .filter(([_, value]) => value !== undefined)
+        .map(([key, value]) => [key, sanitizeForFirestore(value)])
+    );
+  }
+  return data;
+}
 
 const SAM_NATURAL_TEMPLATE: Block[] = [
   {
@@ -247,9 +265,13 @@ function SectionManagerInner() {
     setSaving(true);
     const pageRef = doc(firestore, "pages", pageId);
     
+    // Sanitize data to remove 'undefined' values which Firestore doesn't support
+    const sanitizedBlocks = sanitizeForFirestore(blocks);
+    const sanitizedPageStyle = sanitizeForFirestore(pageStyle);
+
     updateDoc(pageRef, { 
-      config: blocks, 
-      pageStyle: pageStyle,
+      config: sanitizedBlocks, 
+      pageStyle: sanitizedPageStyle,
       updatedAt: serverTimestamp() 
     })
       .then(() => {
@@ -259,7 +281,7 @@ function SectionManagerInner() {
         const permissionError = new FirestorePermissionError({
           path: pageRef.path,
           operation: 'update',
-          requestResourceData: { config: blocks, pageStyle },
+          requestResourceData: { config: sanitizedBlocks, pageStyle: sanitizedPageStyle },
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
       })
@@ -272,8 +294,12 @@ function SectionManagerInner() {
       type,
       content: {},
       style: { textAlign: "left", animation: "none", columnIndex: activeColumnIndex ?? 0 },
-      children: type === "row" ? [] : undefined
     };
+    
+    // Only include children if it's a row layout
+    if (type === "row") {
+      newBlock.children = [];
+    }
 
     if (insertInfo) {
       setBlocks(prev => insertBlockRecursively(prev, insertInfo.id, insertInfo.position, newBlock));
