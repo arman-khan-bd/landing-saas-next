@@ -180,7 +180,6 @@ function SectionManagerInner() {
   const [isComponentDialogOpen, setIsComponentDialogOpen] = useState(false);
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
   const [activeColumnIndex, setActiveColumnIndex] = useState<number | null>(null);
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [insertInfo, setInsertInfo] = useState<{ id: string, position: 'before' | 'after' } | null>(null);
 
   const sensors = useSensors(
@@ -361,7 +360,6 @@ function SectionManagerInner() {
 
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
-    setActiveDragId(null);
     if (!over || active.id === over.id) return;
     const reorderRecursive = (items: Block[]): Block[] => {
       const oldIndex = items.findIndex((i) => i.id === active.id);
@@ -372,9 +370,13 @@ function SectionManagerInner() {
     setBlocks(prev => reorderRecursive(prev));
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-white w-12 h-12" /></div>;
+  const handleAddNested = useCallback((parentId: string, colIdx?: number) => {
+    setActiveParentId(parentId);
+    setActiveColumnIndex(colIdx ?? 0);
+    setIsComponentDialogOpen(true);
+  }, []);
 
-  const selectedBlock = findBlockById(blocks, selectedBlockId);
+  const selectedBlock = useMemo(() => findBlockById(blocks, selectedBlockId), [blocks, selectedBlockId]);
 
   function findBlockById(items: Block[], id: string | null): Block | undefined {
     if (!id) return undefined;
@@ -387,6 +389,8 @@ function SectionManagerInner() {
     }
     return undefined;
   }
+
+  if (loading) return <div className="flex h-screen items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-white w-12 h-12" /></div>;
 
   return (
     <div className="flex h-screen w-full bg-slate-950 overflow-hidden text-slate-100 select-none">
@@ -433,7 +437,7 @@ function SectionManagerInner() {
                            </AccordionItem>
                          ))}
                       </Accordion>
-                      <Button variant="outline" className="w-full mt-4 h-10 border-dashed border-white/10 bg-transparent text-[9px] font-black uppercase tracking-widest gap-2" onClick={() => setIsComponentDialogOpen(true)}>
+                      <Button variant="outline" className="w-full mt-4 h-10 border-dashed border-white/10 bg-transparent text-[9px] font-black uppercase tracking-widest gap-2" onClick={() => { setActiveParentId(null); setActiveColumnIndex(null); setIsComponentDialogOpen(true); }}>
                          <PlusCircle className="w-3 h-3" /> Insert Section
                       </Button>
                    </PropertySection>
@@ -587,7 +591,7 @@ function SectionManagerInner() {
                style={{ backgroundColor: pageStyle.backgroundColor, color: pageStyle.textColor, paddingTop: pageStyle.paddingTop, paddingBottom: pageStyle.paddingBottom }}
             >
                <div className="py-0">
-                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={(e) => setActiveDragId(e.active.id as string)} onDragEnd={handleDragEnd}>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                      <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
                         {blocks.map(block => (
                            <CanvasBlockWrapper 
@@ -604,6 +608,7 @@ function SectionManagerInner() {
                               viewMode={viewMode}
                               pageStyle={pageStyle}
                               isBuilder
+                              onAddNested={handleAddNested}
                            />
                         ))}
                      </SortableContext>
@@ -614,10 +619,10 @@ function SectionManagerInner() {
                         <DialogTrigger asChild>
                            <Button variant="outline" className="h-14 w-14 rounded-full border-2 border-indigo-600/20 text-indigo-600 shadow-2xl hover:scale-110 active:scale-95 bg-white"><Plus className="w-8 h-8" /></Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-3xl rounded-[40px] p-0 border-none overflow-hidden bg-slate-50 shadow-2xl">
-                           <DialogHeader className="p-8 bg-slate-900 text-white">
+                        <DialogContent className="max-w-3xl rounded-[40px] p-0 border-none overflow-hidden bg-slate-950 shadow-2xl text-slate-100">
+                           <DialogHeader className="p-8 bg-indigo-600 text-white">
                               <DialogTitle className="text-2xl font-headline font-black uppercase tracking-tight">Section Repository</DialogTitle>
-                              <DialogDescription className="text-indigo-400 font-bold text-xs uppercase tracking-widest">Select a high-conversion component to insert into your landing page.</DialogDescription>
+                              <DialogDescription className="text-indigo-100 font-bold text-xs uppercase tracking-widest opacity-80">Select a high-conversion component to insert into your landing page.</DialogDescription>
                            </DialogHeader>
                            <div className="p-8 grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
                               <SectionSelectorCard 
@@ -670,6 +675,12 @@ function SectionManagerInner() {
                                 label="Video Player" 
                                 description="Embedded YouTube or Vimeo player in a premium frame."
                                 onClick={() => handleAddBlock("video")} 
+                              />
+                              <SectionSelectorCard 
+                                icon={Quote} 
+                                label="Citation Quote" 
+                                description="Hadith or reference quotes with custom backgrounds."
+                                onClick={() => handleAddBlock("accordion")} 
                               />
                               <SectionSelectorCard 
                                 icon={Columns} 

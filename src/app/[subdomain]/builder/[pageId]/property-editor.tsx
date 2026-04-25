@@ -587,7 +587,7 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
     case "card":
        return (
         <div className="space-y-6">
-           <PropertySection label="Appearance" icon={LayoutGrid}>
+           <PropertySection label="Appearance" icon={LucideIcons.LayoutGrid}>
               <div className="space-y-4">
                  <div className="space-y-1">
                     <Label className="text-[9px] uppercase font-bold text-white/40">Orientation</Label>
@@ -613,14 +613,14 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
               </div>
            </PropertySection>
 
-           <PropertySection label="Identity" icon={Type}>
+           <PropertySection label="Identity" icon={LucideIcons.Type}>
               <div className="space-y-3">
                  <Input value={block.content?.title || ""} onChange={(e) => onChange({ content: { title: e.target.value } })} placeholder="Title" className="h-8 bg-black/20 border-none text-white text-xs" />
                  <Textarea value={block.content?.subtitle || ""} onChange={(e) => onChange({ content: { subtitle: e.target.value } })} placeholder="Description" className="min-h-[60px] bg-black/20 border-none text-white text-xs" />
               </div>
            </PropertySection>
 
-           <PropertySection label="Iconographic" icon={PlusCircle}>
+           <PropertySection label="Iconographic" icon={LucideIcons.PlusCircle}>
               <div className="space-y-4">
                  <div className="flex items-center justify-between">
                     <Label className="text-[10px] font-bold text-white/90">Visible Icon</Label>
