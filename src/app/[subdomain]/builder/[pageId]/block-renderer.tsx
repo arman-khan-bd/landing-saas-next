@@ -13,7 +13,7 @@ import {
   ChevronUp, ChevronDown, Plus, Trash2, GripVertical,
   CheckCircle, CreditCard, ShieldCheck, Image as ImageIcon,
   Columns, LayoutList, Zap, ArrowRight, Star, BookOpen, Quote,
-  Phone, Microscope, Banknote, RotateCcw, CheckSquare
+  Phone, Microscope, Banknote, RotateCcw, CheckSquare, Menu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -215,11 +215,68 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
   };
 
   switch (block.type) {
+    case "navbar":
+      const LogoIcon = (LucideIcons as any)[block.content?.logoIcon] || Menu;
+      const navItems = block.content?.items || [];
+      const showCta = block.content?.showCta;
+      
+      const renderItems = (pos: string) => (
+        <div className={cn("flex items-center gap-6", {
+          "justify-start": pos === "left",
+          "justify-center": pos === "center",
+          "justify-end": pos === "right"
+        })}>
+          {block.content?.logoPosition === pos && (
+            <div className="flex items-center gap-2">
+              {block.content?.logoType === "image" && block.content?.logoUrl ? (
+                <img src={block.content.logoUrl} className="h-8 w-auto object-contain" alt="logo" />
+              ) : block.content?.logoType === "icon" ? (
+                <LogoIcon className="w-6 h-6" style={{ color: block.content?.primaryColor || 'currentColor' }} />
+              ) : (
+                <span className="font-headline font-black text-lg uppercase tracking-tight">{block.content?.logoText || "LOGO"}</span>
+              )}
+            </div>
+          )}
+          {navItems.filter((i: any) => i.position === pos).map((item: any) => (
+            <button key={item.id} onClick={() => handleButtonClick(item.link)} className="text-sm font-bold opacity-80 hover:opacity-100 transition-opacity">
+              {item.label}
+            </button>
+          ))}
+          {showCta && block.content?.ctaPosition === pos && (
+            <Button 
+              size="sm" 
+              className={cn("rounded-xl h-9 px-6 font-bold text-xs uppercase tracking-widest", isTraditional ? 'gold-btn text-white' : '')} 
+              onClick={() => handleButtonClick(block.content.ctaLink)}
+            >
+              {block.content.ctaText}
+            </Button>
+          )}
+        </div>
+      );
+
+      return (
+        <div 
+          style={{ 
+            backgroundColor: block.content?.transparent ? 'transparent' : (block.content?.backgroundColor || '#ffffff'),
+            color: block.content?.textColor || '#1a1a1a',
+            position: block.content?.sticky ? 'sticky' : 'relative',
+            top: 0,
+            zIndex: 100
+          }} 
+          className={cn("w-full px-6 py-4 border-b border-white/10 backdrop-blur-md")}
+        >
+          <div className="max-w-7xl mx-auto grid grid-cols-3 items-center">
+            {renderItems("left")}
+            {renderItems("center")}
+            {renderItems("right")}
+          </div>
+        </div>
+      );
+
     case "ultra-hero":
       const trustItems = block.content?.trustItems || [];
       return (
         <div style={style} className="w-full relative overflow-hidden">
-           {/* Professional Background */}
            <div className={cn(
              "absolute inset-0 -z-10",
              isOrganic ? "bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" : 
@@ -229,33 +286,43 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
            <div className="absolute inset-0 -z-10 opacity-[0.03]" style={{ backgroundImage: `repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)`, backgroundSize: '10px 10px' }} />
 
            <div className="max-w-4xl mx-auto px-6 py-16 sm:py-24 text-center flex flex-col items-center">
-              {/* Pill Badge */}
-              <div className="mb-8 inline-flex items-center px-5 py-2 rounded-full bg-yellow-400/10 border border-yellow-400/20 text-yellow-400 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-top-4 duration-700">
+              <div 
+                style={{ color: block.content?.badgeColor || '#facc15' }}
+                className="mb-8 inline-flex items-center px-5 py-2 rounded-full bg-white/10 border border-white/20 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-top-4 duration-700"
+              >
                 {block.content?.badgeText || "BSTI অনুমোদিত • BCSIR ল্যাব টেস্টেড"}
               </div>
 
-              {/* Main Heading */}
-              <h1 className="text-4xl sm:text-7xl font-headline font-black text-white leading-[1.1] sm:leading-[0.95] mb-4 tracking-tighter max-w-3xl">
+              <h1 
+                style={{ color: block.content?.titleColor || '#ffffff' }}
+                className="text-4xl sm:text-7xl font-headline font-black leading-[1.1] sm:leading-[0.95] mb-4 tracking-tighter max-w-3xl"
+              >
                 {renderTextWithHighlights(block.content?.title || "অসুস্থ ব্যক্তি ছাড়া সুস্থতার মূল্য কেউ বোঝে না", block.style?.highlightColor)}
               </h1>
 
-              {/* Subtitle */}
-              <p className="text-lg sm:text-2xl font-bold text-yellow-300/90 mb-10 tracking-tight">
+              <p 
+                style={{ color: block.content?.subtitleColor || 'rgba(253, 224, 71, 0.9)' }}
+                className="text-lg sm:text-2xl font-bold mb-10 tracking-tight"
+              >
                 {block.content?.subtitle || "শক্তি ও সুস্বাস্থ্যের নির্ভরযোগ্য উপহার"}
               </p>
 
-              {/* Brand Box */}
               <div className="bg-white rounded-full px-8 py-3 mb-12 shadow-2xl shadow-black/20 flex items-center gap-4 border-2 border-white/20 animate-pulse">
-                 <span className="text-2xl sm:text-3xl font-black text-[#1a7c3e] tracking-tighter">
+                 <span 
+                   style={{ color: block.content?.brandTitleColor || '#1a7c3e' }}
+                   className="text-2xl sm:text-3xl font-black tracking-tighter"
+                 >
                    "{block.content?.brandTitle || "সাম"}"
                  </span>
                  <div className="h-6 w-px bg-slate-200" />
-                 <span className="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-widest pt-1">
+                 <span 
+                   style={{ color: block.content?.brandSubtitleColor || '#64748b' }}
+                   className="text-xs sm:text-sm font-bold uppercase tracking-widest pt-1"
+                 >
                    {block.content?.brandSubtitle || "প্রাকৃতিক স্বাস্থ্য সুরক্ষা"}
                  </span>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 w-full justify-center items-center mb-16">
                  <Button 
                    size="lg" 
@@ -269,15 +336,15 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                  <Button 
                    variant="outline"
                    size="lg" 
-                   className="h-16 px-10 rounded-full border-2 border-white/30 bg-white/5 text-white hover:bg-white/10 font-bold text-lg w-full sm:w-auto"
+                   style={{ color: block.content?.phoneTextColor || '#ffffff' }}
+                   className="h-16 px-10 rounded-full border-2 border-white/30 bg-white/5 hover:bg-white/10 font-bold text-lg w-full sm:w-auto"
                    onClick={() => handleButtonClick(block.content?.phoneLink || "tel:01621611589")}
                  >
-                   <Phone className="w-5 h-5 mr-2 text-yellow-400" />
+                   <Phone className="w-5 h-5 mr-2" />
                    {block.content?.phoneText || "01621-611589"}
                  </Button>
               </div>
 
-              {/* Trust Ribbon */}
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-6 sm:gap-10 w-full pt-12 border-t border-white/10">
                  {trustItems.map((item: any, i: number) => {
                    const TrustIcon = (LucideIcons as any)[item.iconName] || CheckSquare;

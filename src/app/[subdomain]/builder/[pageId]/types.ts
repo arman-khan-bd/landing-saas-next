@@ -13,7 +13,8 @@ export type BlockType =
   | "card"
   | "marquee"
   | "quote"
-  | "ultra-hero";
+  | "ultra-hero"
+  | "navbar";
 
 export interface Block {
   id: string;
@@ -63,7 +64,5 @@ export interface PageStyle {
   paddingTop?: number;
   paddingBottom?: number;
   themeId?: string;
-  primaryColor?: string;
   accentColor?: string;
-  textColor?: string;
 }

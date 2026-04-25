@@ -20,7 +20,7 @@ import {
   Lightbulb, Check, Info, Columns, LayoutList, ChevronRight, Search,
   CheckCircle, Star, User, Settings, Mail, Phone, MapPin, Globe,
   Box, Package, Play, Pause, Sun, Moon, Wind, Tree, Trash, Edit, RefreshCw,
-  Droplets, Activity, BookOpen, Quote, Microscope, Banknote, RotateCcw, CheckSquare, Plus
+  Droplets, Activity, BookOpen, Quote, Microscope, Banknote, RotateCcw, CheckSquare, Plus, Menu
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import "react-quill-new/dist/quill.snow.css";
@@ -47,7 +47,7 @@ const COMMON_ICONS = [
   "Flag", "Filter", "Folder", "File", "FileText", "Image", "Paperclip", "Maximize", "Minimize", "Move",
   "Play", "Pause", "Stop", "SkipBack", "SkipForward", "Repeat", "Shuffle", "Volume", "VolumeX", "Mic",
   "Sun", "Moon", "Wind", "Umbrella", "Thermometer", "Droplets", "Sunrise", "Sunset", "Mountain", "Tree",
-  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity", "BookOpen", "Quote", "Microscope", "Banknote", "RotateCcw", "CheckSquare"
+  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity", "BookOpen", "Quote", "Microscope", "Banknote", "RotateCcw", "CheckSquare", "ShoppingBag", "Menu"
 ];
 
 export function PropertyEditor({ block, products, onChange }: PropertyEditorProps) {
@@ -106,9 +106,172 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
   }), [imageHandler]);
 
   switch (block.type) {
+    case "navbar":
+      return (
+        <div className="space-y-6">
+           <PropertySection label="Brand Logo" icon={Globe}>
+              <div className="space-y-4">
+                 <Select value={block.content?.logoType || "text"} onValueChange={(val) => onChange({ content: { logoType: val } })}>
+                    <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                       <SelectItem value="text">Text Brand</SelectItem>
+                       <SelectItem value="image">Image Logo</SelectItem>
+                       <SelectItem value="icon">Icon Mark</SelectItem>
+                    </SelectContent>
+                 </Select>
+
+                 {block.content?.logoType === "text" && (
+                   <Input value={block.content?.logoText || ""} onChange={(e) => onChange({ content: { logoText: e.target.value } })} placeholder="Brand Name" className="h-8 bg-black/20 border-none text-white text-xs" />
+                 )}
+
+                 {block.content?.logoType === "image" && (
+                   <CloudinaryUpload value={block.content?.logoUrl || ""} onUpload={(url) => onChange({ content: { logoUrl: url } })} onRemove={() => onChange({ content: { logoUrl: "" } })} />
+                 )}
+
+                 {block.content?.logoType === "icon" && (
+                    <Select value={block.content?.logoIcon || "ShoppingBag"} onValueChange={(val) => onChange({ content: { logoIcon: val } })}>
+                       <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                       <SelectContent className="max-h-[200px]">
+                          {COMMON_ICONS.map(i => <SelectItem key={i} value={i} className="text-[10px]">{i}</SelectItem>)}
+                       </SelectContent>
+                    </Select>
+                 )}
+
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Logo Position</Label>
+                    <Select value={block.content?.logoPosition || "left"} onValueChange={(val) => onChange({ content: { logoPosition: val } })}>
+                       <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                       <SelectContent>
+                          <SelectItem value="left">Left</SelectItem>
+                          <SelectItem value="center">Center</SelectItem>
+                          <SelectItem value="right">Right</SelectItem>
+                       </SelectContent>
+                    </Select>
+                 </div>
+              </div>
+           </PropertySection>
+
+           <PropertySection label="Menu Items" icon={LayoutList}>
+              <div className="space-y-3">
+                 {(block.content?.items || []).map((item: any, idx: number) => (
+                   <div key={idx} className="p-3 bg-black/20 rounded-xl space-y-2 relative group">
+                      <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-5 w-5 text-rose-400 opacity-0 group-hover:opacity-100" onClick={() => {
+                        const items = block.content.items.filter((_:any, i:number) => i !== idx);
+                        onChange({ content: { items } });
+                      }}><Trash2 className="w-2.5 h-2.5" /></Button>
+                      <Input value={item.label} onChange={(e) => {
+                         const items = [...block.content.items];
+                         items[idx].label = e.target.value;
+                         onChange({ content: { items } });
+                      }} className="h-7 bg-black/20 border-none text-white text-[10px]" placeholder="Link Label" />
+                      <Input value={item.link} onChange={(e) => {
+                         const items = [...block.content.items];
+                         items[idx].link = e.target.value;
+                         onChange({ content: { items } });
+                      }} className="h-7 bg-black/20 border-none text-white text-[10px]" placeholder="Link URL" />
+                      <Select value={item.position || "center"} onValueChange={(val) => {
+                         const items = [...block.content.items];
+                         items[idx].position = val;
+                         onChange({ content: { items } });
+                      }}>
+                         <SelectTrigger className="h-7 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                         <SelectContent>
+                            <SelectItem value="left">Left Slot</SelectItem>
+                            <SelectItem value="center">Center Slot</SelectItem>
+                            <SelectItem value="right">Right Slot</SelectItem>
+                         </SelectContent>
+                      </Select>
+                   </div>
+                 ))}
+                 <Button variant="outline" className="w-full h-8 text-[9px] border-dashed border-white/10 bg-transparent text-white/40" onClick={() => {
+                   const items = [...(block.content?.items || []), { id: Math.random().toString(36).substr(2, 9), label: "New Link", link: "/", position: "center" }];
+                   onChange({ content: { items } });
+                 }}>+ Add Menu Link</Button>
+              </div>
+           </PropertySection>
+
+           <PropertySection label="CTA Button" icon={MousePointer2}>
+              <div className="space-y-4">
+                 <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg">
+                    <Label className="text-[10px] font-bold text-white/90 uppercase">Show CTA</Label>
+                    <Switch checked={!!block.content?.showCta} onCheckedChange={(val) => onChange({ content: { showCta: val } })} />
+                 </div>
+                 {block.content?.showCta && (
+                   <div className="space-y-3">
+                      <Input value={block.content?.ctaText || ""} onChange={(e) => onChange({ content: { ctaText: e.target.value } })} placeholder="Button Text" className="h-8 bg-black/20 border-none text-white text-xs" />
+                      <Input value={block.content?.ctaLink || ""} onChange={(e) => onChange({ content: { ctaLink: e.target.value } })} placeholder="Link URL" className="h-8 bg-black/20 border-none text-white text-xs" />
+                      <Select value={block.content?.ctaPosition || "right"} onValueChange={(val) => onChange({ content: { ctaPosition: val } })}>
+                        <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                           <SelectItem value="left">Left Slot</SelectItem>
+                           <SelectItem value="center">Center Slot</SelectItem>
+                           <SelectItem value="right">Right Slot</SelectItem>
+                        </SelectContent>
+                      </Select>
+                   </div>
+                 )}
+              </div>
+           </PropertySection>
+
+           <PropertySection label="Navigation Style" icon={Settings}>
+              <div className="space-y-4">
+                 <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg">
+                    <Label className="text-[10px] font-bold text-white/90 uppercase">Sticky Header</Label>
+                    <Switch checked={!!block.content?.sticky} onCheckedChange={(val) => onChange({ content: { sticky: val } })} />
+                 </div>
+                 <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg">
+                    <Label className="text-[10px] font-bold text-white/90 uppercase">Transparent</Label>
+                    <Switch checked={!!block.content?.transparent} onCheckedChange={(val) => onChange({ content: { transparent: val } })} />
+                 </div>
+                 <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                       <Label className="text-[9px] uppercase font-bold text-white/70">Bg Color</Label>
+                       <Input type="color" value={block.content?.backgroundColor || "#ffffff"} onChange={(e) => onChange({ content: { backgroundColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer" />
+                    </div>
+                    <div className="space-y-1">
+                       <Label className="text-[9px] uppercase font-bold text-white/70">Text Color</Label>
+                       <Input type="color" value={block.content?.textColor || "#1a1a1a"} onChange={(e) => onChange({ content: { textColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer" />
+                    </div>
+                 </div>
+              </div>
+           </PropertySection>
+        </div>
+      );
+
     case "ultra-hero":
       return (
         <div className="space-y-6">
+           <PropertySection label="Typography Colors" icon={Palette}>
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Badge Color</Label>
+                    <Input type="color" value={block.content?.badgeColor || "#facc15"} onChange={(e) => onChange({ content: { badgeColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer rounded-lg" />
+                 </div>
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Title Color</Label>
+                    <Input type="color" value={block.content?.titleColor || "#ffffff"} onChange={(e) => onChange({ content: { titleColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer rounded-lg" />
+                 </div>
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Subtitle Color</Label>
+                    <Input type="color" value={block.content?.subtitleColor || "#fde047"} onChange={(e) => onChange({ content: { subtitleColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer rounded-lg" />
+                 </div>
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Phone Color</Label>
+                    <Input type="color" value={block.content?.phoneTextColor || "#ffffff"} onChange={(e) => onChange({ content: { phoneTextColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer rounded-lg" />
+                 </div>
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Brand Name Color</Label>
+                    <Input type="color" value={block.content?.brandTitleColor || "#1a7c3e"} onChange={(e) => onChange({ content: { brandTitleColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer rounded-lg" />
+                 </div>
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Slogan Color</Label>
+                    <Input type="color" value={block.content?.brandSubtitleColor || "#64748b"} onChange={(e) => onChange({ content: { brandSubtitleColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer rounded-lg" />
+                 </div>
+              </div>
+           </PropertySection>
+
+           <Separator className="bg-white/5" />
+
            <div className="space-y-1">
               <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Trust Badge Text</Label>
               <Input value={block.content?.badgeText || ""} onChange={(e) => onChange({ content: { badgeText: e.target.value } })} className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />

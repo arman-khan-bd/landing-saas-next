@@ -17,7 +17,7 @@ import {
   Paintbrush, Layers,
   ChevronUp, ChevronDown as ChevronDownIcon, Truck, CreditCard,
   Star, Heart, Lightbulb, Info, Shield, Zap, Check, LayoutList,
-  Flame, Leaf, Moon, Sun, Quote, Rocket
+  Flame, Leaf, Moon, Sun, Quote, Rocket, Menu
 } from "lucide-react";
 import {
   DndContext,
@@ -50,7 +50,7 @@ import {
   useSidebar
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { Block, BlockType, PageStyle, THEME_PRESETS, ThemePreset } from "./types";
+import { Block, BlockType, PageStyle } from "./types";
 import { PropertySection, WidgetGridButton, AlignButton } from "./components";
 import { PropertyEditor } from "./property-editor";
 import { BlockRenderer, CanvasBlockWrapper } from "./block-renderer";
@@ -115,7 +115,6 @@ function PageBuilderInner() {
     paddingTop: 40,
     paddingBottom: 40,
     themeId: "default",
-    primaryColor: "#145DCC",
     accentColor: "#26D87F",
   });
   const [products, setProducts] = useState<any[]>([]);
@@ -154,10 +153,6 @@ function PageBuilderInner() {
         setBlocks(data.config || []);
         setPageTitle(data.title || "Untitled Page");
         if (data.pageStyle) {
-          setPageStyle({
-            ...pageStyle,
-            ...data.pageStyle
-          });
           setPageStyle({
             ...pageStyle,
             ...data.pageStyle
@@ -255,6 +250,25 @@ function PageBuilderInner() {
 
   const getInitialContent = (type: BlockType) => {
     switch (type) {
+      case "navbar": return {
+        logoType: "text",
+        logoText: "My Store",
+        logoUrl: "",
+        logoIcon: "ShoppingBag",
+        logoPosition: "left",
+        sticky: true,
+        transparent: false,
+        backgroundColor: "#ffffff",
+        textColor: "#1a1a1a",
+        items: [
+          { id: "1", label: "Home", link: "/", position: "center" },
+          { id: "2", label: "Shop", link: "/all-products", position: "center" }
+        ],
+        showCta: true,
+        ctaText: "Order Now",
+        ctaLink: "[checkout]",
+        ctaPosition: "right"
+      };
       case "ultra-hero": return { 
         badgeText: "BSTI অনুমোদিত • BCSIR ল্যাব টেস্টেড", 
         title: "অসুস্থ ব্যক্তি ছাড়া সুস্থতার মূল্য কেউ বোঝে না", 
@@ -265,6 +279,12 @@ function PageBuilderInner() {
         ctaLink: "[checkout]",
         phoneText: "01621-611589",
         phoneLink: "tel:01621611589",
+        badgeColor: "#facc15",
+        titleColor: "#ffffff",
+        subtitleColor: "#fde047",
+        brandTitleColor: "#1a7c3e",
+        brandSubtitleColor: "#64748b",
+        phoneTextColor: "#ffffff",
         trustItems: [
           { iconName: "CheckSquare", label: "BSTI অনুমোদিত" },
           { iconName: "Microscope", label: "ল্যাব টেস্টেড" },
@@ -472,18 +492,6 @@ function PageBuilderInner() {
   const handleSelectBlock = (id: string) => {
     setSelectedBlockId(id);
     if (isMobile) setOpenMobile(true);
-  };
-
-  const applyTheme = (theme: ThemePreset) => {
-    setPageStyle({
-      ...pageStyle,
-      backgroundColor: theme.backgroundColor,
-      textColor: theme.textColor,
-      primaryColor: theme.primaryColor,
-      themeId: theme.id
-    });
-    setIsThemeDialogOpen(false);
-    toast({ title: `Theme "${theme.name}" Applied` });
   };
 
   if (loading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin text-primary w-12 h-12" /></div>;
@@ -696,19 +704,6 @@ function PageBuilderInner() {
                         </div>
                      </PropertySection>
 
-                     <PropertySection label="Accent Strategy" icon={Zap}>
-                        <div className="grid grid-cols-2 gap-3">
-                           <div className="space-y-1.5">
-                              <Label className="text-[9px] uppercase font-bold text-white/70">Primary</Label>
-                              <Input type="color" value={pageStyle.primaryColor || "#145DCC"} onChange={(e) => setPageStyle({...pageStyle, primaryColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
-                           </div>
-                           <div className="space-y-1.5">
-                              <Label className="text-[9px] uppercase font-bold text-white/70">Accent</Label>
-                              <Input type="color" value={pageStyle.accentColor || "#26D87F"} onChange={(e) => setPageStyle({...pageStyle, accentColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
-                           </div>
-                        </div>
-                     </PropertySection>
-
                      <PropertySection label="Global Spacing" icon={MoveVertical}>
                         <div className="space-y-6">
                            <div className="space-y-3">
@@ -750,9 +745,6 @@ function PageBuilderInner() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="rounded-lg px-4 h-9 font-bold text-[10px] text-slate-600 hover:bg-slate-100" onClick={() => setIsThemeDialogOpen(true)}>
-              <Palette className="w-3.5 h-3.5 mr-1.5" /> Themes
-            </Button>
             <Button variant="outline" size="sm" className="rounded-lg px-4 h-9 font-bold text-[10px] bg-white border-slate-200 text-slate-600 shadow-sm" onClick={() => setIsPreviewOpen(true)}>
               <Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Site
             </Button>
@@ -852,6 +844,7 @@ function PageBuilderInner() {
                       </div>
                     </DialogHeader>
                     <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-slate-50/50 max-h-[60vh] overflow-y-auto">
+                      <WidgetGridButton icon={Menu} label="Navbar" onClick={() => handleAddBlock("navbar")} highlight />
                       <WidgetGridButton icon={Rocket} label="Ultra Hero" onClick={() => handleAddBlock("ultra-hero")} highlight />
                       <WidgetGridButton icon={Type} label="Large Heading" onClick={() => handleAddBlock("header")} />
                       <WidgetGridButton icon={List} label="Simple Text" onClick={() => handleAddBlock("paragraph")} />
