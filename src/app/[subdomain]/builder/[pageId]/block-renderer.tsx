@@ -223,8 +223,8 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       
       const posStyles: any = {
         normal: { position: 'relative' },
-        sticky: { position: 'sticky', top: 0, zIndex: 100 },
-        fixed: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }
+        sticky: { position: 'sticky', top: 0, zIndex: 1000 },
+        fixed: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000 }
       };
 
       const renderItems = (pos: string) => (
@@ -267,7 +267,6 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             backgroundColor: block.content?.transparent ? 'transparent' : (block.content?.backgroundColor || '#ffffff'),
             color: block.content?.textColor || '#1a1a1a',
             ...posStyles[navPosition],
-            zIndex: 100
           }} 
           className={cn(
             "w-full px-6 py-4 border-b border-white/10 backdrop-blur-md",
