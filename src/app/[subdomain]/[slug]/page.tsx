@@ -384,6 +384,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [clientIp, setClientIp] = useState("");
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || "");
+  const [selectedShipping, setSelectedShipping] = useState<any>(null);
 
   const product = products.find(p => p.id === selectedProductId) || products[0];
 
@@ -391,7 +392,9 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
     fullName: "",
     phone: "",
     address: "",
-    paymentMethod: "cod"
+    paymentMethod: "cod",
+    selectedManualMethodId: "",
+    transactionId: ""
   });
 
   useEffect(() => {
@@ -399,7 +402,11 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
       .then(res => res.json())
       .then(data => setClientIp(data.ip))
       .catch(err => console.error("IP Capture Error:", err));
-  }, []);
+
+    if (store?.shippingSettings?.enabled && store.shippingSettings.methods?.length > 0) {
+      setSelectedShipping(store.shippingSettings.methods[0]);
+    }
+  }, [store]);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -408,8 +415,33 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
       return;
     }
 
+    if (formData.paymentMethod === 'manual' && !formData.transactionId) {
+      toast({ variant: "destructive", title: "পেমেন্ট তথ্য প্রয়োজন", description: "ট্রানজাকশন আইডি প্রদান করুন।" });
+      return;
+    }
+
     setIsPlacingOrder(true);
     try {
+      const blockValues = [clientIp, formData.phone].filter(Boolean);
+      if (blockValues.length > 0) {
+        const fraudQ = query(
+          collection(db, "fraud_blocks"),
+          where("storeId", "==", store.id),
+          where("value", "in", blockValues),
+          limit(1)
+        );
+        const fraudSnap = await getDocs(fraudQ);
+        if (!fraudSnap.empty) {
+          toast({ variant: "destructive", title: "অর্ডার গ্রহণ করা সম্ভব হচ্ছে না" });
+          setIsPlacingOrder(false);
+          return;
+        }
+      }
+
+      const shippingCost = selectedShipping?.cost || 0;
+      const subtotal = Number(product.currentPrice);
+      const total = subtotal + shippingCost;
+
       const orderData = {
         storeId: store.id,
         ownerId: store.ownerId,
@@ -421,9 +453,18 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
           quantity: 1
         }],
         customer: { ...formData, ip: clientIp },
-        total: Number(product.currentPrice),
+        shipping: selectedShipping ? {
+          name: selectedShipping.name,
+          cost: shippingCost
+        } : { name: "Direct Order", cost: 0 },
+        subtotal: subtotal,
+        shippingCost: shippingCost,
+        total: total,
+        paymentMethod: formData.paymentMethod,
+        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
+        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
         status: "pending",
-        paymentStatus: "unpaid",
+        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
         isRead: false,
         createdAt: serverTimestamp(),
       };
@@ -438,6 +479,8 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
       setIsPlacingOrder(false);
     }
   };
+
+  const selectedManualMethod = store?.paymentSettings?.manualMethods?.find((m: any) => m.id === formData.selectedManualMethodId);
 
   if (orderSuccess) {
     return (
@@ -486,12 +529,94 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
            </div>
         )}
         <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 border-t">
-          <div className="space-y-4">
-            <Label className={cn("text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>আপনার তথ্য</Label>
-            <Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
-            <Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-            <Textarea placeholder="পুরো ঠিকানা (জেলা সহ)" className="rounded-3xl min-h-[120px] bg-white border-2 border-slate-100 p-6 text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+          <div className="space-y-8">
+            <div className="space-y-4">
+               <Label className={cn("text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>আপনার তথ্য</Label>
+               <Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
+               <Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+               <Textarea placeholder="পুরো ঠিকানা (জেলা সহ)" className="rounded-3xl min-h-[120px] bg-white border-2 border-slate-100 p-6 text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+            </div>
+
+            {store?.shippingSettings?.enabled && (
+              <div className="space-y-4">
+                 <Label className={cn("text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>ডেলিভারি এরিয়া</Label>
+                 <div className="grid grid-cols-1 gap-3">
+                   {store.shippingSettings.methods.map((method: any) => (
+                     <div 
+                       key={method.id} 
+                       className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
+                       onClick={() => setSelectedShipping(method)}
+                     >
+                        <div className="flex items-center gap-3">
+                          <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedShipping?.id === method.id ? 'border-primary' : 'border-slate-300')}>
+                            {selectedShipping?.id === method.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                          </div>
+                          <span className="font-bold text-sm">{method.name}</span>
+                        </div>
+                        <span className="font-black text-sm">{method.cost > 0 ? `৳ ${method.cost}` : 'ফ্রি'}</span>
+                     </div>
+                   ))}
+                 </div>
+              </div>
+            )}
+
+            <div className="space-y-4">
+               <Label className={cn("text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>পেমেন্ট মেথড</Label>
+               <div className="grid grid-cols-1 gap-3">
+                  {store?.paymentSettings?.cod && (
+                    <div 
+                      className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
+                      onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
+                    >
+                       <div className="flex items-center gap-3">
+                          <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
+                            {formData.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                          </div>
+                          <span className="font-bold">ক্যাশ অন ডেলিভারি</span>
+                       </div>
+                       <Truck className="w-5 h-5 text-slate-300" />
+                    </div>
+                  )}
+
+                  {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
+                    <div 
+                      className={cn("flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
+                      onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
+                    >
+                       <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'manual' ? 'border-primary' : 'border-slate-300')}>
+                              {formData.paymentMethod === 'manual' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                            </div>
+                            <span className="font-bold">বিকাশ/নগদ/রকেট</span>
+                          </div>
+                          <Smartphone className="w-5 h-5 text-slate-300" />
+                       </div>
+
+                       {formData.paymentMethod === 'manual' && (
+                         <div className="mt-4 pt-4 border-t border-primary/10 space-y-4 animate-in slide-in-from-top-2">
+                            <div className="grid grid-cols-2 gap-2">
+                               {store.paymentSettings.manualMethods.map((m: any) => (
+                                 <Button key={m.id} type="button" variant="outline" className={cn("h-10 rounded-xl text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white border-none' : '')} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: m.id})); }}>{m.name}</Button>
+                               ))}
+                            </div>
+                            {selectedManualMethod && (
+                               <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
+                                  <div className="p-4 bg-white rounded-2xl border-2 border-primary/10">
+                                     <p className="text-[10px] font-black text-primary uppercase">নাম্বার: {selectedManualMethod.number}</p>
+                                     <p className="text-[10px] text-slate-500 mt-1 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</p>
+                                  </div>
+                                  <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
+                               </div>
+                            )}
+                         </div>
+                       )}
+                    </div>
+                  )}
+               </div>
+            </div>
           </div>
+
           <div className="space-y-6">
             <div className={cn("p-10 rounded-[40px] border space-y-5", (isOrganic || isTraditional) ? "bg-white border-[#d9e8da]" : "bg-slate-50")}>
               <div className="flex justify-between text-muted-foreground font-bold text-xs uppercase tracking-widest">
@@ -500,16 +625,22 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
               </div>
               <div className="flex justify-between text-muted-foreground font-bold text-xs uppercase tracking-widest">
                 <span>ডেলিভারি চার্জ</span>
-                <span className="text-primary">ফ্রি</span>
+                <span className={cn("font-black", (selectedShipping?.cost || 0) > 0 ? "text-slate-900" : "text-emerald-500")}>
+                   { (selectedShipping?.cost || 0) > 0 ? `৳ ${selectedShipping.cost}` : 'ফ্রি' }
+                </span>
               </div>
               <div className={cn("flex justify-between text-4xl font-black border-t pt-8 mt-4", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>
                 <span className="text-xs pt-4 uppercase">মোট</span>
-                <span>৳ {(Number(product?.currentPrice || 0)).toFixed(0)}</span>
+                <span>৳ {(Number(product?.currentPrice || 0) + (selectedShipping?.cost || 0)).toFixed(0)}</span>
               </div>
             </div>
             <Button type="submit" disabled={isPlacingOrder || !product} className={cn("w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", (isOrganic || isTraditional) ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "bg-primary")}>
               {isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}
             </Button>
+            <div className="flex items-center justify-center gap-2 text-slate-400 mt-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em]">নিরাপদ পেমেন্ট ব্যবস্থা</span>
+            </div>
           </div>
         </form>
       </div>
