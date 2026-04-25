@@ -55,6 +55,9 @@ import { PropertyEditor } from "../builder/[pageId]/property-editor";
 import { CanvasBlockWrapper, BlockRenderer } from "../builder/[pageId]/block-renderer";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
@@ -106,6 +109,12 @@ const SAM_NATURAL_TEMPLATE: Block[] = [
       { id: "h-1", type: "card", content: { title: "হার্টের সমস্যা", subtitle: "হার্ট ব্লক বা হার্টের সমস্যায় মহাঔষধ", iconName: "Heart", showIcon: true, layout: "horizontal", iconColor: "#c0392b" }, style: { columnIndex: 0, backgroundColor: "#ffffff", borderRadius: 12, borderStyle: "solid", borderWidth: 4, borderColor: "#4a9c3f", animation: "slideUp" } },
       { id: "h-2", type: "card", content: { title: "উচ্চ রক্তচাপ", subtitle: "হাই প্রেশারের প্রাকৃতিক সমাধান", iconName: "Droplets", showIcon: true, layout: "horizontal", iconColor: "#c9a227" }, style: { columnIndex: 1, backgroundColor: "#ffffff", borderRadius: 12, borderStyle: "solid", borderWidth: 4, borderColor: "#4a9c3f", animation: "slideUp" } }
     ]
+  },
+  {
+    id: "citation",
+    type: "quote",
+    content: { title: "কালোজিরা", text: "রাসূলুল্লাহ (সা.) বলেছেন: কালোজিরায় মৃত্যু ব্যতীত সব রোগের নিরাময় আছে।", reference: "ইবনে মাজাহ, হাদিস: ৩৪৪৮", iconName: "Quote" },
+    style: { paddingTop: 40, paddingBottom: 40, textAlign: "center", animation: "fadeIn" }
   },
   {
     id: "order-form",
@@ -166,9 +175,10 @@ function SectionManagerInner() {
   }, [subdomain, firestore]);
 
   const fetchMainPage = async () => {
+    if (!firestore) return;
     setLoading(true);
     try {
-      const storeQ = query(collection(firestore!, "stores"), where("subdomain", "==", subdomain));
+      const storeQ = query(collection(firestore, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQ);
       if (storeSnap.empty) {
         setLoading(false);
@@ -177,8 +187,7 @@ function SectionManagerInner() {
       const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
       setStore(storeData);
 
-      // Find or create "index" page
-      const pageQ = query(collection(firestore!, "pages"), where("storeId", "==", storeData.id), where("slug", "==", "index"));
+      const pageQ = query(collection(firestore, "pages"), where("storeId", "==", storeData.id), where("slug", "==", "index"));
       const pageSnap = await getDocs(pageQ);
 
       if (!pageSnap.empty) {
@@ -188,8 +197,7 @@ function SectionManagerInner() {
         setBlocks(data.config || []);
         if (data.pageStyle) setPageStyle(data.pageStyle);
       } else {
-        // Create default page with template
-        const newPageRef = doc(collection(firestore!, "pages"));
+        const newPageRef = doc(collection(firestore, "pages"));
         const defaultData = {
           storeId: storeData.id,
           ownerId: storeData.ownerId,
@@ -204,7 +212,7 @@ function SectionManagerInner() {
         setBlocks(SAM_NATURAL_TEMPLATE);
       }
 
-      const prodQ = query(collection(firestore!, "products"), where("storeId", "==", storeData.id));
+      const prodQ = query(collection(firestore, "products"), where("storeId", "==", storeData.id));
       const prodSnap = await getDocs(prodQ);
       setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (error) {
@@ -235,7 +243,7 @@ function SectionManagerInner() {
   const handleSave = () => {
     if (!pageId || !firestore) return;
     setSaving(true);
-    const pageRef = doc(firestore!, "pages", pageId);
+    const pageRef = doc(firestore, "pages", pageId);
     
     updateDoc(pageRef, { 
       config: blocks, 
@@ -260,7 +268,7 @@ function SectionManagerInner() {
     const newBlock: Block = {
       id: Math.random().toString(36).substr(2, 9),
       type,
-      content: {}, // Initial content logic usually goes here
+      content: {},
       style: { textAlign: "left", animation: "none", columnIndex: activeColumnIndex ?? 0 },
       children: type === "row" ? [] : undefined
     };
@@ -336,7 +344,9 @@ function SectionManagerInner() {
     setBlocks(prev => reorderRecursive(prev));
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center bg-slate-900"><Loader2 className="animate-spin text-white w-12 h-12" /></div>;
+  if (loading) return <div className="flex h-screen items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-white w-12 h-12" /></div>;
+
+  const selectedBlock = blocks.find(b => b.id === selectedBlockId);
 
   return (
     <div className="flex h-screen w-full bg-slate-950 overflow-hidden text-slate-100 select-none">
@@ -354,30 +364,72 @@ function SectionManagerInner() {
         <SidebarContent className="p-0">
           {selectedBlockId ? (
             <div className="flex flex-col h-full overflow-hidden">
-              <div className="px-4 py-3 bg-black/20 border-b border-white/5 flex items-center justify-between">
+              <div className="px-4 py-3 bg-black/20 border-b border-white/5 flex items-center justify-between shrink-0">
                 <span className="font-headline font-bold text-[10px] uppercase tracking-wider text-indigo-400">Configure Section</span>
                 <Button variant="ghost" size="icon" className="h-6 w-6 text-white/30 hover:text-rose-400" onClick={() => removeBlock(selectedBlockId)}><Trash2 className="w-3.5 h-3.5" /></Button>
               </div>
               <Tabs value={sidebarTab} onValueChange={(v: any) => setSidebarTab(v)} className="flex-1 overflow-hidden flex flex-col">
-                <TabsList className="w-full bg-black/10 border-b border-white/10 rounded-none h-10 p-0">
-                  <TabsTrigger value="edit" className="flex-1 font-bold text-[9px] uppercase tracking-widest">Content</TabsTrigger>
-                  <TabsTrigger value="advanced" className="flex-1 font-bold text-[9px] uppercase tracking-widest">Design</TabsTrigger>
+                <TabsList className="w-full bg-black/10 border-b border-white/10 rounded-none h-10 p-0 shrink-0">
+                  <TabsTrigger value="edit" className="flex-1 font-bold text-[9px] uppercase tracking-widest h-full">Content</TabsTrigger>
+                  <TabsTrigger value="advanced" className="flex-1 font-bold text-[9px] uppercase tracking-widest h-full">Design</TabsTrigger>
                 </TabsList>
                 <ScrollArea className="flex-1">
                   <div className="p-4 space-y-6 pb-20">
-                    <TabsContent value="edit" className="mt-0">
-                      {blocks.find(b => b.id === selectedBlockId) && (
+                    <TabsContent value="edit" className="mt-0 space-y-6">
+                      {selectedBlock && (
                         <PropertyEditor 
-                          block={blocks.find(b => b.id === selectedBlockId)!} 
+                          block={selectedBlock} 
                           products={products} 
                           onChange={(u: any) => updateBlock(selectedBlockId, u)} 
                         />
                       )}
                     </TabsContent>
-                    <TabsContent value="advanced" className="mt-0">
+                    <TabsContent value="advanced" className="mt-0 space-y-6">
                        <PropertySection label="Motion Effects" icon={Zap}>
-                          <PropertyEditor block={blocks.find(b => b.id === selectedBlockId)!} products={products} onChange={(u: any) => updateBlock(selectedBlockId, u)} />
-                       </TabsContent>
+                          <div className="space-y-4">
+                             <div className="space-y-1">
+                                <Label className="text-[9px] uppercase font-bold text-white/40">Scroll Animation</Label>
+                                <Select 
+                                  value={selectedBlock?.style?.animation || "none"} 
+                                  onValueChange={(v) => updateBlock(selectedBlockId, { style: { animation: v } })}
+                                >
+                                   <SelectTrigger className="h-8 rounded-lg border-none bg-black/20 text-white text-[10px]">
+                                      <SelectValue />
+                                   </SelectTrigger>
+                                   <SelectContent className="bg-slate-800 border-white/10 text-white">
+                                      <SelectItem value="none">Static (None)</SelectItem>
+                                      <SelectItem value="fadeIn">Fade In</SelectItem>
+                                      <SelectItem value="slideUp">Slide Up</SelectItem>
+                                      <SelectItem value="zoomIn">Zoom In</SelectItem>
+                                      <SelectItem value="bounce">Bounce</SelectItem>
+                                   </SelectContent>
+                                </Select>
+                             </div>
+                          </div>
+                       </PropertySection>
+                       
+                       <PropertySection label="Box Scale" icon={MoveVertical}>
+                          <div className="grid grid-cols-2 gap-2">
+                             <div className="space-y-1">
+                                <Label className="text-[9px] uppercase font-bold text-white/40">Top Padding</Label>
+                                <Input 
+                                  type="number" 
+                                  value={selectedBlock?.style?.paddingTop ?? ""} 
+                                  onChange={(e) => updateBlock(selectedBlockId, { style: { paddingTop: Number(e.target.value) } })}
+                                  className="h-8 bg-black/20 border-none text-white text-xs"
+                                />
+                             </div>
+                             <div className="space-y-1">
+                                <Label className="text-[9px] uppercase font-bold text-white/40">Bottom Padding</Label>
+                                <Input 
+                                  type="number" 
+                                  value={selectedBlock?.style?.paddingBottom ?? ""} 
+                                  onChange={(e) => updateBlock(selectedBlockId, { style: { paddingBottom: Number(e.target.value) } })}
+                                  className="h-8 bg-black/20 border-none text-white text-xs"
+                                />
+                             </div>
+                          </div>
+                       </PropertySection>
                     </TabsContent>
                   </div>
                 </ScrollArea>
@@ -399,7 +451,7 @@ function SectionManagerInner() {
       </Sidebar>
 
       <SidebarInset className="bg-slate-950 flex flex-col overflow-hidden">
-         <header className="h-16 border-b border-white/5 bg-slate-900/50 backdrop-blur-xl flex items-center justify-between px-8 z-30">
+         <header className="h-16 border-b border-white/5 bg-slate-900/50 backdrop-blur-xl flex items-center justify-between px-8 z-30 shrink-0">
             <div className="flex items-center gap-4">
                <SidebarTrigger className="text-slate-400" />
                <div className="h-5 w-px bg-white/5" />
@@ -415,7 +467,7 @@ function SectionManagerInner() {
             <div 
                className={cn(
                   "transition-all duration-700 shadow-2xl relative bg-white min-h-[90vh]",
-                  viewMode === 'mobile' ? 'w-[375px] rounded-[48px] border-[12px] border-slate-900 ring-[16px] ring-white/5' : 'w-full max-w-5xl rounded-3xl'
+                  viewMode === 'mobile' ? "w-[375px] rounded-[48px] border-[12px] border-slate-900 ring-[16px] ring-white/5" : "w-full max-w-5xl rounded-3xl"
                )}
                style={{ backgroundColor: pageStyle.backgroundColor, color: pageStyle.textColor, paddingTop: pageStyle.paddingTop, paddingBottom: pageStyle.paddingBottom }}
             >
@@ -479,7 +531,7 @@ function SectionManagerInner() {
             </header>
             <div className="flex-1 overflow-y-auto flex justify-center p-4 sm:p-10">
                <div 
-                  className={cn("bg-white shadow-2xl min-h-full", viewMode === 'mobile' ? 'w-[375px] rounded-[48px] border-[12px] border-slate-900' : 'w-full max-w-5xl rounded-3xl')}
+                  className={cn("bg-white shadow-2xl min-h-full", viewMode === 'mobile' ? "w-[375px] rounded-[48px] border-[12px] border-slate-900" : "w-full max-w-5xl rounded-3xl")}
                   style={{ backgroundColor: pageStyle.backgroundColor, color: pageStyle.textColor, paddingTop: pageStyle.paddingTop, paddingBottom: pageStyle.paddingBottom }}
                >
                   {blocks.map(block => <BlockRenderer key={block.id} block={block} products={products} store={store} isPreview viewMode={viewMode} pageStyle={pageStyle} />)}
