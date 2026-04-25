@@ -90,7 +90,8 @@ service cloud.firestore {
     }
 
     match /fraud_blocks/{blockId} {
-      allow read, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      // Allow public read/list for the storefront fraud check logic
+      allow read, list: if true;
       allow create: if isSignedIn();
       allow delete: if isDocumentOwner();
     }
