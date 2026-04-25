@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -55,8 +54,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const adminSegments = ["dashboard", "overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "sections", "home-manager"];
   const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`));
   
-  // Section Manager is the new Builder. Full screen mode.
-  const isSectionManager = normalizedPath.startsWith("/sections");
+  // EDITOR DETECT: Only hide sidebar when inside the specific page editor /[pageId]
+  // Normalized path examples: "/sections", "/sections/abc123"
+  const isEditor = normalizedPath.startsWith("/sections/") && normalizedPath.split("/").filter(Boolean).length > 1;
 
   useEffect(() => {
     if (!auth) return;
@@ -219,11 +219,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     { title: "Uncompleted", icon: AlertCircle, href: "/orders/uncompleted", count: counts.uncompleted },
   ];
 
-  if (!isAdminPath || isSectionManager) return (
+  if (!isAdminPath || isEditor) return (
     <ConfirmationProvider>
       <div className="min-h-screen flex flex-col bg-background">
         <div className="flex-1">{children}</div>
-        {!isSectionManager && <StorefrontFooter store={store} subdomain={subdomain} />}
+        {!isEditor && <StorefrontFooter store={store} subdomain={subdomain} />}
       </div>
     </ConfirmationProvider>
   );
@@ -255,7 +255,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                 <SidebarGroup>
                   <SidebarGroupLabel asChild><CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors"><span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Orchestration</span><ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" /></CollapsibleTrigger></SidebarGroupLabel>
                   <CollapsibleContent><SidebarGroupContent><SidebarMenu className="mt-2">
-                    <SidebarMenuItem><SidebarMenuButton asChild isActive={normalizedPath === "/sections"} className="rounded-xl h-10 px-4"><Link href={getTenantPath(subdomain, "/sections")} className="flex items-center gap-3"><Layers className={`w-4 h-4 ${normalizedPath === "/sections" ? 'text-primary' : 'text-muted-foreground'}`} /><span className="text-sm font-medium">Section Manager</span></Link></SidebarMenuButton></SidebarMenuItem>
+                    <SidebarMenuItem><SidebarMenuButton asChild isActive={normalizedPath.startsWith("/sections")} className="rounded-xl h-10 px-4"><Link href={getTenantPath(subdomain, "/sections")} className="flex items-center gap-3"><Layers className={`w-4 h-4 ${normalizedPath.startsWith("/sections") ? 'text-primary' : 'text-muted-foreground'}`} /><span className="text-sm font-medium">Landing Pages</span></Link></SidebarMenuButton></SidebarMenuItem>
                     <SidebarMenuItem><SidebarMenuButton asChild isActive={normalizedPath === "/home-manager"} className="rounded-xl h-10 px-4"><Link href={getTenantPath(subdomain, "/home-manager")} className="flex items-center gap-3"><Home className={`w-4 h-4 ${normalizedPath === "/home-manager" ? 'text-primary' : 'text-muted-foreground'}`} /><span className="text-sm font-medium">Home Meta</span></Link></SidebarMenuButton></SidebarMenuItem>
                   </SidebarMenu></SidebarGroupContent></CollapsibleContent>
                 </SidebarGroup>
