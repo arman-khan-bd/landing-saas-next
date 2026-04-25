@@ -7,8 +7,7 @@ service cloud.firestore {
      * CORE PHILOSOPHY:
      * Multi-tenant e-commerce platform model (IHut.Shop).
      * Focus on Tenant Isolation and Owner Authorization.
-     * All major catalog and sales entities are stored as root collections 
-     * and filtered by storeId/ownerId for performance and rule simplicity.
+     * Flattened collection rules for direct root-level querying.
      */
 
     // --- Helper Functions ---
@@ -61,12 +60,14 @@ service cloud.firestore {
       allow update: if isAdmin() || (resource.data.ownerId == request.auth.uid);
       allow delete: if isAdmin();
 
-      // Legacy subcollection support
-      match /products/{productId} { allow read: if true; allow write: if isDocumentOwner(); }
-      match /subscription/{id} { allow read: if isDocumentOwner(); allow write: if isAdmin(); }
+      // Subscription Sub-collection
+      match /subscription/{id} { 
+        allow read: if isOwner(resource.data.ownerId) || isAdmin(); 
+        allow write: if isAdmin(); 
+      }
     }
 
-    // Root Catalog Collections (Used by the App)
+    // Root Catalog Collections (Direct access for storefront and dashboard)
     match /products/{id} { allow read: if true; allow write: if isDocumentOwner() || (isSignedIn() && !exists(/databases/$(database)/documents/products/$(id))); }
     match /categories/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
     match /sub-categories/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
@@ -74,11 +75,16 @@ service cloud.firestore {
     match /tags/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
     match /taxes/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
 
-    // Pages & Landing Pages
+    // Pages & Landing Pages (Hardened ownership check)
     match /pages/{id} {
       allow read: if true;
       allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || (resource.data.ownerId == request.auth.uid);
+      allow update: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid || 
+        isAdmin() ||
+        (exists(/databases/$(database)/documents/stores/$(resource.data.storeId)) && get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data.ownerId == request.auth.uid)
+      );
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.ownerId == request.auth.uid);
     }
 
     // Sales & Orders

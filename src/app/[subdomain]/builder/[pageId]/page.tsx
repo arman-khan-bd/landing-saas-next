@@ -91,7 +91,7 @@ const THEMES = [
 
 export default function PageBuilder() {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <PageBuilderInner />
     </SidebarProvider>
   );
@@ -510,56 +510,56 @@ function PageBuilderInner() {
   return (
     <div className="flex h-screen w-full bg-slate-50/50 overflow-hidden text-slate-800 select-none">
       
-      <Sidebar collapsible="offcanvas" className="border-r-0 bg-primary text-primary-foreground shadow-2xl">
-        <SidebarHeader className="p-4 border-b border-white/10 bg-black/10">
+      <Sidebar collapsible="offcanvas" className="border-r-0 bg-slate-900 text-white shadow-2xl">
+        <SidebarHeader className="p-4 border-b border-white/5 bg-black/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-lg">
-                <Sparkles className="w-4 h-4 text-primary" />
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg">
+                <Sparkles className="w-4 h-4 text-white" />
               </div>
               <div>
-                <span className="block font-headline font-bold text-white text-xs tracking-tight">Designer Pro</span>
-                <span className="text-[8px] text-white/60 font-bold uppercase tracking-widest block">iHut Studio</span>
+                <span className="block font-headline font-bold text-white text-xs tracking-tight">Nexus Designer</span>
+                <span className="text-[8px] text-white/40 font-bold uppercase tracking-widest block">v2.4 Pro</span>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => router.push(`/${subdomain}/builder`)} className="h-8 w-8 rounded-full text-white/50 hover:text-white hover:bg-white/10">
+            <Button variant="ghost" size="icon" onClick={() => router.push(`/${subdomain}/builder`)} className="h-8 w-8 rounded-full text-white/30 hover:text-white hover:bg-white/10">
               <ArrowLeft className="w-4 h-4" />
             </Button>
           </div>
         </SidebarHeader>
 
-        <SidebarContent className="p-0 bg-primary h-full">
+        <SidebarContent className="p-0 bg-slate-900 h-full">
           {selectedBlock ? (
             <div className="flex flex-col h-full overflow-hidden">
-              <div className="px-4 py-3 bg-black/20 border-b border-white/10 flex items-center justify-between shrink-0">
+              <div className="px-4 py-3 bg-black/20 border-b border-white/5 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-headline font-bold text-[10px] uppercase tracking-wider text-white">Settings: {selectedBlock.type}</span>
+                  <span className="font-headline font-bold text-[10px] uppercase tracking-wider text-indigo-400">{selectedBlock.type} Node</span>
                 </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-white/50 hover:text-red-400 hover:bg-red-400/10" onClick={() => removeBlock(selectedBlock.id)}>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-white/30 hover:text-red-400 hover:bg-red-400/10" onClick={() => removeBlock(selectedBlock.id)}>
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>
 
               <Tabs value={sidebarTab} onValueChange={(v: any) => setSidebarTab(v)} className="flex-1 flex flex-col min-h-0">
                 <TabsList className="w-full bg-black/10 border-b border-white/10 rounded-none h-10 p-0 shrink-0">
-                  <TabsTrigger value="edit" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent text-white/60 data-[state=active]:text-white font-bold text-[9px] uppercase tracking-widest h-full">Content</TabsTrigger>
-                  <TabsTrigger value="advanced" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent text-white/60 data-[state=active]:text-white font-bold text-[9px] uppercase tracking-widest h-full">Appearance</TabsTrigger>
+                  <TabsTrigger value="edit" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent text-white/40 data-[state=active]:text-white font-bold text-[9px] uppercase tracking-widest h-full">Config</TabsTrigger>
+                  <TabsTrigger value="advanced" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent text-white/40 data-[state=active]:text-white font-bold text-[9px] uppercase tracking-widest h-full">Style</TabsTrigger>
                 </TabsList>
 
                 <ScrollArea className="flex-1 min-h-0">
                   <div className="p-4 space-y-6 pb-20">
                     <TabsContent value="edit" className="mt-0 space-y-6">
-                      <PropertySection label="Content config" icon={Box}>
+                      <PropertySection label="Component Data" icon={Box}>
                         <PropertyEditor block={selectedBlock} products={products} onChange={(u: any) => updateBlock(selectedBlock.id, u)} />
                       </PropertySection>
                     </TabsContent>
 
                     <TabsContent value="advanced" className="mt-0 space-y-6">
                        {selectedBlockParent?.type === "row" && (
-                         <PropertySection label="Grid Placement" icon={Columns}>
+                         <PropertySection label="Grid Logic" icon={Columns}>
                             <div className="space-y-4">
                                <div className="space-y-1">
-                                  <Label className="text-[9px] uppercase font-bold text-white/60">Target Column</Label>
+                                  <Label className="text-[9px] uppercase font-bold text-white/40">Active Column</Label>
                                   <Select 
                                     value={(selectedBlock.style?.columnIndex ?? 0).toString()} 
                                     onValueChange={(v) => updateBlock(selectedBlock.id, { style: { columnIndex: Number(v) } })}
@@ -567,7 +567,7 @@ function PageBuilderInner() {
                                      <SelectTrigger className="h-8 rounded-lg border-none bg-black/20 text-white text-[10px]">
                                         <SelectValue />
                                      </SelectTrigger>
-                                     <SelectContent>
+                                     <SelectContent className="bg-slate-800 border-white/10 text-white">
                                         {Array.from({ length: selectedBlockParent.content?.columns || 1 }).map((_, i) => (
                                           <SelectItem key={i} value={i.toString()}>Column {i + 1}</SelectItem>
                                         ))}
@@ -575,17 +575,17 @@ function PageBuilderInner() {
                                   </Select>
                                </div>
                                <div className="space-y-3">
-                                  <div className="flex justify-between items-center text-[9px] font-bold text-white/70 uppercase">
+                                  <div className="flex justify-between items-center text-[9px] font-bold text-white/50 uppercase">
                                     <Label>Column Span</Label>
-                                    <span>{selectedBlock.style?.columnSpan || 1} cols</span>
+                                    <span>{selectedBlock.style?.columnSpan || 1} units</span>
                                   </div>
-                                  <Slider value={[selectedBlock.style?.columnSpan || 1]} min={1} max={selectedBlockParent.content?.columns || 4} onValueChange={([v]) => updateBlock(selectedBlock.id, { style: { columnSpan: v } })} className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-primary" />
+                                  <Slider value={[selectedBlock.style?.columnSpan || 1]} min={1} max={selectedBlockParent.content?.columns || 4} onValueChange={([v]) => updateBlock(selectedBlock.id, { style: { columnSpan: v } })} className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-indigo-600" />
                                </div>
                             </div>
                          </PropertySection>
                        )}
 
-                       <PropertySection label="Alignment & Text" icon={Type}>
+                       <PropertySection label="Typography" icon={Type}>
                           <div className="space-y-4">
                             <div className="grid grid-cols-4 gap-1 bg-black/20 p-1 rounded-lg">
                               <AlignButton active={selectedBlock.style?.textAlign === "left"} icon={LucideIcons.AlignLeft} onClick={() => updateBlock(selectedBlock.id, { style: { textAlign: "left" } })} />
@@ -594,34 +594,34 @@ function PageBuilderInner() {
                               <AlignButton active={selectedBlock.style?.textAlign === "justify"} icon={LucideIcons.AlignJustify} onClick={() => updateBlock(selectedBlock.id, { style: { textAlign: "justify" } })} />
                             </div>
                             <div className="space-y-3">
-                              <div className="flex justify-between items-center text-[9px] font-bold text-white/70 uppercase">
-                                <Label>Font Scale</Label>
+                              <div className="flex justify-between items-center text-[9px] font-bold text-white/50 uppercase">
+                                <Label>Base Scale</Label>
                                 <span>{selectedBlock.style?.fontSize || 16}px</span>
                               </div>
-                              <Slider value={[selectedBlock.style?.fontSize || 16]} min={8} max={100} onValueChange={([v]) => updateBlock(selectedBlock.id, { style: { fontSize: v } })} className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-primary" />
+                              <Slider value={[selectedBlock.style?.fontSize || 16]} min={8} max={100} onValueChange={([v]) => updateBlock(selectedBlock.id, { style: { fontSize: v } })} className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-indigo-600" />
                             </div>
                           </div>
                        </PropertySection>
 
-                       <PropertySection label="Spacing (Padding & Margin)" icon={MoveVertical}>
+                       <PropertySection label="Box Model" icon={MoveVertical}>
                          <div className="space-y-4">
                            <div className="space-y-2">
-                             <Label className="text-[9px] uppercase font-bold text-white/60">Padding (px)</Label>
+                             <Label className="text-[9px] uppercase font-bold text-white/40">Padding Overrides</Label>
                              <div className="grid grid-cols-2 gap-2">
-                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
-                                 <ArrowUp className="w-2.5 h-2.5 text-white/40" />
+                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2 border border-white/5">
+                                 <ArrowUp className="w-2.5 h-2.5 text-white/20" />
                                  <Input type="number" placeholder="0" value={selectedBlock.style?.paddingTop ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingTop: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
                                </div>
-                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
-                                 <ArrowDown className="w-2.5 h-2.5 text-white/40" />
+                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2 border border-white/5">
+                                 <ArrowDown className="w-2.5 h-2.5 text-white/20" />
                                  <Input type="number" placeholder="0" value={selectedBlock.style?.paddingBottom ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingBottom: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
                                </div>
-                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
-                                 <ArrowLeftIcon className="w-2.5 h-2.5 text-white/40" />
+                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2 border border-white/5">
+                                 <ArrowLeftIcon className="w-2.5 h-2.5 text-white/20" />
                                  <Input type="number" placeholder="0" value={selectedBlock.style?.paddingLeft ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingLeft: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
                                </div>
-                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2">
-                                 <ArrowRightIcon className="w-2.5 h-2.5 text-white/40" />
+                               <div className="flex items-center bg-black/20 rounded-lg px-2 py-1 gap-2 border border-white/5">
+                                 <ArrowRightIcon className="w-2.5 h-2.5 text-white/20" />
                                  <Input type="number" placeholder="0" value={selectedBlock.style?.paddingRight ?? ""} onChange={(e) => updateBlock(selectedBlock.id, { style: { paddingRight: e.target.value === "" ? undefined : Number(e.target.value) } })} className="h-6 bg-transparent border-none p-0 text-[10px] text-white focus-visible:ring-0" />
                                </div>
                              </div>
@@ -629,32 +629,32 @@ function PageBuilderInner() {
                          </div>
                        </PropertySection>
                        
-                       <PropertySection label="Colors" icon={Palette}>
+                       <PropertySection label="Visuals" icon={Palette}>
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
-                              <Label className="text-[9px] uppercase font-bold text-white/70">Text Color</Label>
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Ink Color</Label>
                               <Input type="color" value={selectedBlock.style?.textColor || pageStyle.textColor} onChange={(e) => updateBlock(selectedBlock.id, { style: { textColor: e.target.value } })} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
                             </div>
                             <div className="space-y-1.5">
-                              <Label className="text-[9px] uppercase font-bold text-white/70">Bg Color</Label>
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Paper Color</Label>
                               <Input type="color" value={selectedBlock.style?.backgroundColor || "#FFFFFF"} onChange={(e) => updateBlock(selectedBlock.id, { style: { backgroundColor: e.target.value } })} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
                             </div>
                           </div>
                        </PropertySection>
 
-                       <PropertySection label="Visibility" icon={Eye}>
+                       <PropertySection label="Runtime State" icon={Eye}>
                          <div className="space-y-2">
                             <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg border border-white/5">
                               <div className="flex items-center gap-2">
-                                <Monitor className="w-3 h-3 text-white/70" />
-                                <span className="text-[10px] font-bold text-white/90">Hide Desktop</span>
+                                <Monitor className="w-3 h-3 text-white/40" />
+                                <span className="text-[10px] font-bold text-white/70 uppercase">Disable Desktop</span>
                               </div>
                               <input type="checkbox" checked={!!selectedBlock.style?.hideDesktop} onChange={(e) => updateBlock(selectedBlock.id, { style: { hideDesktop: e.target.checked } })} />
                             </div>
                             <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg border border-white/5">
                               <div className="flex items-center gap-2">
-                                <Smartphone className="w-3 h-3 text-white/70" />
-                                <span className="text-[10px] font-bold text-white/90">Hide Mobile</span>
+                                <Smartphone className="w-3 h-3 text-white/40" />
+                                <span className="text-[10px] font-bold text-white/70 uppercase">Disable Mobile</span>
                               </div>
                               <input type="checkbox" checked={!!selectedBlock.style?.hideMobile} onChange={(e) => updateBlock(selectedBlock.id, { style: { hideMobile: e.target.checked } })} />
                             </div>
@@ -667,13 +667,13 @@ function PageBuilderInner() {
             </div>
           ) : (
             <div className="flex flex-col h-full overflow-hidden">
-               <div className="px-4 py-3 bg-black/20 border-b border-white/10 flex items-center gap-2 shrink-0">
-                  <Paintbrush className="w-4 h-4 text-white" />
-                  <span className="font-headline font-bold text-[10px] uppercase tracking-wider text-white">Theme Settings</span>
+               <div className="px-4 py-3 bg-black/20 border-b border-white/5 flex items-center gap-2 shrink-0">
+                  <Paintbrush className="w-4 h-4 text-indigo-400" />
+                  <span className="font-headline font-bold text-[10px] uppercase tracking-wider text-white">Global Aesthetic</span>
                </div>
                <ScrollArea className="flex-1 min-h-0">
                   <div className="p-4 space-y-6 pb-20">
-                     <PropertySection label="Active Tier / Theme" icon={Layers}>
+                     <PropertySection label="Identity Tiers" icon={Layers}>
                         <div className="space-y-3">
                            <div className="grid grid-cols-4 gap-1.5">
                               {THEMES.map(t => (
@@ -682,7 +682,7 @@ function PageBuilderInner() {
                                   onClick={() => handleApplyTheme(t)}
                                   className={cn(
                                     "flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all",
-                                    pageStyle.themeId === t.id ? "bg-white text-primary border-white" : "bg-black/20 text-white/40 border-transparent hover:bg-black/30"
+                                    pageStyle.themeId === t.id ? "bg-indigo-600 text-white border-indigo-500 shadow-xl" : "bg-black/20 text-white/30 border-transparent hover:bg-black/30"
                                   )}
                                 >
                                    <t.icon className="w-3.5 h-3.5" />
@@ -690,39 +690,39 @@ function PageBuilderInner() {
                                 </button>
                               ))}
                            </div>
-                           <p className="text-[8px] text-white/40 leading-relaxed italic text-center px-1">Applying a theme updates global colors instantly. Components will adapt automatically.</p>
+                           <p className="text-[8px] text-white/30 leading-relaxed text-center px-1">Applying an identity tier resets core layout colors.</p>
                         </div>
                      </PropertySection>
 
-                     <PropertySection label="Global Colors" icon={Palette}>
+                     <PropertySection label="Core Swatches" icon={Palette}>
                         <div className="space-y-4">
                            <div className="space-y-1.5">
-                              <Label className="text-[9px] uppercase font-bold text-white/70">Background Color</Label>
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Global Paper</Label>
                               <Input type="color" value={pageStyle.backgroundColor || "#FFFFFF"} onChange={(e) => setPageStyle({...pageStyle, backgroundColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
                            </div>
                            <div className="space-y-1.5">
-                              <Label className="text-[9px] uppercase font-bold text-white/70">Text Color</Label>
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Global Ink</Label>
                               <Input type="color" value={pageStyle.textColor || "#0F172A"} onChange={(e) => setPageStyle({...pageStyle, textColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
                            </div>
                            <div className="space-y-1.5">
-                              <Label className="text-[9px] uppercase font-bold text-white/70">Primary Accent</Label>
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Signature Tint</Label>
                               <Input type="color" value={pageStyle.primaryColor || "#145DCC"} onChange={(e) => setPageStyle({...pageStyle, primaryColor: e.target.value})} className="h-8 w-full p-1 rounded-lg cursor-pointer border-none bg-black/20" />
                            </div>
                            <div className="space-y-1.5">
-                              <Label className="text-[9px] uppercase font-bold text-white/70">Background Image</Label>
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Wallpaper Asset</Label>
                               <CloudinaryUpload value={pageStyle.backgroundImage || ""} onUpload={(url) => setPageStyle({...pageStyle, backgroundImage: url})} onRemove={() => setPageStyle({...pageStyle, backgroundImage: ""})} />
                            </div>
                         </div>
                      </PropertySection>
 
-                     <PropertySection label="Global Spacing" icon={MoveVertical}>
+                     <PropertySection label="Canvas Rhythm" icon={MoveVertical}>
                         <div className="space-y-6">
                            <div className="space-y-3">
-                              <div className="flex justify-between items-center text-[9px] font-bold text-white/70 uppercase">
-                                 <Label>Vertical Padding (px)</Label>
+                              <div className="flex justify-between items-center text-[9px] font-bold text-white/40 uppercase">
+                                 <Label>Vertical Breathing</Label>
                                  <span>{pageStyle.paddingTop}px</span>
                               </div>
-                              <Slider value={[pageStyle.paddingTop || 0]} min={0} max={200} step={4} onValueChange={([v]) => setPageStyle({...pageStyle, paddingTop: v, paddingBottom: v})} className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-primary" />
+                              <Slider value={[pageStyle.paddingTop || 0]} min={0} max={200} step={4} onValueChange={([v]) => setPageStyle({...pageStyle, paddingTop: v, paddingBottom: v})} className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-indigo-600" />
                            </div>
                         </div>
                      </PropertySection>
@@ -732,18 +732,18 @@ function PageBuilderInner() {
           )}
         </SidebarContent>
 
-        <SidebarFooter className="p-4 border-t border-white/10 bg-black/10 shrink-0">
-          <Button className="w-full h-10 rounded-xl font-bold text-xs bg-white text-primary hover:bg-white/90 transition-all hover:scale-[1.02] shadow-lg" onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="animate-spin w-3.5 h-3.5 mr-2" /> : <Save className="w-3.5 h-3.5 mr-2" />}
-            Save Landing Page
+        <SidebarFooter className="p-4 border-t border-white/5 bg-black/10 shrink-0">
+          <Button className="w-full h-12 rounded-2xl font-black text-xs bg-indigo-600 text-white hover:bg-indigo-700 transition-all hover:scale-[1.02] shadow-xl shadow-indigo-600/20" onClick={handleSave} disabled={saving}>
+            {saving ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            Publish Design
           </Button>
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset className="flex flex-col h-full bg-slate-50/30">
+      <SidebarInset className="flex flex-col h-full bg-slate-50/50">
         <header className="h-14 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-30 sticky top-0">
           <div className="flex items-center gap-4">
-            <SidebarTrigger className="bg-primary text-white border-none shadow-lg shadow-primary/20 hover:bg-primary/90" />
+            <SidebarTrigger className="bg-slate-900 text-white border-none shadow-lg hover:bg-slate-800" />
             <div className="h-5 w-px bg-slate-200 hidden md:block" />
             <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg">
               <Button variant={viewMode === "desktop" ? "secondary" : "ghost"} size="sm" onClick={() => setViewMode("desktop")} className="rounded-md h-7 px-2.5 font-bold text-[9px] uppercase tracking-wider">
@@ -757,7 +757,7 @@ function PageBuilderInner() {
 
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" className="rounded-lg px-4 h-9 font-bold text-[10px] bg-white border-slate-200 text-slate-600 shadow-sm" onClick={() => setIsPreviewOpen(true)}>
-              <Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Site
+              <Eye className="w-3.5 h-3.5 mr-1.5" /> Live Preview
             </Button>
           </div>
         </header>
@@ -765,8 +765,8 @@ function PageBuilderInner() {
         <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center items-start" onClick={() => setSelectedBlockId(null)}>
           <div 
             className={cn(
-               "transition-all duration-700 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] relative overflow-hidden",
-               viewMode === "mobile" ? "w-full max-w-[375px] rounded-[40px] border-[10px] border-slate-900 ring-[12px] ring-white/10" : "max-w-6xl w-full rounded-xl"
+               "transition-all duration-700 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] relative overflow-hidden",
+               viewMode === "mobile" ? "w-full max-w-[375px] rounded-[48px] border-[12px] border-slate-900 ring-[16px] ring-white/20" : "max-w-6xl w-full rounded-2xl"
             )}
             style={{
                backgroundColor: pageStyle.backgroundColor || "#FFFFFF",
@@ -781,9 +781,9 @@ function PageBuilderInner() {
           >
             <div className="py-8 group/canvas">
               {blocks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-32 gap-4 opacity-10 filter grayscale">
-                  <LayoutGrid className="w-20 h-20" />
-                  <h3 className="text-2xl font-headline font-black tracking-tighter uppercase">Canvas is Empty</h3>
+                <div className="flex flex-col items-center justify-center py-48 gap-4 opacity-5 filter grayscale">
+                  <LayoutGrid className="w-24 h-24" />
+                  <h3 className="text-3xl font-headline font-black tracking-tighter uppercase">Canvas Ready</h3>
                 </div>
               ) : (
                 <DndContext
@@ -820,8 +820,8 @@ function PageBuilderInner() {
                   </SortableContext>
                   <DragOverlay>
                     {activeDragId ? (
-                      <div className="opacity-50 pointer-events-none scale-105 transition-transform bg-white rounded-lg p-4 shadow-2xl border border-primary/20">
-                        {findBlockById(blocks, activeDragId)?.type}
+                      <div className="opacity-50 pointer-events-none scale-105 transition-transform bg-white rounded-xl p-6 shadow-2xl border-2 border-indigo-600">
+                        <span className="font-black uppercase text-xs tracking-widest">{findBlockById(blocks, activeDragId)?.type} Node</span>
                       </div>
                     ) : null}
                   </DragOverlay>
@@ -833,42 +833,43 @@ function PageBuilderInner() {
                   <DialogTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-12 w-12 rounded-full border-2 border-primary/20 text-primary shadow-xl hover:scale-110 active:scale-95 transition-all bg-white group"
+                      className="h-14 w-14 rounded-full border-2 border-indigo-600/20 text-indigo-600 shadow-2xl hover:scale-110 active:scale-95 transition-all bg-white group"
                       onClick={() => { setActiveParentId(null); setInsertInfo(null); setActiveColumnIndex(null); }}
                     >
-                      <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" />
+                      <Plus className="w-7 h-7 group-hover:rotate-90 transition-transform duration-500" />
                     </Button>
                   </DialogTrigger>
                   <DialogContent 
-                    className="max-w-xl rounded-[32px] p-0 border-none overflow-hidden shadow-2xl"
+                    className="max-w-xl rounded-[40px] p-0 border-none overflow-hidden shadow-2xl"
                     onCloseAutoFocus={(e) => e.preventDefault()}
                   >
-                    <DialogHeader className="p-5 bg-primary text-white">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white/20 rounded-xl"><PlusCircle className="w-5 h-5" /></div>
+                    <DialogHeader className="p-6 bg-slate-900 text-white">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-600/20"><PlusCircle className="w-6 h-6" /></div>
                         <div>
-                          <DialogTitle className="text-lg font-headline font-bold">Add New Widget</DialogTitle>
-                          <DialogDescription className="text-white/70 text-[10px] uppercase font-bold tracking-widest">
-                            {insertInfo ? `Inserting ${insertInfo.position} block` : activeColumnIndex !== null ? `Adding to Column ${activeColumnIndex + 1}` : "Adding component to page"}
+                          <DialogTitle className="text-xl font-headline font-black uppercase tracking-tight">Widget Repository</DialogTitle>
+                          <DialogDescription className="text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em]">
+                            {insertInfo ? `Inserting ${insertInfo.position} node` : activeColumnIndex !== null ? `Injecting into Column ${activeColumnIndex + 1}` : "Deploying node to base layout"}
                           </DialogDescription>
                         </div>
                       </div>
                     </DialogHeader>
-                    <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-slate-50/50 max-h-[60vh] overflow-y-auto">
-                      <WidgetGridButton icon={Menu} label="Navbar" onClick={() => handleAddBlock("navbar")} highlight />
-                      <WidgetGridButton icon={Rocket} label="Ultra Hero" onClick={() => handleAddBlock("ultra-hero")} highlight />
-                      <WidgetGridButton icon={Type} label="Large Heading" onClick={() => handleAddBlock("header")} />
-                      <WidgetGridButton icon={List} label="Simple Text" onClick={() => handleAddBlock("paragraph")} />
-                      <WidgetGridButton icon={LayoutList} label="Rich Text" onClick={() => handleAddBlock("rich-text")} highlight />
-                      <WidgetGridButton icon={ImageIcon} label="Image Box" onClick={() => handleAddBlock("image")} />
-                      <WidgetGridButton icon={Monitor} label="Action Button" onClick={() => handleAddBlock("button")} />
-                      <WidgetGridButton icon={Square} label="Styled Card" onClick={() => handleAddBlock("card")} highlight />
-                      <WidgetGridButton icon={ChevronDownIcon} label="Accordion" onClick={() => handleAddBlock("accordion")} />
-                      <WidgetGridButton icon={Quote} label="Reference Quote" onClick={() => handleAddBlock("quote")} highlight />
-                      {!activeParentId && <WidgetGridButton icon={Columns} label="Grid Row" onClick={() => handleAddBlock("row")} />}
-                      <WidgetGridButton icon={ShoppingCart} label="Order Form" onClick={() => handleAddBlock("product-order-form")} highlight />
-                      <WidgetGridButton icon={Layout} label="Carousel" onClick={() => handleAddBlock("carousel")} />
-                      <WidgetGridButton icon={CheckCircle} label="Checked List" onClick={() => handleAddBlock("checked-list")} />
+                    <div className="p-6 grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50/50 max-h-[60vh] overflow-y-auto">
+                      <WidgetGridButton icon={Menu} label="Global Navbar" onClick={() => handleAddBlock("navbar")} highlight />
+                      <WidgetGridButton icon={Rocket} label="Conversion Hero" onClick={() => handleAddBlock("ultra-hero")} highlight />
+                      <WidgetGridButton icon={LayoutList} label="Rich Story" onClick={() => handleAddBlock("rich-text")} highlight />
+                      <WidgetGridButton icon={ShoppingCart} label="Direct Checkout" onClick={() => handleAddBlock("product-order-form")} highlight />
+                      <WidgetGridButton icon={Quote} label="Citation Node" onClick={() => handleAddBlock("quote")} highlight />
+                      <WidgetGridButton icon={Square} label="Sticker Card" onClick={() => handleAddBlock("card")} highlight />
+                      <WidgetGridButton icon={Type} label="Main Header" onClick={() => handleAddBlock("header")} />
+                      <WidgetGridButton icon={List} label="Base Text" onClick={() => handleAddBlock("paragraph")} />
+                      <WidgetGridButton icon={ImageIcon} label="Asset Box" onClick={() => handleAddBlock("image")} />
+                      <WidgetGridButton icon={Monitor} label="Global Button" onClick={() => handleAddBlock("button")} />
+                      {(!activeParentId || findBlockById(blocks, activeParentId)?.type !== "row") && (
+                        <WidgetGridButton icon={Columns} label="Grid Scaffold" onClick={() => handleAddBlock("row")} />
+                      )}
+                      <WidgetGridButton icon={Layout} label="Asset Slider" onClick={() => handleAddBlock("carousel")} />
+                      <WidgetGridButton icon={CheckCircle} label="Checked Registry" onClick={() => handleAddBlock("checked-list")} />
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -884,21 +885,21 @@ function PageBuilderInner() {
             <DialogTitle>Page Preview</DialogTitle>
             <DialogDescription>Visualizing the landing page as seen by customers.</DialogDescription>
           </DialogHeader>
-          <header className="flex h-14 items-center justify-between px-6 border-b bg-white z-50 shadow-sm shrink-0">
-            <div className="flex items-center gap-3">
-              <Eye className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-headline font-bold tracking-tight">Full Site Preview</h2>
+          <header className="flex h-16 items-center justify-between px-8 border-b bg-white z-50 shadow-sm shrink-0">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/10">
+                <Eye className="w-5 h-5" />
+              </div>
+              <h2 className="text-sm font-headline font-black uppercase tracking-widest">Global Production Preview</h2>
             </div>
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => setIsPreviewOpen(false)} className="rounded-full h-9 v-9 hover:bg-slate-100"><X className="w-5 h-5" /></Button>
-            </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsPreviewOpen(false)} className="rounded-full h-10 w-10 hover:bg-slate-100"><X className="w-6 h-6" /></Button>
           </header>
           
-          <div className="flex-1 overflow-y-auto bg-slate-100/30 flex justify-center p-4">
+          <div className="flex-1 overflow-y-auto bg-slate-100/30 flex justify-center p-4 sm:p-10">
             <div 
                className={cn(
-                  "shadow-2xl transition-all duration-700 min-h-full py-0",
-                  viewMode === "mobile" ? "w-full max-w-[375px] rounded-[40px] border-[10px] border-slate-900" : "max-w-6xl w-full rounded-xl"
+                  "shadow-2xl transition-all duration-700 min-h-full py-0 bg-white",
+                  viewMode === "mobile" ? "w-full max-w-[375px] rounded-[48px] border-[12px] border-slate-900" : "max-w-6xl w-full rounded-2xl"
                )}
                style={{
                   backgroundColor: pageStyle.backgroundColor || "#FFFFFF",

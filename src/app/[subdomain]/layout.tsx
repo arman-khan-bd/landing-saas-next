@@ -54,6 +54,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   const adminSegments = ["dashboard", "overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder", "home-manager"];
   const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`));
+  
+  // Detect if we are in the Builder Editor (Full Screen Mode)
+  const isBuilderEditor = normalizedPath.startsWith("/builder/") && normalizedPath !== "/builder";
 
   useEffect(() => {
     if (!auth) return;
@@ -79,7 +82,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     const isStoreOwner = store.ownerId === auth.currentUser.uid;
     if (!isStoreOwner && userRole !== 'admin') return;
 
-    // Only establish listeners if we are strictly authorized
+    // Only establish listeners if we are strictly authorized and in dashboard area
     const ordersQ = query(
       collection(firestore, "orders"),
       where("storeId", "==", store.id),
@@ -103,19 +106,19 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     const unsubOrders = onSnapshot(ordersQ, (snap) => {
       setCounts(prev => ({ ...prev, orders: snap.size }));
     }, (err) => {
-      console.warn("Order listener restricted", err);
+      console.warn("Order listener restricted");
     });
 
     const unsubUncompleted = onSnapshot(uncompletedQ, (snap) => {
       setCounts(prev => ({ ...prev, uncompleted: snap.size }));
     }, (err) => {
-      console.warn("Draft listener restricted", err);
+      console.warn("Draft listener restricted");
     });
 
     const unsubSystem = onSnapshot(systemQ, (snap) => {
       setCounts(prev => ({ ...prev, system: snap.size }));
     }, (err) => {
-      console.warn("System listener restricted", err);
+      console.warn("System listener restricted");
     });
 
     return () => {
@@ -241,11 +244,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     { title: "Uncompleted", icon: AlertCircle, href: "/orders/uncompleted", count: counts.uncompleted },
   ];
 
-  if (!isAdminPath) return (
+  if (!isAdminPath || isBuilderEditor) return (
     <ConfirmationProvider>
       <div className="min-h-screen flex flex-col bg-background">
         <div className="flex-1">{children}</div>
-        <StorefrontFooter store={store} subdomain={subdomain} />
+        {!isBuilderEditor && <StorefrontFooter store={store} subdomain={subdomain} />}
       </div>
     </ConfirmationProvider>
   );
@@ -278,7 +281,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                   <SidebarGroupLabel asChild><CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors"><span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Design</span><ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" /></CollapsibleTrigger></SidebarGroupLabel>
                   <CollapsibleContent><SidebarGroupContent><SidebarMenu className="mt-2">
                     <SidebarMenuItem><SidebarMenuButton asChild isActive={normalizedPath === "/home-manager"} className="rounded-xl h-10 px-4"><Link href={getTenantPath(subdomain, "/home-manager")} className="flex items-center gap-3"><Home className={`w-4 h-4 ${normalizedPath === "/home-manager" ? 'text-primary' : 'text-muted-foreground'}`} /><span className="text-sm font-medium">Home Manager</span></Link></SidebarMenuButton></SidebarMenuItem>
-                    <SidebarMenuItem><SidebarMenuButton asChild isActive={normalizedPath === "/builder"} className="rounded-xl h-10 px-4"><Link href={getTenantPath(subdomain, "/builder")} className="flex items-center gap-3"><PenTool className={`w-4 h-4 ${normalizedPath === "/builder" ? 'text-primary' : 'text-muted-foreground'}`} /><span className="text-sm font-medium">Landing Pages</span></Link></SidebarMenuButton></SidebarMenuItem>
+                    <SidebarMenuItem><SidebarMenuButton asChild isActive={normalizedPath === "/builder"} className="rounded-xl h-10 px-4"><Link href={getTenantPath(subdomain, "/builder")} className="flex items-center gap-3"><PenTool className={`w-4 h-4 ${normalizedPath === "/builder" ? 'text-primary' : 'text-muted-foreground'}`} /><span className="text-sm font-medium">Design Pages</span></Link></SidebarMenuButton></SidebarMenuItem>
                   </SidebarMenu></SidebarGroupContent></CollapsibleContent>
                 </SidebarGroup>
               </Collapsible>
