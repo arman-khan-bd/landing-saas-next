@@ -53,7 +53,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     : pathname === `/${subdomain}` ? "/" : pathname;
 
   const adminSegments = ["dashboard", "overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder", "home-manager"];
-  const isBuilderEditor = normalizedPath.includes("/builder/") && normalizedPath.split("/").filter(Boolean).length > 1;
   const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`));
 
   useEffect(() => {
@@ -72,14 +71,15 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     return () => unsubscribe();
   }, [subdomain, router, auth, isAdminPath]);
 
-  // Strictly guarded admin listeners
   useEffect(() => {
-    // ONLY initialize listeners if we are in admin section AND verified
-    if (!firestore || !store?.id || !auth?.currentUser || !isAdminPath || !isPasswordVerified) return;
+    if (!firestore || !store?.id || !auth?.currentUser || !isAdminPath || !isPasswordVerified) {
+      return;
+    }
 
     const isStoreOwner = store.ownerId === auth.currentUser.uid;
     if (!isStoreOwner && userRole !== 'admin') return;
 
+    // Only establish listeners if we are strictly authorized
     const ordersQ = query(
       collection(firestore, "orders"),
       where("storeId", "==", store.id),

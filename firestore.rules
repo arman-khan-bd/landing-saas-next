@@ -7,6 +7,8 @@ service cloud.firestore {
      * CORE PHILOSOPHY:
      * Multi-tenant e-commerce platform model (IHut.Shop).
      * Focus on Tenant Isolation and Owner Authorization.
+     * All major catalog and sales entities are stored as root collections 
+     * and filtered by storeId/ownerId for performance and rule simplicity.
      */
 
     // --- Helper Functions ---
@@ -26,8 +28,13 @@ service cloud.firestore {
       );
     }
 
+    function isDocumentOwner() {
+      return isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
     // --- Collection Rules ---
 
+    // User & Admin Profiles
     match /userProfiles/{userId} {
       allow get, list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
@@ -42,55 +49,60 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isAdmin();
     }
 
+    match /adminRoles/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Stores
     match /stores/{storeId} {
       allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isAdmin() || (resource.data.ownerId == request.auth.uid);
       allow delete: if isAdmin();
 
-      match /products/{productId} {
-        allow get, list: if true;
-        allow create: if isSignedIn();
-        allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-      }
-
-      match /subscription/{id} {
-        allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-        allow create: if isSignedIn();
-        allow update, delete: if isAdmin();
-      }
+      // Legacy subcollection support
+      match /products/{productId} { allow read: if true; allow write: if isDocumentOwner(); }
+      match /subscription/{id} { allow read: if isDocumentOwner(); allow write: if isAdmin(); }
     }
 
+    // Root Catalog Collections (Used by the App)
+    match /products/{id} { allow read: if true; allow write: if isDocumentOwner() || (isSignedIn() && !exists(/databases/$(database)/documents/products/$(id))); }
+    match /categories/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
+    match /sub-categories/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
+    match /brands/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
+    match /tags/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
+    match /taxes/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
+
+    // Pages & Landing Pages
     match /pages/{id} {
       allow read: if true;
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (
-        resource.data.ownerId == request.auth.uid || 
-        (exists(/databases/$(database)/documents/stores/$(resource.data.storeId)) && get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data.ownerId == request.auth.uid) ||
-        isAdmin()
-      );
+      allow update, delete: if isAdmin() || (resource.data.ownerId == request.auth.uid);
     }
 
+    // Sales & Orders
     match /orders/{orderId} {
       allow create: if true;
-      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-      allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow get, list: if isDocumentOwner();
+      allow update, delete: if isDocumentOwner();
     }
 
     match /uncompleted_orders/{orderId} {
-      allow create, get, update, delete: if true;
-      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create, get, update, delete: if true; // Needed for checkout tracking
+      allow list: if isDocumentOwner();
     }
 
     match /fraud_blocks/{blockId} {
-      allow read, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow read, list: if isDocumentOwner();
       allow create: if isSignedIn();
-      allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow delete: if isDocumentOwner();
     }
 
+    // Platform Level
     match /subscriptionPlans/{planId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow write: if isAdmin();
     }
 
     match /system_notifications/{id} {
@@ -103,12 +115,6 @@ service cloud.firestore {
     match /saas_transactions/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     match /custom_domain_requests/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     match /platformFeatures/{id} { allow read: if true; allow write: if isAdmin(); }
-    
-    // Generic match for other collections
-    match /{path=**}/categories/{id} { allow read, write: if isSignedIn(); }
-    match /{path=**}/sub-categories/{id} { allow read, write: if isSignedIn(); }
-    match /{path=**}/brands/{id} { allow read, write: if isSignedIn(); }
-    match /{path=**}/tags/{id} { allow read, write: if isSignedIn(); }
-    match /{path=**}/taxes/{id} { allow read, write: if isSignedIn(); }
+    match /saasPaymentMethods/{id} { allow read: if true; allow write: if isAdmin(); }
   }
 }
