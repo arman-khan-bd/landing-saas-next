@@ -19,13 +19,6 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isStoreOwner(storeId) {
-      return isSignedIn() && (
-        exists(/databases/$(database)/documents/stores/$(storeId)) &&
-        get(/databases/$(database)/documents/stores/$(storeId)).data.ownerId == request.auth.uid
-      );
-    }
-
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/adminRoles/$(request.auth.uid)) ||
@@ -57,13 +50,13 @@ service cloud.firestore {
 
       match /products/{productId} {
         allow get, list: if true;
-        allow create: if isSignedIn() && (request.resource.data.ownerId == request.auth.uid || isStoreOwner(storeId));
-        allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isStoreOwner(storeId) || isAdmin());
+        allow create: if isSignedIn();
+        allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
       }
 
       match /subscription/{id} {
-        allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isStoreOwner(storeId) || isAdmin());
-        allow create: if isSignedIn() && (request.resource.data.ownerId == request.auth.uid || isStoreOwner(storeId));
+        allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isSignedIn();
         allow update, delete: if isAdmin();
       }
     }
@@ -73,20 +66,20 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && (
         resource.data.ownerId == request.auth.uid || 
-        isStoreOwner(resource.data.storeId) || 
+        (exists(/databases/$(database)/documents/stores/$(resource.data.storeId)) && get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data.ownerId == request.auth.uid) ||
         isAdmin()
       );
     }
 
     match /orders/{orderId} {
       allow create: if true;
-      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isStoreOwner(resource.data.storeId) || isAdmin());
-      allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isStoreOwner(resource.data.storeId) || isAdmin());
+      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
     match /uncompleted_orders/{orderId} {
       allow create, get, update, delete: if true;
-      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isStoreOwner(resource.data.storeId) || isAdmin());
+      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
     match /fraud_blocks/{blockId} {
@@ -107,13 +100,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
+    match /saas_transactions/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
+    match /custom_domain_requests/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
+    match /platformFeatures/{id} { allow read: if true; allow write: if isAdmin(); }
+    
+    // Generic match for other collections
     match /{path=**}/categories/{id} { allow read, write: if isSignedIn(); }
     match /{path=**}/sub-categories/{id} { allow read, write: if isSignedIn(); }
     match /{path=**}/brands/{id} { allow read, write: if isSignedIn(); }
     match /{path=**}/tags/{id} { allow read, write: if isSignedIn(); }
     match /{path=**}/taxes/{id} { allow read, write: if isSignedIn(); }
-    match /saas_transactions/{id} { allow read, write: if isSignedIn(); }
-    match /custom_domain_requests/{id} { allow read, write: if isSignedIn(); }
-    match /platformFeatures/{id} { allow read: if true; allow write: if isAdmin(); }
   }
 }

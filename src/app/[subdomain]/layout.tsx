@@ -11,7 +11,6 @@ import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, S
 import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home, ShoppingCart, WifiOff, Palette } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn, getTenantPath, getConsoleUrl, getAuthUrl } from "@/lib/utils";
@@ -25,14 +24,12 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     let sub = typeof paramsSubdomain === 'string' ? paramsSubdomain.toLowerCase() : '';
-    
     if (!sub && typeof window !== 'undefined') {
       const hostname = window.location.hostname;
       const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
       const extracted = getSubdomain(hostname, rootDomain);
       if (extracted) sub = extracted.toLowerCase();
     }
-    
     setSubdomain(sub);
   }, [paramsSubdomain]);
 
@@ -57,7 +54,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   const adminSegments = ["dashboard", "overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "builder", "home-manager"];
   const isBuilderEditor = normalizedPath.includes("/builder/") && normalizedPath.split("/").filter(Boolean).length > 1;
-  const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`)) && !isBuilderEditor;
+  const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`));
 
   useEffect(() => {
     if (!auth) return;
@@ -77,6 +74,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   // Strictly guarded admin listeners
   useEffect(() => {
+    // ONLY initialize listeners if we are in admin section AND verified
     if (!firestore || !store?.id || !auth?.currentUser || !isAdminPath || !isPasswordVerified) return;
 
     const isStoreOwner = store.ownerId === auth.currentUser.uid;
@@ -104,15 +102,21 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
     const unsubOrders = onSnapshot(ordersQ, (snap) => {
       setCounts(prev => ({ ...prev, orders: snap.size }));
-    }, (err) => {});
+    }, (err) => {
+      console.warn("Order listener restricted", err);
+    });
 
     const unsubUncompleted = onSnapshot(uncompletedQ, (snap) => {
       setCounts(prev => ({ ...prev, uncompleted: snap.size }));
-    }, (err) => {});
+    }, (err) => {
+      console.warn("Draft listener restricted", err);
+    });
 
     const unsubSystem = onSnapshot(systemQ, (snap) => {
       setCounts(prev => ({ ...prev, system: snap.size }));
-    }, (err) => {});
+    }, (err) => {
+      console.warn("System listener restricted", err);
+    });
 
     return () => {
       unsubOrders();
@@ -148,7 +152,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       const storeData = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
 
       if (storeData.ownerId !== uid && role !== 'admin') {
-        setAccessDenied(true);
+        if (isAdminPath) setAccessDenied(true);
       } else {
         setStore(storeData);
 

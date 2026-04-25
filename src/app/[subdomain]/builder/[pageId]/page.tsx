@@ -443,7 +443,7 @@ function PageBuilderInner() {
   };
 
   const handleSave = () => {
-    if (!pageId || !firestore) return;
+    if (!pageId || !firestore || !store) return;
     setSaving(true);
     const pageRef = doc(firestore, "pages", pageId as string);
     
@@ -462,6 +462,7 @@ function PageBuilderInner() {
     const sanitizedConfig = sanitizeForFirestore(blocks);
     const sanitizedStyle = sanitizeForFirestore(pageStyle);
     
+    // Explicitly update based on existing fields
     updateDoc(pageRef, { 
       config: sanitizedConfig, 
       pageStyle: sanitizedStyle,
