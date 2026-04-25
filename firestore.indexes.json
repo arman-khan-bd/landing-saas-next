@@ -1,3 +1,4 @@
+
 {
   "indexes": [
     {
@@ -10,6 +11,10 @@
         },
         {
           "fieldPath": "storeId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isRead",
           "order": "ASCENDING"
         },
         {
@@ -31,11 +36,11 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
+          "fieldPath": "isRead",
+          "order": "ASCENDING"
         },
         {
-          "fieldPath": "__name__",
+          "fieldPath": "createdAt",
           "order": "DESCENDING"
         }
       ]

@@ -80,7 +80,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   }, [subdomain, router, auth, isAdminPath]);
 
   useEffect(() => {
-    if (!firestore || !store?.id || !auth?.currentUser) return;
+    if (!firestore || !store?.id || !auth?.currentUser || !isAdminPath) return;
 
     // Only listen if user is store owner or admin to avoid permission errors for anonymous visitors
     const isStoreOwner = store.ownerId === auth.currentUser.uid;
@@ -129,7 +129,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       unsubUncompleted();
       unsubSystem();
     };
-  }, [firestore, store?.id, auth?.currentUser, userRole]);
+  }, [firestore, store?.id, auth?.currentUser, userRole, isAdminPath]);
 
   const verifyStoreAccess = async (uid: string) => {
     if (!firestore || !subdomain) {
