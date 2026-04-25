@@ -21,7 +21,7 @@ import {
   CheckCircle, Star, User, Settings, Mail, Phone, MapPin, Globe,
   Box, Package, Play, Pause, Sun, Moon, Wind, Tree, Trash, Edit, RefreshCw,
   Droplets, Activity, BookOpen, Quote, Microscope, Banknote, RotateCcw, CheckSquare, Plus, Menu, Palette, Image as ImageIcon,
-  MousePointer2, PlayCircle, Code, ShieldCheck, List
+  MousePointer2, PlayCircle, Code, ShieldCheck, List, Layout, Sparkles, Smartphone, ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PropertySection } from "./components";
@@ -49,7 +49,7 @@ const COMMON_ICONS = [
   "Flag", "Filter", "Folder", "File", "FileText", "Image", "Paperclip", "Maximize", "Minimize", "Move",
   "Play", "Pause", "Stop", "SkipBack", "SkipForward", "Repeat", "Shuffle", "Volume", "VolumeX", "Mic",
   "Sun", "Moon", "Wind", "Umbrella", "Thermometer", "Droplets", "Sunrise", "Sunset", "Mountain", "Tree",
-  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity", "BookOpen", "Quote", "Microscope", "Banknote", "RotateCcw", "CheckSquare", "ShoppingBag", "Menu", "MousePointer2"
+  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity", "BookOpen", "Quote", "Microscope", "Banknote", "RotateCcw", "CheckSquare", "ShoppingBag", "Menu", "MousePointer2", "CheckCircle2", "ShieldCheck"
 ];
 
 export function PropertyEditor({ block, products, onChange }: PropertyEditorProps) {
@@ -222,10 +222,18 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                     <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Title Color</Label>
                     <Input type="color" value={block.content?.titleColor || "#ffffff"} onChange={(e) => onChange({ content: { titleColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer rounded-lg" />
                  </div>
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Subtitle Color</Label>
+                    <Input type="color" value={block.content?.subtitleColor || "#facc15"} onChange={(e) => onChange({ content: { subtitleColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer rounded-lg" />
+                 </div>
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Brand Color</Label>
+                    <Input type="color" value={block.content?.brandTitleColor || "#1a7c3e"} onChange={(e) => onChange({ content: { brandTitleColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer rounded-lg" />
+                 </div>
               </div>
            </PropertySection>
 
-           <PropertySection label="Content" icon={Edit}>
+           <PropertySection label="Hero Content" icon={Edit}>
               <div className="space-y-3">
                  <div className="space-y-1">
                     <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Trust Badge</Label>
@@ -238,6 +246,104 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                  <div className="space-y-1">
                     <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Subtitle</Label>
                     <Input value={block.content?.subtitle || ""} onChange={(e) => onChange({ content: { subtitle: e.target.value } })} className="h-8 bg-black/20 border-none text-white text-xs" />
+                 </div>
+                 <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                        <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Brand Name</Label>
+                        <Input value={block.content?.brandTitle || ""} onChange={(e) => onChange({ content: { brandTitle: e.target.value } })} className="h-8 bg-black/20 border-none text-white text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                        <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Brand Slogan</Label>
+                        <Input value={block.content?.brandSubtitle || ""} onChange={(e) => onChange({ content: { brandSubtitle: e.target.value } })} className="h-8 bg-black/20 border-none text-white text-xs" />
+                    </div>
+                 </div>
+              </div>
+           </PropertySection>
+
+           <PropertySection label="Action Buttons" icon={ArrowRight}>
+              <div className="space-y-6">
+                 <div className="space-y-3 p-3 bg-black/20 rounded-xl border border-white/5">
+                    <Label className="text-[9px] font-black uppercase text-indigo-400">Order Button</Label>
+                    <Input value={block.content?.ctaText || ""} onChange={(e) => onChange({ content: { ctaText: e.target.value } })} placeholder="Button Label" className="h-8 bg-black/20 border-none text-white text-[10px]" />
+                    <Input value={block.content?.ctaLink || ""} onChange={(e) => onChange({ content: { ctaLink: e.target.value } })} placeholder="Link ([checkout] to scroll)" className="h-8 bg-black/20 border-none text-white text-[10px]" />
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                            <Label className="text-[8px] font-bold text-white/30 uppercase">BG Color</Label>
+                            <Input type="color" value={block.content?.ctaBg || "#f9a825"} onChange={(e) => onChange({ content: { ctaBg: e.target.value, ctaType: 'solid' } })} className="h-7 w-full p-1 bg-black/20 border-none cursor-pointer" />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-[8px] font-bold text-white/30 uppercase">Text Color</Label>
+                            <Input type="color" value={block.content?.ctaTextColor || "#ffffff"} onChange={(e) => onChange({ content: { ctaTextColor: e.target.value } })} className="h-7 w-full p-1 bg-black/20 border-none cursor-pointer" />
+                        </div>
+                    </div>
+                 </div>
+
+                 <div className="space-y-3 p-3 bg-black/20 rounded-xl border border-white/5">
+                    <Label className="text-[9px] font-black uppercase text-emerald-400">Call Button</Label>
+                    <Input value={block.content?.phoneText || ""} onChange={(e) => onChange({ content: { phoneText: e.target.value } })} placeholder="Phone Label" className="h-8 bg-black/20 border-none text-white text-[10px]" />
+                    <Input value={block.content?.phoneLink || ""} onChange={(e) => onChange({ content: { phoneLink: e.target.value } })} placeholder="Link (tel:0123...)" className="h-8 bg-black/20 border-none text-white text-[10px]" />
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                            <Label className="text-[8px] font-bold text-white/30 uppercase">Border Color</Label>
+                            <Input type="color" value={block.content?.phoneBorderColor || "#ffffff4d"} onChange={(e) => onChange({ content: { phoneBorderColor: e.target.value, phoneType: 'outline' } })} className="h-7 w-full p-1 bg-black/20 border-none cursor-pointer" />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-[8px] font-bold text-white/30 uppercase">Text Color</Label>
+                            <Input type="color" value={block.content?.phoneTextColor || "#ffffff"} onChange={(e) => onChange({ content: { phoneTextColor: e.target.value } })} className="h-7 w-full p-1 bg-black/20 border-none cursor-pointer" />
+                        </div>
+                    </div>
+                 </div>
+              </div>
+           </PropertySection>
+
+           <PropertySection label="Trust Ribbon" icon={ShieldCheck}>
+              <div className="space-y-6">
+                 <div className="grid grid-cols-2 gap-4 bg-black/20 p-4 rounded-2xl border border-white/5">
+                    <div className="space-y-1">
+                       <Label className="text-[8px] font-bold text-white/50 uppercase">Icon BG</Label>
+                       <Input type="color" value={block.content?.ribbonIconBg || "#ffffff1a"} onChange={(e) => onChange({ content: { ribbonIconBg: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer rounded-lg" />
+                    </div>
+                    <div className="space-y-1">
+                       <Label className="text-[8px] font-bold text-white/50 uppercase">Icon Color</Label>
+                       <Input type="color" value={block.content?.ribbonIconColor || "#34d399"} onChange={(e) => onChange({ content: { ribbonIconColor: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer rounded-lg" />
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                       <Label className="text-[8px] font-bold text-white/50 uppercase">Global Text Color</Label>
+                       <Input type="color" value={block.content?.ribbonTextColor || "#ffffffb3"} onChange={(e) => onChange({ content: { ribbonTextColor: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer rounded-lg" />
+                    </div>
+                 </div>
+
+                 <div className="space-y-3">
+                    {(block.content?.trustItems || []).map((item: any, idx: number) => (
+                      <div key={idx} className="p-4 bg-black/20 rounded-2xl border border-white/5 space-y-3 relative group">
+                         <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6 text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => {
+                            const trustItems = block.content.trustItems.filter((_:any, i:number) => i !== idx);
+                            onChange({ content: { trustItems } });
+                         }}><Trash2 className="w-3.5 h-3.5" /></Button>
+                         
+                         <div className="flex items-center gap-3">
+                            <Select value={item.iconName || "CheckCircle2"} onValueChange={(val) => {
+                               const trustItems = [...block.content.trustItems];
+                               trustItems[idx].iconName = val;
+                               onChange({ content: { trustItems } });
+                            }}>
+                               <SelectTrigger className="h-8 bg-black/20 border-none text-white w-10 p-0 flex justify-center"><SelectValue /></SelectTrigger>
+                               <SelectContent className="max-h-[200px]">
+                                  {COMMON_ICONS.map(i => <SelectItem key={i} value={i} className="text-xs">{i}</SelectItem>)}
+                               </SelectContent>
+                            </Select>
+                            <Input value={item.label} onChange={(e) => {
+                               const trustItems = [...block.content.trustItems];
+                               trustItems[idx].label = e.target.value;
+                               onChange({ content: { trustItems } });
+                            }} placeholder="Trust Label" className="h-8 bg-black/20 border-none text-white text-xs flex-1" />
+                         </div>
+                      </div>
+                    ))}
+                    <Button variant="outline" className="w-full h-10 border-dashed border-white/10 bg-transparent text-[9px] font-black uppercase text-white/40" onClick={() => {
+                      const trustItems = [...(block.content?.trustItems || []), { iconName: "CheckSquare", label: "New Trust Point" }];
+                      onChange({ content: { trustItems } });
+                    }}>+ Add Trust Point</Button>
                  </div>
               </div>
            </PropertySection>

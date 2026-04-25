@@ -1013,7 +1013,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
                      >
                         <div className="flex items-center gap-3">
                           <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", selectedShipping?.id === method.id ? 'border-primary' : 'border-slate-300')}>
-                            {selectedShipping?.id === method.id && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
+                            {selectedShipping?.id === method.id && <div className="w-2 h-2 rounded-full bg-primary" />}
                           </div>
                           <span className="font-bold text-xs sm:text-sm">{method.name}</span>
                         </div>
