@@ -21,7 +21,7 @@ import {
   CheckCircle, Star, User, Settings, Mail, Phone, MapPin, Globe,
   Box, Package, Play, Pause, Sun, Moon, Wind, Tree, Trash, Edit, RefreshCw,
   Droplets, Activity, BookOpen, Quote, Microscope, Banknote, RotateCcw, CheckSquare, Plus, Menu, Palette, Image as ImageIcon,
-  MousePointer2
+  MousePointer2, PlayCircle, Code, ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PropertySection } from "./components";
@@ -215,19 +215,6 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                  }}>+ Add Menu Link</Button>
               </div>
            </PropertySection>
-
-           <PropertySection label="Colors" icon={Palette}>
-              <div className="grid grid-cols-2 gap-3">
-                 <div className="space-y-1">
-                    <Label className="text-[9px] uppercase font-bold text-white/70">Bg Color</Label>
-                    <Input type="color" value={block.content?.backgroundColor || "#ffffff"} onChange={(e) => onChange({ content: { backgroundColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer" />
-                 </div>
-                 <div className="space-y-1">
-                    <Label className="text-[9px] uppercase font-bold text-white/70">Text Color</Label>
-                    <Input type="color" value={block.content?.textColor || "#1a1a1a"} onChange={(e) => onChange({ content: { textColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer" />
-                 </div>
-              </div>
-           </PropertySection>
         </div>
       );
 
@@ -300,16 +287,6 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                             <Input type="color" value={block.content?.[`${btn}TextColor`] || "#ffffff"} onChange={(e) => onChange({ content: { [`${btn}TextColor`]: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 rounded-md" />
                          </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                         <div className="space-y-1">
-                            <Label className="text-[7px] font-bold text-white/40 uppercase">Border Color</Label>
-                            <Input type="color" value={block.content?.[`${btn}BorderColor`] || "#ffffff"} onChange={(e) => onChange({ content: { [`${btn}BorderColor`]: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 rounded-md" />
-                         </div>
-                         <div className="space-y-1">
-                            <Label className="text-[7px] font-bold text-white/40 uppercase">Radius ({block.content?.[`${btn}BorderRadius`] ?? 40})</Label>
-                            <Slider value={[block.content?.[`${btn}BorderRadius`] ?? 40]} min={0} max={60} onValueChange={([v]) => onChange({ content: { [`${btn}BorderRadius`]: v } })} />
-                         </div>
-                      </div>
                    </div>
                  ))}
               </div>
@@ -325,10 +302,6 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                     <div className="space-y-1">
                        <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Text Color</Label>
                        <Input type="color" value={block.content?.ribbonTextColor || "#ffffff"} onChange={(e) => onChange({ content: { ribbonTextColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 rounded-lg" />
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                       <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Icon Bg (Glass)</Label>
-                       <Input type="color" value={block.content?.ribbonIconBg || "#ffffff"} onChange={(e) => onChange({ content: { ribbonIconBg: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 rounded-lg" />
                     </div>
                  </div>
               </div>
@@ -470,42 +443,66 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                 })}
               </div>
            </div>
+        </div>
+      );
 
-           <div className="grid grid-cols-2 gap-3 mt-2">
-              <div className="space-y-1">
-                 <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Accent Color</Label>
-                 <Input type="color" value={block.style?.accentColor || "#1a7c3e"} onChange={(e) => onChange({ style: { accentColor: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
-              </div>
-              <div className="space-y-1">
-                 <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Ref Bg Color</Label>
-                 <Input type="color" value={block.style?.refBgColor || "#f0fdf4"} onChange={(e) => onChange({ style: { refBgColor: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
-              </div>
+    case "video":
+      return (
+        <div className="space-y-4">
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">YouTube / Vimeo URL</Label>
+              <Input value={block.content?.url || ""} onChange={(e) => onChange({ content: { url: e.target.value } })} placeholder="https://..." className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />
            </div>
         </div>
       );
-    case "marquee":
-       return (
-         <div className="space-y-4">
-            <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Points to Scroll</Label>
-            <div className="space-y-2">
-               {(block.content?.items || []).map((item: string, idx: number) => (
-                 <div key={idx} className="flex gap-2">
-                    <Input value={item} onChange={(e) => {
-                      const newItems = [...block.content.items];
-                      newItems[idx] = e.target.value;
-                      onChange({ content: { items: newItems } });
-                    }} className="bg-black/20 border-none h-8 text-xs text-white" />
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-400" onClick={() => {
-                      onChange({ content: { items: block.content.items.filter((_:any, i:number) => i !== idx) } });
-                    }}><Trash2 className="w-3.5 h-3.5" /></Button>
-                 </div>
-               ))}
-               <Button variant="outline" className="w-full h-8 text-[9px] border-dashed border-white/10 bg-transparent text-white/40" onClick={() => {
-                 onChange({ content: { items: [...(block.content?.items || []), "New Point"] } });
-               }}>+ Add Point</Button>
-            </div>
-         </div>
-       );
+
+    case "code":
+      return (
+        <div className="space-y-4">
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Custom Script / Styles</Label>
+              <Textarea 
+                value={block.content?.code || ""} 
+                onChange={(e) => onChange({ content: { code: e.target.value } })} 
+                placeholder="<script>...</script>" 
+                className="rounded-lg min-h-[200px] border-none bg-black/20 text-white text-xs font-mono" 
+              />
+           </div>
+        </div>
+      );
+
+    case "footer":
+      return (
+        <div className="space-y-4">
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Brand Name</Label>
+              <Input value={block.content?.brandName || ""} onChange={(e) => onChange({ content: { brandName: e.target.value } })} className="h-8 border-none bg-black/20 text-white text-xs" />
+           </div>
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Business Summary</Label>
+              <Textarea value={block.content?.description || ""} onChange={(e) => onChange({ content: { description: e.target.value } })} className="min-h-[60px] border-none bg-black/20 text-white text-xs" />
+           </div>
+           <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                 <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Phone</Label>
+                 <Input value={block.content?.phone || ""} onChange={(e) => onChange({ content: { phone: e.target.value } })} className="h-8 border-none bg-black/20 text-white text-xs" />
+              </div>
+              <div className="space-y-1">
+                 <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Email</Label>
+                 <Input value={block.content?.email || ""} onChange={(e) => onChange({ content: { email: e.target.value } })} className="h-8 border-none bg-black/20 text-white text-xs" />
+              </div>
+           </div>
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Address</Label>
+              <Input value={block.content?.address || ""} onChange={(e) => onChange({ content: { address: e.target.value } })} className="h-8 border-none bg-black/20 text-white text-xs" />
+           </div>
+           <div className="space-y-1">
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Copyright Notice</Label>
+              <Input value={block.content?.copyright || ""} onChange={(e) => onChange({ content: { copyright: e.target.value } })} className="h-8 border-none bg-black/20 text-white text-xs" />
+           </div>
+        </div>
+      );
+
     case "header":
     case "paragraph":
       return (
@@ -534,212 +531,7 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
           </div>
         </div>
       );
-    case "accordion":
-      return (
-        <div className="space-y-4">
-           <div className="flex items-center justify-between">
-              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Row Registry</Label>
-              <Button variant="ghost" size="sm" className="h-5 text-[8px] text-white/70 hover:text-white" onClick={() => {
-                const newItems = [...(block.content?.items || []), { id: Math.random().toString(36).substr(2, 9), title: `New Row`, content: "", iconName: "Zap", subtitle: "", imageUrl: "" }];
-                onChange({ content: { items: newItems } });
-              }}>+ Add Row</Button>
-           </div>
-           <div className="space-y-2">
-              <Accordion type="single" collapsible className="w-full">
-                {(block.content?.items || []).map((item: any, index: number) => (
-                  <AccordionItem key={item.id} value={item.id} className="border-none mb-1">
-                    <AccordionTrigger className="hover:no-underline py-2 bg-black/20 px-3 rounded-lg text-white">
-                      <span className="text-[9px] font-bold truncate max-w-[150px]">{item.title}</span>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-2 pb-2 space-y-3 px-3 bg-black/40 rounded-b-lg -mt-1">
-                       <div className="grid gap-2">
-                          <Input placeholder="Title" value={item.title} onChange={(e) => {
-                             const newItems = [...block.content.items];
-                             newItems[index].title = e.target.value;
-                             onChange({ content: { items: newItems } });
-                          }} className="h-7 text-[9px] bg-black/20 border-none text-white" />
-                          <Input placeholder="Subtitle" value={item.subtitle} onChange={(e) => {
-                             const newItems = [...block.content.items];
-                             newItems[index].subtitle = e.target.value;
-                             onChange({ content: { items: newItems } });
-                          }} className="h-7 text-[9px] bg-black/20 border-none text-white" />
-                          <Select value={item.iconName} onValueChange={(val) => {
-                             const newItems = [...block.content.items];
-                             newItems[index].iconName = val;
-                             onChange({ content: { items: newItems } });
-                          }}>
-                             <SelectTrigger className="h-7 bg-black/20 border-none text-[9px] text-white"><SelectValue placeholder="Icon" /></SelectTrigger>
-                             <SelectContent className="max-h-[200px]">
-                                {COMMON_ICONS.map(i => <SelectItem key={i} value={i} className="text-[9px]">{i}</SelectItem>)}
-                             </SelectContent>
-                          </Select>
-                          <CloudinaryUpload value={item.imageUrl} onUpload={(url) => {
-                             const newItems = [...block.content.items];
-                             newItems[index].imageUrl = url;
-                             onChange({ content: { items: newItems } });
-                          }} onRemove={() => {
-                             const newItems = [...block.content.items];
-                             newItems[index].imageUrl = "";
-                             onChange({ content: { items: newItems } });
-                          }} />
-                       </div>
-                       <Textarea 
-                         placeholder="Content body..." 
-                         value={item.content} 
-                         onChange={(e) => {
-                           const newItems = [...block.content.items];
-                           newItems[index].content = e.target.value;
-                           onChange({ content: { items: newItems } });
-                         }}
-                         className="h-24 text-[9px] bg-black/20 border-none text-white"
-                       />
-                       <Button variant="ghost" size="sm" className="w-full h-6 text-[8px] text-red-400 hover:text-red-300" onClick={() => {
-                         onChange({ content: { items: block.content.items.filter((_:any, i:number) => i !== index) } });
-                       }}>Delete Item</Button>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-           </div>
-        </div>
-      );
-    case "image":
-      return (
-        <div className="space-y-1">
-          <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Visual Asset</Label>
-          <CloudinaryUpload value={block.content?.url || ""} onUpload={(url) => onChange({ content: { url } })} onRemove={() => onChange({ content: { url: "" } })} />
-        </div>
-      );
-    case "button":
-      return (
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Label</Label>
-            <Input value={block.content?.text || ""} onChange={(e) => onChange({ content: { text: e.target.value } })} className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Destination Routing</Label>
-            <Select value={block.content?.link || ""} onValueChange={(v) => onChange({ content: { link: v } })}>
-              <SelectTrigger className="rounded-lg h-8 border-none bg-black/20 text-white text-[10px]"><SelectValue placeholder="Select Route" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="/">Storefront Home</SelectItem>
-                <SelectItem value="/all-products">All Products Catalog</SelectItem>
-                <SelectItem value="[checkout]">Scroll to Checkout Form</SelectItem>
-                <Separator className="my-1" />
-                <SelectItem value="https://">Custom External URL</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      );
-    case "card":
-      return (
-        <div className="space-y-4">
-           <div className="space-y-1">
-              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Layout Orientation</Label>
-              <Select value={block.content?.layout || "vertical"} onValueChange={(v) => onChange({ content: { layout: v } })}>
-                <SelectTrigger className="rounded-lg h-8 border-none bg-black/20 text-white text-[10px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vertical">Vertical (Stacked)</SelectItem>
-                  <SelectItem value="horizontal">Horizontal (Inline)</SelectItem>
-                </SelectContent>
-              </Select>
-           </div>
 
-           <div className="space-y-1">
-              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Title</Label>
-              <Input value={block.content?.title || ""} onChange={(e) => onChange({ content: { title: e.target.value } })} className="rounded-lg h-8 border-none bg-black/20 text-white text-xs" />
-           </div>
-           <div className="space-y-1">
-              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Subtitle</Label>
-              <Textarea value={block.content?.subtitle || ""} onChange={(e) => onChange({ content: { subtitle: e.target.value } })} className="rounded-lg min-h-[60px] border-none bg-black/20 text-white text-xs" />
-           </div>
-
-           <div className="flex items-center justify-between p-2.5 bg-black/10 rounded-lg border border-white/5">
-              <Label className="text-[9px] font-bold text-white/90 uppercase">Show Icon</Label>
-              <Switch checked={!!block.content?.showIcon} onCheckedChange={(val) => onChange({ content: { showIcon: val } })} />
-           </div>
-
-           {block.content?.showIcon && (
-             <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Pick Icon</Label>
-                <div className="space-y-2">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-white/30" />
-                    <Input 
-                      placeholder="Search icons..." 
-                      value={iconSearch} 
-                      onChange={(e) => setIconSearch(e.target.value)} 
-                      className="h-7 text-[10px] pl-7 bg-black/20 border-none text-white" 
-                    />
-                  </div>
-                  <div className="grid grid-cols-6 gap-1 p-1 bg-black/20 rounded-lg max-h-[120px] overflow-y-auto custom-scrollbar">
-                    {filteredIcons.map(iconName => {
-                      const Icon = (LucideIcons as any)[iconName];
-                      return (
-                        <button 
-                          key={iconName}
-                          onClick={() => onChange({ content: { iconName } })}
-                          className={cn("p-2 rounded-md transition-all flex items-center justify-center", block.content?.iconName === iconName ? "bg-white text-primary" : "text-white/40 hover:bg-white/5")}
-                          title={iconName}
-                        >
-                          {Icon && <Icon className="w-3.5 h-3.5" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                   <div className="space-y-1">
-                      <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Icon Color</Label>
-                      <Input type="color" value={block.content?.iconColor || "#145DCC"} onChange={(e) => onChange({ content: { iconColor: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
-                   </div>
-                   <div className="space-y-1">
-                      <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Size ({block.content?.iconSize || 32}px)</Label>
-                      <Slider value={[block.content?.iconSize || 32]} min={16} max={120} onValueChange={([v]) => onChange({ content: { iconSize: v } })} />
-                   </div>
-                </div>
-             </div>
-           )}
-
-           <div className="space-y-2">
-              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Card Points</Label>
-              <div className="space-y-1.5">
-                {(block.content?.items || []).map((item: string, idx: number) => (
-                  <div key={idx} className="flex gap-1.5">
-                    <Input value={item} onChange={(e) => {
-                      const newItems = [...block.content.items];
-                      newItems[idx] = e.target.value;
-                      onChange({ content: { items: newItems } });
-                    }} className="h-7 text-[10px] bg-black/20 border-none text-white" />
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-rose-400" onClick={() => {
-                      onChange({ content: { items: block.content.items.filter((_:any, i:number) => i !== idx) } });
-                    }}><Trash2 className="w-3 h-3" /></Button>
-                  </div>
-                ))}
-                <Button variant="outline" className="w-full h-7 text-[8px] border-dashed border-white/20 text-white/40 bg-transparent" onClick={() => {
-                  onChange({ content: { items: [...(block.content?.items || []), "New Feature Point"] } });
-                }}>+ Add List Item</Button>
-              </div>
-           </div>
-        </div>
-      );
-    case "row":
-      return (
-        <div className="space-y-1">
-          <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Grid Columns</Label>
-          <Select value={block.content?.columns?.toString() || "2"} onValueChange={(v) => onChange({ content: { columns: Number(v) } })}>
-            <SelectTrigger className="rounded-lg h-8 border-none bg-black/20 text-white text-[10px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">1 Column</SelectItem>
-              <SelectItem value="2">2 Columns</SelectItem>
-              <SelectItem value="3">3 Columns</SelectItem>
-              <SelectItem value="4">4 Columns</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      );
     case "product-order-form":
       return (
         <div className="space-y-4">
@@ -772,6 +564,7 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
           </Select>
         </div>
       );
+
     default:
       return <div className="text-[8px] text-white/30 italic text-center py-2 uppercase font-bold tracking-widest">Advanced widget selected</div>;
   }

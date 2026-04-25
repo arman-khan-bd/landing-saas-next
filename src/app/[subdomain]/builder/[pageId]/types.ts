@@ -15,7 +15,10 @@ export type BlockType =
   | "marquee"
   | "quote"
   | "ultra-hero"
-  | "navbar";
+  | "navbar"
+  | "video"
+  | "code"
+  | "footer";
 
 export interface Block {
   id: string;
@@ -43,7 +46,7 @@ export interface Block {
     borderColor?: string;
     borderRadius?: number;
     boxShadow?: "none" | "sm" | "md" | "lg" | "xl";
-    animation?: "none" | "fadeIn" | "slideUp" | "zoomIn";
+    animation?: "none" | "fadeIn" | "slideUp" | "zoomIn" | "bounce";
     hideDesktop?: boolean;
     hideMobile?: boolean;
     desktopColumns?: number;
