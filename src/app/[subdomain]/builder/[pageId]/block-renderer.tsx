@@ -241,11 +241,18 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
         const navItems = block.content?.items || [];
         const showCta = block.content?.showCta;
         const navPosition = block.content?.position || "normal"; 
+        const isTransparent = block.content?.transparent;
         
         const posStyles: any = {
           normal: { position: 'relative' },
-          sticky: { position: 'sticky', top: 0, zIndex: 1000 },
-          fixed: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000 }
+          sticky: { position: 'sticky', top: 0, zIndex: 40 },
+          fixed: { 
+            position: isBuilder ? 'sticky' : 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 40 
+          }
         };
 
         const renderNavItems = (pos: string) => (
@@ -266,7 +273,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
               </div>
             )}
             {navItems.filter((i: any) => i.position === pos).map((item: any) => (
-              <button key={item.id} onClick={() => handleButtonClick(item.link)} className="text-sm font-bold opacity-80 hover:opacity-100 transition-opacity">
+              <button key={item.id} onClick={() => handleButtonClick(item.link)} className="text-sm font-bold opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap">
                 {item.label}
               </button>
             ))}
@@ -285,16 +292,18 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
         return (
           <div 
             style={{ 
-              backgroundColor: block.content?.transparent ? 'transparent' : (block.content?.backgroundColor || '#ffffff'),
+              backgroundColor: isTransparent ? 'transparent' : (block.content?.backgroundColor || '#ffffff'),
               color: block.content?.textColor || '#1a1a1a',
+              borderBottomColor: isTransparent ? 'transparent' : 'rgba(0,0,0,0.05)',
               ...posStyles[navPosition],
             }} 
             className={cn(
-              "w-full px-6 py-4 border-b border-white/10 backdrop-blur-md z-[1000]",
-              navPosition === "fixed" && "left-0 right-0"
+              "w-full px-6 py-4 border-b transition-all duration-300",
+              !isTransparent && "backdrop-blur-md shadow-sm",
+              navPosition === "fixed" && !isBuilder && "left-0 right-0"
             )}
           >
-            <div className="max-w-7xl mx-auto grid grid-cols-3 items-center">
+            <div className="max-w-7xl mx-auto grid grid-cols-3 items-center gap-4">
               {renderNavItems("left")}
               {renderNavItems("center")}
               {renderNavItems("right")}

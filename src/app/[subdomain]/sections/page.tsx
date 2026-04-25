@@ -734,17 +734,17 @@ function SectionSelectorCard({ icon: Icon, label, description, onClick, highligh
     <button
       onClick={onClick}
       className={cn(
-        "flex flex-col text-left p-6 rounded-[24px] border-2 transition-all group relative overflow-hidden",
-        highlight ? "bg-white border-indigo-600/20 shadow-sm" : "bg-white border-slate-100 hover:border-indigo-600/10"
+        "flex flex-col text-left p-6 rounded-[24px] border-2 transition-all group relative",
+        highlight ? "border-indigo-600/20 shadow-sm" : "border-slate-100 hover:border-indigo-600/10"
       )}
     >
       <div className={cn(
         "w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-sm",
-        highlight ? "bg-indigo-600 text-white" : "bg-slate-50 text-slate-400 group-hover:text-indigo-600"
+        highlight ? "bg-indigo-600 text-white" : "bg-slate-50 text-white group-hover:text-white"
       )}>
         <Icon className="w-6 h-6" />
       </div>
-      <h4 className={cn("font-bold text-sm mb-1 uppercase tracking-tight", highlight ? "text-slate-900" : "text-slate-600")}>{label}</h4>
+      <h4 className={cn("font-bold text-sm mb-1 uppercase tracking-tight", highlight ? "text-white" : "text-slate-600")}>{label}</h4>
       <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-2">{description}</p>
       {highlight && <Badge className="absolute top-4 right-4 bg-indigo-600 text-white border-none text-[7px] font-black uppercase h-4 px-1.5 rounded-full">Core</Badge>}
     </button>
