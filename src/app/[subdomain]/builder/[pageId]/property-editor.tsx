@@ -20,9 +20,10 @@ import {
   Lightbulb, Check, Info, Columns, LayoutList, ChevronRight, Search,
   CheckCircle, Star, User, Settings, Mail, Phone, MapPin, Globe,
   Box, Package, Play, Pause, Sun, Moon, Wind, Tree, Trash, Edit, RefreshCw,
-  Droplets, Activity, BookOpen, Quote, Microscope, Banknote, RotateCcw, CheckSquare, Plus, Menu
+  Droplets, Activity, BookOpen, Quote, Microscope, Banknote, RotateCcw, CheckSquare, Plus, Menu, Palette
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PropertySection } from "./components";
 import "react-quill-new/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { 
@@ -230,7 +231,7 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                     </div>
                     <div className="space-y-1">
                        <Label className="text-[9px] uppercase font-bold text-white/70">Text Color</Label>
-                       <Input type="color" value={block.content?.textColor || "#1a1a1a"} onChange={(e) => onChange({ content: { textColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer" />
+                       <Input type="color" value={block.content?.textColor || "#1a1a1a"} onChange={(e) => onChange({ { textColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer" />
                     </div>
                  </div>
               </div>
