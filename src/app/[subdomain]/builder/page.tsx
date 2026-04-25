@@ -165,6 +165,12 @@ const getThemeTemplate = (themeId: string): Block[] => {
         style: { paddingTop: 40, paddingBottom: 40 }
       },
       {
+        id: "faq-acc",
+        type: "accordion",
+        content: { items: [{ id: "f1", title: "কিভাবে সেবন করবো?", content: "প্রতিদিন সকালে এবং রাতে খাবারের আধা ঘন্টা আগে ১ চামচ করে খেতে হবে।", iconName: "Clock" }] },
+        style: { paddingTop: 40, paddingBottom: 40 }
+      },
+      {
         id: "hero-4",
         type: "button",
         content: { text: "👇 এখনই অর্ডার করুন", link: "[checkout]" },
@@ -269,7 +275,6 @@ export default function PageManager() {
         updatedAt: serverTimestamp()
       };
 
-      // Full Demo Import: Overwrite config with theme structure
       if (template.length > 0) {
         updateData.config = template;
       }
@@ -320,105 +325,28 @@ export default function PageManager() {
             </Button>
           </DialogTrigger>
           <DialogContent className="rounded-3xl border-none shadow-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-headline font-bold">New Landing Page</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle className="text-2xl font-headline font-bold">New Landing Page</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Page Title</Label>
-                <Input 
-                  placeholder="e.g. Summer Sale 2024" 
-                  className="rounded-xl h-12"
-                  value={newPageData.title}
-                  onChange={(e) => setNewPageData({ ...newPageData, title: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>URL Slug</Label>
-                <div className="flex items-center gap-2 bg-muted/30 px-4 rounded-xl border">
-                  <span className="text-muted-foreground text-sm font-mono">/</span>
-                  <Input 
-                    placeholder="summer-sale" 
-                    className="border-none bg-transparent h-12 px-0 focus-visible:ring-0 font-mono"
-                    value={newPageData.slug}
-                    onChange={(e) => setNewPageData({ ...newPageData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                  />
-                </div>
-              </div>
+              <div className="space-y-2"><Label>Page Title</Label><Input placeholder="e.g. Summer Sale 2024" className="rounded-xl h-12" value={newPageData.title} onChange={(e) => setNewPageData({ ...newPageData, title: e.target.value })} /></div>
+              <div className="space-y-2"><Label>URL Slug</Label><div className="flex items-center gap-2 bg-muted/30 px-4 rounded-xl border"><span className="text-muted-foreground text-sm font-mono">/</span><Input placeholder="summer-sale" className="border-none bg-transparent h-12 px-0 focus-visible:ring-0 font-mono" value={newPageData.slug} onChange={(e) => setNewPageData({ ...newPageData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })} /></div></div>
             </div>
-            <DialogFooter>
-              <Button 
-                className="w-full h-12 rounded-xl font-bold" 
-                onClick={handleCreatePage} 
-                disabled={creating || !newPageData.title || !newPageData.slug}
-              >
-                {creating ? <Loader2 className="animate-spin w-5 h-5" /> : "Start Designing"}
-              </Button>
-            </DialogFooter>
+            <DialogFooter><Button className="w-full h-12 rounded-xl font-bold" onClick={handleCreatePage} disabled={creating || !newPageData.title || !newPageData.slug}>{creating ? <Loader2 className="animate-spin w-5 h-5" /> : "Start Designing"}</Button></DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-48 bg-muted animate-pulse rounded-[32px]" />
-          ))
+          Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-48 bg-muted animate-pulse rounded-[32px]" />)
         ) : pages.length === 0 ? (
-          <div className="col-span-full py-20 text-center space-y-4 bg-muted/30 rounded-[40px] border-2 border-dashed">
-            <Layout className="w-16 h-16 mx-auto text-muted-foreground/20" />
-            <h3 className="text-xl font-headline font-bold">No pages yet</h3>
-            <p className="text-muted-foreground">Start building your first high-converting landing page.</p>
-          </div>
+          <div className="col-span-full py-20 text-center space-y-4 bg-muted/30 rounded-[40px] border-2 border-dashed"><Layout className="w-16 h-16 mx-auto text-muted-foreground/20" /><h3 className="text-xl font-headline font-bold">No pages yet</h3><p className="text-muted-foreground">Start building your first high-converting landing page.</p></div>
         ) : (
           pages.map((page) => (
             <Card key={page.id} className="group rounded-[32px] overflow-hidden border-border/50 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 bg-white">
               <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                    <PenTool className="w-6 h-6" />
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="rounded-xl">
-                      <DropdownMenuItem onClick={() => router.push(`/${subdomain}/builder/${page.id}`)}>
-                        <Edit className="mr-2 w-4 h-4" /> Design Content
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSelectedPageForTheme(page)}>
-                        <Palette className="mr-2 w-4 h-4" /> Change Theme
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive" onClick={() => handleDeletePage(page.id)}>
-                        <Trash2 className="mr-2 w-4 h-4" /> Delete Page
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                
-                <div className="space-y-2 mb-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-headline font-bold group-hover:text-primary transition-colors">{page.title}</h3>
-                    <Badge variant="outline" className="text-[8px] font-black uppercase rounded-lg">
-                      {THEMES.find(t => t.id === page.pageStyle?.themeId)?.name || 'Default'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
-                    <Globe className="w-3.5 h-3.5" />
-                    /{page.slug}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <Button variant="secondary" className="rounded-xl h-11 font-bold group-hover:bg-primary group-hover:text-white transition-colors" onClick={() => router.push(`/${subdomain}/builder/${page.id}`)}>
-                    Design
-                  </Button>
-                  <Button variant="outline" className="rounded-xl h-11" onClick={() => setSelectedPageForTheme(page)}>
-                    <Palette className="w-4 h-4 mr-2" /> Theme
-                  </Button>
-                </div>
+                <div className="flex justify-between items-start mb-6"><div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary"><PenTool className="w-6 h-6" /></div><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="rounded-xl"><DropdownMenuItem onClick={() => router.push(`/${subdomain}/builder/${page.id}`)}><Edit className="mr-2 w-4 h-4" /> Design Content</DropdownMenuItem><DropdownMenuItem onClick={() => setSelectedPageForTheme(page)}><Palette className="mr-2 w-4 h-4" /> Change Theme</DropdownMenuItem><DropdownMenuItem className="text-destructive" onClick={() => handleDeletePage(page.id)}><Trash2 className="mr-2 w-4 h-4" /> Delete Page</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>
+                <div className="space-y-2 mb-6"><div className="flex items-center justify-between"><h3 className="text-xl font-headline font-bold group-hover:text-primary transition-colors">{page.title}</h3><Badge variant="outline" className="text-[8px] font-black uppercase rounded-lg">{THEMES.find(t => t.id === page.pageStyle?.themeId)?.name || 'Default'}</Badge></div><div className="flex items-center gap-2 text-sm text-muted-foreground font-mono"><Globe className="w-3.5 h-3.5" />/{page.slug}</div></div>
+                <div className="grid grid-cols-2 gap-3 pt-2"><Button variant="secondary" className="rounded-xl h-11 font-bold group-hover:bg-primary group-hover:text-white transition-colors" onClick={() => router.push(`/${subdomain}/builder/${page.id}`)}>Design</Button><Button variant="outline" className="rounded-xl h-11" onClick={() => setSelectedPageForTheme(page)}><Palette className="w-4 h-4 mr-2" /> Theme</Button></div>
               </CardContent>
             </Card>
           ))
@@ -427,65 +355,9 @@ export default function PageManager() {
 
       <Dialog open={!!selectedPageForTheme} onOpenChange={(open) => !open && setSelectedPageForTheme(null)}>
         <DialogContent className="max-w-3xl rounded-[40px] border-none shadow-2xl p-0 overflow-hidden bg-slate-50 flex flex-col max-h-[90vh]">
-          <DialogHeader className="p-8 bg-white border-b shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-2xl text-primary"><Palette className="w-6 h-6" /></div>
-              <div>
-                <DialogTitle className="text-2xl font-headline font-black">Visual Identity</DialogTitle>
-                <DialogDescription>Select a design preset for "{selectedPageForTheme?.title}"</DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-          
-          <ScrollArea className="flex-1 w-full">
-            <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-              {THEMES.map((theme) => {
-                const isCurrent = selectedPageForTheme?.pageStyle?.themeId === theme.id;
-                const isApplying = applyingThemeId === theme.id;
-                const Icon = theme.icon;
-
-                return (
-                  <Card 
-                    key={theme.id} 
-                    className={cn(
-                      "rounded-[32px] overflow-hidden transition-all duration-300 border-2 cursor-pointer relative",
-                      isCurrent ? 'border-primary ring-4 ring-primary/5 shadow-xl scale-[1.02]' : 'border-white hover:border-primary/20 hover:shadow-lg'
-                    )}
-                    onClick={() => !isCurrent && handleApplyTheme(theme)}
-                  >
-                    <div className="p-6 space-y-4">
-                       <div className="flex justify-between items-start">
-                          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
-                             <Icon className="w-5 h-5 text-slate-600" />
-                          </div>
-                          {isCurrent && <Check className="w-5 h-5 text-primary" />}
-                       </div>
-                       <div>
-                          <h4 className="font-bold text-base">{theme.name}</h4>
-                          <p className="text-[10px] text-muted-foreground leading-relaxed">{theme.description}</p>
-                       </div>
-                       <div className="flex gap-1.5 pt-2">
-                          <div className="h-4 w-8 rounded-full border shadow-inner" style={{ backgroundColor: theme.style.primaryColor }} />
-                          <div className="h-4 w-8 rounded-full border shadow-inner" style={{ backgroundColor: theme.style.accentColor }} />
-                          <div className="h-4 w-8 rounded-full border shadow-inner" style={{ backgroundColor: theme.style.backgroundColor }} />
-                       </div>
-                       <Button 
-                         variant={isCurrent ? "secondary" : "default"} 
-                         className="w-full h-10 rounded-xl font-black uppercase text-[9px] tracking-widest mt-2"
-                         disabled={isCurrent || !!applyingThemeId}
-                       >
-                          {isApplying ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : isCurrent ? "Active" : "Apply Theme"}
-                       </Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </ScrollArea>
-
-          <div className="p-6 bg-primary/5 text-center shrink-0 border-t">
-             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">iHut Studio Design Engine</p>
-          </div>
+          <DialogHeader className="p-8 bg-white border-b shrink-0"><div className="flex items-center gap-4"><div className="p-3 bg-primary/10 rounded-2xl text-primary"><Palette className="w-6 h-6" /></div><div><DialogTitle className="text-2xl font-headline font-black">Visual Identity</DialogTitle><DialogDescription>Select a design preset for "{selectedPageForTheme?.title}"</DialogDescription></div></div></DialogHeader>
+          <ScrollArea className="flex-1 w-full"><div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">{THEMES.map((theme) => { const isCurrent = selectedPageForTheme?.pageStyle?.themeId === theme.id; const isApplying = applyingThemeId === theme.id; const Icon = theme.icon; return (<Card key={theme.id} className={cn("rounded-[32px] overflow-hidden transition-all duration-300 border-2 cursor-pointer relative", isCurrent ? 'border-primary ring-4 ring-primary/5 shadow-xl scale-[1.02]' : 'border-white hover:border-primary/20 hover:shadow-lg')} onClick={() => !isCurrent && handleApplyTheme(theme)}><div className="p-6 space-y-4"><div className="flex justify-between items-start"><div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center"><Icon className="w-5 h-5 text-slate-600" /></div>{isCurrent && <Check className="w-5 h-5 text-primary" />}</div><div><h4 className="font-bold text-base">{theme.name}</h4><p className="text-[10px] text-muted-foreground leading-relaxed">{theme.description}</p></div><div className="flex gap-1.5 pt-2"><div className="h-4 w-8 rounded-full border shadow-inner" style={{ backgroundColor: theme.style.primaryColor }} /><div className="h-4 w-8 rounded-full border shadow-inner" style={{ backgroundColor: theme.style.accentColor }} /><div className="h-4 w-8 rounded-full border shadow-inner" style={{ backgroundColor: theme.style.backgroundColor }} /></div><Button variant={isCurrent ? "secondary" : "default"} className="w-full h-10 rounded-xl font-black uppercase text-[9px] tracking-widest mt-2" disabled={isCurrent || !!applyingThemeId}>{isApplying ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : isCurrent ? "Active" : "Apply Theme"}</Button></div></Card>); })}</div></ScrollArea>
+          <div className="p-6 bg-primary/5 text-center shrink-0 border-t"><p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">iHut Studio Design Engine</p></div>
         </DialogContent>
       </Dialog>
     </div>
