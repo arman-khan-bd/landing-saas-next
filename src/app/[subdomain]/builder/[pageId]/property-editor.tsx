@@ -20,7 +20,8 @@ import {
   Lightbulb, Check, Info, Columns, LayoutList, ChevronRight, Search,
   CheckCircle, Star, User, Settings, Mail, Phone, MapPin, Globe,
   Box, Package, Play, Pause, Sun, Moon, Wind, Tree, Trash, Edit, RefreshCw,
-  Droplets, Activity, BookOpen, Quote, Microscope, Banknote, RotateCcw, CheckSquare, Plus, Menu, Palette, Image as ImageIcon
+  Droplets, Activity, BookOpen, Quote, Microscope, Banknote, RotateCcw, CheckSquare, Plus, Menu, Palette, Image as ImageIcon,
+  MousePointer2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PropertySection } from "./components";
@@ -48,7 +49,7 @@ const COMMON_ICONS = [
   "Flag", "Filter", "Folder", "File", "FileText", "Image", "Paperclip", "Maximize", "Minimize", "Move",
   "Play", "Pause", "Stop", "SkipBack", "SkipForward", "Repeat", "Shuffle", "Volume", "VolumeX", "Mic",
   "Sun", "Moon", "Wind", "Umbrella", "Thermometer", "Droplets", "Sunrise", "Sunset", "Mountain", "Tree",
-  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity", "BookOpen", "Quote", "Microscope", "Banknote", "RotateCcw", "CheckSquare", "ShoppingBag", "Menu"
+  "Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Activity", "BookOpen", "Quote", "Microscope", "Banknote", "RotateCcw", "CheckSquare", "ShoppingBag", "Menu", "MousePointer2"
 ];
 
 export function PropertyEditor({ block, products, onChange }: PropertyEditorProps) {
@@ -761,7 +762,7 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                   <Button variant="ghost" size="icon" className="h-6 w-6 text-white/30 hover:text-rose-400" onClick={() => {
                     const newIds = block.content.productIds.filter((id: string) => id !== pId);
                     onChange({ content: { productIds: newIds, mainProductId: newIds[0] || "" } });
-                  }}><Trash2 className="w-3 h-3" /></Button>
+                  }}><Trash2 className="w-3.5 h-3.5" /></Button>
                 </div>
               );
             })}
