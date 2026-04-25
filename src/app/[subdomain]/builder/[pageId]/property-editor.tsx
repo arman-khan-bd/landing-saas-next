@@ -20,7 +20,7 @@ import {
   Lightbulb, Check, Info, Columns, LayoutList, ChevronRight, Search,
   CheckCircle, Star, User, Settings, Mail, Phone, MapPin, Globe,
   Box, Package, Play, Pause, Sun, Moon, Wind, Tree, Trash, Edit, RefreshCw,
-  Droplets, Activity, BookOpen, Quote, Microscope, Banknote, RotateCcw, CheckSquare, Plus, Menu, Palette
+  Droplets, Activity, BookOpen, Quote, Microscope, Banknote, RotateCcw, CheckSquare, Plus, Menu, Palette, Image as ImageIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PropertySection } from "./components";
@@ -242,6 +242,25 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
     case "ultra-hero":
       return (
         <div className="space-y-6">
+           <PropertySection label="Background Design" icon={ImageIcon}>
+              <div className="space-y-4">
+                 <Select value={block.content?.bgType || "gradient"} onValueChange={(val) => onChange({ content: { bgType: val } })}>
+                    <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                       <SelectItem value="gradient">Theme Gradient</SelectItem>
+                       <SelectItem value="image">Custom Background Image</SelectItem>
+                    </SelectContent>
+                 </Select>
+                 {block.content?.bgType === 'image' && (
+                   <CloudinaryUpload 
+                     value={block.content?.bgImage || ""}
+                     onUpload={(url) => onChange({ content: { bgImage: url } })}
+                     onRemove={() => onChange({ content: { bgImage: "" } })}
+                   />
+                 )}
+              </div>
+           </PropertySection>
+
            <PropertySection label="Typography Colors" icon={Palette}>
               <div className="grid grid-cols-2 gap-4">
                  <div className="space-y-1">
@@ -260,13 +279,65 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                     <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Phone Color</Label>
                     <Input type="color" value={block.content?.phoneTextColor || "#ffffff"} onChange={(e) => onChange({ content: { phoneTextColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer rounded-lg" />
                  </div>
-                 <div className="space-y-1">
-                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Brand Name Color</Label>
-                    <Input type="color" value={block.content?.brandTitleColor || "#1a7c3e"} onChange={(e) => onChange({ content: { brandTitleColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer rounded-lg" />
-                 </div>
-                 <div className="space-y-1">
-                    <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Slogan Color</Label>
-                    <Input type="color" value={block.content?.brandSubtitleColor || "#64748b"} onChange={(e) => onChange({ content: { brandSubtitleColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 cursor-pointer rounded-lg" />
+              </div>
+           </PropertySection>
+
+           <PropertySection label="Button Design" icon={MousePointer2}>
+              <div className="space-y-6">
+                 {['cta', 'phone'].map((btn) => (
+                   <div key={btn} className="p-3 bg-black/20 rounded-xl space-y-4">
+                      <p className="text-[8px] font-black uppercase text-indigo-400">{btn === 'cta' ? 'Primary Button' : 'Secondary Button'}</p>
+                      <div className="space-y-2">
+                         <Label className="text-[7px] font-bold text-white/40 uppercase">Button Type</Label>
+                         <Select value={block.content?.[`${btn}Type`] || (btn === 'cta' ? 'gradient' : 'outline')} onValueChange={(val) => onChange({ content: { [`${btn}Type`]: val } })}>
+                            <SelectTrigger className="h-7 bg-black/20 border-none text-white text-[9px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                               <SelectItem value="gradient">Gradient</SelectItem>
+                               <SelectItem value="solid">Solid</SelectItem>
+                               <SelectItem value="outline">Outline</SelectItem>
+                            </SelectContent>
+                         </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                         <div className="space-y-1">
+                            <Label className="text-[7px] font-bold text-white/40 uppercase">Bg Color</Label>
+                            <Input type="color" value={block.content?.[`${btn}Bg`] || "#ffffff"} onChange={(e) => onChange({ content: { [`${btn}Bg`]: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 rounded-md" />
+                         </div>
+                         <div className="space-y-1">
+                            <Label className="text-[7px] font-bold text-white/40 uppercase">Font Color</Label>
+                            <Input type="color" value={block.content?.[`${btn}TextColor`] || "#ffffff"} onChange={(e) => onChange({ content: { [`${btn}TextColor`]: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 rounded-md" />
+                         </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                         <div className="space-y-1">
+                            <Label className="text-[7px] font-bold text-white/40 uppercase">Border Color</Label>
+                            <Input type="color" value={block.content?.[`${btn}BorderColor`] || "#ffffff"} onChange={(e) => onChange({ content: { [`${btn}BorderColor`]: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 rounded-md" />
+                         </div>
+                         <div className="space-y-1">
+                            <Label className="text-[7px] font-bold text-white/40 uppercase">Radius ({block.content?.[`${btn}BorderRadius`] ?? 40})</Label>
+                            <Slider value={[block.content?.[`${btn}BorderRadius`] ?? 40]} min={0} max={60} onValueChange={([v]) => onChange({ content: { [`${btn}BorderRadius`]: v } })} />
+                         </div>
+                      </div>
+                   </div>
+                 ))}
+              </div>
+           </PropertySection>
+
+           <PropertySection label="Ribbon Aesthetics" icon={Sparkles}>
+              <div className="space-y-4">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Icon Color</Label>
+                       <Input type="color" value={block.content?.ribbonIconColor || "#34d399"} onChange={(e) => onChange({ content: { ribbonIconColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 rounded-lg" />
+                    </div>
+                    <div className="space-y-1">
+                       <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Text Color</Label>
+                       <Input type="color" value={block.content?.ribbonTextColor || "#ffffff"} onChange={(e) => onChange({ content: { ribbonTextColor: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 rounded-lg" />
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                       <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Icon Bg (Glass)</Label>
+                       <Input type="color" value={block.content?.ribbonIconBg || "#ffffff"} onChange={(e) => onChange({ content: { ribbonIconBg: e.target.value } })} className="h-8 w-full p-1 border-none bg-black/20 rounded-lg" />
+                    </div>
                  </div>
               </div>
            </PropertySection>
@@ -304,16 +375,18 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
            <Separator className="bg-white/5" />
 
            <div className="space-y-4">
-              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Action Buttons</Label>
+              <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Action Links</Label>
               <div className="grid gap-3">
                  <div className="p-3 bg-black/20 rounded-xl space-y-3">
-                    <Label className="text-[7px] font-black text-indigo-400 uppercase">Primary CTA</Label>
+                    <Label className="text-[7px] font-black text-indigo-400 uppercase">Primary CTA Text</Label>
                     <Input placeholder="Button Text" value={block.content?.ctaText || ""} onChange={(e) => onChange({ content: { ctaText: e.target.value } })} className="h-7 text-[10px] font-bold bg-black/20 border-none text-white" />
+                    <Label className="text-[7px] font-black text-indigo-400 uppercase">Primary CTA Link</Label>
                     <Input placeholder="Link (e.g. [checkout])" value={block.content?.ctaLink || ""} onChange={(e) => onChange({ content: { ctaLink: e.target.value } })} className="h-7 text-[10px] font-bold bg-black/20 border-none text-white" />
                  </div>
                  <div className="p-3 bg-black/20 rounded-xl space-y-3">
-                    <Label className="text-[7px] font-black text-yellow-400 uppercase">Phone Button</Label>
+                    <Label className="text-[7px] font-black text-yellow-400 uppercase">Phone Button Label</Label>
                     <Input placeholder="Phone Number" value={block.content?.phoneText || ""} onChange={(e) => onChange({ content: { phoneText: e.target.value } })} className="h-7 text-[10px] font-bold bg-black/20 border-none text-white" />
+                    <Label className="text-[7px] font-black text-yellow-400 uppercase">Phone Button Link</Label>
                     <Input placeholder="Link (e.g. tel:016...)" value={block.content?.phoneLink || ""} onChange={(e) => onChange({ content: { phoneLink: e.target.value } })} className="h-7 text-[10px] font-bold bg-black/20 border-none text-white" />
                  </div>
               </div>
@@ -323,7 +396,7 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
 
            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Trust ribbon</Label>
+                <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Trust ribbon items</Label>
                 <Button variant="ghost" size="sm" className="h-5 text-[8px] text-white/70 hover:text-white" onClick={() => {
                    const items = [...(block.content?.trustItems || []), { iconName: "CheckSquare", label: "New Item" }];
                    onChange({ content: { trustItems: items } });

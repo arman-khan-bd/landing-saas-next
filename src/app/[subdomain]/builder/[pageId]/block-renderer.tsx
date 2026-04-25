@@ -275,14 +275,53 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
 
     case "ultra-hero":
       const trustItems = block.content?.trustItems || [];
+      const heroBgStyle: any = {
+        ...(block.content?.bgType === 'image' && block.content?.bgImage ? {
+          backgroundImage: `url(${block.content.bgImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        } : {})
+      };
+
+      const getButtonStyle = (btn: 'cta' | 'phone') => {
+        const type = block.content?.[`${btn}Type`] || (btn === 'cta' ? 'gradient' : 'outline');
+        const bg = block.content?.[`${btn}Bg`];
+        const text = block.content?.[`${btn}TextColor`];
+        const border = block.content?.[`${btn}BorderColor`];
+        const radius = block.content?.[`${btn}BorderRadius`];
+        const width = block.content?.[`${btn}BorderWidth`];
+
+        const s: any = {};
+        if (type === 'gradient' && btn === 'cta') {
+          // Default gradient
+          s.background = 'linear-gradient(135deg, #f9a825, #e65c00)';
+        } else if (type === 'solid' || type === 'gradient') {
+          if (bg) s.backgroundColor = bg;
+        } else if (type === 'outline') {
+          s.backgroundColor = 'transparent';
+          s.borderStyle = 'solid';
+          s.borderWidth = `${width || 2}px`;
+          if (border) s.borderColor = border;
+        }
+
+        if (text) s.color = text;
+        if (radius !== undefined) s.borderRadius = `${radius}px`;
+        
+        return s;
+      };
+
       return (
-        <div style={style} className="w-full relative overflow-hidden">
-           <div className={cn(
-             "absolute inset-0 -z-10",
-             isOrganic ? "bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" : 
-             isTraditional ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]" :
-             "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950"
-           )} />
+        <div style={{ ...style, ...heroBgStyle }} className="w-full relative overflow-hidden">
+           {block.content?.bgType !== 'image' && (
+             <div className={cn(
+               "absolute inset-0 -z-10",
+               isOrganic ? "bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" : 
+               isTraditional ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]" :
+               "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950"
+             )} />
+           )}
+           {block.content?.bgType === 'image' && <div className="absolute inset-0 bg-black/40 -z-10" />}
+           
            <div className="absolute inset-0 -z-10 opacity-[0.03]" style={{ backgroundImage: `repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)`, backgroundSize: '10px 10px' }} />
 
            <div className="max-w-4xl mx-auto px-6 py-16 sm:py-24 text-center flex flex-col items-center">
@@ -326,7 +365,11 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
               <div className="flex flex-col sm:flex-row gap-4 w-full justify-center items-center mb-16">
                  <Button 
                    size="lg" 
-                   className="h-16 px-10 rounded-full bg-gradient-to-br from-[#f9a825] to-[#e65c00] text-white font-black text-xl shadow-xl shadow-orange-950/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
+                   style={getButtonStyle('cta')}
+                   className={cn(
+                     "h-16 px-10 rounded-full text-white font-black text-xl shadow-xl shadow-orange-950/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto",
+                     !block.content?.ctaType || block.content?.ctaType === 'gradient' ? "" : ""
+                   )}
                    onClick={() => handleButtonClick(block.content?.ctaLink || "[checkout]")}
                  >
                    <ArrowRight className="w-5 h-5 mr-2" />
@@ -336,7 +379,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                  <Button 
                    variant="outline"
                    size="lg" 
-                   style={{ color: block.content?.phoneTextColor || '#ffffff' }}
+                   style={getButtonStyle('phone')}
                    className="h-16 px-10 rounded-full border-2 border-white/30 bg-white/5 hover:bg-white/10 font-bold text-lg w-full sm:w-auto"
                    onClick={() => handleButtonClick(block.content?.phoneLink || "tel:01621611589")}
                  >
@@ -350,10 +393,19 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                    const TrustIcon = (LucideIcons as any)[item.iconName] || CheckSquare;
                    return (
                      <div key={i} className="flex flex-col items-center gap-3 group">
-                        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-emerald-400 shadow-inner group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300">
+                        <div 
+                          style={{ 
+                            backgroundColor: block.content?.ribbonIconBg || 'rgba(255,255,255,0.1)',
+                            color: block.content?.ribbonIconColor || '#34d399'
+                          }}
+                          className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-all duration-300"
+                        >
                            <TrustIcon className="w-6 h-6" />
                         </div>
-                        <span className="text-[10px] sm:text-xs font-black text-white/70 uppercase tracking-widest group-hover:text-white transition-colors">
+                        <span 
+                          style={{ color: block.content?.ribbonTextColor || 'rgba(255,255,255,0.7)' }}
+                          className="text-[10px] sm:text-xs font-black uppercase tracking-widest transition-colors"
+                        >
                           {item.label}
                         </span>
                      </div>
