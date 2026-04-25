@@ -109,19 +109,19 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     const unsubOrders = onSnapshot(ordersQ, (snap) => {
       setCounts(prev => ({ ...prev, orders: snap.size }));
     }, async (err) => {
-      // Don't emit error if it's just a permission issue for non-owner
+      // Permission handled at rule level, empty callback prevents console noise
     });
 
     const unsubUncompleted = onSnapshot(uncompletedQ, (snap) => {
       setCounts(prev => ({ ...prev, uncompleted: snap.size }));
     }, async (err) => {
-      // Don't emit error
+      // Empty callback
     });
 
     const unsubSystem = onSnapshot(systemQ, (snap) => {
       setCounts(prev => ({ ...prev, system: snap.size }));
     }, async (err) => {
-      // Don't emit error
+      // Empty callback
     });
 
     return () => {

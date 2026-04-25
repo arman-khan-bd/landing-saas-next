@@ -24,7 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { getStoreUrl, cn } from "@/lib/utils";
-import { Badge } from "@/badge";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Block } from "./[pageId]/types";
 
@@ -77,7 +77,7 @@ const getThemeTemplate = (themeId: string): Block[] => {
         id: "marquee-1",
         type: "marquee",
         content: { items: ["🚚 সারাদেশেই সম্পূর্ণ ফ্রি ডেলিভারি", "💯 ১০০% প্রাকৃতিক উপাদান", "💵 ক্যাশ অন ডেলিভারি সুবিধা"] },
-        style: { paddingTop: 0, paddingBottom: 0 }
+        style: { paddingTop: 10, paddingBottom: 10 }
       },
       {
         id: "hero-section",
@@ -147,7 +147,7 @@ const getThemeTemplate = (themeId: string): Block[] => {
           {
             id: "ben-3",
             type: "card",
-            content: { title: "গ্যাস্ট্রিক সমস্যা", subtitle: "বুক জ্বালাপোড়া ও পেট ফাঁপায় উপকারী", iconName: "Square", showIcon: true, layout: "horizontal", iconColor: "#1a7c3e" },
+            content: { title: "গ্যাস্ট্রিক সমস্যা", subtitle: "বুক জ্বালাপোড়া ও পেট ফাঁপায় উপকারী", iconName: "Square", showIcon: true, layout: "horizontal", iconColor: "#1a7c3e" },
             style: { columnIndex: 0, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
           },
           {

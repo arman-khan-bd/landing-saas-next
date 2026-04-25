@@ -269,7 +269,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             ...posStyles[navPosition],
           }} 
           className={cn(
-            "w-full px-6 py-4 border-b border-white/10 backdrop-blur-md",
+            "w-full px-6 py-4 border-b border-white/10 backdrop-blur-md z-[1000]",
             navPosition === "fixed" && "left-0 right-0"
           )}
         >
@@ -521,7 +521,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                         onAddNested={onAddNested}
                         isSelected={selectedBlockId === child.id}
                         selectedBlockId={selectedBlockId}
-                        onSelect={handleSelectBlock}
+                        onSelect={onSelect}
                         onRemove={onRemove}
                         onMoveUp={onMoveUp}
                         onMoveDown={onMoveDown}

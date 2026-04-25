@@ -108,7 +108,7 @@ service cloud.firestore {
 
     match /pages/{id} {
       allow read: if true;
-      allow create: if isSignedIn() && isDataOwner();
+      allow create: if isSignedIn() && (isDataOwner() || isStoreOwner(request.resource.data.storeId));
       allow update, delete: if isSignedIn() && (isExistingOwner() || isStoreOwner(resource.data.storeId) || isAdmin());
     }
 
