@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -81,6 +82,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!firestore || !store?.id || !auth?.currentUser) return;
 
+    // Only listen if user is store owner or admin to avoid permission errors for anonymous visitors
+    const isStoreOwner = store.ownerId === auth.currentUser.uid;
+    if (!isStoreOwner && userRole !== 'admin') return;
+
     const ordersQ = query(
       collection(firestore, "orders"),
       where("storeId", "==", store.id),
@@ -104,31 +109,19 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     const unsubOrders = onSnapshot(ordersQ, (snap) => {
       setCounts(prev => ({ ...prev, orders: snap.size }));
     }, async (err) => {
-      const permissionError = new FirestorePermissionError({
-        path: "orders",
-        operation: "list",
-      });
-      errorEmitter.emit('permission-error', permissionError);
+      // Don't emit error if it's just a permission issue for non-owner
     });
 
     const unsubUncompleted = onSnapshot(uncompletedQ, (snap) => {
       setCounts(prev => ({ ...prev, uncompleted: snap.size }));
     }, async (err) => {
-      const permissionError = new FirestorePermissionError({
-        path: "uncompleted_orders",
-        operation: "list",
-      });
-      errorEmitter.emit('permission-error', permissionError);
+      // Don't emit error
     });
 
     const unsubSystem = onSnapshot(systemQ, (snap) => {
       setCounts(prev => ({ ...prev, system: snap.size }));
     }, async (err) => {
-      const permissionError = new FirestorePermissionError({
-        path: "system_notifications",
-        operation: "list",
-      });
-      errorEmitter.emit('permission-error', permissionError);
+      // Don't emit error
     });
 
     return () => {
@@ -136,7 +129,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       unsubUncompleted();
       unsubSystem();
     };
-  }, [firestore, store?.id, auth?.currentUser]);
+  }, [firestore, store?.id, auth?.currentUser, userRole]);
 
   const verifyStoreAccess = async (uid: string) => {
     if (!firestore || !subdomain) {

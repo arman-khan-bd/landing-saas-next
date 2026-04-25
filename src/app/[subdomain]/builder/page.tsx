@@ -86,12 +86,12 @@ const getThemeTemplate = (themeId: string): Block[] => {
           badgeText: "BSTI অনুমোদিত • BCSIR ল্যাব টেস্টেড", 
           title: "অসুস্থ ব্যক্তি ছাড়া [সুস্থতার মূল্য] কেউ বোঝে না", 
           subtitle: "শক্তি ও সুস্বাস্থ্যের নির্ভরযোগ্য উপহার",
-          brandTitle: "লা'আম",
+          brandTitle: "সাম",
           brandSubtitle: "প্রাকৃতিক স্বাস্থ্য সুরক্ষা",
           ctaText: "অর্ডার করতে ক্লিক করুন",
           ctaLink: "[checkout]",
-          phoneText: "01606-700289",
-          phoneLink: "tel:01606700289",
+          phoneText: "01621-611589",
+          phoneLink: "tel:01621611589",
           trustItems: [
             { iconName: "CheckSquare", label: "BSTI অনুমোদিত" },
             { iconName: "Microscope", label: "ল্যাব টেস্টেড" },
@@ -105,7 +105,7 @@ const getThemeTemplate = (themeId: string): Block[] => {
       {
         id: "pill-header",
         type: "header",
-        content: { text: 'কেন "লা\'আম" খাবেন?', level: "h3" },
+        content: { text: 'কেন "সাম" খাবেন?', level: "h3" },
         style: { 
           textAlign: "center", 
           backgroundColor: isLaam ? "#c9920a" : "#c9941a", 
@@ -123,7 +123,7 @@ const getThemeTemplate = (themeId: string): Block[] => {
       {
         id: "hero-1",
         type: "header",
-        content: { text: "যেসব সমস্যায় [মিশ্রণটি কাজ করে]", level: "h2" },
+        content: { text: "যেসব সমস্যায় [সাম কাজ করে]", level: "h2" },
         style: { textAlign: "center", paddingTop: 10, paddingBottom: 40, highlightColor: isLaam ? "#1a7c3e" : "#2d7a3a" }
       },
       {
@@ -135,25 +135,25 @@ const getThemeTemplate = (themeId: string): Block[] => {
           {
             id: "ben-1",
             type: "card",
-            content: { title: "শারীরিক দুর্বলতা", subtitle: "আপনাকে দিবে সুখময় দাম্পত্য জীবন", iconName: "Heart", showIcon: true, layout: "horizontal", iconColor: "#c0392b" },
+            content: { title: "হার্টের সমস্যা", subtitle: "হার্ট ব্লক বা হার্টের সমস্যায় মহাঔষধ", iconName: "Heart", showIcon: true, layout: "horizontal", iconColor: "#c0392b" },
             style: { columnIndex: 0, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
           },
           {
             id: "ben-2",
             type: "card",
-            content: { title: "বাত ব্যথা", subtitle: " বাত ও যন্ত্রণাদায়ক ব্যথা দূর করে", iconName: "Activity", showIcon: true, layout: "horizontal", iconColor: "#c9920a" },
+            content: { title: "উচ্চ রক্তচাপ", subtitle: "হাই প্রেশারের প্রাকৃতিক সমাধান", iconName: "Droplets", showIcon: true, layout: "horizontal", iconColor: "#c9920a" },
             style: { columnIndex: 1, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
           },
           {
             id: "ben-3",
             type: "card",
-            content: { title: "সর্দি-ঠান্ডা", subtitle: "স্থায়ী সমাধানের জন্য কার্যকরী", iconName: "Wind", showIcon: true, layout: "horizontal", iconColor: "#1a7c3e" },
+            content: { title: "গ্যাস্ট্রিক সমস্যা", subtitle: "বুক জ্বালাপোড়া ও পেট ফাঁপায় উপকারী", iconName: "Square", showIcon: true, layout: "horizontal", iconColor: "#1a7c3e" },
             style: { columnIndex: 0, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
           },
           {
             id: "ben-4",
             type: "card",
-            content: { title: "গ্যাস্ট্রিক সমস্যা", subtitle: "বুক জ্বালাপোড়া ও গ্যাস্ট্রিক দূর করে", iconName: "Droplets", showIcon: true, layout: "horizontal", iconColor: "#c0392b" },
+            content: { title: "শারীরিক দুর্বলতা", subtitle: "সাধারণ ও বিশেষ দুর্বলতা দূর করে", iconName: "Activity", showIcon: true, layout: "horizontal", iconColor: "#c0392b" },
             style: { columnIndex: 1, columnSpan: 1, backgroundColor: "#ffffff", borderRadius: 24, paddingTop: 20, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }
           }
         ]

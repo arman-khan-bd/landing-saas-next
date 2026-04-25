@@ -521,7 +521,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                         onAddNested={onAddNested}
                         isSelected={selectedBlockId === child.id}
                         selectedBlockId={selectedBlockId}
-                        onSelect={onSelect}
+                        onSelect={handleSelectBlock}
                         onRemove={onRemove}
                         onMoveUp={onMoveUp}
                         onMoveDown={onMoveDown}
