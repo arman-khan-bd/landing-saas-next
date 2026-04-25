@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -16,7 +17,8 @@ import {
   Paintbrush, Layers,
   ChevronUp, ChevronDown, Truck, CreditCard,
   Star, Heart, Lightbulb, Info, Shield, Zap, Check, LayoutList,
-  Flame, Leaf, Moon, Sun, Quote, Rocket, Menu, PlayCircle, Code, ShieldCheck, AlignLeft
+  Flame, Leaf, Moon, Sun, Quote, Rocket, Menu, PlayCircle, Code, ShieldCheck, AlignLeft,
+  Settings2, Wand2
 } from "lucide-react";
 import {
   DndContext,
@@ -47,7 +49,7 @@ import {
   SidebarTrigger,
   useSidebar
 } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+import { cn, getTenantPath } from "@/lib/utils";
 import { Block, BlockType, PageStyle } from "../../builder/[pageId]/types";
 import { PropertySection, WidgetGridButton } from "../../builder/[pageId]/components";
 import { PropertyEditor } from "../../builder/[pageId]/property-editor";
@@ -62,10 +64,8 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 
-/**
- * Recursively removes any 'undefined' values from an object, as Firestore doesn't support them.
- */
 function sanitizeForFirestore(data: any): any {
   if (Array.isArray(data)) {
     return data.map(sanitizeForFirestore);
@@ -107,11 +107,14 @@ function SectionEditorInner() {
     themeId: "laam",
     paddingTop: 40,
     paddingBottom: 40,
+    backgroundTexture: "none",
+    backgroundOpacity: 100,
+    backgroundSize: "cover"
   });
   const [products, setProducts] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-  const [sidebarTab, setSidebarTab] = useState<"edit" | "advanced">("edit");
+  const [sidebarTab, setSidebarTab] = useState<"structure" | "edit" | "advanced">("structure");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isComponentDialogOpen, setIsComponentDialogOpen] = useState(false);
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
@@ -149,7 +152,14 @@ function SectionEditorInner() {
         const data = pageSnap.data();
         setPageData(data);
         setBlocks(data.config || []);
-        if (data.pageStyle) setPageStyle(data.pageStyle);
+        if (data.pageStyle) {
+          setPageStyle({
+            backgroundTexture: "none",
+            backgroundOpacity: 100,
+            backgroundSize: "cover",
+            ...data.pageStyle
+          });
+        }
       } else {
         toast({ variant: "destructive", title: "Page not found" });
         router.back();
@@ -312,6 +322,48 @@ function SectionEditorInner() {
     return undefined;
   }
 
+  const getBackgroundStyles = () => {
+    const styles: any = {
+      backgroundColor: pageStyle.backgroundColor,
+      paddingTop: `${pageStyle.paddingTop}px`,
+      paddingBottom: `${pageStyle.paddingBottom}px`,
+      position: 'relative'
+    };
+
+    if (pageStyle.backgroundImage) {
+      styles.backgroundImage = `url(${pageStyle.backgroundImage})`;
+      styles.backgroundSize = pageStyle.backgroundSize || 'cover';
+      styles.backgroundPosition = 'center';
+    }
+
+    return styles;
+  };
+
+  const getTextureOverlay = () => {
+    if (pageStyle.backgroundTexture === "none" || !pageStyle.backgroundTexture) return null;
+    
+    let pattern = "";
+    if (pageStyle.backgroundTexture === "dots") {
+      pattern = "radial-gradient(circle, currentColor 1px, transparent 1px)";
+    } else if (pageStyle.backgroundTexture === "grid") {
+      pattern = "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)";
+    } else if (pageStyle.backgroundTexture === "diagonal") {
+      pattern = "repeating-linear-gradient(45deg, transparent, transparent 10px, currentColor 10px, currentColor 11px)";
+    }
+
+    return (
+      <div 
+        className="absolute inset-0 pointer-events-none" 
+        style={{ 
+          backgroundImage: pattern, 
+          backgroundSize: pageStyle.backgroundTexture === "grid" ? "20px 20px" : "15px 15px",
+          opacity: (pageStyle.backgroundOpacity || 10) / 100,
+          color: pageStyle.textColor || '#000'
+        }} 
+      />
+    );
+  };
+
   if (loading) return <div className="flex h-screen items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-white w-12 h-12" /></div>;
 
   return (
@@ -330,160 +382,228 @@ function SectionEditorInner() {
         </SidebarHeader>
 
         <SidebarContent className="p-0">
-          {!selectedBlockId ? (
-             <ScrollArea className="h-full">
-                <div className="p-4 space-y-6">
-                   <PropertySection label="Matrix Layers" icon={LayoutList}>
-                      <Accordion type="multiple" className="w-full">
-                         {blocks.map((block, idx) => (
-                           <AccordionItem key={block.id} value={block.id} className="border-b-0 mb-1">
-                              <AccordionTrigger 
-                                className="px-4 py-3 rounded-xl bg-black/20 hover:no-underline font-bold text-[10px] uppercase tracking-wider text-slate-400 data-[state=open]:text-indigo-400"
-                                onClick={(e) => { e.stopPropagation(); setSelectedBlockId(block.id); }}
-                              >
-                                 <div className="flex items-center gap-3">
-                                    <span className="opacity-30">#{idx + 1}</span>
-                                    {block.type}
-                                 </div>
-                              </AccordionTrigger>
-                              <AccordionContent className="p-2 space-y-1">
-                                 {block.children?.map((child, cIdx) => (
-                                   <button 
-                                     key={child.id}
-                                     onClick={(e) => { e.stopPropagation(); setSelectedBlockId(child.id); }}
-                                     className="w-full text-left px-4 py-2 rounded-lg hover:bg-white/5 text-[9px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2"
-                                   >
-                                      <div className="w-1 h-1 rounded-full bg-indigo-500" />
-                                      {child.type} (Col { (child.style?.columnIndex ?? 0) + 1 })
-                                   </button>
-                                 ))}
-                              </AccordionContent>
-                           </AccordionItem>
-                         ))}
-                      </Accordion>
-                      <Button variant="outline" className="w-full mt-4 h-10 border-dashed border-white/10 bg-transparent text-[9px] font-black uppercase tracking-widest gap-2" onClick={() => { setActiveParentId(null); setActiveColumnIndex(null); setIsComponentDialogOpen(true); }}>
-                         <PlusCircle className="w-3 h-3" /> Insert Section
-                      </Button>
-                   </PropertySection>
-                </div>
-             </ScrollArea>
-          ) : (
-            <div className="flex flex-col h-full overflow-hidden">
-              <div className="px-4 py-3 bg-black/20 border-b border-white/5 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2">
-                   <Button variant="ghost" size="icon" className="h-6 w-6 text-white/40 hover:text-white" onClick={() => setSelectedBlockId(null)}><ArrowLeft className="w-3 h-3" /></Button>
-                   <span className="font-headline font-bold text-[10px] uppercase tracking-wider text-indigo-400">{selectedBlock?.type}</span>
-                </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-white/30 hover:text-rose-400" onClick={() => removeBlock(selectedBlockId)}><Trash2 className="w-3.5 h-3.5" /></Button>
-              </div>
-              <Tabs value={sidebarTab} onValueChange={(v: any) => setSidebarTab(v)} className="flex-1 overflow-hidden flex flex-col">
-                <TabsList className="w-full bg-black/10 border-b border-white/10 rounded-none h-10 p-0 shrink-0">
-                  <TabsTrigger value="edit" className="flex-1 font-bold text-[9px] uppercase tracking-widest h-full">Content</TabsTrigger>
-                  <TabsTrigger value="advanced" className="flex-1 font-bold text-[9px] uppercase tracking-widest h-full">Design</TabsTrigger>
-                </TabsList>
-                <ScrollArea className="flex-1">
-                  <div className="p-4 space-y-6 pb-20">
-                    <TabsContent value="edit" className="mt-0 space-y-6">
-                      {selectedBlock && (
-                        <PropertyEditor 
-                          block={selectedBlock} 
-                          products={products} 
-                          onChange={(u: any) => updateBlock(selectedBlockId, u)} 
-                        />
+          <Tabs value={sidebarTab} onValueChange={(v: any) => setSidebarTab(v)} className="flex-1 overflow-hidden flex flex-col h-full">
+            <TabsList className="w-full bg-black/10 border-b border-white/10 rounded-none h-10 p-0 shrink-0">
+              <TabsTrigger value="structure" className="flex-1 font-bold text-[9px] uppercase tracking-widest h-full">Page</TabsTrigger>
+              <TabsTrigger value="edit" className="flex-1 font-bold text-[9px] uppercase tracking-widest h-full" disabled={!selectedBlockId}>Content</TabsTrigger>
+              <TabsTrigger value="advanced" className="flex-1 font-bold text-[9px] uppercase tracking-widest h-full" disabled={!selectedBlockId}>Design</TabsTrigger>
+            </TabsList>
+            
+            <ScrollArea className="flex-1">
+              <div className="p-4 space-y-6 pb-20">
+                <TabsContent value="structure" className="mt-0 space-y-6">
+                  <PropertySection label="Global Canvas" icon={Wand2}>
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <Label className="text-[9px] uppercase font-bold text-white/40">Background Color</Label>
+                        <Input type="color" value={pageStyle.backgroundColor || "#ffffff"} onChange={(e) => setPageStyle({ ...pageStyle, backgroundColor: e.target.value })} className="h-8 p-1 bg-black/20 border-none cursor-pointer" />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label className="text-[9px] uppercase font-bold text-white/40">Background Texture</Label>
+                        <Select value={pageStyle.backgroundTexture || "none"} onValueChange={(v: any) => setPageStyle({ ...pageStyle, backgroundTexture: v })}>
+                          <SelectTrigger className="h-8 rounded-lg border-none bg-black/20 text-white text-[10px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-white/10 text-white">
+                            <SelectItem value="none">None</SelectItem>
+                            <SelectItem value="dots">Dots</SelectItem>
+                            <SelectItem value="grid">Grid</SelectItem>
+                            <SelectItem value="diagonal">Diagonal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {pageStyle.backgroundTexture !== "none" && (
+                        <div className="space-y-2">
+                           <div className="flex justify-between items-center">
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Texture Opacity</Label>
+                              <span className="text-[9px] font-bold text-indigo-400">{pageStyle.backgroundOpacity}%</span>
+                           </div>
+                           <Slider value={[pageStyle.backgroundOpacity || 10]} max={100} step={1} onValueChange={(val) => setPageStyle({ ...pageStyle, backgroundOpacity: val[0] })} />
+                        </div>
                       )}
-                    </TabsContent>
-                    <TabsContent value="advanced" className="mt-0 space-y-6">
-                       <PropertySection label="Motion Engine" icon={Zap}>
-                          <div className="space-y-4">
-                             <div className="space-y-1">
-                                <Label className="text-[9px] uppercase font-bold text-white/40">Scroll Animation</Label>
-                                <Select 
-                                  value={selectedBlock?.style?.animation || "none"} 
-                                  onValueChange={(v) => updateBlock(selectedBlockId, { style: { animation: v } })}
-                                >
-                                   <SelectTrigger className="h-8 rounded-lg border-none bg-black/20 text-white text-[10px]">
-                                      <SelectValue />
-                                   </SelectTrigger>
-                                   <SelectContent className="bg-slate-800 border-white/10 text-white">
-                                      <SelectItem value="none">Static (None)</SelectItem>
-                                      <SelectItem value="fadeIn">Fade In</SelectItem>
-                                      <SelectItem value="slideUp">Slide Up</SelectItem>
-                                      <SelectItem value="zoomIn">Zoom In</SelectItem>
-                                      <SelectItem value="bounce">Bounce</SelectItem>
-                                   </SelectContent>
-                                </Select>
-                             </div>
-                          </div>
-                       </PropertySection>
 
-                       <PropertySection label="Surface Design" icon={Palette}>
-                          <div className="space-y-4">
-                             <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                   <Label className="text-[9px] uppercase font-bold text-white/40">BG Color</Label>
-                                   <Input type="color" value={selectedBlock?.style?.backgroundColor || "#ffffff"} onChange={(e) => updateBlock(selectedBlockId, { style: { backgroundColor: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer" />
-                                </div>
-                                <div className="space-y-1">
-                                   <Label className="text-[9px] uppercase font-bold text-white/40">Text Color</Label>
-                                   <Input type="color" value={selectedBlock?.style?.textColor || "#000000"} onChange={(e) => updateBlock(selectedBlockId, { style: { textColor: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer" />
-                                </div>
-                             </div>
-                             <div className="space-y-1">
-                                <Label className="text-[9px] uppercase font-bold text-white/40">Background Image</Label>
-                                <CloudinaryUpload 
-                                  value={selectedBlock?.style?.backgroundImage || ""}
-                                  onUpload={(url) => updateBlock(selectedBlockId, { style: { backgroundImage: url } })}
-                                  onRemove={() => updateBlock(selectedBlockId, { style: { backgroundImage: "" } })}
-                                />
-                             </div>
-                          </div>
-                       </PropertySection>
-                       
-                       <PropertySection label="Box Scale (Spacing)" icon={MoveVertical}>
-                          <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-3">
-                                <Label className="text-[8px] font-black uppercase text-indigo-400">Padding</Label>
-                                <div className="space-y-2">
-                                   <Input type="number" placeholder="Top" value={selectedBlock?.style?.paddingTop ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { paddingTop: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
-                                   <Input type="number" placeholder="Bottom" value={selectedBlock?.style?.paddingBottom ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { paddingBottom: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
-                                   <Input type="number" placeholder="Left" value={selectedBlock?.style?.paddingLeft ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { paddingLeft: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
-                                   <Input type="number" placeholder="Right" value={selectedBlock?.style?.paddingRight ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { paddingRight: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
-                                </div>
-                             </div>
-                             <div className="space-y-3">
-                                <Label className="text-[8px] font-black uppercase text-amber-400">Margin</Label>
-                                <div className="space-y-2">
-                                   <Input type="number" placeholder="Top" value={selectedBlock?.style?.marginTop ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { marginTop: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
-                                   <Input type="number" placeholder="Bottom" value={selectedBlock?.style?.marginBottom ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { marginBottom: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
-                                   <Input type="number" placeholder="Left" value={selectedBlock?.style?.marginLeft ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { marginLeft: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
-                                   <Input type="number" placeholder="Right" value={selectedBlock?.style?.marginRight ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { marginRight: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
-                                </div>
-                             </div>
-                          </div>
-                       </PropertySection>
+                      <div className="space-y-1">
+                        <Label className="text-[9px] uppercase font-bold text-white/40">Background Image</Label>
+                        <CloudinaryUpload 
+                          value={pageStyle.backgroundImage || ""}
+                          onUpload={(url) => setPageStyle({ ...pageStyle, backgroundImage: url })}
+                          onRemove={() => setPageStyle({ ...pageStyle, backgroundImage: "" })}
+                        />
+                      </div>
 
-                       <PropertySection label="Typography Control" icon={Type}>
-                          <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-1">
-                                <Label className="text-[9px] uppercase font-bold text-white/40">Font Size (px)</Label>
-                                <Input type="number" value={selectedBlock?.style?.fontSize ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { fontSize: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-white text-xs" />
-                             </div>
-                             <div className="space-y-1">
-                                <Label className="text-[9px] uppercase font-bold text-white/40">Alignment</Label>
-                                <div className="grid grid-cols-3 gap-1 bg-black/20 p-1 rounded-lg">
-                                   <Button variant="ghost" size="icon" className={cn("h-6 w-full rounded-md", selectedBlock?.style?.textAlign === 'left' ? 'bg-white text-primary' : 'text-white/40')} onClick={() => updateBlock(selectedBlockId, { style: { textAlign: 'left' } })}><AlignLeft className="w-3 h-3" /></Button>
-                                   <Button variant="ghost" size="icon" className={cn("h-6 w-full rounded-md", selectedBlock?.style?.textAlign === 'center' ? 'bg-white text-primary' : 'text-white/40')} onClick={() => updateBlock(selectedBlockId, { style: { textAlign: 'center' } })}><LucideIcons.AlignCenter className="w-3 h-3" /></Button>
-                                   <Button variant="ghost" size="icon" className={cn("h-6 w-full rounded-md", selectedBlock?.style?.textAlign === 'right' ? 'bg-white text-primary' : 'text-white/40')} onClick={() => updateBlock(selectedBlockId, { style: { textAlign: 'right' } })}><LucideIcons.AlignRight className="w-3 h-3" /></Button>
-                                </div>
-                             </div>
-                          </div>
-                       </PropertySection>
-                    </TabsContent>
-                  </div>
-                </ScrollArea>
-              </Tabs>
-            </div>
-          )}
+                      {pageStyle.backgroundImage && (
+                        <div className="space-y-1">
+                          <Label className="text-[9px] uppercase font-bold text-white/40">Background Size</Label>
+                          <Select value={pageStyle.backgroundSize || "cover"} onValueChange={(v: any) => setPageStyle({ ...pageStyle, backgroundSize: v })}>
+                            <SelectTrigger className="h-8 rounded-lg border-none bg-black/20 text-white text-[10px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-800 border-white/10 text-white">
+                              <SelectItem value="cover">Cover (Fill)</SelectItem>
+                              <SelectItem value="contain">Contain (Fit)</SelectItem>
+                              <SelectItem value="auto">Auto</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  </PropertySection>
+
+                  <PropertySection label="Page Layers" icon={Layers}>
+                    <Accordion type="multiple" className="w-full">
+                       {blocks.map((block, idx) => (
+                         <AccordionItem key={block.id} value={block.id} className="border-b-0 mb-1">
+                            <AccordionTrigger 
+                              className="px-4 py-3 rounded-xl bg-black/20 hover:no-underline font-bold text-[10px] uppercase tracking-wider text-slate-400 data-[state=open]:text-indigo-400"
+                              onClick={(e) => { e.stopPropagation(); setSelectedBlockId(block.id); setSidebarTab("edit"); }}
+                            >
+                               <div className="flex items-center gap-3">
+                                  <span className="opacity-30">#{idx + 1}</span>
+                                  {block.type}
+                               </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="p-2 space-y-1">
+                               {block.children?.map((child, cIdx) => (
+                                 <button 
+                                   key={child.id}
+                                   onClick={(e) => { e.stopPropagation(); setSelectedBlockId(child.id); setSidebarTab("edit"); }}
+                                   className="w-full text-left px-4 py-2 rounded-lg hover:bg-white/5 text-[9px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2"
+                                 >
+                                    <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                                    {child.type} (Col { (child.style?.columnIndex ?? 0) + 1 })
+                                 </button>
+                               ))}
+                            </AccordionContent>
+                         </AccordionItem>
+                       ))}
+                    </Accordion>
+                    <Button variant="outline" className="w-full mt-4 h-10 border-dashed border-white/10 bg-transparent text-[9px] font-black uppercase tracking-widest gap-2" onClick={() => { setActiveParentId(null); setActiveColumnIndex(null); setIsComponentDialogOpen(true); }}>
+                       <PlusCircle className="w-3 h-3" /> Insert Section
+                    </Button>
+                  </PropertySection>
+                </TabsContent>
+
+                <TabsContent value="edit" className="mt-0 space-y-6">
+                  {selectedBlock && (
+                    <PropertyEditor 
+                      block={selectedBlock} 
+                      products={products} 
+                      onChange={(u: any) => updateBlock(selectedBlockId, u)} 
+                    />
+                  )}
+                </TabsContent>
+
+                <TabsContent value="advanced" className="mt-0 space-y-6">
+                  {selectedBlock && (
+                    <>
+                      <PropertySection label="Motion Engine" icon={Zap}>
+                        <div className="space-y-4">
+                           <div className="space-y-1">
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Scroll Animation</Label>
+                              <Select 
+                                value={selectedBlock.style?.animation || "none"} 
+                                onValueChange={(v) => updateBlock(selectedBlockId, { style: { animation: v } })}
+                              >
+                                 <SelectTrigger className="h-8 rounded-lg border-none bg-black/20 text-white text-[10px]">
+                                    <SelectValue />
+                                 </SelectTrigger>
+                                 <SelectContent className="bg-slate-800 border-white/10 text-white">
+                                    <SelectItem value="none">Static (None)</SelectItem>
+                                    <SelectItem value="fadeIn">Fade In</SelectItem>
+                                    <SelectItem value="slideUp">Slide Up</SelectItem>
+                                    <SelectItem value="zoomIn">Zoom In</SelectItem>
+                                    <SelectItem value="bounce">Bounce</SelectItem>
+                                 </SelectContent>
+                              </Select>
+                           </div>
+                        </div>
+                      </PropertySection>
+
+                      <PropertySection label="Surface Design" icon={Palette}>
+                        <div className="space-y-4">
+                           <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                 <Label className="text-[9px] uppercase font-bold text-white/40">BG Color</Label>
+                                 <Input type="color" value={selectedBlock.style?.backgroundColor || "#ffffff"} onChange={(e) => updateBlock(selectedBlockId, { style: { backgroundColor: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer" />
+                              </div>
+                              <div className="space-y-1">
+                                 <Label className="text-[9px] uppercase font-bold text-white/40">Text Color</Label>
+                                 <Input type="color" value={selectedBlock.style?.textColor || "#000000"} onChange={(e) => updateBlock(selectedBlockId, { style: { textColor: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer" />
+                              </div>
+                           </div>
+                           <div className="space-y-1">
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Background Image</Label>
+                              <CloudinaryUpload 
+                                value={selectedBlock.style?.backgroundImage || ""}
+                                onUpload={(url) => updateBlock(selectedBlockId, { style: { backgroundImage: url } })}
+                                onRemove={() => updateBlock(selectedBlockId, { style: { backgroundImage: "" } })}
+                              />
+                           </div>
+                        </div>
+                      </PropertySection>
+
+                      <PropertySection label="Border & Shape" icon={Square}>
+                        <div className="space-y-4">
+                           <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                 <Label className="text-[9px] uppercase font-bold text-white/40">Border Width</Label>
+                                 <Input type="number" value={selectedBlock.style?.borderWidth || 0} onChange={(e) => updateBlock(selectedBlockId, { style: { borderWidth: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                              </div>
+                              <div className="space-y-1">
+                                 <Label className="text-[9px] uppercase font-bold text-white/40">Corner Radius</Label>
+                                 <Input type="number" value={selectedBlock.style?.borderRadius || 0} onChange={(e) => updateBlock(selectedBlockId, { style: { borderRadius: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                              </div>
+                           </div>
+                           <div className="space-y-1">
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Border Color</Label>
+                              <Input type="color" value={selectedBlock.style?.borderColor || "#000000"} onChange={(e) => updateBlock(selectedBlockId, { style: { borderColor: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer" />
+                           </div>
+                        </div>
+                      </PropertySection>
+                      
+                      <PropertySection label="Box Scale (Spacing)" icon={MoveVertical}>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="space-y-3">
+                              <Label className="text-[8px] font-black uppercase text-indigo-400">Padding</Label>
+                              <div className="space-y-2">
+                                 <Input type="number" placeholder="Top" value={selectedBlock.style?.paddingTop ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { paddingTop: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                                 <Input type="number" placeholder="Bottom" value={selectedBlock.style?.paddingBottom ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { paddingBottom: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                              </div>
+                           </div>
+                           <div className="space-y-3">
+                              <Label className="text-[8px] font-black uppercase text-amber-400">Margin</Label>
+                              <div className="space-y-2">
+                                 <Input type="number" placeholder="Top" value={selectedBlock.style?.marginTop ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { marginTop: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                                 <Input type="number" placeholder="Bottom" value={selectedBlock.style?.marginBottom ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { marginBottom: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                              </div>
+                           </div>
+                        </div>
+                      </PropertySection>
+
+                      <PropertySection label="Typography Control" icon={Type}>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="space-y-1">
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Font Size (px)</Label>
+                              <Input type="number" value={selectedBlock.style?.fontSize ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { fontSize: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-white text-xs" />
+                           </div>
+                           <div className="space-y-1">
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Alignment</Label>
+                              <div className="grid grid-cols-3 gap-1 bg-black/20 p-1 rounded-lg">
+                                 <Button variant="ghost" size="icon" className={cn("h-6 w-full rounded-md", selectedBlock.style?.textAlign === 'left' ? 'bg-white text-primary' : 'text-white/40')} onClick={() => updateBlock(selectedBlockId, { style: { textAlign: 'left' } })}><AlignLeft className="w-3 h-3" /></Button>
+                                 <Button variant="ghost" size="icon" className={cn("h-6 w-full rounded-md", selectedBlock.style?.textAlign === 'center' ? 'bg-white text-primary' : 'text-white/40')} onClick={() => updateBlock(selectedBlockId, { style: { textAlign: 'center' } })}><LucideIcons.AlignCenter className="w-3 h-3" /></Button>
+                                 <Button variant="ghost" size="icon" className={cn("h-6 w-full rounded-md", selectedBlock.style?.textAlign === 'right' ? 'bg-white text-primary' : 'text-white/40')} onClick={() => updateBlock(selectedBlockId, { style: { textAlign: 'right' } })}><LucideIcons.AlignRight className="w-3 h-3" /></Button>
+                              </div>
+                           </div>
+                        </div>
+                      </PropertySection>
+                    </>
+                  )}
+                </TabsContent>
+              </div>
+            </ScrollArea>
+          </Tabs>
         </SidebarContent>
 
         <SidebarFooter className="p-4 border-t border-white/5 bg-black/10">
@@ -512,12 +632,13 @@ function SectionEditorInner() {
          <div className="flex-1 overflow-y-auto p-4 sm:p-10 flex justify-center items-start" onClick={() => setSelectedBlockId(null)}>
             <div 
                className={cn(
-                  "transition-all duration-700 shadow-2xl relative bg-white min-h-[90vh]",
+                  "transition-all duration-700 shadow-2xl relative min-h-[90vh]",
                   viewMode === 'mobile' ? "w-[375px] rounded-[48px] border-[12px] border-slate-900 ring-[16px] ring-white/5" : "w-full max-w-5xl rounded-3xl"
                )}
-               style={{ backgroundColor: pageStyle.backgroundColor, color: pageStyle.textColor, paddingTop: pageStyle.paddingTop, paddingBottom: pageStyle.paddingBottom }}
+               style={getBackgroundStyles()}
             >
-               <div className="py-0">
+               {getTextureOverlay()}
+               <div className="py-0 relative z-10">
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                      <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
                         {blocks.map(block => (
@@ -527,7 +648,7 @@ function SectionEditorInner() {
                               products={products} 
                               store={store} 
                               isSelected={selectedBlockId === block.id}
-                              onSelect={(id: string) => setSelectedBlockId(id)}
+                              onSelect={(id: string) => { setSelectedBlockId(id); setSidebarTab("edit"); }}
                               onRemove={removeBlock}
                               onMoveUp={() => moveBlock(block.id, 'up')}
                               onMoveDown={() => moveBlock(block.id, 'down')}
@@ -541,7 +662,7 @@ function SectionEditorInner() {
                      </SortableContext>
                   </DndContext>
 
-                  <div className="flex justify-center py-12 border-t border-dashed border-slate-100 mt-8">
+                  <div className="flex justify-center py-12 border-t border-dashed border-slate-100/10 mt-8">
                      <Dialog open={isComponentDialogOpen} onOpenChange={setIsComponentDialogOpen}>
                         <DialogTrigger asChild>
                            <Button variant="outline" className="h-14 w-14 rounded-full border-2 border-indigo-600/20 text-indigo-600 shadow-2xl hover:scale-110 active:scale-95 bg-white"><Plus className="w-8 h-8" /></Button>
@@ -604,9 +725,9 @@ function SectionEditorInner() {
                                 onClick={() => handleAddBlock("video")} 
                               />
                               <SectionSelectorCard 
-                                icon={Quote} 
-                                label="Citation Quote" 
-                                description="Hadith or reference quotes with custom backgrounds."
+                                icon={List} 
+                                label="Accordion / FAQ" 
+                                description="Expandable rows for FAQs or detailed lists."
                                 onClick={() => handleAddBlock("accordion")} 
                               />
                               <SectionSelectorCard 
@@ -645,9 +766,12 @@ function SectionEditorInner() {
             <div className="flex-1 overflow-y-auto flex justify-center p-4 sm:p-10">
                <div 
                   className={cn("bg-white shadow-2xl min-h-full", viewMode === 'mobile' ? "w-[375px] rounded-[48px] border-[12px] border-slate-900" : "w-full max-w-5xl rounded-3xl")}
-                  style={{ backgroundColor: pageStyle.backgroundColor, color: pageStyle.textColor, paddingTop: pageStyle.paddingTop, paddingBottom: pageStyle.paddingBottom }}
+                  style={getBackgroundStyles()}
                >
-                  {blocks.map(block => <BlockRenderer key={block.id} block={block} products={products} store={store} isPreview viewMode={viewMode} pageStyle={pageStyle} />)}
+                  {getTextureOverlay()}
+                  <div className="relative z-10">
+                    {blocks.map(block => <BlockRenderer key={block.id} block={block} products={products} store={store} isPreview viewMode={viewMode} pageStyle={pageStyle} />)}
+                  </div>
                </div>
             </div>
          </DialogContent>

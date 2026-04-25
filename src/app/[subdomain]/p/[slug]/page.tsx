@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -56,28 +57,65 @@ export default function RenderDynamicPage() {
   if (error || !page) return <div className="flex flex-col h-screen items-center justify-center space-y-4 px-6 text-center bg-white"><AlertCircle className="w-16 h-16 text-destructive opacity-20" /><h1 className="text-3xl font-headline font-bold">{error || "404 - Not Found"}</h1><p className="text-muted-foreground leading-relaxed">The page you're looking for was not found or is currently private.</p></div>;
 
   const config = page.config || [];
-  const pageStyle = page.pageStyle || { backgroundColor: "#FFFFFF", paddingTop: 40, paddingBottom: 40 };
+  const pageStyle = page.pageStyle || { backgroundColor: "#FFFFFF", paddingTop: 0, paddingBottom: 40 };
+
+  const getBackgroundStyles = () => {
+    const styles: any = {
+      backgroundColor: pageStyle.backgroundColor || "#FFFFFF",
+      paddingTop: `${pageStyle.paddingTop || 0}px`,
+      paddingBottom: `${pageStyle.paddingBottom || 40}px`,
+      position: 'relative'
+    };
+
+    if (pageStyle.backgroundImage) {
+      styles.backgroundImage = `url(${pageStyle.backgroundImage})`;
+      styles.backgroundSize = pageStyle.backgroundSize || 'cover';
+      styles.backgroundPosition = 'center';
+    }
+
+    return styles;
+  };
+
+  const getTextureOverlay = () => {
+    if (pageStyle.backgroundTexture === "none" || !pageStyle.backgroundTexture) return null;
+    
+    let pattern = "";
+    if (pageStyle.backgroundTexture === "dots") {
+      pattern = "radial-gradient(circle, currentColor 1px, transparent 1px)";
+    } else if (pageStyle.backgroundTexture === "grid") {
+      pattern = "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)";
+    } else if (pageStyle.backgroundTexture === "diagonal") {
+      pattern = "repeating-linear-gradient(45deg, transparent, transparent 10px, currentColor 10px, currentColor 11px)";
+    }
+
+    return (
+      <div 
+        className="absolute inset-0 pointer-events-none" 
+        style={{ 
+          backgroundImage: pattern, 
+          backgroundSize: pageStyle.backgroundTexture === "grid" ? "20px 20px" : "15px 15px",
+          opacity: (pageStyle.backgroundOpacity || 10) / 100,
+          color: pageStyle.textColor || '#000'
+        }} 
+      />
+    );
+  };
 
   return (
-    <div 
-      className="min-h-screen" 
-      style={{ 
-        backgroundColor: pageStyle.backgroundColor, 
-        paddingTop: `${pageStyle.paddingTop}px`, 
-        paddingBottom: `${pageStyle.paddingBottom}px`,
-        color: pageStyle.textColor 
-      }}
-    >
-      {config.map((block: any) => (
-        <BlockRenderer 
-          key={block.id} 
-          block={block} 
-          products={products} 
-          store={store} 
-          isPreview 
-          pageStyle={pageStyle} 
-        />
-      ))}
+    <div className="min-h-screen" style={getBackgroundStyles()}>
+      {getTextureOverlay()}
+      <div className="relative z-10">
+        {config.map((block: any) => (
+          <BlockRenderer 
+            key={block.id} 
+            block={block} 
+            products={products} 
+            store={store} 
+            isPreview 
+            pageStyle={pageStyle} 
+          />
+        ))}
+      </div>
     </div>
   );
 }
