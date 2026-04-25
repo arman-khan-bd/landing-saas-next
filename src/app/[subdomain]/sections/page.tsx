@@ -17,7 +17,7 @@ import {
   Paintbrush, Layers,
   ChevronUp, ChevronDown, Truck, CreditCard,
   Star, Heart, Lightbulb, Info, Shield, Zap, Check, LayoutList,
-  Flame, Leaf, Moon, Sun, Quote, Rocket, Menu, PlayCircle, Code, ShieldCheck
+  Flame, Leaf, Moon, Sun, Quote, Rocket, Menu, PlayCircle, Code, ShieldCheck, AlignLeft
 } from "lucide-react";
 import {
   DndContext,
@@ -60,6 +60,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { CloudinaryUpload } from "@/components/cloudinary-upload";
 
 const SAM_NATURAL_TEMPLATE: Block[] = [
   {
@@ -93,7 +95,7 @@ const SAM_NATURAL_TEMPLATE: Block[] = [
         { iconName: "RotateCcw", label: "↩️ সহজ রিফান্ড" }
       ]
     },
-    style: { animation: "fadeIn" }
+    style: { animation: "none" }
   },
   {
     id: "intro-pill",
@@ -120,7 +122,7 @@ const SAM_NATURAL_TEMPLATE: Block[] = [
     id: "order-form",
     type: "product-order-form",
     content: { productIds: [] },
-    style: { paddingTop: 60, paddingBottom: 60, animation: "fadeIn" }
+    style: { paddingTop: 60, paddingBottom: 60, animation: "none" }
   }
 ];
 
@@ -346,7 +348,19 @@ function SectionManagerInner() {
 
   if (loading) return <div className="flex h-screen items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-white w-12 h-12" /></div>;
 
-  const selectedBlock = blocks.find(b => b.id === selectedBlockId);
+  const selectedBlock = findBlockById(blocks, selectedBlockId);
+
+  function findBlockById(items: Block[], id: string | null): Block | undefined {
+    if (!id) return undefined;
+    for (const item of items) {
+      if (item.id === id) return item;
+      if (item.children) {
+        const found = findBlockById(item.children, id);
+        if (found) return found;
+      }
+    }
+    return undefined;
+  }
 
   return (
     <div className="flex h-screen w-full bg-slate-950 overflow-hidden text-slate-100 select-none">
@@ -356,16 +370,56 @@ function SectionManagerInner() {
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg"><Layers className="w-6 h-6" /></div>
             <div>
               <span className="block font-headline font-black text-sm uppercase tracking-tight">Section Manager</span>
-              <span className="text-[8px] text-white/40 font-bold uppercase tracking-widest block">v3.0 Ultra</span>
+              <span className="text-[8px] text-white/40 font-bold uppercase tracking-widest block">Architecture Console</span>
             </div>
           </div>
         </SidebarHeader>
 
         <SidebarContent className="p-0">
-          {selectedBlockId ? (
+          {!selectedBlockId ? (
+             <ScrollArea className="h-full">
+                <div className="p-4 space-y-6">
+                   <PropertySection label="Page Structure" icon={LayoutList}>
+                      <Accordion type="multiple" className="w-full">
+                         {blocks.map((block, idx) => (
+                           <AccordionItem key={block.id} value={block.id} className="border-b-0 mb-1">
+                              <AccordionTrigger 
+                                className="px-4 py-3 rounded-xl bg-black/20 hover:no-underline font-bold text-[10px] uppercase tracking-wider text-slate-400 data-[state=open]:text-indigo-400"
+                                onClick={(e) => { e.stopPropagation(); setSelectedBlockId(block.id); }}
+                              >
+                                 <div className="flex items-center gap-3">
+                                    <span className="opacity-30">#{idx + 1}</span>
+                                    {block.type}
+                                 </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="p-2 space-y-1">
+                                 {block.children?.map((child, cIdx) => (
+                                   <button 
+                                     key={child.id}
+                                     onClick={(e) => { e.stopPropagation(); setSelectedBlockId(child.id); }}
+                                     className="w-full text-left px-4 py-2 rounded-lg hover:bg-white/5 text-[9px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2"
+                                   >
+                                      <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                                      {child.type} (Col { (child.style?.columnIndex ?? 0) + 1 })
+                                   </button>
+                                 ))}
+                              </AccordionContent>
+                           </AccordionItem>
+                         ))}
+                      </Accordion>
+                      <Button variant="outline" className="w-full mt-4 h-10 border-dashed border-white/10 bg-transparent text-[9px] font-black uppercase tracking-widest gap-2" onClick={() => setIsComponentDialogOpen(true)}>
+                         <PlusCircle className="w-3 h-3" /> Insert Section
+                      </Button>
+                   </PropertySection>
+                </div>
+             </ScrollArea>
+          ) : (
             <div className="flex flex-col h-full overflow-hidden">
               <div className="px-4 py-3 bg-black/20 border-b border-white/5 flex items-center justify-between shrink-0">
-                <span className="font-headline font-bold text-[10px] uppercase tracking-wider text-indigo-400">Configure Section</span>
+                <div className="flex items-center gap-2">
+                   <Button variant="ghost" size="icon" className="h-6 w-6 text-white/40 hover:text-white" onClick={() => setSelectedBlockId(null)}><ArrowLeft className="w-3 h-3" /></Button>
+                   <span className="font-headline font-bold text-[10px] uppercase tracking-wider text-indigo-400">{selectedBlock?.type}</span>
+                </div>
                 <Button variant="ghost" size="icon" className="h-6 w-6 text-white/30 hover:text-rose-400" onClick={() => removeBlock(selectedBlockId)}><Trash2 className="w-3.5 h-3.5" /></Button>
               </div>
               <Tabs value={sidebarTab} onValueChange={(v: any) => setSidebarTab(v)} className="flex-1 overflow-hidden flex flex-col">
@@ -385,7 +439,7 @@ function SectionManagerInner() {
                       )}
                     </TabsContent>
                     <TabsContent value="advanced" className="mt-0 space-y-6">
-                       <PropertySection label="Motion Effects" icon={Zap}>
+                       <PropertySection label="Motion Engine" icon={Zap}>
                           <div className="space-y-4">
                              <div className="space-y-1">
                                 <Label className="text-[9px] uppercase font-bold text-white/40">Scroll Animation</Label>
@@ -407,26 +461,66 @@ function SectionManagerInner() {
                              </div>
                           </div>
                        </PropertySection>
-                       
-                       <PropertySection label="Box Scale" icon={MoveVertical}>
-                          <div className="grid grid-cols-2 gap-2">
-                             <div className="space-y-1">
-                                <Label className="text-[9px] uppercase font-bold text-white/40">Top Padding</Label>
-                                <Input 
-                                  type="number" 
-                                  value={selectedBlock?.style?.paddingTop ?? ""} 
-                                  onChange={(e) => updateBlock(selectedBlockId, { style: { paddingTop: Number(e.target.value) } })}
-                                  className="h-8 bg-black/20 border-none text-white text-xs"
-                                />
+
+                       <PropertySection label="Surface Design" icon={Palette}>
+                          <div className="space-y-4">
+                             <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                   <Label className="text-[9px] uppercase font-bold text-white/40">BG Color</Label>
+                                   <Input type="color" value={selectedBlock?.style?.backgroundColor || "#ffffff"} onChange={(e) => updateBlock(selectedBlockId, { style: { backgroundColor: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer" />
+                                </div>
+                                <div className="space-y-1">
+                                   <Label className="text-[9px] uppercase font-bold text-white/40">Text Color</Label>
+                                   <Input type="color" value={selectedBlock?.style?.textColor || "#000000"} onChange={(e) => updateBlock(selectedBlockId, { style: { textColor: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer" />
+                                </div>
                              </div>
                              <div className="space-y-1">
-                                <Label className="text-[9px] uppercase font-bold text-white/40">Bottom Padding</Label>
-                                <Input 
-                                  type="number" 
-                                  value={selectedBlock?.style?.paddingBottom ?? ""} 
-                                  onChange={(e) => updateBlock(selectedBlockId, { style: { paddingBottom: Number(e.target.value) } })}
-                                  className="h-8 bg-black/20 border-none text-white text-xs"
+                                <Label className="text-[9px] uppercase font-bold text-white/40">Background Image</Label>
+                                <CloudinaryUpload 
+                                  value={selectedBlock?.style?.backgroundImage || ""}
+                                  onUpload={(url) => updateBlock(selectedBlockId, { style: { backgroundImage: url } })}
+                                  onRemove={() => updateBlock(selectedBlockId, { style: { backgroundImage: "" } })}
                                 />
+                             </div>
+                          </div>
+                       </PropertySection>
+                       
+                       <PropertySection label="Box Scale (Spacing)" icon={MoveVertical}>
+                          <div className="grid grid-cols-2 gap-4">
+                             <div className="space-y-3">
+                                <Label className="text-[8px] font-black uppercase text-indigo-400">Padding</Label>
+                                <div className="space-y-2">
+                                   <Input type="number" placeholder="Top" value={selectedBlock?.style?.paddingTop ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { paddingTop: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                                   <Input type="number" placeholder="Bottom" value={selectedBlock?.style?.paddingBottom ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { paddingBottom: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                                   <Input type="number" placeholder="Left" value={selectedBlock?.style?.paddingLeft ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { paddingLeft: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                                   <Input type="number" placeholder="Right" value={selectedBlock?.style?.paddingRight ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { paddingRight: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                                </div>
+                             </div>
+                             <div className="space-y-3">
+                                <Label className="text-[8px] font-black uppercase text-amber-400">Margin</Label>
+                                <div className="space-y-2">
+                                   <Input type="number" placeholder="Top" value={selectedBlock?.style?.marginTop ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { marginTop: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                                   <Input type="number" placeholder="Bottom" value={selectedBlock?.style?.marginBottom ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { marginBottom: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                                   <Input type="number" placeholder="Left" value={selectedBlock?.style?.marginLeft ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { marginLeft: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                                   <Input type="number" placeholder="Right" value={selectedBlock?.style?.marginRight ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { marginRight: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                                </div>
+                             </div>
+                          </div>
+                       </PropertySection>
+
+                       <PropertySection label="Typography Control" icon={Type}>
+                          <div className="grid grid-cols-2 gap-4">
+                             <div className="space-y-1">
+                                <Label className="text-[9px] uppercase font-bold text-white/40">Font Size (px)</Label>
+                                <Input type="number" value={selectedBlock?.style?.fontSize ?? ""} onChange={(e) => updateBlock(selectedBlockId, { style: { fontSize: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-white text-xs" />
+                             </div>
+                             <div className="space-y-1">
+                                <Label className="text-[9px] uppercase font-bold text-white/40">Alignment</Label>
+                                <div className="grid grid-cols-3 gap-1 bg-black/20 p-1 rounded-lg">
+                                   <Button variant="ghost" size="icon" className={cn("h-6 w-full rounded-md", selectedBlock?.style?.textAlign === 'left' ? 'bg-white text-primary' : 'text-white/40')} onClick={() => updateBlock(selectedBlockId, { style: { textAlign: 'left' } })}><AlignLeft className="w-3 h-3" /></Button>
+                                   <Button variant="ghost" size="icon" className={cn("h-6 w-full rounded-md", selectedBlock?.style?.textAlign === 'center' ? 'bg-white text-primary' : 'text-white/40')} onClick={() => updateBlock(selectedBlockId, { style: { textAlign: 'center' } })}><LucideIcons.AlignCenter className="w-3 h-3" /></Button>
+                                   <Button variant="ghost" size="icon" className={cn("h-6 w-full rounded-md", selectedBlock?.style?.textAlign === 'right' ? 'bg-white text-primary' : 'text-white/40')} onClick={() => updateBlock(selectedBlockId, { style: { textAlign: 'right' } })}><LucideIcons.AlignRight className="w-3 h-3" /></Button>
+                                </div>
                              </div>
                           </div>
                        </PropertySection>
@@ -435,17 +529,12 @@ function SectionManagerInner() {
                 </ScrollArea>
               </Tabs>
             </div>
-          ) : (
-            <div className="p-6 text-center space-y-4 opacity-40 grayscale filter mt-20">
-               <MousePointer2 className="w-12 h-12 mx-auto" />
-               <p className="text-[10px] font-black uppercase tracking-widest">Select a section to begin orchestration</p>
-            </div>
           )}
         </SidebarContent>
 
         <SidebarFooter className="p-4 border-t border-white/5 bg-black/10">
           <Button className="w-full h-12 rounded-2xl font-black text-xs bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-600/20" onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />} Publish Landing Page
+            {saving ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />} Publish Section Matrix
           </Button>
         </SidebarFooter>
       </Sidebar>
@@ -499,21 +588,81 @@ function SectionManagerInner() {
                         <DialogTrigger asChild>
                            <Button variant="outline" className="h-14 w-14 rounded-full border-2 border-indigo-600/20 text-indigo-600 shadow-2xl hover:scale-110 active:scale-95 bg-white"><Plus className="w-8 h-8" /></Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl rounded-[40px] p-0 border-none overflow-hidden bg-slate-50 shadow-2xl">
-                           <DialogHeader className="p-6 bg-slate-900 text-white">
-                              <DialogTitle className="text-xl font-headline font-black uppercase">Section Repository</DialogTitle>
+                        <DialogContent className="max-w-3xl rounded-[40px] p-0 border-none overflow-hidden bg-slate-50 shadow-2xl">
+                           <DialogHeader className="p-8 bg-slate-900 text-white">
+                              <DialogTitle className="text-2xl font-headline font-black uppercase tracking-tight">Section Repository</DialogTitle>
+                              <DialogDescription className="text-indigo-400 font-bold text-xs uppercase tracking-widest">Select a high-conversion component to insert into your landing page.</DialogDescription>
                            </DialogHeader>
-                           <div className="p-6 grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto">
-                              <WidgetGridButton icon={Menu} label="Global Navbar" onClick={() => handleAddBlock("navbar")} highlight />
-                              <WidgetGridButton icon={Rocket} label="Conversion Hero" onClick={() => handleAddBlock("ultra-hero")} highlight />
-                              <WidgetGridButton icon={ShoppingCart} label="Order Console" onClick={() => handleAddBlock("product-order-form")} highlight />
-                              <WidgetGridButton icon={Zap} label="Trust Marquee" onClick={() => handleAddBlock("marquee")} />
-                              <WidgetGridButton icon={LayoutGrid} label="Benefit Cards" onClick={() => handleAddBlock("card")} />
-                              <WidgetGridButton icon={Type} label="Headline" onClick={() => handleAddBlock("header")} />
-                              <WidgetGridButton icon={CheckCircle} label="Checked List" onClick={() => handleAddBlock("checked-list")} />
-                              <WidgetGridButton icon={PlayCircle} label="Visual Player" onClick={() => handleAddBlock("video")} />
-                              <WidgetGridButton icon={Code} label="Code Node" onClick={() => handleAddBlock("code")} />
-                              <WidgetGridButton icon={ShieldCheck} label="Brand Footer" onClick={() => handleAddBlock("footer")} />
+                           <div className="p-8 grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
+                              <SectionSelectorCard 
+                                icon={Menu} 
+                                label="Universal Navbar" 
+                                description="Global navigation with custom logo and CTA link."
+                                onClick={() => handleAddBlock("navbar")} 
+                                highlight 
+                              />
+                              <SectionSelectorCard 
+                                icon={Rocket} 
+                                label="Ultra-Hero" 
+                                description="Deep-green high-conversion hero with Bengali trust badges."
+                                onClick={() => handleAddBlock("ultra-hero")} 
+                                highlight 
+                              />
+                              <SectionSelectorCard 
+                                icon={ShoppingCart} 
+                                label="Order Form" 
+                                description="Direct checkout console with shipping and payment selectors."
+                                onClick={() => handleAddBlock("product-order-form")} 
+                                highlight 
+                              />
+                              <SectionSelectorCard 
+                                icon={Zap} 
+                                label="Trust Marquee" 
+                                description="Auto-scrolling banner for delivery alerts and benefits."
+                                onClick={() => handleAddBlock("marquee")} 
+                              />
+                              <SectionSelectorCard 
+                                icon={LayoutGrid} 
+                                label="Benefit Card" 
+                                description="Horizontal or vertical feature cards with icons."
+                                onClick={() => handleAddBlock("card")} 
+                              />
+                              <SectionSelectorCard 
+                                icon={Type} 
+                                label="Rich Heading" 
+                                description="Animated highlights and custom background pill styles."
+                                onClick={() => handleAddBlock("header")} 
+                              />
+                              <SectionSelectorCard 
+                                icon={CheckCircle} 
+                                label="Checked List" 
+                                description="Bullet points for ingredients or guarantee items."
+                                onClick={() => handleAddBlock("checked-list")} 
+                              />
+                              <SectionSelectorCard 
+                                icon={PlayCircle} 
+                                label="Video Player" 
+                                description="Embedded YouTube or Vimeo player in a premium frame."
+                                onClick={() => handleAddBlock("video")} 
+                              />
+                              <SectionSelectorCard 
+                                icon={Columns} 
+                                label="Grid Layout" 
+                                description="Multi-column container for complex side-by-side components."
+                                onClick={() => handleAddBlock("row")} 
+                              />
+                              <SectionSelectorCard 
+                                icon={Code} 
+                                label="Custom Code" 
+                                description="Inject HTML/JS or tracking pixels into your page."
+                                onClick={() => handleAddBlock("code")} 
+                              />
+                              <SectionSelectorCard 
+                                icon={ShieldCheck} 
+                                label="Brand Footer" 
+                                description="Contact info, address, and legal document links."
+                                onClick={() => handleAddBlock("footer")} 
+                              />
                            </div>
                         </DialogContent>
                      </Dialog>
@@ -540,5 +689,27 @@ function SectionManagerInner() {
          </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function SectionSelectorCard({ icon: Icon, label, description, onClick, highlight = false }: { icon: any; label: string; description: string; onClick: () => void; highlight?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex flex-col text-left p-6 rounded-[24px] border-2 transition-all group relative overflow-hidden",
+        highlight ? "bg-white border-indigo-600/20 shadow-sm" : "bg-white border-slate-100 hover:border-indigo-600/10"
+      )}
+    >
+      <div className={cn(
+        "w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-sm",
+        highlight ? "bg-indigo-600 text-white" : "bg-slate-50 text-slate-400 group-hover:text-indigo-600"
+      )}>
+        <Icon className="w-6 h-6" />
+      </div>
+      <h4 className={cn("font-bold text-sm mb-1 uppercase tracking-tight", highlight ? "text-slate-900" : "text-slate-600")}>{label}</h4>
+      <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-2">{description}</p>
+      {highlight && <Badge className="absolute top-4 right-4 bg-indigo-600 text-white border-none text-[7px] font-black uppercase h-4 px-1.5 rounded-full">Core</Badge>}
+    </button>
   );
 }

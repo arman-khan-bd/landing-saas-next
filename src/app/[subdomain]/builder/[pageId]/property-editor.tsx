@@ -565,6 +565,92 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
         </div>
       );
 
+    case "row":
+      return (
+        <div className="space-y-4">
+           <Label className="text-[8px] font-bold text-white/50 uppercase tracking-widest">Layout Configuration</Label>
+           <div className="space-y-1">
+              <Label className="text-[9px] uppercase font-bold text-white/40">Columns</Label>
+              <Select value={block.content?.columns?.toString() || "1"} onValueChange={(v) => onChange({ content: { columns: Number(v) } })}>
+                 <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                 <SelectContent>
+                    <SelectItem value="1">1 Column</SelectItem>
+                    <SelectItem value="2">2 Columns</SelectItem>
+                    <SelectItem value="3">3 Columns</SelectItem>
+                    <SelectItem value="4">4 Columns</SelectItem>
+                 </SelectContent>
+              </Select>
+           </div>
+        </div>
+      );
+
+    case "card":
+       return (
+        <div className="space-y-6">
+           <PropertySection label="Appearance" icon={LayoutGrid}>
+              <div className="space-y-4">
+                 <div className="space-y-1">
+                    <Label className="text-[9px] uppercase font-bold text-white/40">Orientation</Label>
+                    <Select value={block.content?.layout || "vertical"} onValueChange={(v) => onChange({ content: { layout: v } })}>
+                       <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                       <SelectContent>
+                          <SelectItem value="vertical">Vertical (Stacked)</SelectItem>
+                          <SelectItem value="horizontal">Horizontal (Inline)</SelectItem>
+                       </SelectContent>
+                    </Select>
+                 </div>
+                 <div className="space-y-1">
+                    <Label className="text-[9px] uppercase font-bold text-white/40">List Prefix</Label>
+                    <Select value={block.content?.listStyle || "check"} onValueChange={(v) => onChange({ content: { listStyle: v } })}>
+                       <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                       <SelectContent>
+                          <SelectItem value="check">Checkmarks</SelectItem>
+                          <SelectItem value="bullet">Bullets</SelectItem>
+                          <SelectItem value="number">Numbers</SelectItem>
+                       </SelectContent>
+                    </Select>
+                 </div>
+              </div>
+           </PropertySection>
+
+           <PropertySection label="Identity" icon={Type}>
+              <div className="space-y-3">
+                 <Input value={block.content?.title || ""} onChange={(e) => onChange({ content: { title: e.target.value } })} placeholder="Title" className="h-8 bg-black/20 border-none text-white text-xs" />
+                 <Textarea value={block.content?.subtitle || ""} onChange={(e) => onChange({ content: { subtitle: e.target.value } })} placeholder="Description" className="min-h-[60px] bg-black/20 border-none text-white text-xs" />
+              </div>
+           </PropertySection>
+
+           <PropertySection label="Iconographic" icon={PlusCircle}>
+              <div className="space-y-4">
+                 <div className="flex items-center justify-between">
+                    <Label className="text-[10px] font-bold text-white/90">Visible Icon</Label>
+                    <Switch checked={!!block.content?.showIcon} onCheckedChange={(v) => onChange({ content: { showIcon: v } })} />
+                 </div>
+                 {block.content?.showIcon && (
+                   <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-white/40">Color</Label>
+                          <Input type="color" value={block.content?.iconColor || "#145DCC"} onChange={(e) => onChange({ content: { iconColor: e.target.value } })} className="h-8 p-1 border-none bg-black/20 cursor-pointer" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-white/40">Size</Label>
+                          <Input type="number" value={block.content?.iconSize || 32} onChange={(e) => onChange({ content: { iconSize: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-white text-xs" />
+                        </div>
+                      </div>
+                      <Select value={block.content?.iconName || "Star"} onValueChange={(v) => onChange({ content: { iconName: v } })}>
+                        <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                        <SelectContent className="max-h-[200px]">
+                          {COMMON_ICONS.map(i => <SelectItem key={i} value={i} className="text-[10px]">{i}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                   </div>
+                 )}
+              </div>
+           </PropertySection>
+        </div>
+      );
+
     default:
       return <div className="text-[8px] text-white/30 italic text-center py-2 uppercase font-bold tracking-widest">Advanced widget selected</div>;
   }

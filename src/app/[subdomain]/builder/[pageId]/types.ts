@@ -35,6 +35,7 @@ export interface Block {
     marginRight?: number;
     textAlign?: "left" | "center" | "right" | "justify";
     backgroundColor?: string;
+    backgroundImage?: string;
     textColor?: string;
     fontSize?: number;
     fontWeight?: string;
