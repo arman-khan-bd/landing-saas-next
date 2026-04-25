@@ -740,7 +740,7 @@ function SectionSelectorCard({ icon: Icon, label, description, onClick, highligh
     >
       <div className={cn(
         "w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-sm",
-        highlight ? "bg-indigo-600 text-white" : "bg-slate-50 text-white group-hover:text-white"
+        highlight ? "bg-indigo-600 text-white" : "bg-indigo-600 text-white group-hover:text-white"
       )}>
         <Icon className="w-6 h-6" />
       </div>

@@ -189,9 +189,14 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     return { opacity: 1, transform: 'none', transition: 'all 0.6s cubic-bezier(0.22, 1, 0.36, 1)' };
   };
 
+  // Adaptive values for font size and padding
+  const adaptivePaddingTop = block.style?.paddingTop !== undefined ? (isMobile ? block.style.paddingTop * 0.6 : block.style.paddingTop) : undefined;
+  const adaptivePaddingBottom = block.style?.paddingBottom !== undefined ? (isMobile ? block.style.paddingBottom * 0.6 : block.style.paddingBottom) : undefined;
+  const adaptiveFontSize = block.style?.fontSize !== undefined ? (isMobile ? Math.max(14, block.style.fontSize * 0.75) : block.style.fontSize) : undefined;
+
   const style: any = {
-    ...(block.style?.paddingTop !== undefined && { paddingTop: `${block.style.paddingTop}px` }),
-    ...(block.style?.paddingBottom !== undefined && { paddingBottom: `${block.style.paddingBottom}px` }),
+    ...(adaptivePaddingTop !== undefined && { paddingTop: `${adaptivePaddingTop}px` }),
+    ...(adaptivePaddingBottom !== undefined && { paddingBottom: `${adaptivePaddingBottom}px` }),
     ...(block.style?.paddingLeft !== undefined && { paddingLeft: `${block.style.paddingLeft}px` }),
     ...(block.style?.paddingRight !== undefined && { paddingRight: `${block.style.paddingRight}px` }),
     ...(block.style?.marginTop !== undefined && { marginTop: `${block.style.marginTop}px` }),
@@ -204,7 +209,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     color: block.style?.textColor,
-    fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
+    fontSize: adaptiveFontSize ? `${adaptiveFontSize}px` : undefined,
     fontWeight: block.style?.fontWeight,
     borderStyle: block.style?.borderStyle,
     borderWidth: block.style?.borderWidth ? `${block.style.borderWidth}px` : undefined,
@@ -256,7 +261,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
         };
 
         const renderNavItems = (pos: string) => (
-          <div className={cn("flex items-center gap-6", {
+          <div className={cn("flex items-center gap-2 sm:gap-6", {
             "justify-start": pos === "left",
             "justify-center": pos === "center",
             "justify-end": pos === "right"
@@ -264,23 +269,25 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             {block.content?.logoPosition === pos && (
               <div className="flex items-center gap-2">
                 {block.content?.logoType === "image" && block.content?.logoUrl ? (
-                  <img src={block.content.logoUrl} className="h-8 w-auto object-contain" alt="logo" />
+                  <img src={block.content.logoUrl} className="h-6 sm:h-8 w-auto object-contain" alt="logo" />
                 ) : block.content?.logoType === "icon" ? (
-                  <LogoIcon className="w-6 h-6" style={{ color: block.content?.primaryColor || 'currentColor' }} />
+                  <LogoIcon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: block.content?.primaryColor || 'currentColor' }} />
                 ) : (
-                  <span className="font-headline font-black text-lg uppercase tracking-tight">{block.content?.logoText || "LOGO"}</span>
+                  <span className="font-headline font-black text-sm sm:text-lg uppercase tracking-tight">{block.content?.logoText || "LOGO"}</span>
                 )}
               </div>
             )}
-            {navItems.filter((i: any) => i.position === pos).map((item: any) => (
-              <button key={item.id} onClick={() => handleButtonClick(item.link)} className="text-sm font-bold opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap">
-                {item.label}
-              </button>
-            ))}
+            <div className="hidden sm:flex items-center gap-6">
+              {navItems.filter((i: any) => i.position === pos).map((item: any) => (
+                <button key={item.id} onClick={() => handleButtonClick(item.link)} className="text-sm font-bold opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap">
+                  {item.label}
+                </button>
+              ))}
+            </div>
             {showCta && block.content?.ctaPosition === pos && (
               <Button 
                 size="sm" 
-                className={cn("rounded-xl h-9 px-6 font-bold text-xs uppercase tracking-widest")} 
+                className={cn("rounded-xl h-8 sm:h-9 px-4 sm:px-6 font-bold text-[10px] sm:text-xs uppercase tracking-widest")} 
                 onClick={() => handleButtonClick(block.content.ctaLink)}
               >
                 {block.content.ctaText}
@@ -298,12 +305,12 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
               ...posStyles[navPosition],
             }} 
             className={cn(
-              "w-full px-6 py-4 border-b transition-all duration-300",
+              "w-full px-4 sm:px-6 py-3 sm:py-4 border-b transition-all duration-300",
               !isTransparent && "backdrop-blur-md shadow-sm",
               navPosition === "fixed" && !isBuilder && "left-0 right-0"
             )}
           >
-            <div className="max-w-7xl mx-auto grid grid-cols-3 items-center gap-4">
+            <div className="max-w-7xl mx-auto grid grid-cols-3 items-center gap-2 sm:gap-4">
               {renderNavItems("left")}
               {renderNavItems("center")}
               {renderNavItems("right")}
@@ -361,54 +368,54 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
              
              <div className="absolute inset-0 -z-10 opacity-[0.03]" style={{ backgroundImage: `repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)`, backgroundSize: '10px 10px' }} />
 
-             <div className="max-w-4xl mx-auto px-6 py-16 sm:py-24 text-center flex flex-col items-center">
+             <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-24 text-center flex flex-col items-center">
                 <div 
                   style={{ color: block.content?.badgeColor || '#facc15' }}
-                  className="mb-8 inline-flex items-center px-5 py-2 rounded-full bg-white/10 border border-white/20 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em]"
+                  className="mb-6 sm:mb-8 inline-flex items-center px-4 sm:px-5 py-1.5 sm:py-2 rounded-full bg-white/10 border border-white/20 text-[9px] sm:text-xs font-black uppercase tracking-[0.2em]"
                 >
                   {block.content?.badgeText || "BSTI অনুমোদিত • BCSIR ল্যাব টেস্টেড"}
                 </div>
 
                 <h1 
                   style={{ color: block.content?.titleColor || '#ffffff' }}
-                  className="text-4xl sm:text-7xl font-headline font-black leading-[1.1] sm:leading-[0.95] mb-4 tracking-tighter max-w-3xl"
+                  className="text-3xl xs:text-4xl sm:text-7xl font-headline font-black leading-[1.1] sm:leading-[0.95] mb-4 tracking-tighter max-w-3xl"
                 >
                   {renderTextWithHighlights(block.content?.title || "অসুস্থ ব্যক্তি ছাড়া সুস্থতার মূল্য কেউ বোঝে না", block.style?.highlightColor)}
                 </h1>
 
                 <p 
                   style={{ color: block.content?.subtitleColor || 'rgba(253, 224, 71, 0.9)' }}
-                  className="text-lg sm:text-2xl font-bold mb-10 tracking-tight"
+                  className="text-base sm:text-2xl font-bold mb-8 sm:mb-10 tracking-tight"
                 >
                   {block.content?.subtitle || "শক্তি ও সুস্বাস্থ্যের নির্ভরযোগ্য উপহার"}
                 </p>
 
-                <div className="bg-white rounded-full px-8 py-3 mb-12 shadow-2xl shadow-black/20 flex items-center gap-4 border-2 border-white/20">
+                <div className="bg-white rounded-2xl sm:rounded-full px-5 sm:px-8 py-2.5 sm:py-3 mb-10 sm:mb-12 shadow-2xl shadow-black/20 flex items-center gap-3 sm:gap-4 border-2 border-white/20">
                    <span 
                      style={{ color: block.content?.brandTitleColor || '#1a7c3e' }}
-                     className="text-2xl sm:text-3xl font-black tracking-tighter"
+                     className="text-xl sm:text-3xl font-black tracking-tighter"
                    >
                      "{block.content?.brandTitle || "সাম"}"
                    </span>
-                   <div className="h-6 w-px bg-slate-200" />
+                   <div className="h-5 sm:h-6 w-px bg-slate-200" />
                    <span 
                      style={{ color: block.content?.brandSubtitleColor || '#64748b' }}
-                     className="text-xs sm:text-sm font-bold uppercase tracking-widest pt-1"
+                     className="text-[10px] sm:text-sm font-bold uppercase tracking-widest pt-1"
                    >
                      {block.content?.brandSubtitle || "প্রাকৃতিক স্বাস্থ্য সুরক্ষা"}
                    </span>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 w-full justify-center items-center mb-16">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full justify-center items-center mb-12 sm:mb-16">
                    <Button 
                      size="lg" 
                      style={getButtonStyle('cta')}
                      className={cn(
-                       "h-16 px-10 rounded-full text-white font-black text-xl shadow-xl shadow-orange-950/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
+                       "h-14 sm:h-16 px-8 sm:px-10 rounded-full text-white font-black text-lg sm:text-xl shadow-xl shadow-orange-950/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
                      )}
                      onClick={() => handleButtonClick(block.content?.ctaLink || "[checkout]")}
                    >
-                     <ArrowRight className="w-5 h-5 mr-2" />
+                     <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                      {block.content?.ctaText || "এখানে অর্ডার করুন"}
                    </Button>
 
@@ -416,31 +423,31 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                      variant="outline"
                      size="lg" 
                      style={getButtonStyle('phone')}
-                     className="h-16 px-10 rounded-full border-2 border-white/30 bg-white/5 hover:bg-white/10 font-bold text-lg w-full sm:w-auto"
+                     className="h-14 sm:h-16 px-8 sm:px-10 rounded-full border-2 border-white/30 bg-white/5 hover:bg-white/10 font-bold text-base sm:text-lg w-full sm:w-auto"
                      onClick={() => handleButtonClick(block.content?.phoneLink || "tel:01621611589")}
                    >
-                     <Phone className="w-5 h-5 mr-2" />
+                     <Phone className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                      {block.content?.phoneText || "01621-611589"}
                    </Button>
                 </div>
 
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-6 sm:gap-10 w-full pt-12 border-t border-white/10">
+                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-4 sm:gap-10 w-full pt-8 sm:pt-12 border-t border-white/10">
                    {trustItems.map((item: any, i: number) => {
                      const TrustIcon = (LucideIcons as any)[item.iconName] || CheckSquare;
                      return (
-                       <div key={i} className="flex flex-col items-center gap-3 group">
+                       <div key={i} className="flex flex-col items-center gap-2 sm:gap-3 group">
                           <div 
                             style={{ 
                               backgroundColor: block.content?.ribbonIconBg || 'rgba(255,255,255,0.1)',
                               color: block.content?.ribbonIconColor || '#34d399'
                             }}
-                            className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-all duration-300"
+                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-all duration-300"
                           >
-                             <TrustIcon className="w-6 h-6" />
+                             <TrustIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                           </div>
                           <span 
                             style={{ color: block.content?.ribbonTextColor || 'rgba(255,255,255,0.7)' }}
-                            className="text-[10px] sm:text-xs font-black uppercase tracking-widest transition-colors"
+                            className="text-[9px] sm:text-xs font-black uppercase tracking-widest transition-colors text-center"
                           >
                             {item.label}
                           </span>
@@ -455,11 +462,11 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       case "marquee":
         const marqueeItems = block.content?.items || ["Text Point 1", "Text Point 2"];
         return (
-          <div style={style} className="overflow-hidden bg-primary py-3 w-full">
-             <div className="flex animate-marquee whitespace-nowrap gap-12 items-center">
-                {[...marqueeItems, ...marqueeItems].map((txt, i) => (
-                  <div key={i} className="flex items-center gap-2 text-white font-bold text-sm">
-                     <div className="w-4 h-4 bg-white/20 rounded-full flex items-center justify-center text-[10px]">✓</div>
+          <div style={style} className="overflow-hidden bg-primary py-2 sm:py-3 w-full">
+             <div className="flex animate-marquee whitespace-nowrap gap-8 sm:gap-12 items-center">
+                {[...marqueeItems, ...marqueeItems, ...marqueeItems].map((txt, i) => (
+                  <div key={i} className="flex items-center gap-2 text-white font-bold text-xs sm:text-sm">
+                     <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-white/20 rounded-full flex items-center justify-center text-[8px] sm:text-[10px]">✓</div>
                      {txt}
                   </div>
                 ))}
@@ -469,17 +476,17 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
 
       case "row":
         const colsCount = block.content?.columns || 1;
-        const gridColsMap: Record<number, string> = { 1: "lg:grid-cols-1", 2: "lg:grid-cols-2", 3: "lg:grid-cols-3", 4: "lg:grid-cols-4" };
+        const gridColsMap: Record<number, string> = { 1: "md:grid-cols-1", 2: "md:grid-cols-2", 3: "md:grid-cols-3", 4: "md:grid-cols-4" };
         const children = block.children || [];
 
         return (
           <div 
             style={style} 
             className={cn(
-              "grid gap-6 px-4 max-w-6xl mx-auto w-full relative", 
-              "grid-cols-1 sm:grid-cols-2", 
-              gridColsMap[colsCount] || "lg:grid-cols-1",
-              isBuilder && "border-2 border-dashed border-primary/20 p-4 sm:p-6 rounded-[40px] bg-slate-50/5 min-h-[120px] transition-all hover:border-primary/40"
+              "grid gap-4 sm:gap-6 px-4 max-w-6xl mx-auto w-full relative", 
+              "grid-cols-1", 
+              gridColsMap[colsCount] || "md:grid-cols-1",
+              isBuilder && "border-2 border-dashed border-primary/20 p-4 sm:p-6 rounded-3xl sm:rounded-[40px] bg-slate-50/5 min-h-[120px] transition-all hover:border-primary/40"
             )}
           >
             {isBuilder && (
@@ -496,7 +503,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
               return (
                 <div key={colIdx} className={cn(
                   "flex flex-col gap-4 min-h-[60px] relative pointer-events-auto",
-                  isBuilder && "border border-dashed border-slate-200/30 p-4 rounded-3xl bg-white/5"
+                  isBuilder && "border border-dashed border-slate-200/30 p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-white/5"
                 )}>
                   {isBuilder && (
                      <div className="absolute -top-2.5 left-4 px-2 py-0.5 bg-slate-100 rounded-full flex items-center gap-1 z-10 border border-slate-200 shadow-sm">
@@ -556,28 +563,28 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
               {accItems.map((item: any) => (
                 <AccordionItem key={item.id} value={item.id} className="border-b-0 mb-2">
                   <AccordionTrigger className={cn(
-                    "px-6 py-4 rounded-xl hover:no-underline font-bold text-sm text-left transition-all group",
+                    "px-4 sm:px-6 py-3 sm:py-4 rounded-xl hover:no-underline font-bold text-sm text-left transition-all group",
                     isOrganic ? "bg-[#fff] border-2 border-[#d9e8da] text-[#1b5e20] hover:bg-[#f0f7f0]" : 
                     isTraditional ? "bg-[#fff] border-2 border-[#ddd] text-[#1a7c3e] hover:bg-[#e8f5ee]" :
                     "bg-slate-50 hover:bg-slate-100"
                   )}>
                     <div className="flex items-center gap-3">
                        {item.iconName && React.createElement((LucideIcons as any)[item.iconName], { className: "w-4 h-4 text-primary shrink-0" })}
-                       <div>
-                          <p>{item.title}</p>
-                          {item.subtitle && <p className="text-[10px] font-normal text-muted-foreground opacity-60">{item.subtitle}</p>}
+                       <div className="min-w-0">
+                          <p className="truncate">{item.title}</p>
+                          {item.subtitle && <p className="text-[9px] sm:text-[10px] font-normal text-muted-foreground opacity-60 truncate">{item.subtitle}</p>}
                        </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className={cn(
-                    "px-6 py-4 bg-white rounded-b-xl border -mt-1",
+                    "px-4 sm:px-6 py-3 sm:py-4 bg-white rounded-b-xl border -mt-1",
                     isOrganic ? "border-[#d9e8da]" : 
                     isTraditional ? "border-[#ddd]" :
                     "border-slate-50"
                   )}>
                     <div className="flex flex-col md:flex-row gap-4 items-start">
                        {item.imageUrl && <img src={item.imageUrl} className="w-full md:w-32 aspect-video object-cover rounded-lg border" />}
-                       <div className="text-xs text-muted-foreground leading-relaxed flex-1">
+                       <div className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed flex-1">
                           {item.content}
                        </div>
                     </div>
@@ -604,7 +611,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
           >
             {block.content?.bgImage && <img src={block.content.bgImage} className="absolute inset-0 w-full h-full object-cover z-0 opacity-40" alt="" />}
             <div className={cn("relative z-10 flex", 
-              isHorizontal ? "flex-row items-center gap-4" : "flex-col gap-4",
+              isHorizontal ? "flex-col xs:flex-row items-center gap-3 sm:gap-4" : "flex-col gap-4",
               {
                 "items-start text-left": !isHorizontal && cardTextAlign === "left",
                 "items-center text-center": !isHorizontal && cardTextAlign === "center",
@@ -612,10 +619,10 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                 "items-stretch text-justify": !isHorizontal && cardTextAlign === "justify"
               }
             )}>
-               {IconComp && <IconComp style={{ color: block.content?.iconColor || (isOrganic ? "#2d7a3a" : isTraditional ? "#1a7c3e" : "#145DCC") }} size={block.content?.iconSize || 32} className="shrink-0" />}
+               {IconComp && <IconComp style={{ color: block.content?.iconColor || (isOrganic ? "#2d7a3a" : isTraditional ? "#1a7c3e" : "#145DCC") }} size={isMobile ? 24 : (block.content?.iconSize || 32)} className="shrink-0" />}
                <div className="space-y-1 w-full flex-1">
-                  <h4 className={cn("font-bold text-xl", (isOrganic || isTraditional) && `text-primary`)}>{block.content?.title || "Feature Title"}</h4>
-                  <p className="text-sm opacity-80 leading-relaxed">{block.content?.subtitle || "Description placeholder..."}</p>
+                  <h4 className={cn("font-bold text-lg sm:text-xl", (isOrganic || isTraditional) && `text-primary`)}>{block.content?.title || "Feature Title"}</h4>
+                  <p className="text-xs sm:text-sm opacity-80 leading-relaxed">{block.content?.subtitle || "Description placeholder..."}</p>
                   {(block.content?.items || []).length > 0 && (
                     <div className={cn("space-y-2 pt-2 w-full flex flex-col", {
                         "items-start": isHorizontal || cardTextAlign === "left",
@@ -626,14 +633,14 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                       {block.content.items.map((item: string, i: number) => {
                           let prefix;
                           const lStyle = block.content?.listStyle || "check";
-                          if (lStyle === "check") prefix = <Check className={cn("w-3.5 h-3.5", (isOrganic || isTraditional) ? "text-primary" : "text-primary")} />;
+                          if (lStyle === "check") prefix = <Check className={cn("w-3 h-3 sm:w-3.5 sm:h-3.5", (isOrganic || isTraditional) ? "text-primary" : "text-primary")} />;
                           else if (lStyle === "bullet") prefix = <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />;
-                          else if (lStyle === "number") prefix = <span className={cn("text-[10px] font-bold", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>{i+1}.</span>;
+                          else if (lStyle === "number") prefix = <span className={cn("text-[9px] sm:text-[10px] font-bold", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>{i+1}.</span>;
 
                           return (
                             <div key={i} className="flex items-center gap-2">
                               {prefix}
-                              <span className="text-sm font-medium">{item}</span>
+                              <span className="text-xs sm:text-sm font-medium">{item}</span>
                             </div>
                           );
                       })}
@@ -646,7 +653,11 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
 
       case "header":
         const HeaderTag = block.content?.level || 'h2';
-        const headerSizes: any = { h1: 'text-3xl md:text-7xl', h2: 'text-2xl md:text-5xl', h3: 'text-xl md:text-3xl' };
+        const headerSizes: any = { 
+          h1: 'text-3xl xs:text-4xl sm:text-6xl md:text-7xl lg:text-8xl', 
+          h2: 'text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl', 
+          h3: 'text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl' 
+        };
         const headerThemeActive = isOrganic || isTraditional;
         const isPill = block.style?.borderRadius && block.style.borderRadius > 20 && block.style.backgroundColor;
 
@@ -655,8 +666,8 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             style={style} 
             className={cn(
               "px-4 font-headline font-bold leading-tight",
-              isPill ? "w-fit mx-auto px-6 py-2" : "w-full",
-              headerThemeActive && !block.style?.backgroundColor && "text-center py-12 text-white relative overflow-hidden",
+              isPill ? "w-fit mx-auto px-5 sm:px-6 py-1.5 sm:py-2" : "w-full",
+              headerThemeActive && !block.style?.backgroundColor && "text-center py-8 sm:py-12 text-white relative overflow-hidden",
             )}
           >
             {headerThemeActive && !block.style?.backgroundColor && (
@@ -672,13 +683,13 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
         );
 
       case "paragraph":
-        return <div style={style} className="px-4 w-full leading-relaxed whitespace-pre-wrap text-lg opacity-80">{renderTextWithHighlights(block.content?.text || "Text", block.style?.highlightColor)}</div>;
+        return <div style={style} className="px-4 w-full leading-relaxed whitespace-pre-wrap text-base sm:text-lg opacity-80">{renderTextWithHighlights(block.content?.text || "Text", block.style?.highlightColor)}</div>;
 
       case "rich-text":
         return (
           <div style={style} className="px-4 w-full">
             <div 
-              className="prose prose-sm prose-slate max-w-none prose-p:my-1" 
+              className="prose prose-sm xs:prose-base prose-slate max-w-none prose-p:my-1" 
               dangerouslySetInnerHTML={{ __html: block.content?.html || "Add your rich text content in the sidebar editor." }} 
             />
           </div>
@@ -690,8 +701,8 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             <img src={block.content.url} className="w-full h-auto shadow-md rounded-xl" alt="" />
           ) : (
             <div className="w-full aspect-video bg-slate-100 rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200 text-slate-400 gap-2">
-              <ImageIcon className="w-10 h-10 opacity-20" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Image Placeholder</span>
+              <ImageIcon className="w-8 h-8 sm:w-10 sm:h-10 opacity-20" />
+              <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest">Image Placeholder</span>
             </div>
           )}
         </div>;
@@ -702,7 +713,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             <Button 
               size="lg" 
               className={cn(
-                "rounded-2xl px-12 h-16 font-bold text-xl shadow-2xl transition-all hover:scale-105",
+                "rounded-xl sm:rounded-2xl px-6 sm:px-12 h-12 sm:h-16 font-bold text-base sm:text-xl shadow-2xl transition-all hover:scale-105 w-full sm:w-auto",
                 isOrganic ? "bg-[#c9941a] hover:bg-[#b5830e] text-white shadow-primary/30" : 
                 isTraditional ? "bg-gradient-to-br from-[#f9a825] to-[#e65c00] hover:opacity-90 text-white shadow-primary/30" : 
                 "bg-primary text-white shadow-primary/30"
@@ -718,7 +729,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
         const videoId = block.content?.url?.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)?.[1];
         return (
           <div style={style} className="px-4 w-full max-w-6xl mx-auto">
-             <div className="aspect-video w-full rounded-[40px] overflow-hidden shadow-2xl bg-black">
+             <div className="aspect-video w-full rounded-2xl sm:rounded-[40px] overflow-hidden shadow-2xl bg-black">
                 {videoId ? (
                   <iframe 
                     src={`https://www.youtube.com/embed/${videoId}`} 
@@ -727,8 +738,8 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-2">
-                     <Play className="w-12 h-12 opacity-20" />
-                     <p className="text-xs font-black uppercase">Video Placeholder</p>
+                     <Play className="w-10 h-10 sm:w-12 sm:h-12 opacity-20" />
+                     <p className="text-[10px] sm:text-xs font-black uppercase">Video Placeholder</p>
                   </div>
                 )}
              </div>
@@ -738,17 +749,17 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       case "code":
         return isPreview ? null : (
           <div style={style} className="px-4 w-full max-w-6xl mx-auto">
-             <div className="bg-slate-950 p-6 rounded-3xl border border-white/10 space-y-4">
+             <div className="bg-slate-950 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10 space-y-4">
                 <div className="flex items-center gap-2 text-indigo-400">
-                   <Code className="w-4 h-4" />
-                   <span className="text-[10px] font-black uppercase tracking-widest">Custom Logic / Code Block</span>
+                   <Code className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                   <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest">Custom Logic / Code Block</span>
                 </div>
-                <pre className="text-xs font-mono text-emerald-400 overflow-x-auto whitespace-pre-wrap bg-black/40 p-4 rounded-xl">
+                <pre className="text-[10px] sm:text-xs font-mono text-emerald-400 overflow-x-auto whitespace-pre-wrap bg-black/40 p-3 sm:p-4 rounded-xl">
                    {block.content?.code || "// No code provided"}
                 </pre>
                 <div className="flex items-center gap-2 text-amber-500/60">
-                   <Info className="w-3 h-3" />
-                   <p className="text-[8px] font-bold uppercase tracking-tight">This node is only visible in the manager. Scripts run globally in production.</p>
+                   <Info className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                   <p className="text-[7px] sm:text-[8px] font-bold uppercase tracking-tight">This node is only visible in the manager. Scripts run globally in production.</p>
                 </div>
              </div>
           </div>
@@ -756,31 +767,31 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
 
       case "footer":
         return (
-          <footer style={style} className="px-4 w-full bg-slate-900 text-white rounded-t-[40px] py-16">
-             <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
-                <div className="space-y-6">
+          <footer style={style} className="px-4 w-full bg-slate-900 text-white rounded-t-2xl sm:rounded-t-[40px] py-12 sm:py-16">
+             <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 sm:gap-12">
+                <div className="space-y-4 sm:space-y-6">
                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary"><Zap className="w-5 h-5" /></div>
-                      <h4 className="text-xl font-headline font-black uppercase">{block.content?.brandName || "Store Brand"}</h4>
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/20 rounded-lg sm:rounded-xl flex items-center justify-center text-primary"><Zap className="w-4 h-4 sm:w-5 sm:h-5" /></div>
+                      <h4 className="text-lg sm:text-xl font-headline font-black uppercase">{block.content?.brandName || "Store Brand"}</h4>
                    </div>
-                   <p className="text-sm text-slate-400 leading-relaxed">{block.content?.description || "Description placeholder..."}</p>
+                   <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">{block.content?.description || "Description placeholder..."}</p>
                 </div>
-                <div className="space-y-4">
-                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Contact Channels</h5>
-                   <p className="text-sm font-bold">{block.content?.phone || "Phone N/A"}</p>
-                   <p className="text-sm text-slate-400">{block.content?.email || "Email N/A"}</p>
-                   <p className="text-xs text-slate-500">{block.content?.address || "Address N/A"}</p>
+                <div className="space-y-3 sm:space-y-4">
+                   <h5 className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-500">Contact Channels</h5>
+                   <p className="text-xs sm:text-sm font-bold">{block.content?.phone || "Phone N/A"}</p>
+                   <p className="text-xs sm:text-sm text-slate-400">{block.content?.email || "Email N/A"}</p>
+                   <p className="text-[11px] sm:text-xs text-slate-500">{block.content?.address || "Address N/A"}</p>
                 </div>
-                <div className="space-y-4">
-                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Legal Documents</h5>
-                   <div className="flex flex-col gap-2">
-                      <button className="text-sm text-slate-400 hover:text-white transition-colors text-left">Privacy Policy</button>
-                      <button className="text-sm text-slate-400 hover:text-white transition-colors text-left">Terms & Conditions</button>
+                <div className="space-y-3 sm:space-y-4">
+                   <h5 className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-500">Legal Documents</h5>
+                   <div className="flex flex-col gap-1.5 sm:gap-2">
+                      <button className="text-xs sm:text-sm text-slate-400 hover:text-white transition-colors text-left">Privacy Policy</button>
+                      <button className="text-xs sm:text-sm text-slate-400 hover:text-white transition-colors text-left">Terms & Conditions</button>
                    </div>
                 </div>
              </div>
-             <div className="max-w-6xl mx-auto pt-12 mt-12 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">&copy; {new Date().getFullYear()} {block.content?.copyright || "All Rights Reserved"}</p>
+             <div className="max-w-6xl mx-auto pt-8 sm:pt-12 mt-8 sm:mt-12 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
+                <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-600">&copy; {new Date().getFullYear()} {block.content?.copyright || "All Rights Reserved"}</p>
                 <div className="flex gap-4">
                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
                 </div>
@@ -796,11 +807,25 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
              {selectedProducts.length > 0 ? (
                <LandingPageOrderForm products={selectedProducts} store={store} isOrganic={isOrganic} isTraditional={isTraditional} />
              ) : (
-               <div className="p-12 bg-white rounded-[40px] shadow-sm border-2 border-dashed flex flex-col items-center justify-center gap-4 text-slate-300">
-                  <CreditCard className="w-10 h-10 opacity-10" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Select products in sidebar to see order form</span>
+               <div className="p-8 sm:p-12 bg-white rounded-2xl sm:rounded-[40px] shadow-sm border-2 border-dashed flex flex-col items-center justify-center gap-4 text-slate-300">
+                  <CreditCard className="w-8 h-8 sm:w-10 sm:h-10 opacity-10" />
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center">Select products in sidebar to see order form</span>
                </div>
              )}
+          </div>
+        );
+
+      case "checked-list":
+        return (
+          <div style={style} className="px-4 w-full max-w-6xl mx-auto space-y-3 sm:space-y-4">
+            {(block.content?.items || []).map((item: string, i: number) => (
+              <div key={i} className="flex items-start gap-3 sm:gap-4">
+                <div className="mt-1 bg-primary/10 p-1 sm:p-1.5 rounded-full text-primary shadow-sm">
+                  <CheckCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-primary text-white" />
+                </div>
+                <span className="text-base sm:text-xl font-medium pt-0.5">{item}</span>
+              </div>
+            ))}
           </div>
         );
 
@@ -860,7 +885,6 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
 
     setIsPlacingOrder(true);
     try {
-      // Fraud Check
       const blockValues = [clientIp, formData.phone].filter(Boolean);
       if (blockValues.length > 0) {
         const fraudQ = query(
@@ -923,130 +947,130 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
 
   if (orderSuccess) {
     return (
-      <Card className="rounded-[40px] shadow-2xl p-12 text-center bg-white animate-in zoom-in-95 duration-500">
-        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto mb-6">
-          <CheckCircle2 className="w-12 h-12" />
+      <Card className="rounded-[32px] sm:rounded-[40px] shadow-2xl p-8 sm:p-12 text-center bg-white animate-in zoom-in-95 duration-500">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto mb-6">
+          <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12" />
         </div>
-        <h3 className="text-3xl font-headline font-black text-slate-900 uppercase">THANK YOU!</h3>
-        <p className="text-slate-500 mt-2">আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে।</p>
+        <h3 className="text-2xl sm:text-3xl font-headline font-black text-slate-900 uppercase">THANK YOU!</h3>
+        <p className="text-sm sm:text-slate-500 mt-2">আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে।</p>
       </Card>
     );
   }
 
   return (
     <Card className={cn(
-      "rounded-[40px] shadow-2xl border-none overflow-hidden text-left bg-white",
+      "rounded-[32px] sm:rounded-[40px] shadow-2xl border-none overflow-hidden text-left bg-white",
       (isOrganic || isTraditional) && "border-2 border-[#d9e8da] bg-[#fdf8f0]"
     )}>
       <div className={cn(
-        "text-white p-10 md:p-14 text-center",
+        "text-white p-8 sm:p-14 text-center",
         isOrganic ? "bg-[#1b5e20]" : isTraditional ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]" : "bg-[#161625]"
       )}>
-        <h3 className="text-4xl md:text-5xl font-headline font-black mb-4 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3>
-        <p className="text-white/60 font-medium uppercase tracking-[0.3em] text-xs">নিরাপদ এবং দ্রুত ডেলিভারি</p>
+        <h3 className="text-3xl sm:text-5xl font-headline font-black mb-3 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3>
+        <p className="text-white/60 font-medium uppercase tracking-[0.3em] text-[9px] sm:text-xs">নিরাপদ এবং দ্রুত ডেলিভারি</p>
       </div>
 
-      <div className="p-8 md:p-14 space-y-12">
+      <div className="p-6 sm:p-14 space-y-8 sm:space-y-12">
         {products.length > 1 && (
-           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+           <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
               {products.map(p => (
                 <div 
                   key={p.id} 
                   onClick={() => setSelectedProductId(p.id)} 
-                  className={cn("flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedProductId === p.id ? "border-primary bg-primary/5" : "bg-white border-slate-100")}
+                  className={cn("flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer", selectedProductId === p.id ? "border-primary bg-primary/5" : "bg-white border-slate-100")}
                 >
-                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? 'border-primary' : 'border-slate-300')}>
-                    {selectedProductId === p.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                  <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? 'border-primary' : 'border-slate-300')}>
+                    {selectedProductId === p.id && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
                   </div>
-                  <img src={p.featuredImage} className="w-10 h-10 rounded-lg object-cover" />
-                  <div className="flex-1">
-                    <p className="font-bold text-xs truncate">{p.name}</p>
-                    <p className={cn("font-black text-sm", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>৳ {p.currentPrice}</p>
+                  <img src={p.featuredImage} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-[10px] sm:text-xs truncate">{p.name}</p>
+                    <p className={cn("font-black text-xs sm:text-sm", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>৳ {p.currentPrice}</p>
                   </div>
                 </div>
               ))}
            </div>
         )}
 
-        <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 border-t">
-          <div className="space-y-8">
-            <div className="space-y-4">
-               <Label className={cn("text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>আপনার তথ্য</Label>
-               <Input placeholder="আপনার পুরো নাম" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
-               <Input placeholder="মোবাইল নাম্বার" className="rounded-2xl h-14 bg-white border-2 border-slate-100 px-6 text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-               <Textarea placeholder="পুরো ঠিকানা (জেলা সহ)" className="rounded-3xl min-h-[120px] bg-white border-2 border-slate-100 p-6 text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+        <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 pt-6 sm:pt-8 border-t">
+          <div className="space-y-6 sm:space-y-8">
+            <div className="space-y-3 sm:space-y-4">
+               <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>আপনার তথ্য</Label>
+               <Input placeholder="আপনার পুরো নাম" className="rounded-xl sm:rounded-2xl h-12 sm:h-14 bg-white border-2 border-slate-100 px-4 sm:px-6 text-base sm:text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
+               <Input placeholder="মোবাইল নাম্বার" className="rounded-xl sm:rounded-2xl h-12 sm:h-14 bg-white border-2 border-slate-100 px-4 sm:px-6 text-base sm:text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+               <Textarea placeholder="পুরো ঠিকানা (জেলা সহ)" className="rounded-2xl sm:rounded-3xl min-h-[100px] sm:min-h-[120px] bg-white border-2 border-slate-100 p-4 sm:p-6 text-base sm:text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
             </div>
 
             {store?.shippingSettings?.enabled && (
-              <div className="space-y-4">
-                 <Label className={cn("text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>ডেলিভারি এরিয়া</Label>
-                 <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-3 sm:space-y-4">
+                 <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>ডেলিভারি এরিয়া</Label>
+                 <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
                    {store.shippingSettings.methods.map((method: any) => (
                      <div 
                        key={method.id} 
-                       className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
+                       className={cn("flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
                        onClick={() => setSelectedShipping(method)}
                      >
                         <div className="flex items-center gap-3">
-                          <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedShipping?.id === method.id ? 'border-primary' : 'border-slate-300')}>
-                            {selectedShipping?.id === method.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                          <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", selectedShipping?.id === method.id ? 'border-primary' : 'border-slate-300')}>
+                            {selectedShipping?.id === method.id && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
                           </div>
-                          <span className="font-bold text-sm">{method.name}</span>
+                          <span className="font-bold text-xs sm:text-sm">{method.name}</span>
                         </div>
-                        <span className="font-black text-sm">{method.cost > 0 ? `৳ ${method.cost}` : 'ফ্রি'}</span>
+                        <span className="font-black text-xs sm:text-sm">{method.cost > 0 ? `৳ ${method.cost}` : 'ফ্রি'}</span>
                      </div>
                    ))}
                  </div>
               </div>
             )}
 
-            <div className="space-y-4">
-               <Label className={cn("text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>পেমেন্ট মেথড</Label>
-               <div className="grid grid-cols-1 gap-3">
+            <div className="space-y-3 sm:space-y-4">
+               <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>পেমেন্ট মেথড</Label>
+               <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
                   {store?.paymentSettings?.cod && (
                     <div 
-                      className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
+                      className={cn("flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
                       onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
                     >
                        <div className="flex items-center gap-3">
-                          <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
-                            {formData.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                          <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
+                            {formData.paymentMethod === 'cod' && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
                           </div>
-                          <span className="font-bold">ক্যাশ অন ডেলিভারি</span>
+                          <span className="font-bold text-sm sm:text-base">ক্যাশ অন ডেলিভারি</span>
                        </div>
-                       <Truck className="w-5 h-5 text-slate-300" />
+                       <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
                     </div>
                   )}
 
                   {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
                     <div 
-                      className={cn("flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
+                      className={cn("flex flex-col p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
                       onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
                     >
                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'manual' ? 'border-primary' : 'border-slate-300')}>
-                              {formData.paymentMethod === 'manual' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                            <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'manual' ? 'border-primary' : 'border-slate-300')}>
+                              {formData.paymentMethod === 'manual' && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
                             </div>
-                            <span className="font-bold">বিকাশ/নগদ/রকেট</span>
+                            <span className="font-bold text-sm sm:text-base">বিকাশ/নগদ/রকেট</span>
                           </div>
-                          <Smartphone className="w-5 h-5 text-slate-300" />
+                          <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
                        </div>
 
                        {formData.paymentMethod === 'manual' && (
                          <div className="mt-4 pt-4 border-t border-primary/10 space-y-4 animate-in slide-in-from-top-2">
                             <div className="grid grid-cols-2 gap-2">
                                {store.paymentSettings.manualMethods.map((m: any) => (
-                                 <Button key={m.id} type="button" variant="outline" className={cn("h-10 rounded-xl text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white border-none' : '')} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: m.id})); }}>{m.name}</Button>
+                                 <Button key={m.id} type="button" variant="outline" className={cn("h-9 sm:h-10 rounded-xl text-[9px] sm:text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white border-none' : '')} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: m.id})); }}>{m.name}</Button>
                                ))}
                             </div>
                             {selectedManualMethod && (
-                               <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
-                                  <div className="p-4 bg-white rounded-2xl border-2 border-primary/10">
-                                     <p className="text-[10px] font-black text-primary uppercase">নাম্বার: {selectedManualMethod.number}</p>
-                                     <p className="text-[10px] text-slate-500 mt-1 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</p>
+                               <div className="space-y-3 sm:space-y-4" onClick={(e) => e.stopPropagation()}>
+                                  <div className="p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl border-2 border-primary/10">
+                                     <p className="text-[9px] sm:text-[10px] font-black text-primary uppercase">নাম্বার: {selectedManualMethod.number}</p>
+                                     <p className="text-[9px] sm:text-[10px] text-slate-500 mt-1 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</p>
                                   </div>
-                                  <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
+                                  <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-11 sm:h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
                                </div>
                             )}
                          </div>
@@ -1057,29 +1081,29 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className={cn("p-10 rounded-[40px] border space-y-5", (isOrganic || isTraditional) ? "bg-white border-[#d9e8da]" : "bg-slate-50")}>
-              <div className="flex justify-between text-muted-foreground font-bold text-xs uppercase tracking-widest">
+          <div className="space-y-5 sm:space-y-6">
+            <div className={cn("p-8 sm:p-10 rounded-3xl sm:rounded-[40px] border space-y-4 sm:space-y-5", (isOrganic || isTraditional) ? "bg-white border-[#d9e8da]" : "bg-slate-50")}>
+              <div className="flex justify-between text-muted-foreground font-bold text-[10px] sm:text-xs uppercase tracking-widest">
                 <span>পণ্য মূল্য</span>
                 <span>৳ {product?.currentPrice || 0}</span>
               </div>
-              <div className="flex justify-between text-muted-foreground font-bold text-xs uppercase tracking-widest">
+              <div className="flex justify-between text-muted-foreground font-bold text-[10px] sm:text-xs uppercase tracking-widest">
                 <span>ডেলিভারি চার্জ</span>
                 <span className={cn("font-black", (selectedShipping?.cost || 0) > 0 ? "text-slate-900" : "text-emerald-500")}>
                    { (selectedShipping?.cost || 0) > 0 ? `৳ ${selectedShipping.cost}` : 'ফ্রি' }
                 </span>
               </div>
-              <div className={cn("flex justify-between text-4xl font-black border-t pt-8 mt-4", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>
-                <span className="text-xs pt-4 uppercase">মোট</span>
+              <div className={cn("flex justify-between text-3xl sm:text-4xl font-black border-t pt-6 sm:pt-8 mt-4", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>
+                <span className="text-[9px] sm:text-xs pt-3 sm:pt-4 uppercase">মোট</span>
                 <span>৳ {(Number(product?.currentPrice || 0) + (selectedShipping?.cost || 0)).toFixed(0)}</span>
               </div>
             </div>
-            <Button type="submit" disabled={isPlacingOrder || !product} className={cn("w-full h-20 rounded-[32px] text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", (isOrganic || isTraditional) ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "bg-primary")}>
+            <Button type="submit" disabled={isPlacingOrder || !product} className={cn("w-full h-16 sm:h-20 rounded-2xl sm:rounded-[32px] text-xl sm:text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", (isOrganic || isTraditional) ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "bg-primary")}>
               {isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}
             </Button>
             <div className="flex items-center justify-center gap-2 text-slate-400 mt-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em]">নিরাপদ পেমেন্ট ব্যবস্থা</span>
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
+              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em]">নিরাপদ পেমেন্ট ব্যবস্থা</span>
             </div>
           </div>
         </form>
