@@ -57,6 +57,15 @@ export interface Block {
     highlightColor?: string;
     accentColor?: string;
     refBgColor?: string;
+    backgroundSize?: string;
+    backgroundRepeat?: string;
+    backgroundPosition?: string;
+    backgroundTexture?: string;
+    backgroundOpacity?: number;
+    iconName?: string;
+    iconColor?: string;
+    iconSize?: number;
+    iconPosition?: "left" | "right" | "top" | "bottom";
   };
   children?: Block[];
 }

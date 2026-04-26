@@ -133,14 +133,20 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
 
            <PropertySection label="Brand Logo" icon={Globe}>
               <div className="space-y-4">
-                 <Select value={block.content?.logoType || "text"} onValueChange={(val) => onChange({ content: { logoType: val } })}>
-                    <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                       <SelectItem value="text">Text Brand</SelectItem>
-                       <SelectItem value="image">Image Logo</SelectItem>
-                       <SelectItem value="icon">Icon Mark</SelectItem>
-                    </SelectContent>
-                 </Select>
+                 <div className="flex items-center justify-between">
+                    <Label className="text-[10px] font-bold text-white/90">Show Logo</Label>
+                    <Switch checked={block.content?.showLogo !== false} onCheckedChange={(val) => onChange({ content: { showLogo: val } })} />
+                 </div>
+                 {block.content?.showLogo !== false && (
+                    <>
+                       <Select value={block.content?.logoType || "text"} onValueChange={(val) => onChange({ content: { logoType: val } })}>
+                          <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                             <SelectItem value="text">Text Brand</SelectItem>
+                             <SelectItem value="image">Image Logo</SelectItem>
+                             <SelectItem value="icon">Icon Mark</SelectItem>
+                          </SelectContent>
+                       </Select>
 
                  {block.content?.logoType === "text" && (
                    <Input value={block.content?.logoText || ""} onChange={(e) => onChange({ content: { logoText: e.target.value } })} placeholder="Brand Name" className="h-8 bg-black/20 border-none text-white text-xs" />
@@ -157,6 +163,8 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                           {COMMON_ICONS.map(i => <SelectItem key={i} value={i} className="text-[10px]">{i}</SelectItem>)}
                        </SelectContent>
                     </Select>
+                 )}
+                 </>
                  )}
               </div>
            </PropertySection>
@@ -179,12 +187,141 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                          items[idx].link = e.target.value;
                          onChange({ content: { items } });
                       }} className="h-7 bg-black/20 border-none text-white text-[10px]" placeholder="Link URL" />
+                      <Select value={item.position || "center"} onValueChange={(val) => {
+                         const items = [...block.content.items];
+                         items[idx].position = val;
+                         onChange({ content: { items } });
+                      }}>
+                         <SelectTrigger className="h-7 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                         <SelectContent>
+                            <SelectItem value="left">Left</SelectItem>
+                            <SelectItem value="center">Center</SelectItem>
+                            <SelectItem value="right">Right</SelectItem>
+                         </SelectContent>
+                      </Select>
                    </div>
                  ))}
                  <Button variant="outline" className="w-full h-8 text-[9px] border-dashed border-white/10 bg-transparent text-white/40" onClick={() => {
                    const items = [...(block.content?.items || []), { id: Math.random().toString(36).substr(2, 9), label: "New Link", link: "/", position: "center" }];
                    onChange({ content: { items } });
                  }}>+ Add Menu Link</Button>
+              </div>
+           </PropertySection>
+
+           <PropertySection label="Action Buttons" icon={PlusCircle}>
+              <div className="space-y-3">
+                 {(block.content?.buttons || []).map((btn: any, idx: number) => (
+                   <div key={idx} className="p-3 bg-black/20 rounded-xl space-y-2 relative group">
+                      <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-5 w-5 text-rose-400 opacity-0 group-hover:opacity-100" onClick={() => {
+                        const buttons = block.content.buttons.filter((_:any, i:number) => i !== idx);
+                        onChange({ content: { buttons } });
+                      }}><Trash2 className="w-2.5 h-2.5" /></Button>
+                      <Input value={btn.label} onChange={(e) => {
+                         const buttons = [...block.content.buttons];
+                         buttons[idx].label = e.target.value;
+                         onChange({ content: { buttons } });
+                      }} className="h-7 bg-black/20 border-none text-white text-[10px]" placeholder="Button Label" />
+                      <Input value={btn.link} onChange={(e) => {
+                         const buttons = [...block.content.buttons];
+                         buttons[idx].link = e.target.value;
+                         onChange({ content: { buttons } });
+                      }} className="h-7 bg-black/20 border-none text-white text-[10px]" placeholder="Link URL" />
+                      <div className="grid grid-cols-2 gap-2">
+                          <Select value={btn.position || "right"} onValueChange={(val) => {
+                             const buttons = [...block.content.buttons];
+                             buttons[idx].position = val;
+                             onChange({ content: { buttons } });
+                          }}>
+                             <SelectTrigger className="h-7 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                             <SelectContent>
+                                <SelectItem value="left">Left</SelectItem>
+                                <SelectItem value="center">Center</SelectItem>
+                                <SelectItem value="right">Right</SelectItem>
+                             </SelectContent>
+                          </Select>
+                          <Select value={btn.type || "solid"} onValueChange={(val) => {
+                             const buttons = [...block.content.buttons];
+                             buttons[idx].type = val;
+                             onChange({ content: { buttons } });
+                          }}>
+                             <SelectTrigger className="h-7 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                             <SelectContent>
+                                <SelectItem value="solid">Solid Color</SelectItem>
+                                <SelectItem value="outline">Outline</SelectItem>
+                                <SelectItem value="gradient">Gradient</SelectItem>
+                                <SelectItem value="flat">Flat</SelectItem>
+                                <SelectItem value="texture">Texture</SelectItem>
+                                <SelectItem value="image">Image</SelectItem>
+                             </SelectContent>
+                          </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[8px] text-white/40">BG/Gradient Color</Label>
+                          <Input type="color" value={btn.bgColor || "#145DCC"} onChange={(e) => {
+                             const buttons = [...block.content.buttons];
+                             buttons[idx].bgColor = e.target.value;
+                             onChange({ content: { buttons } });
+                          }} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[8px] text-white/40">Text Color</Label>
+                          <Input type="color" value={btn.textColor || "#ffffff"} onChange={(e) => {
+                             const buttons = [...block.content.buttons];
+                             buttons[idx].textColor = e.target.value;
+                             onChange({ content: { buttons } });
+                          }} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[8px] text-white/40">Border Color</Label>
+                          <Input type="color" value={btn.borderColor || "#ffffff"} onChange={(e) => {
+                             const buttons = [...block.content.buttons];
+                             buttons[idx].borderColor = e.target.value;
+                             onChange({ content: { buttons } });
+                          }} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[8px] text-white/40">Border Radius</Label>
+                          <Input type="number" value={btn.borderRadius || 8} onChange={(e) => {
+                             const buttons = [...block.content.buttons];
+                             buttons[idx].borderRadius = Number(e.target.value);
+                             onChange({ content: { buttons } });
+                          }} className="h-7 w-full bg-black/20 border-none text-[10px] text-white" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[8px] text-white/40">Border Size</Label>
+                          <Input type="number" value={btn.borderSize || 0} onChange={(e) => {
+                             const buttons = [...block.content.buttons];
+                             buttons[idx].borderSize = Number(e.target.value);
+                             onChange({ content: { buttons } });
+                          }} className="h-7 w-full bg-black/20 border-none text-[10px] text-white" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[8px] text-white/40">Font Size</Label>
+                          <Input type="number" value={btn.fontSize || 14} onChange={(e) => {
+                             const buttons = [...block.content.buttons];
+                             buttons[idx].fontSize = Number(e.target.value);
+                             onChange({ content: { buttons } });
+                          }} className="h-7 w-full bg-black/20 border-none text-[10px] text-white" />
+                        </div>
+                      </div>
+                      {btn.type === 'image' && (
+                         <CloudinaryUpload value={btn.bgImage || ""} onUpload={(url) => {
+                             const buttons = [...block.content.buttons];
+                             buttons[idx].bgImage = url;
+                             onChange({ content: { buttons } });
+                         }} onRemove={() => {
+                             const buttons = [...block.content.buttons];
+                             buttons[idx].bgImage = "";
+                             onChange({ content: { buttons } });
+                         }} />
+                      )}
+                   </div>
+                 ))}
+                 <Button variant="outline" className="w-full h-8 text-[9px] border-dashed border-white/10 bg-transparent text-white/40" onClick={() => {
+                   const buttons = [...(block.content?.buttons || []), { id: Math.random().toString(36).substr(2, 9), label: "New Button", link: "/", position: "right", type: "solid", bgColor: "#145DCC", textColor: "#ffffff", borderRadius: 8, borderSize: 0, fontSize: 14 }];
+                   onChange({ content: { buttons } });
+                 }}>+ Add Button</Button>
               </div>
            </PropertySection>
         </div>
@@ -443,6 +580,94 @@ export function PropertyEditor({ block, products, onChange }: PropertyEditorProp
                         </SelectContent>
                       </Select>
                    </div>
+                 )}
+              </div>
+           </PropertySection>
+
+           <PropertySection label="Card Styling" icon={LucideIcons.Box}>
+              <div className="space-y-4">
+                 <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                       <Label className="text-[9px] uppercase font-bold text-white/40">Border Size</Label>
+                       <Input type="number" value={block.content?.cardBorderSize || 0} onChange={(e) => onChange({ content: { cardBorderSize: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                    </div>
+                    <div className="space-y-1">
+                       <Label className="text-[9px] uppercase font-bold text-white/40">Border Radius</Label>
+                       <Input type="number" value={block.content?.cardBorderRadius || 12} onChange={(e) => onChange({ content: { cardBorderRadius: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                    </div>
+                 </div>
+                 <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                       <Label className="text-[9px] uppercase font-bold text-white/40">Border Color</Label>
+                       <Input type="color" value={block.content?.cardBorderColor || "#e2e8f0"} onChange={(e) => onChange({ content: { cardBorderColor: e.target.value } })} className="h-8 p-1 border-none bg-black/20 cursor-pointer w-full" />
+                    </div>
+                    <div className="space-y-1">
+                       <Label className="text-[9px] uppercase font-bold text-white/40">BG Color</Label>
+                       <Input type="color" value={block.content?.cardBgColor || "#ffffff"} onChange={(e) => onChange({ content: { cardBgColor: e.target.value } })} className="h-8 p-1 border-none bg-black/20 cursor-pointer w-full" />
+                    </div>
+                 </div>
+                 <div className="space-y-1">
+                    <Label className="text-[9px] uppercase font-bold text-white/40">Border Style</Label>
+                    <Select value={block.content?.cardBorderStyle || "solid"} onValueChange={(v) => onChange({ content: { cardBorderStyle: v } })}>
+                       <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                       <SelectContent>
+                          <SelectItem value="solid">Solid</SelectItem>
+                          <SelectItem value="dashed">Dashed</SelectItem>
+                          <SelectItem value="dotted">Dotted</SelectItem>
+                       </SelectContent>
+                    </Select>
+                 </div>
+              </div>
+           </PropertySection>
+        </div>
+      );
+
+    case "button":
+      return (
+        <div className="space-y-6">
+           <PropertySection label="Button Content" icon={LucideIcons.Type}>
+              <div className="space-y-3">
+                 <Input value={block.content?.text || ""} onChange={(e) => onChange({ content: { text: e.target.value } })} placeholder="Button Label" className="h-8 bg-black/20 border-none text-white text-xs" />
+                 <Input value={block.content?.link || ""} onChange={(e) => onChange({ content: { link: e.target.value } })} placeholder="Link URL" className="h-8 bg-black/20 border-none text-white text-xs" />
+              </div>
+           </PropertySection>
+           <PropertySection label="Button Design" icon={LucideIcons.Palette}>
+              <div className="space-y-4">
+                 <Select value={block.content?.type || "solid"} onValueChange={(val) => onChange({ content: { type: val } })}>
+                    <SelectTrigger className="h-8 bg-black/20 border-none text-white text-[10px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                       <SelectItem value="solid">Solid Color</SelectItem>
+                       <SelectItem value="outline">Outline</SelectItem>
+                       <SelectItem value="gradient">Gradient</SelectItem>
+                       <SelectItem value="flat">Flat</SelectItem>
+                       <SelectItem value="texture">Texture</SelectItem>
+                       <SelectItem value="image">Image</SelectItem>
+                    </SelectContent>
+                 </Select>
+                 <div className="grid grid-cols-2 gap-2">
+                   <div className="space-y-1">
+                     <Label className="text-[8px] text-white/40">BG/Gradient Color</Label>
+                     <Input type="color" value={block.content?.bgColor || "#145DCC"} onChange={(e) => onChange({ content: { bgColor: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
+                   </div>
+                   <div className="space-y-1">
+                     <Label className="text-[8px] text-white/40">Text Color</Label>
+                     <Input type="color" value={block.content?.textColor || "#ffffff"} onChange={(e) => onChange({ content: { textColor: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
+                   </div>
+                   <div className="space-y-1">
+                     <Label className="text-[8px] text-white/40">Border Color</Label>
+                     <Input type="color" value={block.content?.borderColor || "#ffffff"} onChange={(e) => onChange({ content: { borderColor: e.target.value } })} className="h-7 w-full p-1 border-none bg-black/20 cursor-pointer" />
+                   </div>
+                   <div className="space-y-1">
+                     <Label className="text-[8px] text-white/40">Border Radius</Label>
+                     <Input type="number" value={block.content?.borderRadius || 8} onChange={(e) => onChange({ content: { borderRadius: Number(e.target.value) } })} className="h-7 w-full bg-black/20 border-none text-[10px] text-white" />
+                   </div>
+                   <div className="space-y-1">
+                     <Label className="text-[8px] text-white/40">Border Size</Label>
+                     <Input type="number" value={block.content?.borderSize || 0} onChange={(e) => onChange({ content: { borderSize: Number(e.target.value) } })} className="h-7 w-full bg-black/20 border-none text-[10px] text-white" />
+                   </div>
+                 </div>
+                 {block.content?.type === 'image' && (
+                    <CloudinaryUpload value={block.content?.bgImage || ""} onUpload={(url) => onChange({ content: { bgImage: url } })} onRemove={() => onChange({ content: { bgImage: "" } })} />
                  )}
               </div>
            </PropertySection>

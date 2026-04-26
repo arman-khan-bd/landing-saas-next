@@ -541,10 +541,124 @@ function SectionEditorInner() {
                                 onRemove={() => updateBlock(selectedBlockId, { style: { backgroundImage: "" } })}
                               />
                            </div>
+                           {selectedBlock.style?.backgroundImage && (
+                              <div className="grid grid-cols-2 gap-2">
+                                 <div className="space-y-1">
+                                    <Label className="text-[9px] uppercase font-bold text-white/40">Size</Label>
+                                    <Select value={selectedBlock.style?.backgroundSize || "cover"} onValueChange={(v) => updateBlock(selectedBlockId, { style: { backgroundSize: v } })}>
+                                       <SelectTrigger className="h-8 bg-black/20 border-none text-[10px] text-white"><SelectValue /></SelectTrigger>
+                                       <SelectContent>
+                                          <SelectItem value="cover">Cover</SelectItem>
+                                          <SelectItem value="contain">Contain</SelectItem>
+                                          <SelectItem value="auto">Auto</SelectItem>
+                                       </SelectContent>
+                                    </Select>
+                                 </div>
+                                 <div className="space-y-1">
+                                    <Label className="text-[9px] uppercase font-bold text-white/40">Repeat</Label>
+                                    <Select value={selectedBlock.style?.backgroundRepeat || "no-repeat"} onValueChange={(v) => updateBlock(selectedBlockId, { style: { backgroundRepeat: v } })}>
+                                       <SelectTrigger className="h-8 bg-black/20 border-none text-[10px] text-white"><SelectValue /></SelectTrigger>
+                                       <SelectContent>
+                                          <SelectItem value="no-repeat">No Repeat</SelectItem>
+                                          <SelectItem value="repeat">Repeat</SelectItem>
+                                          <SelectItem value="repeat-x">Repeat X</SelectItem>
+                                          <SelectItem value="repeat-y">Repeat Y</SelectItem>
+                                       </SelectContent>
+                                    </Select>
+                                 </div>
+                              </div>
+                           )}
+                           <div className="space-y-1">
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Texture Pattern</Label>
+                              <Select value={selectedBlock.style?.backgroundTexture || "none"} onValueChange={(v) => updateBlock(selectedBlockId, { style: { backgroundTexture: v } })}>
+                                 <SelectTrigger className="h-8 bg-black/20 border-none text-[10px] text-white"><SelectValue /></SelectTrigger>
+                                 <SelectContent>
+                                    <SelectItem value="none">None</SelectItem>
+                                    <SelectItem value="dots">Dots</SelectItem>
+                                    <SelectItem value="grid">Grid</SelectItem>
+                                    <SelectItem value="diagonal">Diagonal Lines</SelectItem>
+                                 </SelectContent>
+                              </Select>
+                           </div>
                         </div>
                       </PropertySection>
 
+                      <PropertySection label="Iconographic" icon={LucideIcons.Star}>
+                        <div className="space-y-4">
+                           <div className="space-y-1">
+                              <Label className="text-[9px] uppercase font-bold text-white/40">Block Icon</Label>
+                              <Select value={selectedBlock.style?.iconName || "none"} onValueChange={(v) => updateBlock(selectedBlockId, { style: { iconName: v } })}>
+                                 <SelectTrigger className="h-8 bg-black/20 border-none text-[10px] text-white"><SelectValue /></SelectTrigger>
+                                 <SelectContent className="max-h-[200px]">
+                                    <SelectItem value="none">No Icon</SelectItem>
+                                    <SelectItem value="Star">Star</SelectItem>
+                                    <SelectItem value="Heart">Heart</SelectItem>
+                                    <SelectItem value="Shield">Shield</SelectItem>
+                                    <SelectItem value="Zap">Zap (Lightning)</SelectItem>
+                                    <SelectItem value="CheckCircle">Check Circle</SelectItem>
+                                    <SelectItem value="Info">Info</SelectItem>
+                                    <SelectItem value="Globe">Globe</SelectItem>
+                                    <SelectItem value="Sparkles">Sparkles</SelectItem>
+                                 </SelectContent>
+                              </Select>
+                           </div>
+                           {selectedBlock.style?.iconName && selectedBlock.style.iconName !== 'none' && (
+                              <div className="grid grid-cols-2 gap-2">
+                                 <div className="space-y-1">
+                                    <Label className="text-[9px] uppercase font-bold text-white/40">Icon Color</Label>
+                                    <Input type="color" value={selectedBlock.style?.iconColor || "#000000"} onChange={(e) => updateBlock(selectedBlockId, { style: { iconColor: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer w-full" />
+                                 </div>
+                                 <div className="space-y-1">
+                                    <Label className="text-[9px] uppercase font-bold text-white/40">Icon Size</Label>
+                                    <Input type="number" value={selectedBlock.style?.iconSize || 24} onChange={(e) => updateBlock(selectedBlockId, { style: { iconSize: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                                 </div>
+                                 <div className="col-span-2 space-y-1">
+                                    <Label className="text-[9px] uppercase font-bold text-white/40">Position</Label>
+                                    <Select value={selectedBlock.style?.iconPosition || "top"} onValueChange={(v) => updateBlock(selectedBlockId, { style: { iconPosition: v } })}>
+                                       <SelectTrigger className="h-8 bg-black/20 border-none text-[10px] text-white"><SelectValue /></SelectTrigger>
+                                       <SelectContent>
+                                          <SelectItem value="top">Top</SelectItem>
+                                          <SelectItem value="left">Left</SelectItem>
+                                          <SelectItem value="right">Right</SelectItem>
+                                          <SelectItem value="bottom">Bottom</SelectItem>
+                                       </SelectContent>
+                                    </Select>
+                                 </div>
+                              </div>
+                           )}
+                        </div>
+                      </PropertySection>
                       <PropertySection label="Border & Shape" icon={Square}>
+                        <div className="space-y-4">
+                           <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                 <Label className="text-[9px] uppercase font-bold text-white/40">Border Width</Label>
+                                 <Input type="number" value={selectedBlock.style?.borderWidth || 0} onChange={(e) => updateBlock(selectedBlockId, { style: { borderWidth: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                              </div>
+                              <div className="space-y-1">
+                                 <Label className="text-[9px] uppercase font-bold text-white/40">Corner Radius</Label>
+                                 <Input type="number" value={selectedBlock.style?.borderRadius || 0} onChange={(e) => updateBlock(selectedBlockId, { style: { borderRadius: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
+                              </div>
+                           </div>
+                           <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                 <Label className="text-[9px] uppercase font-bold text-white/40">Border Color</Label>
+                                 <Input type="color" value={selectedBlock.style?.borderColor || "#000000"} onChange={(e) => updateBlock(selectedBlockId, { style: { borderColor: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer w-full" />
+                              </div>
+                              <div className="space-y-1">
+                                 <Label className="text-[9px] uppercase font-bold text-white/40">Border Style</Label>
+                                 <Select value={selectedBlock.style?.borderStyle || "solid"} onValueChange={(v) => updateBlock(selectedBlockId, { style: { borderStyle: v } })}>
+                                    <SelectTrigger className="h-8 bg-black/20 border-none text-[10px] text-white"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                       <SelectItem value="solid">Solid</SelectItem>
+                                       <SelectItem value="dashed">Dashed</SelectItem>
+                                       <SelectItem value="dotted">Dotted</SelectItem>
+                                    </SelectContent>
+                                 </Select>
+                              </div>
+                           </div>
+                        </div>
+                      </PropertySection>
                         <div className="space-y-4">
                            <div className="grid grid-cols-2 gap-2">
                               <div className="space-y-1">

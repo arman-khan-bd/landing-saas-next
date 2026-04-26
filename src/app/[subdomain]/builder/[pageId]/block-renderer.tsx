@@ -206,8 +206,9 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     textAlign: block.style?.textAlign,
     backgroundColor: block.style?.backgroundColor,
     backgroundImage: block.style?.backgroundImage ? `url(${block.style.backgroundImage})` : undefined,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
+    backgroundSize: block.style?.backgroundSize || 'cover',
+    backgroundPosition: block.style?.backgroundPosition || 'center',
+    backgroundRepeat: block.style?.backgroundRepeat || 'no-repeat',
     color: block.style?.textColor,
     fontSize: adaptiveFontSize ? `${adaptiveFontSize}px` : undefined,
     fontWeight: block.style?.fontWeight,
@@ -217,6 +218,21 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     borderRadius: block.style?.borderRadius ? `${block.style.borderRadius}px` : undefined,
     ...(block.style?.columnSpan !== undefined && { gridColumn: `span ${block.style.columnSpan}` }),
     ...getAnimationStyle()
+  };
+
+  const renderBlockIcon = () => {
+    if (!block.style?.iconName || block.style.iconName === 'none') return null;
+    const Icon = (LucideIcons as any)[block.style.iconName];
+    if (!Icon) return null;
+    return (
+       <div className={cn("flex w-full mb-4", {
+          "justify-start": block.style.iconPosition === "left",
+          "justify-center": block.style.iconPosition === "top" || !block.style.iconPosition,
+          "justify-end": block.style.iconPosition === "right"
+       })}>
+          <Icon size={block.style.iconSize || 48} color={block.style.iconColor || "currentColor"} />
+       </div>
+    );
   };
 
   const handleButtonClick = (link?: string) => {
@@ -266,7 +282,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             "justify-center": pos === "center",
             "justify-end": pos === "right"
           })}>
-            {block.content?.logoPosition === pos && (
+            {(block.content?.showLogo !== false) && (block.content?.logoPosition === pos || (!block.content?.logoPosition && pos === 'left')) && (
               <div className="flex items-center gap-2">
                 {block.content?.logoType === "image" && block.content?.logoUrl ? (
                   <img src={block.content.logoUrl} className="h-6 sm:h-8 w-auto object-contain" alt="logo" />
@@ -278,12 +294,30 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
               </div>
             )}
             <div className="hidden sm:flex items-center gap-6">
-              {navItems.filter((i: any) => i.position === pos).map((item: any) => (
+              {navItems.filter((i: any) => (i.position || 'center') === pos).map((item: any) => (
                 <button key={item.id} onClick={() => handleButtonClick(item.link)} className="text-sm font-bold opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap">
                   {item.label}
                 </button>
               ))}
             </div>
+            {(block.content?.buttons || []).filter((b: any) => (b.position || 'right') === pos).map((btn: any) => {
+               const btnStyle: any = {};
+               if (btn.type === 'solid' || btn.type === 'gradient' || btn.type === 'flat') btnStyle.backgroundColor = btn.bgColor || '#145DCC';
+               if (btn.type === 'gradient') btnStyle.background = `linear-gradient(135deg, ${btn.bgColor || '#145DCC'}, ${btn.bgColor ? btn.bgColor+'cc' : '#104ea3'})`;
+               if (btn.type === 'outline') { btnStyle.backgroundColor = 'transparent'; btnStyle.borderColor = btn.borderColor || '#ffffff'; btnStyle.borderWidth = `${btn.borderSize || 2}px`; btnStyle.borderStyle = 'solid'; }
+               if (btn.type === 'texture') { btnStyle.backgroundColor = btn.bgColor || '#145DCC'; btnStyle.backgroundImage = `repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 1px, transparent 0, transparent 50%)`; btnStyle.backgroundSize = '10px 10px'; }
+               if (btn.type === 'image' && btn.bgImage) { btnStyle.backgroundImage = `url(${btn.bgImage})`; btnStyle.backgroundSize = 'cover'; btnStyle.backgroundPosition = 'center'; }
+               btnStyle.color = btn.textColor || '#ffffff';
+               btnStyle.borderRadius = `${btn.borderRadius || 8}px`;
+               btnStyle.fontSize = `${btn.fontSize || 14}px`;
+               if (btn.borderSize > 0 && btn.type !== 'outline') { btnStyle.borderWidth = `${btn.borderSize}px`; btnStyle.borderStyle = 'solid'; btnStyle.borderColor = btn.borderColor || '#ffffff'; }
+               
+               return (
+                 <Button key={btn.id} style={btnStyle} className="font-bold whitespace-nowrap transition-transform hover:scale-105" onClick={() => handleButtonClick(btn.link)}>
+                    {btn.label}
+                 </Button>
+               );
+            })}
             {showCta && block.content?.ctaPosition === pos && (
               <Button 
                 size="sm" 
@@ -602,13 +636,21 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
         
         return (
           <div 
-            style={style} 
+            style={{
+              ...style,
+              borderWidth: block.content?.cardBorderSize ? `${block.content.cardBorderSize}px` : undefined,
+              borderRadius: block.content?.cardBorderRadius ? `${block.content.cardBorderRadius}px` : undefined,
+              borderColor: block.content?.cardBorderColor,
+              borderStyle: block.content?.cardBorderStyle || 'solid',
+              backgroundColor: block.content?.cardBgColor,
+            }} 
             className={cn(
               "px-4 w-full max-w-6xl mx-auto relative overflow-hidden",
-              isOrganic && !block.style?.borderWidth && "border-l-4 border-[#2d7a3a] bg-white rounded-r-xl shadow-sm",
-              isTraditional && !block.style?.borderWidth && "border-l-4 border-[#1a7c3e] bg-white rounded-r-xl shadow-sm"
+              isOrganic && !block.content?.cardBorderSize && !block.style?.borderWidth && "border-l-4 border-[#2d7a3a] bg-white rounded-r-xl shadow-sm",
+              isTraditional && !block.content?.cardBorderSize && !block.style?.borderWidth && "border-l-4 border-[#1a7c3e] bg-white rounded-r-xl shadow-sm"
             )}
           >
+            {renderBlockIcon()}
             {block.content?.bgImage && <img src={block.content.bgImage} className="absolute inset-0 w-full h-full object-cover z-0 opacity-40" alt="" />}
             <div className={cn("relative z-10 flex", 
               isHorizontal ? "flex-col xs:flex-row items-center gap-3 sm:gap-4" : "flex-col gap-4",
@@ -676,6 +718,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
                  isOrganic ? "bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" : "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]"
                )} />
             )}
+            {renderBlockIcon()}
             <HeaderTag className={headerSizes[HeaderTag]}>
               {renderTextWithHighlights(block.content?.text || "Heading", block.style?.highlightColor)}
             </HeaderTag>
@@ -683,7 +726,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
         );
 
       case "paragraph":
-        return <div style={style} className="px-4 w-full leading-relaxed whitespace-pre-wrap text-base sm:text-lg opacity-80">{renderTextWithHighlights(block.content?.text || "Text", block.style?.highlightColor)}</div>;
+        return <div style={style} className="px-4 w-full leading-relaxed whitespace-pre-wrap text-base sm:text-lg opacity-80">{renderBlockIcon()}{renderTextWithHighlights(block.content?.text || "Text", block.style?.highlightColor)}</div>;
 
       case "rich-text":
         return (
@@ -708,16 +751,25 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
         </div>;
 
       case "button":
+        const btnStyleConfig = block.content || {};
+        const bs: any = { ...style };
+        if (btnStyleConfig.type === 'solid' || btnStyleConfig.type === 'gradient' || btnStyleConfig.type === 'flat') bs.backgroundColor = btnStyleConfig.bgColor || '#145DCC';
+        if (btnStyleConfig.type === 'gradient') bs.background = `linear-gradient(135deg, ${btnStyleConfig.bgColor || '#145DCC'}, ${btnStyleConfig.bgColor ? btnStyleConfig.bgColor+'cc' : '#104ea3'})`;
+        if (btnStyleConfig.type === 'outline') { bs.backgroundColor = 'transparent'; bs.borderColor = btnStyleConfig.borderColor || '#ffffff'; bs.borderWidth = `${btnStyleConfig.borderSize || 2}px`; bs.borderStyle = 'solid'; }
+        if (btnStyleConfig.type === 'texture') { bs.backgroundColor = btnStyleConfig.bgColor || '#145DCC'; bs.backgroundImage = `repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 1px, transparent 0, transparent 50%)`; bs.backgroundSize = '10px 10px'; }
+        if (btnStyleConfig.type === 'image' && btnStyleConfig.bgImage) { bs.backgroundImage = `url(${btnStyleConfig.bgImage})`; bs.backgroundSize = 'cover'; bs.backgroundPosition = 'center'; }
+        bs.color = btnStyleConfig.textColor || '#ffffff';
+        bs.borderRadius = `${btnStyleConfig.borderRadius || 8}px`;
+        
+        if (btnStyleConfig.borderSize > 0 && btnStyleConfig.type !== 'outline') { bs.borderWidth = `${btnStyleConfig.borderSize}px`; bs.borderStyle = 'solid'; bs.borderColor = btnStyleConfig.borderColor || '#ffffff'; }
+
         return (
-          <div style={style} className="px-4 w-full">
+          <div style={style} className="px-4 w-full flex justify-center flex-col items-center">
+            {renderBlockIcon()}
             <Button 
               size="lg" 
-              className={cn(
-                "rounded-xl sm:rounded-2xl px-6 sm:px-12 h-12 sm:h-16 font-bold text-base sm:text-xl shadow-2xl transition-all hover:scale-105 w-full sm:w-auto",
-                isOrganic ? "bg-[#c9941a] hover:bg-[#b5830e] text-white shadow-primary/30" : 
-                isTraditional ? "bg-gradient-to-br from-[#f9a825] to-[#e65c00] hover:opacity-90 text-white shadow-primary/30" : 
-                "bg-primary text-white shadow-primary/30"
-              )} 
+              style={bs}
+              className="rounded-xl sm:rounded-2xl px-6 sm:px-12 h-12 sm:h-16 font-bold text-base sm:text-xl shadow-2xl transition-all hover:scale-105 w-full sm:w-auto"
               onClick={() => handleButtonClick()}
             >
               {block.content?.text || "Action Button"}
