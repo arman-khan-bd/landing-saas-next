@@ -659,23 +659,6 @@ function SectionEditorInner() {
                            </div>
                         </div>
                       </PropertySection>
-                        <div className="space-y-4">
-                           <div className="grid grid-cols-2 gap-2">
-                              <div className="space-y-1">
-                                 <Label className="text-[9px] uppercase font-bold text-white/40">Border Width</Label>
-                                 <Input type="number" value={selectedBlock.style?.borderWidth || 0} onChange={(e) => updateBlock(selectedBlockId, { style: { borderWidth: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
-                              </div>
-                              <div className="space-y-1">
-                                 <Label className="text-[9px] uppercase font-bold text-white/40">Corner Radius</Label>
-                                 <Input type="number" value={selectedBlock.style?.borderRadius || 0} onChange={(e) => updateBlock(selectedBlockId, { style: { borderRadius: Number(e.target.value) } })} className="h-8 bg-black/20 border-none text-[10px] text-white" />
-                              </div>
-                           </div>
-                           <div className="space-y-1">
-                              <Label className="text-[9px] uppercase font-bold text-white/40">Border Color</Label>
-                              <Input type="color" value={selectedBlock.style?.borderColor || "#000000"} onChange={(e) => updateBlock(selectedBlockId, { style: { borderColor: e.target.value } })} className="h-8 p-1 bg-black/20 border-none cursor-pointer" />
-                           </div>
-                        </div>
-                      </PropertySection>
                       
                       <PropertySection label="Box Scale (Spacing)" icon={MoveVertical}>
                         <div className="grid grid-cols-2 gap-4">
