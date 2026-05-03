@@ -111,6 +111,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /uncompleted_orders/{orderId} {
+      allow create: if true;
+      allow get, update: if true; 
+      allow list, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
     match /subscriptionPlans/{planId} {
       allow read: if true;
       allow write: if isAdmin();

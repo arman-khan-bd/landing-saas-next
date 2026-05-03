@@ -203,6 +203,19 @@ export default function StoreLayoutClient({
   };
 
 
+  const markAsRead = async (id: string, type: 'order' | 'draft' | 'system', href: string) => {
+    if (!firestore) return;
+    try {
+      const collectionName = type === 'order' ? 'orders' : type === 'draft' ? 'uncompleted_orders' : 'system_notifications';
+      const fieldName = type === 'system' ? 'read' : 'isRead';
+      await updateDoc(doc(firestore, collectionName, id), { [fieldName]: true });
+      router.push(getTenantPath(subdomain, href));
+    } catch (e) {
+      console.error(e);
+      router.push(getTenantPath(subdomain, href));
+    }
+  };
+
   const markAllAsRead = async () => {
     if (!firestore || !auth?.currentUser || !store?.id) return;
     try {
@@ -397,7 +410,7 @@ export default function StoreLayoutClient({
                         ) : (
                             <div className="p-2 space-y-1">
                                 {notifications.map((n) => (
-                                    <DropdownMenuItem key={n.id} className="rounded-2xl p-4 cursor-pointer hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group" onClick={() => router.push(getTenantPath(subdomain, n.href))}>
+                                    <DropdownMenuItem key={n.id} className="rounded-2xl p-4 cursor-pointer hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group" onClick={() => markAsRead(n.id, n.type, n.href)}>
                                         <div className="flex gap-4">
                                             <div className={cn(
                                                 "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
