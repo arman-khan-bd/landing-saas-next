@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase-server";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { getStoreBySubdomain } from '@/lib/store-server';
 
