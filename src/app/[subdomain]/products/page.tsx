@@ -12,6 +12,7 @@ import { Plus, Search, MoreHorizontal, Edit, Trash2, Package, MoreVertical } fro
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
+import { getCurrencySymbol } from "@/lib/utils";
 
 export default function ProductsPage() {
   const { subdomain } = useParams();
@@ -21,6 +22,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currency, setCurrency] = useState("BDT");
 
   useEffect(() => {
     fetchProducts();
@@ -32,6 +34,8 @@ export default function ProductsPage() {
       const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQuery);
       if (storeSnap.empty) return;
+      const storeData = storeSnap.docs[0].data();
+      setCurrency(storeData.currency || "BDT");
       const storeId = storeSnap.docs[0].id;
 
       const q = query(collection(db, "products"), where("storeId", "==", storeId));
@@ -140,7 +144,7 @@ export default function ProductsPage() {
                             {product.totalInStock > 0 ? 'Available' : 'Out of Stock'}
                           </span>
                         </TableCell>
-                        <TableCell className="font-black text-primary">৳{Number(product.currentPrice || 0).toFixed(2)}</TableCell>
+                        <TableCell className="font-black text-primary">{getCurrencySymbol(currency)}{Number(product.currentPrice || 0).toFixed(2)}</TableCell>
                         <TableCell>
                           <span className="font-bold text-sm bg-muted px-3 py-1 rounded-lg">
                             {product.totalInStock || 0}
@@ -204,8 +208,8 @@ export default function ProductsPage() {
                         </DropdownMenu>
                       </div>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-xl font-black text-primary">৳{Number(product.currentPrice || 0).toFixed(2)}</span>
-                        {product.prevPrice && <span className="text-xs text-muted-foreground line-through">${product.prevPrice}</span>}
+                        <span className="text-xl font-black text-primary">{getCurrencySymbol(currency)}{Number(product.currentPrice || 0).toFixed(2)}</span>
+                        {product.prevPrice && <span className="text-xs text-muted-foreground line-through">{getCurrencySymbol(currency)}{product.prevPrice}</span>}
                       </div>
                       <div className="flex items-center justify-between pt-1">
                         <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${product.totalInStock > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-destructive/10 text-destructive'}`}>

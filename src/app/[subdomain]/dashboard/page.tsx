@@ -9,6 +9,7 @@ import { ShoppingBag, Wallet, Package, TrendingUp, Clock, WifiOff, RefreshCw, Lo
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
+import { getCurrencySymbol } from "@/lib/utils";
 
 export default function StoreDashboard() {
   const { subdomain } = useParams();
@@ -16,6 +17,7 @@ export default function StoreDashboard() {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
+  const [currency, setCurrency] = useState("BDT");
 
   useEffect(() => {
     fetchStats();
@@ -34,6 +36,8 @@ export default function StoreDashboard() {
         setLoading(false);
         return;
       }
+      const storeData = storeSnap.docs[0].data();
+      setCurrency(storeData.currency || "BDT");
       const storeId = storeSnap.docs[0].id;
 
       const [prodSnap, orderSnap] = await Promise.all([
@@ -116,7 +120,7 @@ export default function StoreDashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Gross Revenue</p>
-                <h3 className="text-3xl font-headline font-black mt-1 text-primary">৳{stats.revenue.toLocaleString()}</h3>
+                <h3 className="text-3xl font-headline font-black mt-1 text-primary">{getCurrencySymbol(currency)}{stats.revenue.toLocaleString()}</h3>
                 <p className="text-[10px] text-accent font-black mt-2 flex items-center gap-1 uppercase tracking-widest">
                   <TrendingUp className="w-3 h-3" /> Live Sync
                 </p>
@@ -214,7 +218,7 @@ export default function StoreDashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-black text-primary">৳{o.total?.toFixed(2)}</p>
+                      <p className="font-black text-primary">{getCurrencySymbol(currency)}{o.total?.toFixed(2)}</p>
                       <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">{o.status}</p>
                     </div>
                   </div>

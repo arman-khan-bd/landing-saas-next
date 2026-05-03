@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getTenantPath, getConsoleUrl } from "@/lib/utils";
+import { getTenantPath, getConsoleUrl, getCurrencySymbol } from "@/lib/utils";
 import { BlockRenderer } from "./builder/[pageId]/block-renderer";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -369,7 +369,7 @@ export default function Storefront({
                        <div className="p-3 md:p-6 space-y-2 md:space-y-4 flex-1 flex flex-col">
                           <div className="space-y-0.5 md:space-y-1">
                              <h4 className="font-bold text-[11px] md:text-sm text-slate-800 line-clamp-2 min-h-[32px] md:min-h-[40px] group-hover:text-primary transition-colors">{p.name}</h4>
-                             <p className="text-base md:text-2xl font-black text-slate-900">৳{Number(p.currentPrice).toFixed(2)}</p>
+                              <p className="text-base md:text-2xl font-black text-slate-900">{getCurrencySymbol(store?.currency)}{Number(p.currentPrice).toFixed(2)}</p>
                           </div>
                           
                           <div className="pt-1 space-y-1.5 mt-auto">
@@ -464,7 +464,7 @@ export default function Storefront({
                         <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                       <div className="flex items-center justify-between">
-                        <p className="text-primary font-black text-xs">৳{item.price.toFixed(2)}</p>
+                        <p className="text-primary font-black text-xs">{getCurrencySymbol(store?.currency)}{item.price.toFixed(2)}</p>
                         <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5">
                           <button onClick={() => updateQuantity(item.id, -1)} className="p-0.5 hover:bg-slate-50 rounded"><Minus className="w-3 h-3" /></button>
                           <span className="w-6 text-center text-[10px] font-bold">{item.quantity}</span>
@@ -479,7 +479,7 @@ export default function Storefront({
           </ScrollArea>
           <SheetFooter className="p-3 md:p-4 bg-white border-t shrink-0">
             <div className="w-full space-y-2">
-              <div className="flex justify-between items-center px-1"><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">মোট</span><span className="text-lg font-black text-primary">৳{cartTotal.toFixed(2)}</span></div>
+              <div className="flex justify-between items-center px-1"><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">মোট</span><span className="text-lg font-black text-primary">{getCurrencySymbol(store?.currency)}{cartTotal.toFixed(2)}</span></div>
               <div className="flex gap-2">
                 <SheetClose asChild>
                     <Button variant="outline" className="flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-200 text-slate-500 hover:bg-slate-50">ফিরুন</Button>

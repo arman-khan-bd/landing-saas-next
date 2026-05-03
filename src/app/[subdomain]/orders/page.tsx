@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { getCurrencySymbol } from "@/lib/utils";
 
 export default function OrdersPage() {
   const { subdomain } = useParams();
@@ -24,6 +25,7 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [stats, setStats] = useState({ revenue: 0, count: 0 });
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [currency, setCurrency] = useState("BDT");
 
   useEffect(() => {
     fetchOrders();
@@ -38,6 +40,8 @@ export default function OrdersPage() {
       const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQ);
       if (storeSnap.empty) return;
+      const storeData = storeSnap.docs[0].data();
+      setCurrency(storeData.currency || "BDT");
       const storeId = storeSnap.docs[0].id;
 
       const q = query(
@@ -96,7 +100,7 @@ export default function OrdersPage() {
           <div className="p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Revenue</p>
-              <h3 className="text-xl font-black mt-0.5">৳{stats.revenue.toFixed(2)}</h3>
+              <h3 className="text-xl font-black mt-0.5">{getCurrencySymbol(currency)}{stats.revenue.toFixed(2)}</h3>
             </div>
             <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600"><Wallet className="w-4 h-4" /></div>
           </div>
@@ -172,7 +176,7 @@ export default function OrdersPage() {
                     </TableCell>
                     <TableCell className="py-3 px-4">
                       <div className="flex flex-col">
-                        <span className="font-black text-slate-900 text-xs">৳{order.total?.toFixed(2)}</span>
+                        <span className="font-black text-slate-900 text-xs">{getCurrencySymbol(currency)}{order.total?.toFixed(2)}</span>
                         <span className="text-[9px] uppercase font-bold text-slate-400 tracking-tight">{order.paymentMethod}</span>
                       </div>
                     </TableCell>
@@ -253,7 +257,7 @@ export default function OrdersPage() {
               <div className="flex items-center justify-between pt-2 border-t border-slate-50">
                  <div className="flex flex-col">
                     <p className="text-[9px] text-slate-400 uppercase font-black tracking-tight leading-none">Order Total</p>
-                    <p className="text-lg font-black text-slate-900">৳{order.total?.toFixed(2)}</p>
+                    <p className="text-lg font-black text-slate-900">{getCurrencySymbol(currency)}{order.total?.toFixed(2)}</p>
                  </div>
                  <Button variant="outline" size="sm" className="rounded-xl h-8 px-4 text-xs font-bold border-slate-200" onClick={() => router.push(`/${subdomain}/orders/${order.id}`)}>Details</Button>
               </div>

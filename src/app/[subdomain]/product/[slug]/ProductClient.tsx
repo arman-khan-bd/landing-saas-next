@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn, getTenantPath } from "@/lib/utils";
+import { cn, getTenantPath, getCurrencySymbol } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -426,8 +426,8 @@ export default function ProductDetailPage() {
                 <Badge className="bg-emerald-50 text-emerald-600 border-none px-2 py-0.5 rounded-full font-black text-[8px] uppercase tracking-widest">অফিসিয়াল প্রোডাক্ট</Badge>
                 <h1 className="text-xl md:text-3xl lg:text-4xl font-headline font-black tracking-tight text-slate-900 leading-[1.1]">{product.name}</h1>
                 <div className="flex items-center gap-3">
-                  <p className="text-2xl md:text-3xl font-black text-primary tracking-tight">৳{Number(product.currentPrice).toFixed(2)}</p>
-                  {product.prevPrice && <p className="text-base text-slate-300 line-through">৳{Number(product.prevPrice).toFixed(2)}</p>}
+                  <p className="text-2xl md:text-3xl font-black text-primary tracking-tight">{getCurrencySymbol(store?.currency)}{Number(product.currentPrice).toFixed(2)}</p>
+                  {product.prevPrice && <p className="text-base text-slate-300 line-through">{getCurrencySymbol(store?.currency)}{Number(product.prevPrice).toFixed(2)}</p>}
                 </div>
               </div>
 
@@ -472,7 +472,7 @@ export default function ProductDetailPage() {
                               </div>
                               <span className="font-bold text-xs">{method.name}</span>
                             </div>
-                            <span className="font-black text-[10px]">${method.cost}</span>
+                             <span className="font-black text-[10px]">{getCurrencySymbol(store?.currency)}{method.cost}</span>
                           </div>
                         ))}
                       </div>
@@ -615,10 +615,10 @@ export default function ProductDetailPage() {
 
                   <div className="pt-4 space-y-4">
                     <div className="bg-slate-50 p-4 md:p-6 rounded-[24px] border space-y-2">
-                      <div className="flex justify-between text-[9px] font-black uppercase text-slate-400 tracking-widest"><span>পণ্য মূল্য</span><span>${(Number(product.currentPrice) * quantity).toFixed(2)}</span></div>
-                      <div className="flex justify-between text-[9px] font-black uppercase text-slate-400 tracking-widest"><span>ডেলিভারি চার্জ</span><span>${(selectedShipping?.cost || 0).toFixed(2)}</span></div>
+                      <div className="flex justify-between text-[9px] font-black uppercase text-slate-400 tracking-widest"><span>পণ্য মূল্য</span><span>{getCurrencySymbol(store?.currency)}{(Number(product.currentPrice) * quantity).toFixed(2)}</span></div>
+                      <div className="flex justify-between text-[9px] font-black uppercase text-slate-400 tracking-widest"><span>ডেলিভারি চার্জ</span><span>{getCurrencySymbol(store?.currency)}{(selectedShipping?.cost || 0).toFixed(2)}</span></div>
                       <Separator className="bg-slate-200" />
-                      <div className="flex justify-between items-end text-xl md:text-3xl font-black text-primary"><span className="text-[9px] pb-1.5 text-slate-900 uppercase">মোট</span><span>${(Number(product.currentPrice) * quantity + (selectedShipping?.cost || 0)).toFixed(2)}</span></div>
+                      <div className="flex justify-between items-end text-xl md:text-3xl font-black text-primary"><span className="text-[9px] pb-1.5 text-slate-900 uppercase">মোট</span><span>{getCurrencySymbol(store?.currency)}{(Number(product.currentPrice) * quantity + (selectedShipping?.cost || 0)).toFixed(2)}</span></div>
                     </div>
                     <Button
                       type="button"
@@ -651,7 +651,7 @@ export default function ProductDetailPage() {
                     <div className="w-16 h-16 rounded-xl bg-white overflow-hidden border shrink-0"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div>
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div className="flex justify-between items-start"><h4 className="font-bold text-xs leading-tight truncate pr-4">{item.name}</h4><button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-rose-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button></div>
-                      <div className="flex items-center justify-between"><p className="text-primary font-black text-sm">${(item.price).toFixed(2)}</p><div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5"><button onClick={() => updateCartQuantity(item.id, -1)} className="p-1 hover:bg-slate-50 rounded transition-all"><Minus className="w-3 h-3" /></button><span className="w-6 text-center text-[10px] font-bold">{item.quantity}</span><button onClick={() => updateCartQuantity(item.id, 1)} className="p-1 hover:bg-slate-50 rounded transition-all"><Plus className="w-3 h-3" /></button></div></div>
+                      <div className="flex items-center justify-between"><p className="text-primary font-black text-sm">{getCurrencySymbol(store?.currency)}{(item.price).toFixed(2)}</p><div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5"><button onClick={() => updateCartQuantity(item.id, -1)} className="p-1 hover:bg-slate-50 rounded transition-all"><Minus className="w-3 h-3" /></button><span className="w-6 text-center text-[10px] font-bold">{item.quantity}</span><button onClick={() => updateCartQuantity(item.id, 1)} className="p-1 hover:bg-slate-50 rounded transition-all"><Plus className="w-3 h-3" /></button></div></div>
                     </div>
                   </div>
                 ))}
@@ -660,7 +660,7 @@ export default function ProductDetailPage() {
           </ScrollArea>
           <SheetFooter className="p-3 md:p-4 bg-white border-t shrink-0">
             <div className="w-full space-y-2">
-              <div className="flex justify-between items-center px-1"><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">মোট মূল্য</span><span className="text-lg font-black text-primary">${cartTotal.toFixed(2)}</span></div>
+              <div className="flex justify-between items-center px-1"><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">মোট মূল্য</span><span className="text-lg font-black text-primary">{getCurrencySymbol(store?.currency)}{cartTotal.toFixed(2)}</span></div>
               <div className="flex gap-2">
                 <SheetClose asChild>
                     <Button variant="outline" className="flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-200 text-slate-500 hover:bg-slate-50">ফিরুন</Button>

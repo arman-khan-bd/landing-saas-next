@@ -11,6 +11,7 @@ import { Bell, ShoppingCart, User, ShieldAlert, Check, Trash2, Clock, Loader2, A
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/hooks/use-confirm";
+import { getCurrencySymbol } from "@/lib/utils";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -29,6 +30,7 @@ export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currency, setCurrency] = useState("BDT");
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -55,6 +57,9 @@ export default function NotificationsPage() {
         setLoading(false);
         return;
       }
+      const storeData = storeSnap.docs[0].data();
+      const currentCurrency = storeData.currency || "BDT";
+      setCurrency(currentCurrency);
       const storeId = storeSnap.docs[0].id;
 
       // 1. Listen for Orders
@@ -71,7 +76,7 @@ export default function NotificationsPage() {
             id: doc.id,
             type: "order" as const,
             title: `New Order Received`,
-            description: `${data.customer?.fullName || 'A customer'} placed an order for ৳${data.total?.toFixed(2)}`,
+            description: `${data.customer?.fullName || 'A customer'} placed an order for ${getCurrencySymbol(currentCurrency)}${data.total?.toFixed(2)}`,
             time: data.createdAt?.toDate?.()?.toLocaleString() || "Recent",
             read: data.isRead || false,
             createdAt: data.createdAt
@@ -105,7 +110,7 @@ export default function NotificationsPage() {
             id: doc.id,
             type: "draft" as const,
             title: `Abandoned Checkout`,
-            description: `${data.customer?.fullName || 'Someone'} started checking out with ৳${data.total?.toFixed(2)} worth of items.`,
+            description: `${data.customer?.fullName || 'Someone'} started checking out with ${getCurrencySymbol(currentCurrency)}${data.total?.toFixed(2)} worth of items.`,
             time: data.lastUpdated?.toDate?.()?.toLocaleString() || "Recent",
             read: data.isRead || false,
             lastUpdated: data.lastUpdated

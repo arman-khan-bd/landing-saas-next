@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { getTenantPath, cn } from "@/lib/utils";
+import { getTenantPath, cn, getCurrencySymbol } from "@/lib/utils";
 import * as fpixel from "@/lib/fpixel";
 
 interface CartItem {
@@ -320,8 +320,8 @@ export default function AllProductsPage() {
                     <div className="space-y-0.5 md:space-y-1">
                       <h4 className="font-bold text-[11px] md:text-sm text-slate-800 line-clamp-2 min-h-[32px] md:min-h-[40px] group-hover:text-primary transition-colors">{p.name}</h4>
                       <div className="flex items-baseline gap-2">
-                        <p className="text-base md:text-2xl font-black text-slate-900">৳{Number(p.currentPrice).toFixed(2)}</p>
-                        {p.prevPrice && <p className="text-slate-300 text-[10px] md:text-xs line-through font-bold">৳{p.prevPrice}</p>}
+                        <p className="text-base md:text-2xl font-black text-slate-900">{getCurrencySymbol(store?.currency)}{Number(p.currentPrice).toFixed(2)}</p>
+                        {p.prevPrice && <p className="text-slate-300 text-[10px] md:text-xs line-through font-bold">{getCurrencySymbol(store?.currency)}{p.prevPrice}</p>}
                       </div>
                     </div>
                     
@@ -414,7 +414,7 @@ export default function AllProductsPage() {
                         </button>
                       </div>
                       <div className="flex items-center justify-between">
-                        <p className="text-primary font-black text-xs">৳{item.price.toFixed(2)}</p>
+                        <p className="text-primary font-black text-xs">{getCurrencySymbol(store?.currency)}{item.price.toFixed(2)}</p>
                         <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5">
                           <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-slate-50 rounded transition-all">
                             <Minus className="w-2.5 h-2.5" />
@@ -435,7 +435,7 @@ export default function AllProductsPage() {
             <div className="w-full space-y-2">
               <div className="flex justify-between items-center px-1">
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">মোট মূল্য</span>
-                <span className="text-lg font-black text-primary">৳{cartTotal.toFixed(2)}</span>
+                <span className="text-lg font-black text-primary">{getCurrencySymbol(store?.currency)}{cartTotal.toFixed(2)}</span>
               </div>
               <div className="flex gap-2">
                 <SheetClose asChild>

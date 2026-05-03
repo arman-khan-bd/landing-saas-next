@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getCurrencySymbol } from "@/lib/utils";
 
 export default function UncompletedOrderDetailPage() {
   const { subdomain, id } = useParams();
@@ -24,6 +24,7 @@ export default function UncompletedOrderDetailPage() {
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isRecovering, setIsRecovering] = useState(false);
+  const [currency, setCurrency] = useState("BDT");
 
   useEffect(() => {
     if (id) {
@@ -37,7 +38,16 @@ export default function UncompletedOrderDetailPage() {
       const docRef = doc(db, "uncompleted_orders", id as string);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        setItem({ id: docSnap.id, ...docSnap.data() });
+        const data = docSnap.data();
+        setItem({ id: docSnap.id, ...data });
+
+        // Fetch Store Currency
+        if (data.storeId) {
+          const storeSnap = await getDoc(doc(db, "stores", data.storeId));
+          if (storeSnap.exists()) {
+            setCurrency(storeSnap.data().currency || "BDT");
+          }
+        }
       } else {
         toast({ variant: "destructive", title: "Order not found" });
         router.back();
@@ -140,11 +150,11 @@ export default function UncompletedOrderDetailPage() {
                           </div>
                           <div className="min-w-0">
                              <h4 className="font-bold text-slate-900 text-xs sm:text-base truncate">{prod.name}</h4>
-                             <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Qty: {prod.quantity} × ৳{prod.price}</p>
+                             <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Qty: {prod.quantity} × {getCurrencySymbol(currency)}{prod.price}</p>
                           </div>
                        </div>
                        <div className="text-right shrink-0 ml-4">
-                          <p className="font-black text-slate-900 text-sm sm:text-lg">৳{(prod.price * prod.quantity).toFixed(2)}</p>
+                          <p className="font-black text-slate-900 text-sm sm:text-lg">{getCurrencySymbol(currency)}{(prod.price * prod.quantity).toFixed(2)}</p>
                        </div>
                     </div>
                   ))}
@@ -153,16 +163,16 @@ export default function UncompletedOrderDetailPage() {
                <div className="p-4 sm:p-8 bg-slate-50/30 border-t flex flex-col items-end gap-1.5 sm:gap-2">
                   <div className="flex justify-between w-full max-w-[200px] text-[10px] sm:text-sm font-medium text-slate-400">
                      <span>Subtotal</span>
-                     <span>৳{item.total?.toFixed(2)}</span>
+                     <span>{getCurrencySymbol(currency)}{item.total?.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between w-full max-w-[200px] text-[10px] sm:text-sm font-medium text-emerald-600">
                      <span className="truncate pr-2">Est. Shipping ({item.shipping?.name || 'Free'})</span>
-                     <span>{item.shipping?.cost > 0 ? `৳${item.shipping.cost.toFixed(2)}` : 'FREE'}</span>
+                     <span>{item.shipping?.cost > 0 ? `${getCurrencySymbol(currency)}${item.shipping.cost.toFixed(2)}` : 'FREE'}</span>
                   </div>
                   <Separator className="w-full max-w-[200px] my-1 sm:my-2 bg-border/40" />
                   <div className="flex justify-between w-full max-w-[240px] text-lg sm:text-2xl font-black text-primary">
                      <span className="text-[10px] sm:text-sm pt-1.5 sm:pt-2 text-slate-900">EST. TOTAL</span>
-                     <span>৳{item.total?.toFixed(2)}</span>
+                     <span>{getCurrencySymbol(currency)}{item.total?.toFixed(2)}</span>
                   </div>
                </div>
             </CardContent>
@@ -263,7 +273,7 @@ export default function UncompletedOrderDetailPage() {
                  <h4 className="font-bold text-sm sm:text-lg uppercase tracking-tight">Recovery Value</h4>
               </div>
               <div className="space-y-0.5 sm:space-y-1">
-                 <h2 className="text-3xl sm:text-5xl font-black text-indigo-400 tracking-tighter">৳{item.total?.toFixed(2)}</h2>
+                 <h2 className="text-3xl sm:text-5xl font-black text-indigo-400 tracking-tighter">{getCurrencySymbol(currency)}{item.total?.toFixed(2)}</h2>
                  <p className="text-slate-400 text-[10px] sm:text-xs font-medium">Potential revenue currently on hold.</p>
               </div>
               <Button 

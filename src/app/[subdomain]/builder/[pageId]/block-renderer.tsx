@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { cn, getTenantPath } from "@/lib/utils";
+import { cn, getTenantPath, getCurrencySymbol } from "@/lib/utils";
 
 import { useFirestore } from "@/firebase";
 import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "firebase/firestore";
@@ -1037,7 +1037,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
                   <img src={p.featuredImage} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover" />
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-[10px] sm:text-xs truncate">{p.name}</p>
-                    <p className={cn("font-black text-xs sm:text-sm", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>৳ {p.currentPrice}</p>
+                    <p className={cn("font-black text-xs sm:text-sm", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>{getCurrencySymbol(store?.currency)} {p.currentPrice}</p>
                   </div>
                 </div>
               ))}
@@ -1069,7 +1069,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
                           </div>
                           <span className="font-bold text-xs sm:text-sm">{method.name}</span>
                         </div>
-                        <span className="font-black text-xs sm:text-sm">{method.cost > 0 ? `৳ ${method.cost}` : 'ফ্রি'}</span>
+                        <span className="font-black text-xs sm:text-sm">{method.cost > 0 ? `${getCurrencySymbol(store?.currency)} ${method.cost}` : 'ফ্রি'}</span>
                      </div>
                    ))}
                  </div>
@@ -1137,17 +1137,17 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
             <div className={cn("p-8 sm:p-10 rounded-3xl sm:rounded-[40px] border space-y-4 sm:space-y-5", (isOrganic || isTraditional) ? "bg-white border-[#d9e8da]" : "bg-slate-50")}>
               <div className="flex justify-between text-muted-foreground font-bold text-[10px] sm:text-xs uppercase tracking-widest">
                 <span>পণ্য মূল্য</span>
-                <span>৳ {product?.currentPrice || 0}</span>
+                <span>{getCurrencySymbol(store?.currency)} {product?.currentPrice || 0}</span>
               </div>
               <div className="flex justify-between text-muted-foreground font-bold text-[10px] sm:text-xs uppercase tracking-widest">
                 <span>ডেলিভারি চার্জ</span>
                 <span className={cn("font-black", (selectedShipping?.cost || 0) > 0 ? "text-slate-900" : "text-emerald-500")}>
-                   { (selectedShipping?.cost || 0) > 0 ? `৳ ${selectedShipping.cost}` : 'ফ্রি' }
+                   { (selectedShipping?.cost || 0) > 0 ? `${getCurrencySymbol(store?.currency)} ${selectedShipping.cost}` : 'ফ্রি' }
                 </span>
               </div>
               <div className={cn("flex justify-between text-3xl sm:text-4xl font-black border-t pt-6 sm:pt-8 mt-4", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>
                 <span className="text-[9px] sm:text-xs pt-3 sm:pt-4 uppercase">মোট</span>
-                <span>৳ {(Number(product?.currentPrice || 0) + (selectedShipping?.cost || 0)).toFixed(0)}</span>
+                <span>{getCurrencySymbol(store?.currency)} {(Number(product?.currentPrice || 0) + (selectedShipping?.cost || 0)).toFixed(0)}</span>
               </div>
             </div>
             <Button type="submit" disabled={isPlacingOrder || !product} className={cn("w-full h-16 sm:h-20 rounded-2xl sm:rounded-[32px] text-xl sm:text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", (isOrganic || isTraditional) ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "bg-primary")}>

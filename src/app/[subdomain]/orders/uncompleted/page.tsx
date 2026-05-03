@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Search, MoreHorizontal, Eye, ShoppingCart, Clock, Mail, Loader2, ArrowRight } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { getCurrencySymbol } from "@/lib/utils";
 
 export default function UncompletedOrdersPage() {
   const { subdomain } = useParams();
@@ -19,6 +20,7 @@ export default function UncompletedOrdersPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currency, setCurrency] = useState("BDT");
 
   useEffect(() => {
     fetchUncompleted();
@@ -33,6 +35,8 @@ export default function UncompletedOrdersPage() {
       const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQ);
       if (storeSnap.empty) return;
+      const storeData = storeSnap.docs[0].data();
+      setCurrency(storeData.currency || "BDT");
       const storeId = storeSnap.docs[0].id;
 
       const q = query(
@@ -86,7 +90,7 @@ export default function UncompletedOrdersPage() {
             </div>
             <div>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Potential Revenue</p>
-              <h3 className="text-2xl font-black">৳{items.reduce((acc, i) => acc + (i.total || 0), 0).toFixed(2)}</h3>
+              <h3 className="text-2xl font-black">{getCurrencySymbol(currency)}{items.reduce((acc, i) => acc + (i.total || 0), 0).toFixed(2)}</h3>
             </div>
           </div>
         </Card>
@@ -127,7 +131,7 @@ export default function UncompletedOrdersPage() {
                         <span className="text-[10px] text-slate-400">{item.items?.length || 0} items in cart</span>
                       </div>
                     </TableCell>
-                    <TableCell className="py-4 px-6 font-bold text-amber-600">৳{item.total?.toFixed(2)}</TableCell>
+                    <TableCell className="py-4 px-6 font-bold text-amber-600">{getCurrencySymbol(currency)}{item.total?.toFixed(2)}</TableCell>
                     <TableCell className="py-4 px-6 text-xs text-muted-foreground">{item.customer?.phone || "No phone"}</TableCell>
                     <TableCell className="py-4 px-6 text-right">
                       <DropdownMenu>
@@ -167,7 +171,7 @@ export default function UncompletedOrdersPage() {
               <div className="flex items-center justify-between pt-3 border-t border-border/50">
                  <div className="text-left">
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter leading-none">Potential Sale</p>
-                    <p className="text-xl font-black text-amber-600">৳{item.total?.toFixed(2)}</p>
+                    <p className="text-xl font-black text-amber-600">{getCurrencySymbol(currency)}{item.total?.toFixed(2)}</p>
                  </div>
                  <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" className="rounded-xl h-10 px-4 font-bold text-primary border-primary/20" onClick={() => router.push(`/${subdomain}/orders/uncompleted/${item.id}`)}>

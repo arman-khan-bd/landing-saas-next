@@ -21,6 +21,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { getCurrencySymbol } from "@/lib/utils";
 
 interface Customer {
   id: string;
@@ -50,6 +51,7 @@ export default function CustomerDetailsPage() {
   const [saving, setSaving] = useState(false);
   const [notes, setNotes] = useState("");
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [currency, setCurrency] = useState("BDT");
 
   useEffect(() => {
     fetchCustomerData();
@@ -74,6 +76,14 @@ export default function CustomerDetailsPage() {
         );
         const ordersSnap = await getDocs(ordersQ);
         setOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+        // Fetch Store Currency
+        if (data.storeId) {
+          const storeSnap = await getDoc(doc(db, "stores", data.storeId));
+          if (storeSnap.exists()) {
+            setCurrency(storeSnap.data().currency || "BDT");
+          }
+        }
       }
     } catch (e) {
       console.error(e);
@@ -247,7 +257,7 @@ export default function CustomerDetailsPage() {
             <Card className="rounded-[24px] border-none bg-slate-900 text-white p-6 shadow-xl">
                 <Wallet className="w-6 h-6 mb-4 opacity-40 text-primary" />
                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Lifetime Value</p>
-                <h3 className="text-3xl font-black">৳{totalSpent.toFixed(2)}</h3>
+                <h3 className="text-3xl font-black">{getCurrencySymbol(currency)}{totalSpent.toFixed(2)}</h3>
             </Card>
             <Card className="rounded-[24px] border-none bg-white p-6 shadow-lg border border-slate-100">
                 <Calendar className="w-6 h-6 mb-4 text-slate-300" />
@@ -320,7 +330,7 @@ export default function CustomerDetailsPage() {
                         }`}>{order.status}</Badge>
                       </TableCell>
                       <TableCell className="px-6 py-4 text-right font-black text-slate-900">
-                        ৳{Number(order.total || 0).toFixed(2)}
+                        {getCurrencySymbol(currency)}{Number(order.total || 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="px-6 py-4 text-right">
                         <Button 
