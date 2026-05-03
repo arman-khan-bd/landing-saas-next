@@ -259,7 +259,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!isVerified) {
+    if (!isVerified && (store?.otpVerification !== false)) {
       toast({ variant: "destructive", title: "Verification Required", description: "Please verify your phone number first." });
       return;
     }
@@ -381,11 +381,11 @@ export default function CheckoutPage() {
                             <Input placeholder="01XXXXXXXXX" className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm" value={formData.phone} onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} disabled={isVerified} />
                             {isVerified && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-500" />}
                           </div>
-                          {!isVerified && (
+                          {(store?.otpVerification !== false) && !isVerified && (
                             <Button size="sm" className="h-10 px-4 rounded-xl text-[10px] font-bold" onClick={sendVerificationCode} disabled={sendingSms || !formData.phone}>{sendingSms ? <Loader2 className="w-3 h-3 animate-spin" /> : otpSent ? "Resend" : "Verify"}</Button>
                           )}
                         </div>
-                        {otpSent && !isVerified && (
+                        {(store?.otpVerification !== false) && otpSent && !isVerified && (
                           <div className="flex flex-col gap-3 items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in slide-in-from-top-1">
                             <Label className="text-[9px] font-black uppercase text-slate-400">Enter Verification Code</Label>
                             <InputOTP 
@@ -543,15 +543,16 @@ export default function CheckoutPage() {
                   <div className="flex justify-between text-xs"><span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Subtotal</span><span className="font-bold text-xs">${cartSubtotal.toFixed(2)}</span></div>
                   <div className="flex justify-between text-xs"><span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Delivery</span><span className={cn("font-black text-xs", shippingCost > 0 ? "text-slate-900" : "text-emerald-500")}>{shippingCost > 0 ? `$${shippingCost.toFixed(2)}` : 'FREE'}</span></div>
                   <Separator className="bg-slate-50" /><div className="flex justify-between items-end pt-1"><span className="text-slate-900 font-black uppercase tracking-tight text-base leading-none">Total</span><span className="text-2xl font-black text-primary tracking-tighter">${cartTotal.toFixed(2)}</span></div>
+                    <Button 
+                      type="button" 
+                      className="w-full h-16 rounded-[24px] text-xl font-black shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:grayscale" 
+                      disabled={isPlacingOrder || (!isVerified && (store?.otpVerification !== false)) || cart.length === 0}
+                      onClick={handlePlaceOrder}
+                    >
+                      {isPlacingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : (!isVerified && (store?.otpVerification !== false)) ? "Verify to Complete" : "Confirm My Order"}
+                    </Button>
                 </div>
-                <Button 
-                  className="w-full h-12 md:h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-70 disabled:grayscale disabled:cursor-not-allowed" 
-                  disabled={isPlacingOrder || cart.length === 0 || !isVerified} 
-                  onClick={handlePlaceOrder}
-                >
-                  {isPlacingOrder ? <Loader2 className="w-5 h-5 animate-spin" /> : !isVerified ? "Verify Phone First" : "Confirm Order"}
-                </Button>
-                {!isVerified && <p className="text-[10px] text-center font-bold text-rose-500 uppercase tracking-widest animate-pulse">Verification Required to Checkout</p>}
+                {!isVerified && (store?.otpVerification !== false) && <p className="text-[10px] text-center font-bold text-rose-500 uppercase tracking-widest animate-pulse">Verification Required to Checkout</p>}
                 <div className="flex items-center justify-center gap-2 text-slate-400"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /><span className="text-[8px] font-black uppercase tracking-[0.2em]">Global Secure Network</span></div>
               </CardContent>
             </Card>

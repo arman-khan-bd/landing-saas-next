@@ -59,6 +59,7 @@ export default function StoreSettingsPage() {
     facebookPixelId: "",
     googleMapEmbed: "",
     workingDays: "",
+    otpVerification: true,
     paymentSettings: {
       cod: true,
       manualEnabled: false,
@@ -498,6 +499,25 @@ export default function StoreSettingsPage() {
                   onCheckedChange={(val) => setSettings({
                     ...settings,
                     paymentSettings: { ...settings.paymentSettings, cod: val }
+                  })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-6 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="font-bold">OTP Verification</h4>
+                    <p className="text-xs text-muted-foreground">Require customers to verify their phone number via SMS.</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.otpVerification}
+                  onCheckedChange={(val) => setSettings({
+                    ...settings,
+                    otpVerification: val
                   })}
                 />
               </div>

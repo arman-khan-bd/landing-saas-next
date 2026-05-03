@@ -276,7 +276,7 @@ export default function ProductDetailPage() {
       toast({ variant: "destructive", title: "তথ্য অসম্পূর্ণ", description: "অনুগ্রহ করে সব প্রয়োজনীয় তথ্য প্রদান করুন।" });
       return;
     }
-    if (!isVerified) {
+    if (!isVerified && (store?.otpVerification !== false)) {
       toast({ variant: "destructive", title: "নাম্বার ভেরিফাই করুন", description: "অর্ডার করার আগে মোবাইল নাম্বার ভেরিফাই করা প্রয়োজন।" });
       return;
     }
@@ -496,7 +496,7 @@ export default function ProductDetailPage() {
                             />
                             {isVerified && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />}
                           </div>
-                          {!isVerified && (
+                          {(store?.otpVerification !== false) && !isVerified && (
                             <Button
                               type="button"
                               size="sm"
@@ -509,7 +509,7 @@ export default function ProductDetailPage() {
                           )}
                         </div>
 
-                        {otpSent && !isVerified && (
+                        {(store?.otpVerification !== false) && otpSent && !isVerified && (
                           <div className="flex flex-col gap-3 items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in slide-in-from-top-2 duration-300">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">কোডটি এখানে লিখুন</Label>
                             <InputOTP
@@ -623,12 +623,12 @@ export default function ProductDetailPage() {
                     <Button
                       type="button"
                       onClick={handlePlaceOrder}
-                      disabled={isPlacingOrder || !isVerified}
+                      disabled={isPlacingOrder || (!isVerified && (store?.otpVerification !== false))}
                       className="w-full h-12 md:h-16 rounded-[20px] md:rounded-[24px] text-lg md:text-xl font-black shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-70 disabled:grayscale disabled:cursor-not-allowed"
                     >
-                      {isPlacingOrder ? <Loader2 className="w-5 h-5 animate-spin" /> : !isVerified ? "ভেরিফাই করুন" : "অর্ডার সম্পন্ন করুন"}
+                      {isPlacingOrder ? <Loader2 className="w-5 h-5 animate-spin" /> : (!isVerified && (store?.otpVerification !== false)) ? "ভেরিফাই করুন" : "অর্ডার সম্পন্ন করুন"}
                     </Button>
-                    {!isVerified && <p className="text-[10px] text-center font-bold text-rose-500 uppercase tracking-widest animate-pulse">নাম্বার ভেরিফাই করা বাধ্যতামূলক</p>}
+                    {(!isVerified && (store?.otpVerification !== false)) && <p className="text-[10px] text-center font-bold text-rose-500 uppercase tracking-widest animate-pulse">নাম্বার ভেরিফাই করা বাধ্যতামূলক</p>}
                   </div>
                 </div>
                 <div className="flex items-center justify-center gap-2 text-slate-400 mt-6"><ShieldCheck className="w-4 h-4 text-emerald-500" /><span className="text-[9px] font-black uppercase tracking-[0.2em]">নিরাপদ পেমেন্ট ব্যবস্থা</span></div>
