@@ -355,7 +355,7 @@ export default function Storefront({
                  </Link>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 min-[340px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
                  {(store.productDisplayType === "manual" && store.selectedProducts?.length > 0 
                    ? products.filter(p => store.selectedProducts.includes(p.id)) 
                    : products.slice(0, 8)
@@ -423,11 +423,11 @@ export default function Storefront({
       {/* Floating Cart Trigger */}
       {cart.length > 0 && !isCartOpen && (
         <Button 
-          className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-2xl z-50 animate-in zoom-in duration-300"
+          className="fixed bottom-4 right-4 md:bottom-8 md:right-8 h-10 w-10 md:h-16 md:w-16 rounded-full shadow-2xl z-50 animate-in zoom-in duration-300 p-0"
           onClick={() => setIsCartOpen(true)}
         >
-          <ShoppingCart className="w-6 h-6" />
-          <span className="absolute -top-1 -right-1 w-6 h-6 bg-rose-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white">
+          <ShoppingCart className="w-4 h-4 md:w-6 md:h-6" />
+          <span className="absolute -top-1 -right-1 w-4 h-4 md:w-6 md:h-6 bg-rose-500 text-white text-[8px] md:text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white">
             {cart.reduce((acc, i) => acc + i.quantity, 0)}
           </span>
         </Button>
