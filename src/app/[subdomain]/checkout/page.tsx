@@ -536,13 +536,13 @@ export default function CheckoutPage() {
               <CardContent className="p-6 space-y-5">
                 <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
                   {cart.map((item) => (
-                    <div key={item.id} className="flex gap-3 items-center"><div className="w-12 h-12 rounded-lg bg-slate-50 border overflow-hidden shrink-0"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div><div className="flex-1 min-w-0"><h4 className="font-bold text-[11px] line-clamp-1">{item.name}</h4><p className="text-slate-400 text-[9px] font-bold">Qty: {item.quantity} × ${item.price.toFixed(2)}</p></div><p className="font-black text-xs text-slate-900">${(item.price * item.quantity).toFixed(2)}</p></div>
+                    <div key={item.id} className="flex gap-3 items-center"><div className="w-12 h-12 rounded-lg bg-slate-50 border overflow-hidden shrink-0"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div><div className="flex-1 min-w-0"><h4 className="font-bold text-[11px] line-clamp-1">{item.name}</h4><p className="text-slate-400 text-[9px] font-bold">Qty: {item.quantity} × ৳{item.price.toFixed(2)}</p></div><p className="font-black text-xs text-slate-900">৳{(item.price * item.quantity).toFixed(2)}</p></div>
                   ))}
                 </div>
                 <div className="space-y-2.5 pt-4 border-t border-slate-100">
-                  <div className="flex justify-between text-xs"><span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Subtotal</span><span className="font-bold text-xs">${cartSubtotal.toFixed(2)}</span></div>
-                  <div className="flex justify-between text-xs"><span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Delivery</span><span className={cn("font-black text-xs", shippingCost > 0 ? "text-slate-900" : "text-emerald-500")}>{shippingCost > 0 ? `$${shippingCost.toFixed(2)}` : 'FREE'}</span></div>
-                  <Separator className="bg-slate-50" /><div className="flex justify-between items-end pt-1"><span className="text-slate-900 font-black uppercase tracking-tight text-base leading-none">Total</span><span className="text-2xl font-black text-primary tracking-tighter">${cartTotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Subtotal</span><span className="font-bold text-xs">৳{cartSubtotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Delivery</span><span className={cn("font-black text-xs", shippingCost > 0 ? "text-slate-900" : "text-emerald-500")}>{shippingCost > 0 ? `৳${shippingCost.toFixed(2)}` : 'FREE'}</span></div>
+                  <Separator className="bg-slate-50" /><div className="flex justify-between items-end pt-1"><span className="text-slate-900 font-black uppercase tracking-tight text-base leading-none">Total</span><span className="text-2xl font-black text-primary tracking-tighter">৳{cartTotal.toFixed(2)}</span></div>
                     <Button 
                       type="button" 
                       className="w-full h-16 rounded-[24px] text-xl font-black shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:grayscale" 

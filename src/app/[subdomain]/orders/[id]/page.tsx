@@ -220,10 +220,10 @@ export default function OrderDetailPage() {
                                  </div>
                                  <div className="min-w-0">
                                     <h4 className="font-bold text-slate-900 text-sm truncate">{item.name}</h4>
-                                    <p className="text-[10px] text-muted-foreground font-medium">Qty: {item.quantity} × ${item.price}</p>
+                                    <p className="text-[10px] text-muted-foreground font-medium">Qty: {item.quantity} × ৳{item.price}</p>
                                  </div>
                               </div>
-                              <p className="font-black text-slate-900 text-sm">${(item.price * item.quantity).toFixed(2)}</p>
+                              <p className="font-black text-slate-900 text-sm">৳{(item.price * item.quantity).toFixed(2)}</p>
                            </div>
                         ))}
                      </div>
@@ -231,16 +231,16 @@ export default function OrderDetailPage() {
                      <div className="p-6 sm:p-8 bg-slate-50/30 border-t flex flex-col items-end gap-2">
                         <div className="flex justify-between w-full max-w-[200px] text-sm font-medium text-slate-400">
                            <span>Subtotal</span>
-                           <span>${(order.subtotal || order.total)?.toFixed(2)}</span>
+                           <span>৳{(order.subtotal || order.total)?.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between w-full max-w-[200px] text-sm font-medium text-emerald-600">
                            <span className="truncate pr-2">Shipping ({order.shipping?.name || 'Free'})</span>
-                           <span>{order.shippingCost > 0 ? `$${order.shippingCost.toFixed(2)}` : 'FREE'}</span>
+                           <span>{order.shippingCost > 0 ? `৳${order.shippingCost.toFixed(2)}` : 'FREE'}</span>
                         </div>
                         <Separator className="w-full max-w-[200px] my-2" />
                         <div className="flex justify-between w-full max-w-[240px] text-2xl font-black text-primary">
                            <span className="text-sm pt-2 text-slate-900 uppercase">Grand Total</span>
-                           <span>${order.total?.toFixed(2)}</span>
+                           <span>৳{order.total?.toFixed(2)}</span>
                         </div>
                      </div>
                   </CardContent>

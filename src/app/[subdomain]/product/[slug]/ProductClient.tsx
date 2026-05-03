@@ -426,8 +426,8 @@ export default function ProductDetailPage() {
                 <Badge className="bg-emerald-50 text-emerald-600 border-none px-2 py-0.5 rounded-full font-black text-[8px] uppercase tracking-widest">অফিসিয়াল প্রোডাক্ট</Badge>
                 <h1 className="text-xl md:text-3xl lg:text-4xl font-headline font-black tracking-tight text-slate-900 leading-[1.1]">{product.name}</h1>
                 <div className="flex items-center gap-3">
-                  <p className="text-2xl md:text-3xl font-black text-primary tracking-tight">${Number(product.currentPrice).toFixed(2)}</p>
-                  {product.prevPrice && <p className="text-base text-slate-300 line-through">${Number(product.prevPrice).toFixed(2)}</p>}
+                  <p className="text-2xl md:text-3xl font-black text-primary tracking-tight">৳{Number(product.currentPrice).toFixed(2)}</p>
+                  {product.prevPrice && <p className="text-base text-slate-300 line-through">৳{Number(product.prevPrice).toFixed(2)}</p>}
                 </div>
               </div>
 

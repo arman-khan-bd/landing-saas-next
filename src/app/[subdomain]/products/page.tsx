@@ -140,7 +140,7 @@ export default function ProductsPage() {
                             {product.totalInStock > 0 ? 'Available' : 'Out of Stock'}
                           </span>
                         </TableCell>
-                        <TableCell className="font-black text-primary">${Number(product.currentPrice || 0).toFixed(2)}</TableCell>
+                        <TableCell className="font-black text-primary">৳{Number(product.currentPrice || 0).toFixed(2)}</TableCell>
                         <TableCell>
                           <span className="font-bold text-sm bg-muted px-3 py-1 rounded-lg">
                             {product.totalInStock || 0}
@@ -204,7 +204,7 @@ export default function ProductsPage() {
                         </DropdownMenu>
                       </div>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-xl font-black text-primary">${Number(product.currentPrice || 0).toFixed(2)}</span>
+                        <span className="text-xl font-black text-primary">৳{Number(product.currentPrice || 0).toFixed(2)}</span>
                         {product.prevPrice && <span className="text-xs text-muted-foreground line-through">${product.prevPrice}</span>}
                       </div>
                       <div className="flex items-center justify-between pt-1">

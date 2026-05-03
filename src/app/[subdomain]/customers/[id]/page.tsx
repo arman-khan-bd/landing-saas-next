@@ -14,7 +14,7 @@ import {
     Globe, Fingerprint, History, DollarSign,
     Zap, AlertTriangle, ShieldCheck, TrendingUp,
     ExternalLink, ArrowRight, User, Ban, Lock, ShieldX, Filter,
-    Save, Edit3, Trash2, Shield
+    Save, Edit3, Trash2, Shield, Wallet
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -245,9 +245,9 @@ export default function CustomerDetailsPage() {
                 <h3 className="text-3xl font-black">{orders.length}</h3>
             </Card>
             <Card className="rounded-[24px] border-none bg-slate-900 text-white p-6 shadow-xl">
-                <DollarSign className="w-6 h-6 mb-4 opacity-40 text-primary" />
+                <Wallet className="w-6 h-6 mb-4 opacity-40 text-primary" />
                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Lifetime Value</p>
-                <h3 className="text-3xl font-black">${totalSpent.toFixed(2)}</h3>
+                <h3 className="text-3xl font-black">৳{totalSpent.toFixed(2)}</h3>
             </Card>
             <Card className="rounded-[24px] border-none bg-white p-6 shadow-lg border border-slate-100">
                 <Calendar className="w-6 h-6 mb-4 text-slate-300" />
@@ -320,7 +320,7 @@ export default function CustomerDetailsPage() {
                         }`}>{order.status}</Badge>
                       </TableCell>
                       <TableCell className="px-6 py-4 text-right font-black text-slate-900">
-                        ${Number(order.total || 0).toFixed(2)}
+                        ৳{Number(order.total || 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="px-6 py-4 text-right">
                         <Button 

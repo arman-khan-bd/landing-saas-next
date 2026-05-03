@@ -71,7 +71,7 @@ export default function NotificationsPage() {
             id: doc.id,
             type: "order" as const,
             title: `New Order Received`,
-            description: `${data.customer?.fullName || 'A customer'} placed an order for $${data.total?.toFixed(2)}`,
+            description: `${data.customer?.fullName || 'A customer'} placed an order for ৳${data.total?.toFixed(2)}`,
             time: data.createdAt?.toDate?.()?.toLocaleString() || "Recent",
             read: data.isRead || false,
             createdAt: data.createdAt
@@ -105,7 +105,7 @@ export default function NotificationsPage() {
             id: doc.id,
             type: "draft" as const,
             title: `Abandoned Checkout`,
-            description: `${data.customer?.fullName || 'Someone'} started checking out with $${data.total?.toFixed(2)} worth of items.`,
+            description: `${data.customer?.fullName || 'Someone'} started checking out with ৳${data.total?.toFixed(2)} worth of items.`,
             time: data.lastUpdated?.toDate?.()?.toLocaleString() || "Recent",
             read: data.isRead || false,
             lastUpdated: data.lastUpdated

@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { 
   ChevronLeft, ShoppingCart, User, Phone, MapPin, 
   Calendar, Trash2, Mail, MessageSquare, Loader2,
-  Package, AlertTriangle, ArrowRight, DollarSign, Clock
+  Package, AlertTriangle, ArrowRight, Wallet, Clock
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -140,11 +140,11 @@ export default function UncompletedOrderDetailPage() {
                           </div>
                           <div className="min-w-0">
                              <h4 className="font-bold text-slate-900 text-xs sm:text-base truncate">{prod.name}</h4>
-                             <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Qty: {prod.quantity} × ${prod.price}</p>
+                             <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Qty: {prod.quantity} × ৳{prod.price}</p>
                           </div>
                        </div>
                        <div className="text-right shrink-0 ml-4">
-                          <p className="font-black text-slate-900 text-sm sm:text-lg">${(prod.price * prod.quantity).toFixed(2)}</p>
+                          <p className="font-black text-slate-900 text-sm sm:text-lg">৳{(prod.price * prod.quantity).toFixed(2)}</p>
                        </div>
                     </div>
                   ))}
@@ -153,16 +153,16 @@ export default function UncompletedOrderDetailPage() {
                <div className="p-4 sm:p-8 bg-slate-50/30 border-t flex flex-col items-end gap-1.5 sm:gap-2">
                   <div className="flex justify-between w-full max-w-[200px] text-[10px] sm:text-sm font-medium text-slate-400">
                      <span>Subtotal</span>
-                     <span>${item.total?.toFixed(2)}</span>
+                     <span>৳{item.total?.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between w-full max-w-[200px] text-[10px] sm:text-sm font-medium text-emerald-600">
                      <span className="truncate pr-2">Est. Shipping ({item.shipping?.name || 'Free'})</span>
-                     <span>{item.shipping?.cost > 0 ? `$${item.shipping.cost.toFixed(2)}` : 'FREE'}</span>
+                     <span>{item.shipping?.cost > 0 ? `৳${item.shipping.cost.toFixed(2)}` : 'FREE'}</span>
                   </div>
                   <Separator className="w-full max-w-[200px] my-1 sm:my-2 bg-border/40" />
                   <div className="flex justify-between w-full max-w-[240px] text-lg sm:text-2xl font-black text-primary">
                      <span className="text-[10px] sm:text-sm pt-1.5 sm:pt-2 text-slate-900">EST. TOTAL</span>
-                     <span>${item.total?.toFixed(2)}</span>
+                     <span>৳{item.total?.toFixed(2)}</span>
                   </div>
                </div>
             </CardContent>
@@ -259,11 +259,11 @@ export default function UncompletedOrderDetailPage() {
            {/* Quick Stats Card - Dynamic Tiering */}
            <Card className="rounded-[24px] sm:rounded-[40px] border-none bg-slate-900 text-white p-6 sm:p-8 space-y-4 sm:space-y-6 shadow-2xl shadow-slate-900/20">
               <div className="flex items-center gap-3">
-                 <div className="p-1.5 sm:p-2 bg-indigo-500 rounded-lg sm:rounded-xl"><DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white" /></div>
+                 <div className="p-1.5 sm:p-2 bg-indigo-500 rounded-lg sm:rounded-xl"><Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-white" /></div>
                  <h4 className="font-bold text-sm sm:text-lg uppercase tracking-tight">Recovery Value</h4>
               </div>
               <div className="space-y-0.5 sm:space-y-1">
-                 <h2 className="text-3xl sm:text-5xl font-black text-indigo-400 tracking-tighter">${item.total?.toFixed(2)}</h2>
+                 <h2 className="text-3xl sm:text-5xl font-black text-indigo-400 tracking-tighter">৳{item.total?.toFixed(2)}</h2>
                  <p className="text-slate-400 text-[10px] sm:text-xs font-medium">Potential revenue currently on hold.</p>
               </div>
               <Button 

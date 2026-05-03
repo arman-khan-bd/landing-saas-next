@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function StoreSettingsPage() {
   const { subdomain } = useParams();
@@ -60,6 +61,7 @@ export default function StoreSettingsPage() {
     googleMapEmbed: "",
     workingDays: "",
     otpVerification: true,
+    currency: "BDT",
     paymentSettings: {
       cod: true,
       manualEnabled: false,
@@ -321,6 +323,29 @@ export default function StoreSettingsPage() {
                     <Label>Phone Number</Label>
                     <Input className="h-12 rounded-xl" value={settings.phone} onChange={(e) => setSettings({ ...settings, phone: e.target.value })} />
                   </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <Label>Store Currency</Label>
+                  <Select value={settings.currency || 'BDT'} onValueChange={(val) => setSettings({ ...settings, currency: val })}>
+                    <SelectTrigger className="h-12 rounded-xl">
+                      <SelectValue placeholder="Select Currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BDT">BDT (৳)</SelectItem>
+                      <SelectItem value="USD">USD ($)</SelectItem>
+                      <SelectItem value="EUR">EUR (€)</SelectItem>
+                      <SelectItem value="GBP">GBP (£)</SelectItem>
+                      <SelectItem value="INR">INR (₹)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">Select the primary currency for your products and analytics.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Working Days / Hours</Label>
+                  <Input className="h-12 rounded-xl" value={settings.workingDays} onChange={(e) => setSettings({ ...settings, workingDays: e.target.value })} placeholder="e.g. Sat-Thu, 10am-8pm" />
                 </div>
               </div>
 

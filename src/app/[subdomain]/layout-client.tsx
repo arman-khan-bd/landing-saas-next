@@ -457,17 +457,19 @@ export default function StoreLayoutClient({
 function StorefrontFooter({ store, subdomain }: { store: any, subdomain: string }) {
   if (!store) return null;
   return (
-    <footer className="bg-white border-t border-slate-100 pt-16 pb-12 px-6 mt-auto">
-      <div className="max-w-7xl mx-auto space-y-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 text-center md:text-left">
+    <footer className="bg-white border-t border-slate-100 pt-10 md:pt-16 pb-8 md:pb-12 px-6 mt-auto">
+      <div className="max-w-7xl mx-auto space-y-8 md:space-y-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 text-center md:text-left">
           <div className="space-y-4 md:col-span-2">
             <Link href={getTenantPath(subdomain, "/")} className="flex items-center justify-center md:justify-start gap-2.5"><div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-sm"><ShoppingBag className="w-5 h-5" /></div><span className="text-xl font-headline font-black tracking-tight uppercase text-slate-900">{store?.name || subdomain}</span></Link>
             <p className="text-slate-500 text-sm max-w-sm mx-auto md:mx-0 font-medium leading-relaxed">Quality products, fast delivery, and exceptional service.</p>
           </div>
-          <div className="space-y-4"><h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Shop</h4><ul className="space-y-2.5 text-sm font-bold text-slate-600"><li><Link href={getTenantPath(subdomain, "/all-products")} className="hover:text-primary transition-colors">All Products</Link></li></ul></div>
-          <div className="space-y-4"><h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Support</h4><ul className="space-y-2.5 text-sm font-bold text-slate-600"><li><Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link></li></ul></div>
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-8 md:col-span-2">
+            <div className="space-y-4 text-left md:text-left"><h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Shop</h4><ul className="space-y-2.5 text-sm font-bold text-slate-600"><li><Link href={getTenantPath(subdomain, "/all-products")} className="hover:text-primary transition-colors">All Products</Link></li></ul></div>
+            <div className="space-y-4 text-right md:text-left"><h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Support</h4><ul className="space-y-2.5 text-sm font-bold text-slate-600"><li><Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link></li></ul></div>
+          </div>
         </div>
-        <div className="pt-8 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="pt-6 md:pt-8 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">&copy; {new Date().getFullYear()} {(store?.name || subdomain).toUpperCase()}</div>
           <div className="flex items-center gap-6">
             <div className="hidden sm:flex items-center gap-2 text-slate-300"><ShieldCheck className="w-4 h-4 text-emerald-500" /><span className="text-[9px] font-black uppercase tracking-widest">Secure Payments</span></div>

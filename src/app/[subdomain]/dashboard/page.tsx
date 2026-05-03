@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { ShoppingBag, DollarSign, Package, TrendingUp, Clock, WifiOff, RefreshCw, Loader2 } from "lucide-react";
+import { ShoppingBag, Wallet, Package, TrendingUp, Clock, WifiOff, RefreshCw, Loader2 } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -116,13 +116,13 @@ export default function StoreDashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Gross Revenue</p>
-                <h3 className="text-3xl font-headline font-black mt-1 text-primary">${stats.revenue.toLocaleString()}</h3>
+                <h3 className="text-3xl font-headline font-black mt-1 text-primary">৳{stats.revenue.toLocaleString()}</h3>
                 <p className="text-[10px] text-accent font-black mt-2 flex items-center gap-1 uppercase tracking-widest">
                   <TrendingUp className="w-3 h-3" /> Live Sync
                 </p>
               </div>
               <div className="p-3 bg-primary/10 rounded-2xl">
-                <DollarSign className="w-6 h-6 text-primary" />
+                <Wallet className="w-6 h-6 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -214,7 +214,7 @@ export default function StoreDashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-black text-primary">${o.total?.toFixed(2)}</p>
+                      <p className="font-black text-primary">৳{o.total?.toFixed(2)}</p>
                       <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">{o.status}</p>
                     </div>
                   </div>

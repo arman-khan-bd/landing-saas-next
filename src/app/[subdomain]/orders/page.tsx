@@ -96,9 +96,9 @@ export default function OrdersPage() {
           <div className="p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Revenue</p>
-              <h3 className="text-xl font-black mt-0.5">${stats.revenue.toFixed(2)}</h3>
+              <h3 className="text-xl font-black mt-0.5">৳{stats.revenue.toFixed(2)}</h3>
             </div>
-            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600"><DollarSign className="w-4 h-4" /></div>
+            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600"><Wallet className="w-4 h-4" /></div>
           </div>
         </Card>
         <Card className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden">
@@ -172,7 +172,7 @@ export default function OrdersPage() {
                     </TableCell>
                     <TableCell className="py-3 px-4">
                       <div className="flex flex-col">
-                        <span className="font-black text-slate-900 text-xs">${order.total?.toFixed(2)}</span>
+                        <span className="font-black text-slate-900 text-xs">৳{order.total?.toFixed(2)}</span>
                         <span className="text-[9px] uppercase font-bold text-slate-400 tracking-tight">{order.paymentMethod}</span>
                       </div>
                     </TableCell>
@@ -253,7 +253,7 @@ export default function OrdersPage() {
               <div className="flex items-center justify-between pt-2 border-t border-slate-50">
                  <div className="flex flex-col">
                     <p className="text-[9px] text-slate-400 uppercase font-black tracking-tight leading-none">Order Total</p>
-                    <p className="text-lg font-black text-slate-900">${order.total?.toFixed(2)}</p>
+                    <p className="text-lg font-black text-slate-900">৳{order.total?.toFixed(2)}</p>
                  </div>
                  <Button variant="outline" size="sm" className="rounded-xl h-8 px-4 text-xs font-bold border-slate-200" onClick={() => router.push(`/${subdomain}/orders/${order.id}`)}>Details</Button>
               </div>

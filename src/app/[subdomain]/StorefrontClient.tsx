@@ -233,16 +233,16 @@ export default function Storefront({
             {/* Promo Banner */}
 
             {/* Hero Section */}
-            <div className="max-w-7xl mx-auto px-4 py-6">
-               <div className="flex flex-col lg:flex-row gap-6">
+            <div className="max-w-7xl mx-auto px-4 py-4 md:py-6 lg:py-8">
+               <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
                   {/* Categories Sidebar */}
                   <aside className="hidden lg:block w-72 shrink-0">
-                     <Card className="rounded-3xl border-none shadow-sm bg-white overflow-hidden h-[500px]">
+                     <Card className="rounded-3xl border-none shadow-sm bg-white overflow-hidden h-full min-h-[500px]">
                         <div className="bg-slate-900 p-4 text-white flex items-center gap-2">
                            <LayoutGrid className="w-4 h-4 text-primary" />
                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">পণ্য ক্যাটাগরি</span>
                         </div>
-                        <ScrollArea className="h-[440px]">
+                        <ScrollArea className="h-[calc(100%-56px)]">
                            <Accordion type="single" collapsible className="w-full">
                               {catsLoading ? (
                                 <div className="p-4 space-y-4">
@@ -302,7 +302,7 @@ export default function Storefront({
                   </aside>
 
                   {/* Hero Main Content */}
-                  <div className="flex-1 min-h-[400px] md:min-h-[500px] rounded-[40px] relative overflow-hidden bg-slate-900 group">
+                  <div className="flex-1 min-h-[300px] md:min-h-[450px] lg:min-h-[500px] rounded-[32px] md:rounded-[40px] relative overflow-hidden bg-slate-900 group">
                      {store.homeBanner ? (
                        <>
                          <img 
@@ -316,22 +316,22 @@ export default function Storefront({
                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-slate-950 to-slate-950" />
                      )}
 
-                     <div className="relative z-10 h-full flex flex-col items-center justify-center text-center p-6 md:p-12 space-y-6 md:space-y-8">
+                     <div className="relative z-10 h-full flex flex-col items-center justify-center text-center p-8 md:p-12 lg:p-16 space-y-6 md:space-y-8">
                         <div className="space-y-4">
-                           <Badge className="bg-primary/20 text-primary border-primary/20 rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest animate-in slide-in-from-bottom-4 duration-700">
+                           <Badge className="bg-primary/20 text-primary border-primary/20 rounded-full px-4 py-1 text-[9px] md:text-[10px] font-black uppercase tracking-widest animate-in slide-in-from-bottom-4 duration-700">
                               {store.name}
                            </Badge>
-                           <h1 className="text-3xl md:text-6xl lg:text-7xl font-headline font-black text-white uppercase tracking-tighter leading-[0.9] animate-in slide-in-from-bottom-6 duration-700 delay-100 max-w-2xl">
+                           <h1 className="text-3xl md:text-5xl lg:text-7xl font-headline font-black text-white uppercase tracking-tighter leading-[0.95] md:leading-[0.9] animate-in slide-in-from-bottom-6 duration-700 delay-100 max-w-2xl">
                               {store.homePageTitle || store.name}
                            </h1>
-                           <p className="text-slate-300 text-sm md:text-lg max-w-xl mx-auto font-medium leading-relaxed animate-in slide-in-from-bottom-8 duration-700 delay-200">
+                           <p className="text-slate-300 text-xs md:text-base lg:text-lg max-w-xl mx-auto font-medium leading-relaxed animate-in slide-in-from-bottom-8 duration-700 delay-200">
                               {store.description || "Discover our curated collection of premium products designed for quality and style."}
                            </p>
                         </div>
                         
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in slide-in-from-bottom-10 duration-700 delay-300">
                            <Link href={getTenantPath(subdomain, "/all-products")}>
-                              <Button size="lg" className="h-12 md:h-14 px-8 md:px-12 rounded-2xl font-black uppercase text-[11px] md:text-sm tracking-widest shadow-2xl shadow-primary/20">
+                              <Button size="lg" className="h-12 md:h-14 px-8 md:px-12 rounded-2xl font-black uppercase text-[10px] md:text-sm tracking-widest shadow-2xl shadow-primary/20">
                                  এখনই কিনুন <ShoppingBag className="ml-2 w-4 h-4 md:w-5 md:h-5" />
                               </Button>
                            </Link>
@@ -366,10 +366,10 @@ export default function Storefront({
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                           {p.prevPrice && <div className="absolute top-4 left-4 bg-rose-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Sale</div>}
                        </Link>
-                       <div className="p-4 md:p-6 space-y-3 md:space-y-4 flex-1 flex flex-col">
-                          <div className="space-y-1">
-                             <h4 className="font-bold text-sm text-slate-800 line-clamp-2 min-h-[40px] group-hover:text-primary transition-colors">{p.name}</h4>
-                             <p className="text-2xl font-black text-slate-900">${Number(p.currentPrice).toFixed(2)}</p>
+                       <div className="p-3 md:p-6 space-y-2 md:space-y-4 flex-1 flex flex-col">
+                          <div className="space-y-0.5 md:space-y-1">
+                             <h4 className="font-bold text-[11px] md:text-sm text-slate-800 line-clamp-2 min-h-[32px] md:min-h-[40px] group-hover:text-primary transition-colors">{p.name}</h4>
+                             <p className="text-base md:text-2xl font-black text-slate-900">৳{Number(p.currentPrice).toFixed(2)}</p>
                           </div>
                           
                           <div className="pt-1 space-y-1.5 mt-auto">
@@ -464,7 +464,7 @@ export default function Storefront({
                         <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                       <div className="flex items-center justify-between">
-                        <p className="text-primary font-black text-xs">${(item.price).toFixed(2)}</p>
+                        <p className="text-primary font-black text-xs">৳{item.price.toFixed(2)}</p>
                         <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5">
                           <button onClick={() => updateQuantity(item.id, -1)} className="p-0.5 hover:bg-slate-50 rounded"><Minus className="w-3 h-3" /></button>
                           <span className="w-6 text-center text-[10px] font-bold">{item.quantity}</span>
@@ -479,7 +479,7 @@ export default function Storefront({
           </ScrollArea>
           <SheetFooter className="p-3 md:p-4 bg-white border-t shrink-0">
             <div className="w-full space-y-2">
-              <div className="flex justify-between items-center px-1"><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">মোট মূল্য</span><span className="text-lg font-black text-primary">${cartTotal.toFixed(2)}</span></div>
+              <div className="flex justify-between items-center px-1"><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">মোট</span><span className="text-lg font-black text-primary">৳{cartTotal.toFixed(2)}</span></div>
               <div className="flex gap-2">
                 <SheetClose asChild>
                     <Button variant="outline" className="flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-200 text-slate-500 hover:bg-slate-50">ফিরুন</Button>
