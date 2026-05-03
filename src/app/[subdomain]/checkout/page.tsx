@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, Smartphone, ShieldAlert, SmartphoneIcon, User } from "lucide-react";
+import { ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, Smartphone, ShieldAlert, SmartphoneIcon, User, Copy } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,14 @@ import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import { sendSMS } from "@/app/actions/sms";
+import { syncCustomerData } from "@/app/actions/customers";
+import * as fpixel from "@/lib/fpixel";
 
 interface CartItem {
   id: string;
@@ -46,8 +54,13 @@ export default function CheckoutPage() {
     address: "",
     paymentMethod: "cod",
     selectedManualMethodId: "",
-    transactionId: ""
+    transactionId: "",
+    otp: ""
   });
+  const [otpSent, setOtpSent] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [sendingSms, setSendingSms] = useState(false);
 
   useEffect(() => {
     fetch("https://api.ipify.org?format=json")
@@ -91,6 +104,14 @@ export default function CheckoutPage() {
       console.error(e);
     } finally {
       setLoading(false);
+      if (cart.length > 0) {
+        fpixel.event('InitiateCheckout', {
+          content_ids: cart.map(i => i.id),
+          content_type: 'product',
+          value: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0),
+          currency: 'BDT'
+        });
+      }
     }
   };
 
@@ -135,6 +156,89 @@ export default function CheckoutPage() {
     }
   }, [store, cart, draftId, subdomain, clientIp, selectedShipping]);
 
+  const normalizePhoneNumber = (phone: string) => {
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 11 && cleaned.startsWith('0')) {
+      return '88' + cleaned;
+    }
+    if (cleaned.length === 13 && cleaned.startsWith('880')) {
+      return cleaned;
+    }
+    if (cleaned.length === 10) {
+      return '880' + cleaned;
+    }
+    return cleaned;
+  };
+
+  const sendVerificationCode = async () => {
+    if (!formData.phone || formData.phone.length < 10) {
+      toast({ variant: "destructive", title: "Error", description: "Please enter a valid phone number." });
+      return;
+    }
+    setSendingSms(true);
+    try {
+      const normalizedPhone = normalizePhoneNumber(formData.phone);
+      const storeName = store?.name || "Store";
+      
+      // Check IP Block
+      const ipQ = query(
+        collection(db, "customers"),
+        where("storeId", "==", store.id),
+        where("ips", "array-contains", clientIp),
+        where("status.ipBlocked", "==", true)
+      );
+      const ipSnap = await getDocs(ipQ);
+      if (!ipSnap.empty) {
+        toast({ variant: "destructive", title: "Access Denied", description: "You are blocked from admin." });
+        return;
+      }
+
+      const result = await sendSMS(normalizedPhone, storeName, store.id);
+      
+      if (!result.success) {
+        toast({ 
+          variant: "destructive", 
+          title: "Failed", 
+          description: result.error || "Please try again later." 
+        });
+        return;
+      }
+      
+      setOtpSent(true);
+      toast({ title: "OTP Sent", description: "Verification code sent to your mobile." });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "SMS Failed" });
+    } finally {
+      setSendingSms(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (!formData.otp) return;
+    setVerifying(true);
+    try {
+      const normalizedPhone = normalizePhoneNumber(formData.phone);
+      const q = query(
+        collection(db, "verification_codes"),
+        where("phone", "==", normalizedPhone),
+        where("code", "==", formData.otp),
+        limit(1)
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        setIsVerified(true);
+        toast({ title: "Verified", description: "Phone number successfully verified." });
+      } else {
+        toast({ variant: "destructive", title: "Invalid Code" });
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       if (formData.fullName || formData.phone) {
@@ -152,6 +256,11 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (!formData.fullName || !formData.phone || !formData.address) {
       toast({ variant: "destructive", title: "Missing Information", description: "Please fill in all required fields." });
+      return;
+    }
+
+    if (!isVerified) {
+      toast({ variant: "destructive", title: "Verification Required", description: "Please verify your phone number first." });
       return;
     }
 
@@ -185,7 +294,7 @@ export default function CheckoutPage() {
         customer: {
           fullName: formData.fullName,
           email: formData.email,
-          phone: formData.phone,
+          phone: normalizePhoneNumber(formData.phone),
           address: formData.address,
           ip: clientIp
         },
@@ -205,12 +314,27 @@ export default function CheckoutPage() {
         createdAt: serverTimestamp(),
       };
 
-      await addDoc(collection(db, "orders"), orderData);
+      const orderRef = await addDoc(collection(db, "orders"), orderData);
+      
+      // Sync Customer Data
+      await syncCustomerData({
+        ...orderData,
+        id: orderRef.id
+      });
+
       if (draftId) {
         await deleteDoc(doc(db, "uncompleted_orders", draftId));
         localStorage.removeItem(`draftId_${subdomain}`);
       }
       localStorage.removeItem(`cart_${subdomain}`);
+      
+      fpixel.event('Purchase', {
+        value: cartTotal,
+        currency: 'BDT',
+        content_ids: cart.map(i => i.id),
+        content_type: 'product'
+      });
+
       setOrderSuccess(true);
       toast({ title: "Order Placed!", description: "Your order has been successfully received." });
     } catch (error) {
@@ -238,20 +362,64 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">
-      <nav className="bg-white border-b border-slate-100 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Button variant="ghost" className="rounded-xl font-bold gap-2 text-slate-500" onClick={() => router.back()}><ChevronLeft className="w-4 h-4" /> Back</Button>
-          <Link href={`/${subdomain}`} className="flex items-center gap-2"><h1 className="text-lg font-headline font-black tracking-tighter text-slate-900 uppercase">{store?.name}</h1></Link>
-          <div className="w-20" />
-        </div>
-      </nav>
 
-      <main className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-10">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          <div className="lg:col-span-3 space-y-8">
-            <section className="space-y-6">
-              <div className="flex items-center gap-3"><div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><User className="w-5 h-5" /></div><h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Customer Information</h2></div>
-              <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white"><CardContent className="p-6 sm:p-8 space-y-6"><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name *</Label><Input placeholder="John Doe" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.fullName} onChange={(e) => setFormData(prev => ({...prev, fullName: e.target.value}))} /></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contact Number *</Label><Input placeholder="01XXXXXXXXX" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.phone} onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} /></div></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address (Optional)</Label><Input placeholder="john@example.com" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.email} onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))} /></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Delivery Address *</Label><Textarea placeholder="Flat, House, Street, Area, City" className="min-h-[100px] rounded-2xl bg-slate-50 border-none p-4" value={formData.address} onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))} /></div></CardContent></Card>
+      <main className="max-w-6xl mx-auto p-2 md:p-6 lg:p-10">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div className="lg:col-span-3 space-y-6">
+            <section className="space-y-4">
+              <div className="flex items-center gap-2"><div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary"><User className="w-4 h-4" /></div><h2 className="text-lg font-headline font-black tracking-tight text-slate-900 uppercase">Customer Details</h2></div>
+              <Card className="rounded-[24px] border-none shadow-sm overflow-hidden bg-white">
+                <CardContent className="p-4 md:p-8 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Full Name *</Label><Input placeholder="John Doe" className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm" value={formData.fullName} onChange={(e) => setFormData(prev => ({...prev, fullName: e.target.value}))} /></div>
+                    
+                    <div className="space-y-1.5">
+                      <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Contact Number *</Label>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Input placeholder="01XXXXXXXXX" className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm" value={formData.phone} onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} disabled={isVerified} />
+                            {isVerified && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-500" />}
+                          </div>
+                          {!isVerified && (
+                            <Button size="sm" className="h-10 px-4 rounded-xl text-[10px] font-bold" onClick={sendVerificationCode} disabled={sendingSms || !formData.phone}>{sendingSms ? <Loader2 className="w-3 h-3 animate-spin" /> : otpSent ? "Resend" : "Verify"}</Button>
+                          )}
+                        </div>
+                        {otpSent && !isVerified && (
+                          <div className="flex flex-col gap-3 items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in slide-in-from-top-1">
+                            <Label className="text-[9px] font-black uppercase text-slate-400">Enter Verification Code</Label>
+                            <InputOTP 
+                               maxLength={6} 
+                               value={formData.otp} 
+                               onChange={(val) => setFormData(prev => ({...prev, otp: val}))}
+                             >
+                               <InputOTPGroup>
+                                 <InputOTPSlot index={0} className="bg-white" />
+                                 <InputOTPSlot index={1} className="bg-white" />
+                                 <InputOTPSlot index={2} className="bg-white" />
+                                 <InputOTPSlot index={3} className="bg-white" />
+                                 <InputOTPSlot index={4} className="bg-white" />
+                                 <InputOTPSlot index={5} className="bg-white" />
+                               </InputOTPGroup>
+                             </InputOTP>
+                            <Button 
+                              size="sm" 
+                              variant="secondary" 
+                              className="w-full h-10 rounded-xl text-[10px] font-bold bg-primary text-white hover:bg-primary/90" 
+                              onClick={verifyOtp} 
+                              disabled={verifying || formData.otp.length < 6}
+                            >
+                              {verifying ? <Loader2 className="w-3 h-3 animate-spin" /> : "Verify & Continue"}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email Address (Optional)</Label><Input placeholder="john@example.com" className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm" value={formData.email} onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))} /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Full Delivery Address *</Label><Textarea placeholder="Flat, House, Street, Area, City" className="min-h-[80px] rounded-xl bg-slate-50 border-none p-4 text-sm" value={formData.address} onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))} /></div>
+                </CardContent>
+              </Card>
             </section>
 
             {store?.shippingSettings?.enabled && store.shippingSettings.methods?.length > 0 && (
@@ -327,9 +495,25 @@ export default function CheckoutPage() {
                           </div>
                           {selectedManualMethod && (
                             <div className="space-y-6">
-                              <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 space-y-3">
-                                <div className="flex justify-between items-center"><span className="text-[10px] font-black uppercase text-primary">Number</span><span className="text-lg font-mono font-black text-slate-900 select-all">{selectedManualMethod.number}</span></div>
-                                {selectedManualMethod.instructions && <div className="text-[11px] leading-relaxed text-slate-600 bg-white/50 p-3 rounded-lg border border-primary/5 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</div>}
+                              <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between group">
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-black uppercase text-primary">Number</p>
+                                  <p className="text-lg font-mono font-black text-slate-900 select-all">{selectedManualMethod.number}</p>
+                                  {selectedManualMethod.instructions && <div className="text-[11px] leading-relaxed text-slate-600 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</div>}
+                                </div>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 rounded-lg hover:bg-primary/5 text-primary shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(selectedManualMethod.number);
+                                    toast({ title: "Copied", description: "Payment number copied to clipboard." });
+                                  }}
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </Button>
                               </div>
                               <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase text-slate-400">Transaction ID *</Label>
@@ -346,22 +530,29 @@ export default function CheckoutPage() {
             </section>
           </div>
 
-          <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Cart Intelligence</h2>
-            <Card className="rounded-[40px] border-none shadow-xl bg-white overflow-hidden sticky top-24">
-              <CardContent className="p-8 space-y-6">
-                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="lg:col-span-2 space-y-4">
+            <h2 className="text-lg font-headline font-black tracking-tight text-slate-900 uppercase">Order Strategy</h2>
+            <Card className="rounded-[32px] border-none shadow-xl bg-white overflow-hidden sticky top-20">
+              <CardContent className="p-6 space-y-5">
+                <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
                   {cart.map((item) => (
-                    <div key={item.id} className="flex gap-4 items-center"><div className="w-16 h-16 rounded-xl bg-slate-50 border overflow-hidden shrink-0"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div><div className="flex-1 min-w-0"><h4 className="font-bold text-xs line-clamp-1">{item.name}</h4><p className="text-slate-400 text-[10px] font-bold">Qty: {item.quantity} × ${item.price.toFixed(2)}</p></div><p className="font-black text-sm text-slate-900">${(item.price * item.quantity).toFixed(2)}</p></div>
+                    <div key={item.id} className="flex gap-3 items-center"><div className="w-12 h-12 rounded-lg bg-slate-50 border overflow-hidden shrink-0"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div><div className="flex-1 min-w-0"><h4 className="font-bold text-[11px] line-clamp-1">{item.name}</h4><p className="text-slate-400 text-[9px] font-bold">Qty: {item.quantity} × ${item.price.toFixed(2)}</p></div><p className="font-black text-xs text-slate-900">${(item.price * item.quantity).toFixed(2)}</p></div>
                   ))}
                 </div>
-                <div className="space-y-3 pt-6 border-t border-slate-100">
-                  <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Net Value</span><span className="font-bold">${cartSubtotal.toFixed(2)}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Logistics</span><span className={cn("font-black", shippingCost > 0 ? "text-slate-900" : "text-emerald-500")}>{shippingCost > 0 ? `$${shippingCost.toFixed(2)}` : 'FREE'}</span></div>
-                  <Separator className="bg-slate-50" /><div className="flex justify-between items-end pt-2"><span className="text-slate-900 font-black uppercase tracking-tight text-lg leading-none">Order Total</span><span className="text-3xl font-black text-primary tracking-tighter">${cartTotal.toFixed(2)}</span></div>
+                <div className="space-y-2.5 pt-4 border-t border-slate-100">
+                  <div className="flex justify-between text-xs"><span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Subtotal</span><span className="font-bold text-xs">${cartSubtotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Delivery</span><span className={cn("font-black text-xs", shippingCost > 0 ? "text-slate-900" : "text-emerald-500")}>{shippingCost > 0 ? `$${shippingCost.toFixed(2)}` : 'FREE'}</span></div>
+                  <Separator className="bg-slate-50" /><div className="flex justify-between items-end pt-1"><span className="text-slate-900 font-black uppercase tracking-tight text-base leading-none">Total</span><span className="text-2xl font-black text-primary tracking-tighter">${cartTotal.toFixed(2)}</span></div>
                 </div>
-                <Button className="w-full h-16 rounded-[24px] text-xl font-black shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95" disabled={isPlacingOrder || cart.length === 0} onClick={handlePlaceOrder}>{isPlacingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : "Deploy Order Now"}</Button>
-                <div className="flex items-center justify-center gap-2 text-slate-400"><ShieldCheck className="w-4 h-4 text-emerald-500" /><span className="text-[9px] font-black uppercase tracking-[0.2em]">Secure Global Checkout</span></div>
+                <Button 
+                  className="w-full h-12 md:h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-70 disabled:grayscale disabled:cursor-not-allowed" 
+                  disabled={isPlacingOrder || cart.length === 0 || !isVerified} 
+                  onClick={handlePlaceOrder}
+                >
+                  {isPlacingOrder ? <Loader2 className="w-5 h-5 animate-spin" /> : !isVerified ? "Verify Phone First" : "Confirm Order"}
+                </Button>
+                {!isVerified && <p className="text-[10px] text-center font-bold text-rose-500 uppercase tracking-widest animate-pulse">Verification Required to Checkout</p>}
+                <div className="flex items-center justify-center gap-2 text-slate-400"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /><span className="text-[8px] font-black uppercase tracking-[0.2em]">Global Secure Network</span></div>
               </CardContent>
             </Card>
           </div>

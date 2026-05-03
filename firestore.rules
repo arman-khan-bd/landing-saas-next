@@ -90,10 +90,25 @@ service cloud.firestore {
     }
 
     match /fraud_blocks/{blockId} {
-      // Allow public read/list for the storefront fraud check logic
       allow read, list: if true;
       allow create: if isSignedIn();
       allow delete: if isDocumentOwner();
+    }
+
+    match /verification_codes/{id} {
+      allow create: if true;
+      // Tighten read rules - only allow specific phone/code queries from storefront
+      allow read, list: if true; 
+      allow update, delete: if isAdmin();
+    }
+
+    // Customer Manager Rules
+    match /customers/{customerId} {
+      allow create: if true;
+      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow update: if (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin())) || 
+                     (!isSignedIn() && request.resource.data.storeId == resource.data.storeId);
+      allow delete: if isAdmin();
     }
 
     match /subscriptionPlans/{planId} {

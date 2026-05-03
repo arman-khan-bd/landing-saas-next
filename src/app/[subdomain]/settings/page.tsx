@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
-import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle, Smartphone, Lock, Truck, ShieldCheck, Zap, CheckCircle2, Clock, Info, ArrowUpRight, Copy, Database, Image as ImageIcon, Search, Plus, Trash2 } from "lucide-react";
+import { Loader2, Save, Globe, Palette, CreditCard, Layout, Megaphone, Share2, AlertCircle, Smartphone, Lock, Truck, ShieldCheck, Zap, CheckCircle2, Clock, Info, ArrowUpRight, Copy, Database, Image as ImageIcon, Search, Plus, Trash2, BarChart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStoreUrl, cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -285,6 +285,7 @@ export default function StoreSettingsPage() {
               <TabsTrigger value="shipping" className="rounded-xl py-3 text-xs font-bold">Shipping</TabsTrigger>
               <TabsTrigger value="subscription" className="rounded-xl py-3 text-xs font-bold">Subscription</TabsTrigger>
               <TabsTrigger value="seo" className="rounded-xl py-3 text-xs font-bold">SEO</TabsTrigger>
+              <TabsTrigger value="marketing" className="rounded-xl py-3 text-xs font-bold">Marketing</TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" className="hidden" />
           </ScrollArea>
@@ -751,6 +752,65 @@ export default function StoreSettingsPage() {
                     />
                     <p className="text-[10px] text-muted-foreground mt-2 italic">Recommended size: 1200x630 pixels for optimal social sharing visibility.</p>
                  </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="marketing" className="mt-6">
+          <Card className="rounded-[32px] border-border/50 shadow-sm overflow-hidden bg-white">
+            <CardHeader className="p-8 bg-muted/30 border-b">
+              <div className="flex items-center gap-2">
+                <BarChart className="text-primary h-5 w-5" />
+                <CardTitle className="text-xl font-headline font-bold">Tracking & Marketing</CardTitle>
+              </div>
+              <CardDescription>Integrate analytics tools to track customer behavior and optimize sales.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+                      <Share2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold">Facebook Pixel</h4>
+                      <p className="text-[10px] text-muted-foreground uppercase font-black">Meta Ad Tracking</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold">Pixel ID</Label>
+                    <Input 
+                        placeholder="e.g. 123456789012345" 
+                        className="h-12 rounded-xl bg-white"
+                        value={settings.facebookPixelId}
+                        onChange={(e) => setSettings({ ...settings, facebookPixelId: e.target.value })}
+                    />
+                    <p className="text-[10px] text-muted-foreground italic">Tracks ViewContent, AddToCart, InitiateCheckout, and Purchase events.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-600/20">
+                      <BarChart className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold">Google Analytics</h4>
+                      <p className="text-[10px] text-muted-foreground uppercase font-black">GA4 Measurement ID</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold">Measurement ID</Label>
+                    <Input 
+                        placeholder="e.g. G-XXXXXXXXXX" 
+                        className="h-12 rounded-xl bg-white"
+                        value={settings.googleAnalyticsId}
+                        onChange={(e) => setSettings({ ...settings, googleAnalyticsId: e.target.value })}
+                    />
+                    <p className="text-[10px] text-muted-foreground italic">Monitor traffic and conversion performance through Google Analytics 4.</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

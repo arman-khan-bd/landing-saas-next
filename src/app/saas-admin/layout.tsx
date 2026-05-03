@@ -109,6 +109,7 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
     { title: "Overview", icon: BarChart, href: "/saas-admin/overview" },
     { title: "Landing Page", icon: Layout, href: "/saas-admin/landing-page" },
     { title: "Users", icon: Users, href: "/saas-admin/users" },
+    { title: "Customers", icon: Users, href: "/saas-admin/customers" },
     { title: "Shops", icon: Store, href: "/saas-admin/shops" },
     { title: "Subscriptions", icon: CreditCard, href: "/saas-admin/subscriptions" },
     { title: "Transactions", icon: ArrowLeftRight, href: "/saas-admin/transactions", badge: pendingTransactions },

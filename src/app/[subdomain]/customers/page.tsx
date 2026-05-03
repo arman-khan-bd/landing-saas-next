@@ -4,120 +4,84 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, MoreHorizontal, User, Mail, Phone, ExternalLink, ShieldAlert, MoreVertical, ShoppingBag, DollarSign, Fingerprint, Globe } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Search, MoreHorizontal, User, Mail, Phone, ExternalLink, ShieldAlert, MoreVertical, ShoppingBag, DollarSign, Fingerprint, Globe, ShieldCheck, ShieldX, Users } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import { updateCustomerStatus } from "@/app/actions/customers";
+import { useToast } from "@/hooks/use-toast";
 
-interface CustomerAggregated {
+interface Customer {
   id: string;
-  name: string;
-  email: string;
-  phone: string;
-  orders: number;
-  spent: number;
+  phones: string[];
+  emails: string[];
   ips: string[];
-  lastActivity: any;
-  status: string;
+  addresses: string[];
+  status: {
+    phoneBlocked: boolean;
+    emailBlocked: boolean;
+    ipBlocked: boolean;
+  };
+  lastActive: any;
+  createdAt: any;
+  notes: string;
 }
 
 export default function CustomersPage() {
   const { subdomain } = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [customers, setCustomers] = useState<CustomerAggregated[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAndAggregateCustomers();
+    fetchCustomers();
   }, [subdomain]);
 
-  const fetchAndAggregateCustomers = async () => {
-    if (!auth.currentUser) return;
+  const fetchCustomers = async () => {
     setLoading(true);
     try {
-      // 1. Get Store ID
       const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
       const storeSnap = await getDocs(storeQ);
       if (storeSnap.empty) return;
       const sId = storeSnap.docs[0].id;
 
-      // 2. Fetch Orders & Uncompleted Orders
-      const qOrders = query(
-        collection(db, "orders"), 
+      const q = query(
+        collection(db, "customers"),
         where("storeId", "==", sId),
-        where("ownerId", "==", auth.currentUser.uid)
+        orderBy("lastActive", "desc")
       );
-      const qUncompleted = query(
-        collection(db, "uncompleted_orders"), 
-        where("storeId", "==", sId),
-        where("ownerId", "==", auth.currentUser.uid)
-      );
-
-      const [ordersSnap, uncompletedSnap] = await Promise.all([
-        getDocs(qOrders),
-        getDocs(qUncompleted)
-      ]);
-
-      const customerMap: Record<string, CustomerAggregated> = {};
-
-      const processDocs = (docs: any[], isOrder: boolean) => {
-        docs.forEach(doc => {
-          const data = doc.data();
-          const cust = data.customer;
-          if (!cust?.email && !cust?.phone) return;
-
-          // Unique Key based on Email and Phone
-          const key = `${cust.email?.toLowerCase() || ""}|${cust.phone || ""}`;
-          
-          if (!customerMap[key]) {
-            customerMap[key] = {
-              id: doc.id,
-              name: cust.fullName || "Guest Customer",
-              email: cust.email || "No Email",
-              phone: cust.phone || "No Phone",
-              orders: 0,
-              spent: 0,
-              ips: [],
-              lastActivity: data.createdAt || data.lastUpdated,
-              status: isOrder ? "Active" : "Lead"
-            };
-          }
-
-          const entry = customerMap[key];
-          entry.orders += 1;
-          if (isOrder) {
-            entry.spent += Number(data.total || 0);
-            entry.status = "Customer";
-          }
-          
-          if (cust.ip && !entry.ips.includes(cust.ip)) {
-            entry.ips.push(cust.ip);
-          }
-        });
-      };
-
-      processDocs(ordersSnap.docs, true);
-      processDocs(uncompletedSnap.docs, false);
-
-      setCustomers(Object.values(customerMap));
+      const snap = await getDocs(q);
+      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
+      setCustomers(list);
     } catch (e) {
-      console.error("Aggregation Error:", e);
+      console.error("Fetch Error:", e);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleToggleBlock = async (customerId: string, type: 'phoneBlocked' | 'emailBlocked' | 'ipBlocked', current: boolean) => {
+    const res = await updateCustomerStatus(customerId, type, !current);
+    if (res.success) {
+      toast({ title: "Status Updated", description: "Customer restriction status has been updated." });
+      fetchCustomers();
+    } else {
+      toast({ variant: "destructive", title: "Update Failed" });
+    }
+  };
+
   const filteredCustomers = useMemo(() => {
     return customers.filter(c => 
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.phone.includes(searchTerm)
+      c.phones.some(p => p.includes(searchTerm)) ||
+      c.emails.some(e => e.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (c.notes && c.notes.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [customers, searchTerm]);
 
@@ -137,8 +101,8 @@ export default function CustomersPage() {
                 <Users className="w-7 h-7" />
             </div>
             <div>
-                <h1 className="text-3xl font-headline font-black tracking-tight uppercase">Customer Directory</h1>
-                <p className="text-muted-foreground text-sm">Aggregated activity from orders and checkout drafts.</p>
+                <h1 className="text-3xl font-headline font-black tracking-tight uppercase">Customer Manager</h1>
+                <p className="text-muted-foreground text-sm">Unified customer profiles with advanced security controls.</p>
             </div>
         </div>
       </div>
@@ -147,7 +111,7 @@ export default function CustomersPage() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
-            placeholder="Search by name, email or phone..." 
+            placeholder="Search by phone, email or notes..." 
             className="pl-12 rounded-2xl bg-white border-border/50 h-12 shadow-sm focus:ring-primary/20"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -155,26 +119,24 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* Desktop Table View */}
       <div className="hidden lg:block">
         <Card className="rounded-[40px] overflow-hidden border-border/50 bg-white shadow-xl shadow-slate-200/40">
           <CardContent className="p-0">
             <Table>
               <TableHeader className="bg-slate-50/50">
                 <TableRow className="border-border/50">
-                  <TableHead className="py-5 px-8 font-black uppercase tracking-widest text-[10px]">Customer</TableHead>
-                  <TableHead className="py-5 px-8 font-black uppercase tracking-widest text-[10px]">Contacts</TableHead>
-                  <TableHead className="py-5 px-8 font-black uppercase tracking-widest text-[10px]">Vault Data (IP)</TableHead>
-                  <TableHead className="py-5 px-8 font-black uppercase tracking-widest text-[10px] text-center">Activity</TableHead>
-                  <TableHead className="py-5 px-8 font-black uppercase tracking-widest text-[10px]">Total Spent</TableHead>
+                  <TableHead className="py-5 px-8 font-black uppercase tracking-widest text-[10px]">Identities</TableHead>
+                  <TableHead className="py-5 px-8 font-black uppercase tracking-widest text-[10px]">Security Status</TableHead>
+                  <TableHead className="py-5 px-8 font-black uppercase tracking-widest text-[10px]">Associated IPs</TableHead>
+                  <TableHead className="py-5 px-8 font-black uppercase tracking-widest text-[10px]">Last Active</TableHead>
                   <TableHead className="py-5 px-8 font-black uppercase tracking-widest text-[10px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCustomers.length === 0 ? (
                     <TableRow>
-                        <TableCell colSpan={6} className="py-20 text-center text-muted-foreground">
-                            No customers found matching your criteria.
+                        <TableCell colSpan={5} className="py-20 text-center text-muted-foreground font-bold uppercase tracking-widest text-xs">
+                            No customers found matching your search.
                         </TableCell>
                     </TableRow>
                 ) : filteredCustomers.map((customer) => (
@@ -182,30 +144,24 @@ export default function CustomersPage() {
                     <TableCell className="py-6 px-8">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-lg font-black shadow-lg">
-                          {customer.name[0]}
+                          {customer.phones[0]?.[customer.phones[0].length - 1] || "C"}
                         </div>
-                        <Link 
-                          href={`/${subdomain}/customers/${customer.id}`}
-                          className="flex flex-col group/link"
-                        >
-                          <span className="font-bold text-slate-900 group-hover/link:text-primary transition-colors text-base flex items-center gap-2">
-                            {customer.name}
-                            <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover/link:opacity-100 transition-opacity" />
-                          </span>
-                          <Badge variant="outline" className="w-fit mt-1 rounded-lg text-[9px] font-black uppercase tracking-tighter px-1.5 opacity-60">
-                             {customer.status}
-                          </Badge>
-                        </Link>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-slate-900 text-base">{customer.phones[0]}</span>
+                          <span className="text-[10px] text-muted-foreground font-medium">{customer.emails[0] || "No Email"}</span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="py-6 px-8">
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
-                          <Mail className="w-3.5 h-3.5 opacity-50" /> {customer.email}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
-                          <Phone className="w-3.5 h-3.5 opacity-50" /> {customer.phone}
-                        </div>
+                      <div className="flex gap-2">
+                        {customer.status.phoneBlocked ? (
+                          <Badge className="bg-rose-100 text-rose-600 border-none rounded-lg text-[9px] font-black flex items-center gap-1"><ShieldX className="w-3 h-3" /> Phone Blocked</Badge>
+                        ) : (
+                          <Badge className="bg-emerald-100 text-emerald-600 border-none rounded-lg text-[9px] font-black flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Phone Safe</Badge>
+                        )}
+                        {customer.status.ipBlocked && (
+                          <Badge className="bg-rose-100 text-rose-600 border-none rounded-lg text-[9px] font-black flex items-center gap-1"><Globe className="w-3 h-3" /> IP Restricted</Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="py-6 px-8">
@@ -218,30 +174,23 @@ export default function CustomersPage() {
                             {customer.ips.length > 2 && (
                                 <span className="text-[10px] font-bold text-slate-400">+{customer.ips.length - 2} more</span>
                             )}
-                            {customer.ips.length === 0 && <span className="text-[10px] text-slate-300">No IP recorded</span>}
                         </div>
-                    </TableCell>
-                    <TableCell className="py-6 px-8 text-center">
-                      <div className="flex flex-col items-center">
-                        <span className="font-black text-slate-900 text-lg leading-none">{customer.orders}</span>
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mt-1">Interactions</span>
-                      </div>
                     </TableCell>
                     <TableCell className="py-6 px-8">
-                        <div className="flex flex-col">
-                            <span className="font-black text-primary text-xl">${customer.spent.toFixed(2)}</span>
-                            <span className="text-[9px] font-bold uppercase tracking-widest text-primary/40 leading-none">Net Revenue</span>
-                        </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700">{customer.lastActive?.toDate().toLocaleDateString()}</span>
+                        <span className="text-[10px] text-slate-400 uppercase font-black">{customer.lastActive?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
                     </TableCell>
                     <TableCell className="py-6 px-8 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="hidden xl:flex rounded-xl h-9 px-4 font-bold border-2 hover:bg-slate-50 gap-2"
+                          className="rounded-xl h-9 px-4 font-bold border-2 hover:bg-slate-50 gap-2"
                           onClick={() => router.push(`/${subdomain}/customers/${customer.id}`)}
                         >
-                          View Details
+                          Manage
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -250,17 +199,25 @@ export default function CustomersPage() {
                             </Button>
                           </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-3xl p-2 min-w-[200px] border-border/50 shadow-2xl">
+                          <DropdownMenuLabel className="px-3 py-2 text-[10px] font-black uppercase text-slate-400 tracking-widest">Security Actions</DropdownMenuLabel>
+                          <DropdownMenuItem className="gap-3 py-3 rounded-2xl cursor-pointer" onClick={() => handleToggleBlock(customer.id, 'phoneBlocked', customer.status.phoneBlocked)}>
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${customer.status.phoneBlocked ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                <ShieldAlert className="w-4 h-4" />
+                            </div>
+                            <span className="font-bold text-sm">{customer.status.phoneBlocked ? 'Unblock Phone' : 'Block Phone'}</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-3 py-3 rounded-2xl cursor-pointer" onClick={() => handleToggleBlock(customer.id, 'ipBlocked', customer.status.ipBlocked)}>
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${customer.status.ipBlocked ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                <Globe className="w-4 h-4" />
+                            </div>
+                            <span className="font-bold text-sm">{customer.status.ipBlocked ? 'Unblock IP' : 'Block IP'}</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem className="gap-3 py-3 rounded-2xl cursor-pointer" onClick={() => router.push(`/${subdomain}/customers/${customer.id}`)}>
                             <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
                                 <ExternalLink className="w-4 h-4" />
                             </div>
-                            <span className="font-bold text-sm">Analyze Profile</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-3 py-3 rounded-2xl cursor-pointer text-rose-600 hover:bg-rose-50 transition-colors">
-                            <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center">
-                                <ShieldAlert className="w-4 h-4" />
-                            </div>
-                            <span className="font-bold text-sm">Restrict Access</span>
+                            <span className="font-bold text-sm">Full Profile</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -274,7 +231,6 @@ export default function CustomersPage() {
         </Card>
       </div>
 
-      {/* Mobile Card List View */}
       <div className="grid grid-cols-1 gap-4 lg:hidden pb-10">
         {filteredCustomers.map((customer) => (
           <Card key={customer.id} className="rounded-[32px] border-border/50 bg-white shadow-lg overflow-hidden border-2">
@@ -282,22 +238,21 @@ export default function CustomersPage() {
               <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-2xl font-black shadow-lg">
-                    {customer.name[0]}
+                    {customer.phones[0]?.[0]}
                   </div>
                   <div>
-                    <h4 className="font-black text-xl leading-tight text-slate-900">{customer.name}</h4>
-                    <Badge variant="secondary" className="mt-1 rounded-lg text-[9px] font-black tracking-widest">{customer.status}</Badge>
+                    <h4 className="font-black text-xl leading-tight text-slate-900">{customer.phones[0]}</h4>
+                    <div className="flex gap-1 mt-1">
+                      {customer.status.phoneBlocked && <Badge className="bg-rose-500 text-white border-none rounded-lg text-[8px] font-black">BLOCKED</Badge>}
+                      <Badge variant="secondary" className="rounded-lg text-[8px] font-black tracking-widest">CUSTOMER</Badge>
+                    </div>
                   </div>
                 </div>
-                <MoreVertical className="w-5 h-5 text-slate-300" />
               </div>
 
               <div className="space-y-3 mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                  <Mail className="w-4 h-4 text-slate-400" /> <span className="truncate">{customer.email}</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                  <Phone className="w-4 h-4 text-slate-400" /> {customer.phone}
+                  <Mail className="w-4 h-4 text-slate-400" /> <span className="truncate">{customer.emails[0] || "No Email"}</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
                   <Globe className="w-4 h-4 text-slate-400" /> 
@@ -305,29 +260,12 @@ export default function CustomersPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white border-2 border-slate-100 p-4 rounded-3xl">
-                  <div className="flex items-center gap-2 text-slate-400 mb-1 leading-none">
-                    <ShoppingBag className="w-3.5 h-3.5" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Growth</span>
-                  </div>
-                  <p className="text-2xl font-black text-slate-900">{customer.orders}</p>
-                </div>
-                <div className="bg-primary/5 border-2 border-primary/10 p-4 rounded-3xl">
-                  <div className="flex items-center gap-2 text-primary/40 mb-1 leading-none">
-                    <DollarSign className="w-3.5 h-3.5" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">LTV</span>
-                  </div>
-                  <p className="text-2xl font-black text-primary">${customer.spent.toFixed(0)}</p>
-                </div>
-              </div>
-
               <Button 
                 variant="outline" 
-                className="w-full mt-6 h-14 rounded-2xl font-black uppercase tracking-widest text-slate-600 border-2 hover:bg-slate-50"
+                className="w-full mt-2 h-14 rounded-2xl font-black uppercase tracking-widest text-slate-600 border-2 hover:bg-slate-50"
                 onClick={() => router.push(`/${subdomain}/customers/${customer.id}`)}
               >
-                Open Full Profile
+                Manage Profile
               </Button>
             </CardContent>
           </Card>
@@ -336,23 +274,3 @@ export default function CustomersPage() {
     </div>
   );
 }
-
-const Users = ({ className }: { className?: string }) => (
-    <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width="24" 
-        height="24" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        className={className}
-    >
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-);
