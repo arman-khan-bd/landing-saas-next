@@ -1,4 +1,4 @@
-import { initializeFirebase } from "@/firebase";
+import { initializeFirebase } from "@/firebase/provider";
 
 // Consolidate initialization to use the shared, correctly configured instances
 // from the main firebase module. This prevents "Failed to fetch" errors caused

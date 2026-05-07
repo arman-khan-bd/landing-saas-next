@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/provider";
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from "firebase/firestore";
 import { Loader2, AlertCircle, Save, ArrowLeft, Plus, Smartphone, Monitor, Trash2, Layout, Settings, Sparkles, ChevronLeft, ChevronRight, Layers, Eye, Smartphone as MobileIcon, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";

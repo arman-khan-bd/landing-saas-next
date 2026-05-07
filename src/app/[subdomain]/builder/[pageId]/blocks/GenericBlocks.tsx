@@ -21,9 +21,17 @@ interface GenericBlockProps {
 
 export const HeaderBlock = ({ block, style, renderTextWithHighlights }: GenericBlockProps) => {
   const Tag = (block.content?.level || "h2") as keyof JSX.IntrinsicElements;
+  const defaultSizes: any = {
+    h1: "text-4xl sm:text-6xl",
+    h2: "text-3xl sm:text-5xl",
+    h3: "text-2xl sm:text-4xl",
+    h4: "text-xl sm:text-3xl"
+  };
+  const sizeClass = style.fontSize ? "" : (defaultSizes[Tag as string] || defaultSizes.h2);
+
   return (
     <div id={block.id} style={style} className="px-4 w-full">
-      <Tag className="font-headline tracking-tight leading-[1.1] sm:leading-tight">
+      <Tag className={cn("font-headline tracking-tight leading-[1.1] sm:leading-tight", sizeClass)}>
         {renderTextWithHighlights(block.content?.title || block.content?.text || "Headline Text", block.style?.highlightColor)}
       </Tag>
     </div>

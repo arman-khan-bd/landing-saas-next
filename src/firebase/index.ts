@@ -38,27 +38,14 @@ export function initializeFirebase() {
 
   let firestore;
   
-  // Use a simpler settings object to avoid conflicts
+  // Use simple settings
   const firestoreSettings: any = {
-    experimentalForceLongPolling: true, // Needed for many proxy/firewall environments
+    experimentalForceLongPolling: true,
   };
 
-  if (isClient) {
-    try {
-      // Use multi-tab persistence
-      firestoreSettings.localCache = persistentLocalCache({
-        tabManager: persistentMultipleTabManager()
-      });
-    } catch (e) {
-      console.warn("Firestore: Failed to initialize multi-tab cache manager:", e);
-    }
-  }
-
   try {
-    // Attempt initialization with settings
     firestore = initializeFirestore(firebaseApp, firestoreSettings);
   } catch (e: any) {
-    // If already initialized, we must use getFirestore() as settings cannot be changed
     firestore = getFirestore(firebaseApp);
   }
 
@@ -75,11 +62,6 @@ export function initializeFirebase() {
   return cachedSdks;
 }
 
-export * from './provider';
-export * from './client-provider';
-export * from './firestore/use-collection';
-export * from './firestore/use-doc';
-export * from './non-blocking-updates';
-export * from './non-blocking-login';
-export * from './errors';
-export * from './error-emitter';
+// Export initialization function only
+export { initializeFirebase };
+

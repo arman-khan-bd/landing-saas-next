@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/provider";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { Loader2, AlertCircle } from "lucide-react";
 import { BlockRenderer } from "../../builder/[pageId]/block-renderer";
@@ -18,6 +18,11 @@ export default function RenderDynamicPage({ initialPage, initialStore, subdomain
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false); // Already have initial data
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // We already have page and store from SSR. Just need products for dynamic sections.
@@ -94,7 +99,7 @@ export default function RenderDynamicPage({ initialPage, initialStore, subdomain
             products={products} 
             store={store} 
             pageStyle={pageStyle} 
-            isPreview={true}
+            isPreview={false}
           />
         ))}
       </div>

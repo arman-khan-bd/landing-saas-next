@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/provider";
 import { collection, getDocs, query, limit } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Users, Store, CreditCard, TrendingUp, Package, Globe, ShieldAlert } from "lucide-react";

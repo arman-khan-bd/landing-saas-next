@@ -1,7 +1,7 @@
 import { Metadata, ResolvingMetadata } from "next";
 import { getStoreBySubdomain } from "@/lib/store-server";
 import StoreLayoutClient from "./layout-client";
-import { FirebaseClientProvider } from "@/firebase";
+import { FirebaseClientProvider } from "@/firebase/client-provider";
 
 type Props = {
   params: Promise<{ subdomain: string }>;

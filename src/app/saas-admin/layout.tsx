@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useUser, useFirestore } from "@/firebase";
+import { useUser, useFirestore } from "@/firebase/provider";
 import { doc, getDoc } from "firebase/firestore";
 import { 
   SidebarProvider, Sidebar, SidebarContent, SidebarHeader, 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { cn, getCurrencySymbol } from "@/lib/utils";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/provider";
 import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { 

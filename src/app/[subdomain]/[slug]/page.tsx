@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/provider";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, limit } from "firebase/firestore";
 import * as LucideIcons from "lucide-react";
 import { Loader2, AlertCircle, CheckCircle, Truck, CreditCard, ShieldCheck, Smartphone, Check, CheckCircle2 } from "lucide-react";

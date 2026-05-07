@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { useFirestore } from "@/firebase/provider";
 import { getSubdomain } from "@/lib/subdomain";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ export default function Storefront({
   initialPage?: any
 }) {
   const { subdomain: paramsSubdomain } = useParams();
+  const firestore = useFirestore();
   const [subdomain, setSubdomain] = useState<string>(initialSubdomain || "");
 
   useEffect(() => {
@@ -59,6 +60,11 @@ export default function Storefront({
   const [loading, setLoading] = useState(!initialStore);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (subdomain) {
@@ -120,31 +126,32 @@ export default function Storefront({
 
   useEffect(() => {
     if (subdomain) {
-      if (!initialStore) {
+      if (!store || !page) {
         fetchStoreAndPage();
       } else if (store?.id) {
         fetchProducts(store.id);
       }
     }
-  }, [subdomain, initialStore, store?.id]);
+  }, [subdomain, !!store, !!page, store?.id, firestore]);
 
   const fetchProducts = async (storeId: string) => {
+    if (!firestore) return;
     setCatsLoading(true);
     try {
       let prodSnap;
       try {
-        const prodQuery = query(collection(db, "products"), where("storeId", "==", storeId), orderBy("createdAt", "desc"));
+        const prodQuery = query(collection(firestore, "products"), where("storeId", "==", storeId), orderBy("createdAt", "desc"));
         prodSnap = await getDocs(prodQuery);
       } catch (error) {
-        const prodQuery = query(collection(db, "products"), where("storeId", "==", storeId));
+        const prodQuery = query(collection(firestore, "products"), where("storeId", "==", storeId));
         prodSnap = await getDocs(prodQuery);
       }
       setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
       // Fetch categories and sub-categories in parallel
       const [catSnap, subCatSnap] = await Promise.all([
-        getDocs(query(collection(db, "categories"), where("storeId", "==", storeId))),
-        getDocs(query(collection(db, "sub-categories"), where("storeId", "==", storeId))).catch(() => ({ docs: [] }))
+        getDocs(query(collection(firestore, "categories"), where("storeId", "==", storeId))),
+        getDocs(query(collection(firestore, "sub-categories"), where("storeId", "==", storeId))).catch(() => ({ docs: [] }))
       ]);
 
       const mainCats = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -164,10 +171,11 @@ export default function Storefront({
        fetchProducts(initialStore.id);
        return;
     }
+    if (!firestore) return;
     setLoading(true);
     setCatsLoading(true);
     try {
-      const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain), limit(1));
+      const storeQuery = query(collection(firestore, "stores"), where("subdomain", "==", subdomain), limit(1));
       const storeSnap = await getDocs(storeQuery);
 
       if (storeSnap.empty) {
@@ -181,16 +189,27 @@ export default function Storefront({
 
       // Parallel fetch for page, products, categories, and sub-categories
       const [pageSnap, prodSnap, catSnap, subCatSnap] = await Promise.all([
-        getDocs(query(collection(db, "pages"), where("storeId", "==", storeData.id), where("slug", "==", "index"), limit(1))),
-        getDocs(query(collection(db, "products"), where("storeId", "==", storeData.id), orderBy("createdAt", "desc"))).catch(() =>
-          getDocs(query(collection(db, "products"), where("storeId", "==", storeData.id)))
+        getDocs(query(collection(firestore, "pages"), where("storeId", "==", storeData.id), where("slug", "==", "index"), limit(1))),
+        getDocs(query(collection(firestore, "products"), where("storeId", "==", storeData.id), orderBy("createdAt", "desc"))).catch(() =>
+          getDocs(query(collection(firestore, "products"), where("storeId", "==", storeData.id)))
         ),
-        getDocs(query(collection(db, "categories"), where("storeId", "==", storeData.id))),
-        getDocs(query(collection(db, "sub-categories"), where("storeId", "==", storeData.id))).catch(() => ({ docs: [] }))
+        getDocs(query(collection(firestore, "categories"), where("storeId", "==", storeData.id))),
+        getDocs(query(collection(firestore, "sub-categories"), where("storeId", "==", storeData.id))).catch(() => ({ docs: [] }))
       ]);
 
       if (!pageSnap.empty) {
         setPage(pageSnap.docs[0].data());
+      } else {
+        // Fallback: If no "index" page, try to get the most recent page
+        const fallbackPageSnap = await getDocs(query(
+          collection(firestore, "pages"), 
+          where("storeId", "==", storeData.id), 
+          orderBy("createdAt", "desc"), 
+          limit(1)
+        ));
+        if (!fallbackPageSnap.empty) {
+          setPage(fallbackPageSnap.docs[0].data());
+        }
       }
       setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
@@ -232,7 +251,7 @@ export default function Storefront({
             products={products}
             store={store}
             pageStyle={pageStyle}
-            isPreview={true}
+            isPreview={false}
           />
         ))
       ) : (
