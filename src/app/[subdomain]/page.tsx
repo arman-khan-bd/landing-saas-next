@@ -1,5 +1,5 @@
 import { Metadata, ResolvingMetadata } from "next";
-import { getStoreBySubdomain } from "@/lib/store-server";
+import { getStoreBySubdomain, getPageBySlug } from "@/lib/store-server";
 import StorefrontClient from "./StorefrontClient";
 
 type Props = {
@@ -37,9 +37,15 @@ export async function generateMetadata(
   };
 }
 
+
+
 export default async function StorefrontPage({ params }: Props) {
   const { subdomain } = await params;
   const store = await getStoreBySubdomain(subdomain);
   
-  return <StorefrontClient initialStore={store} initialSubdomain={subdomain} />;
+  if (!store) return null;
+  
+  const indexPage = await getPageBySlug(store.id, "index");
+  
+  return <StorefrontClient initialStore={store} initialSubdomain={subdomain} initialPage={indexPage} />;
 }

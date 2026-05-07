@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Save, Tags, Globe, Layout, DollarSign, Package, Video, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Tags, Globe, Layout, DollarSign, Package, Video, CheckCircle2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -102,6 +102,15 @@ export default function EditProductPage() {
     } finally {
       setLoading(false);
     }
+  };
+ 
+  const generateSKU = () => {
+    const prefix = formData.name ? formData.name.substring(0, 3).toUpperCase() : "PRD";
+    const random = Math.random().toString(36).substring(2, 7).toUpperCase();
+    const timestamp = Date.now().toString().slice(-4);
+    const sku = `${prefix}-${random}-${timestamp}`;
+    setFormData((prev: any) => ({ ...prev, sku }));
+    toast({ title: "SKU Generated", description: `New SKU: ${sku}` });
   };
 
   const filteredSubCategories = useMemo(() => {
@@ -353,6 +362,29 @@ export default function EditProductPage() {
                     required
                     className="rounded-xl h-11"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="sku">SKU Code</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="sku"
+                      placeholder="L-BAG-VINT-001"
+                      value={formData.sku}
+                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                      className="rounded-xl h-11 flex-1"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={generateSKU}
+                      className="h-11 w-11 rounded-xl border-dashed border-primary/30 text-primary hover:bg-primary/5 transition-all"
+                      title="Auto Generate SKU"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
             </CardContent>
           </Card>

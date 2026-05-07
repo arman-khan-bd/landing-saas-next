@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +29,18 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { CSS } from "@dnd-kit/utilities";
 import { Block, BlockType, PageStyle } from "./types";
 import { Label } from "@/components/ui/label";
+
+// Import Modular Block Components
+import { NavbarBlock } from "./blocks/NavbarBlock";
+import { HeroBlock } from "./blocks/HeroBlock";
+import { OrderFormBlock } from "./blocks/OrderFormBlock";
+import { CarouselBlock } from "./blocks/CarouselBlock";
+import { PackageCardBlock } from "./blocks/PackageCardBlock";
+import { 
+  HeaderBlock, ParagraphBlock, ButtonBlock, MarqueeBlock, 
+  CardBlock, AccordionBlock, VideoBlock, ImageBlock, 
+  SelectorBlock, CheckedListBlock 
+} from "./blocks/GenericBlocks";
 
 interface BlockRendererProps {
   block: Block;
@@ -83,6 +96,7 @@ export function CanvasBlockWrapper({ block, products, store, isSelected, isMobil
   return (
     <div
       ref={setNodeRef}
+      id={block.id}
       style={style}
       onClick={(e) => { 
         e.stopPropagation(); 
@@ -102,10 +116,10 @@ export function CanvasBlockWrapper({ block, products, store, isSelected, isMobil
             </div>
           ) : (
             <div className="flex items-center gap-1 border-r border-white/20 pr-1 mr-1">
-               <Button variant="ghost" size="icon" className="h-5 v-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveUp(block.id); }}>
+               <Button variant="ghost" size="icon" className="h-5 w-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveUp(block.id); }}>
                   <ChevronUp className="w-3 h-3" />
                </Button>
-               <Button variant="ghost" size="icon" className="h-5 v-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveDown(block.id); }}>
+               <Button variant="ghost" size="icon" className="h-5 w-5 text-white hover:bg-white/20 p-0" onClick={(e) => { e.stopPropagation(); onMoveDown(block.id); }}>
                   <ChevronDown className="w-3 h-3" />
                </Button>
             </div>
@@ -129,8 +143,16 @@ export function CanvasBlockWrapper({ block, products, store, isSelected, isMobil
               <Plus className="w-2.5 h-2.5" />
             </Button>
           </div>
-          <div className="flex items-center gap-1">
-            <Trash2 className="w-3 h-3 cursor-pointer hover:text-red-200" onClick={(e) => { e.stopPropagation(); onRemove(block.id); }} />
+          <div className="flex items-center gap-1 border-l border-white/20 pl-1 ml-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-5 w-5 text-white hover:bg-rose-500 hover:text-white transition-all p-0 rounded-md" 
+              onClick={(e) => { e.stopPropagation(); onRemove(block.id); }}
+              title="Remove Section"
+            >
+              <Trash2 className="w-3 h-3" />
+            </Button>
           </div>
         </div>
       )}
@@ -161,22 +183,10 @@ export function CanvasBlockWrapper({ block, products, store, isSelected, isMobil
 
 export function BlockRenderer({ block, products, store, isPreview = false, viewMode = "desktop", onAddNested, isBuilder, isMobile, onSelect, onRemove, onMoveUp, onMoveDown, onInsertRequest, selectedBlockId, pageStyle }: BlockRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
 
-  useEffect(() => {
-    if (isPreview) {
-      const observer = new IntersectionObserver(([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.unobserve(entry.target);
-        }
-      }, { threshold: 0.1 });
-      if (containerRef.current) observer.observe(containerRef.current);
-      return () => observer.disconnect();
-    } else {
-      setIsVisible(true);
-    }
-  }, [isPreview]);
+  // We can safely remove the useEffect for setTimeout since we default to true,
+  // animations will still trigger via CSS transitions if they mount with the class.
 
   const isHidden = (viewMode === "desktop" && block.style?.hideDesktop) || (viewMode === "mobile" && block.style?.hideMobile);
   if (isHidden && isPreview) return null;
@@ -186,7 +196,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
 
   const getAnimationStyle = () => {
     if (!isVisible) return { opacity: 0, transform: block.style?.animation === 'fadeIn' ? 'none' : 'translateY(20px)' };
-    return { opacity: 1, transform: 'none', transition: 'all 0.6s cubic-bezier(0.22, 1, 0.36, 1)' };
+    return { opacity: block.style?.opacity ?? 1, transform: 'none', transition: 'all 0.6s cubic-bezier(0.22, 1, 0.36, 1)' };
   };
 
   // Adaptive values for font size and padding
@@ -214,11 +224,31 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     fontWeight: block.style?.fontWeight,
     borderStyle: block.style?.borderStyle,
     borderWidth: block.style?.borderWidth ? `${block.style.borderWidth}px` : undefined,
+    borderTopWidth: block.style?.borderTopWidth !== undefined ? `${block.style.borderTopWidth}px` : undefined,
+    borderBottomWidth: block.style?.borderBottomWidth !== undefined ? `${block.style.borderBottomWidth}px` : undefined,
+    borderLeftWidth: block.style?.borderLeftWidth !== undefined ? `${block.style.borderLeftWidth}px` : undefined,
+    borderRightWidth: block.style?.borderRightWidth !== undefined ? `${block.style.borderRightWidth}px` : undefined,
     borderColor: block.style?.borderColor,
     borderRadius: block.style?.borderRadius ? `${block.style.borderRadius}px` : undefined,
     ...(block.style?.columnSpan !== undefined && { gridColumn: `span ${block.style.columnSpan}` }),
+    opacity: block.style?.opacity ?? 1,
+    display: block.style?.display || undefined,
+    ...(block.style?.maxWidth && { maxWidth: block.style.maxWidth }),
+    ...(block.style?.alignment === 'center' && { marginLeft: 'auto', marginRight: 'auto' }),
+    ...(block.style?.alignment === 'left' && { marginRight: 'auto' }),
+    ...(block.style?.alignment === 'right' && { marginLeft: 'auto' }),
     ...getAnimationStyle()
   };
+
+  const getTextureStyle = () => {
+    const texture = block.style?.backgroundTexture || 'none';
+    if (texture === 'dots') return { backgroundImage: 'radial-gradient(circle, #0000001a 1px, transparent 1px)', backgroundSize: '20px 20px' };
+    if (texture === 'grid') return { backgroundImage: 'linear-gradient(#0000000d 1px, transparent 1px), linear-gradient(90deg, #0000000d 1px, transparent 1px)', backgroundSize: '20px 20px' };
+    if (texture === 'diagonal') return { backgroundImage: 'repeating-linear-gradient(45deg, #00000008, #00000008 10px, transparent 10px, transparent 20px)' };
+    return {};
+  };
+
+  const finalStyle = { ...style, ...getTextureStyle() };
 
   const renderBlockIcon = () => {
     if (!block.style?.iconName || block.style.iconName === 'none') return null;
@@ -235,8 +265,31 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     );
   };
 
-  const handleButtonClick = (link?: string) => {
-    if (isBuilder) return;
+  const handleButtonClick = (link?: string, targetId?: string) => {
+    // We allow scrolling in builder mode because it doesn't navigate away, 
+    // but we block external links to prevent accidental tab closing.
+    const isScrollAction = targetId || (block.content?.actionType === 'scroll' && block.content?.targetId);
+    if (isBuilder && !isScrollAction) return;
+
+    // 1. Scroll to targetId if provided directly (from Navbar items, etc)
+    if (targetId) {
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
+
+    // 2. Check for explicit scroll action on the block itself (from Button component)
+    if (block.content?.actionType === 'scroll' && block.content?.targetId) {
+      const targetEl = document.getElementById(block.content.targetId);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
+
+    // 3. Handle standard links or the [checkout] shortcut
     const targetLink = link || block.content?.link;
     if (!targetLink) return;
 
@@ -255,552 +308,113 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     }
   };
 
+  const commonProps = {
+    block,
+    style: finalStyle,
+    products,
+    store,
+    handleButtonClick,
+    renderBlockIcon,
+    renderTextWithHighlights,
+    isMobile,
+    isOrganic,
+    isTraditional
+  };
+
   const renderContent = () => {
     switch (block.type) {
       case "navbar":
-        const LogoIcon = (LucideIcons as any)[block.content?.logoIcon] || Menu;
-        const navItems = block.content?.items || [];
-        const showCta = block.content?.showCta;
-        const navPosition = block.content?.position || "normal"; 
-        const isTransparent = block.content?.transparent;
-        
-        const posStyles: any = {
-          normal: { position: 'relative' },
-          sticky: { position: 'sticky', top: 0, zIndex: 40 },
-          fixed: { 
-            position: isBuilder ? 'sticky' : 'fixed', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            zIndex: 40 
-          }
-        };
-
-        const renderNavItems = (pos: string) => (
-          <div className={cn("flex items-center gap-2 sm:gap-6", {
-            "justify-start": pos === "left",
-            "justify-center": pos === "center",
-            "justify-end": pos === "right"
-          })}>
-            {(block.content?.showLogo !== false) && (block.content?.logoPosition === pos || (!block.content?.logoPosition && pos === 'left')) && (
-              <div className="flex items-center gap-2">
-                {block.content?.logoType === "image" && block.content?.logoUrl ? (
-                  <img src={block.content.logoUrl} className="h-6 sm:h-8 w-auto object-contain" alt="logo" />
-                ) : block.content?.logoType === "icon" ? (
-                  <LogoIcon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: block.content?.primaryColor || 'currentColor' }} />
-                ) : (
-                  <span className="font-headline font-black text-sm sm:text-lg uppercase tracking-tight">{block.content?.logoText || "LOGO"}</span>
-                )}
-              </div>
-            )}
-            <div className="hidden sm:flex items-center gap-6">
-              {navItems.filter((i: any) => (i.position || 'center') === pos).map((item: any) => (
-                <button key={item.id} onClick={() => handleButtonClick(item.link)} className="text-sm font-bold opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap">
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            {(block.content?.buttons || []).filter((b: any) => (b.position || 'right') === pos).map((btn: any) => {
-               const btnStyle: any = {};
-               if (btn.type === 'solid' || btn.type === 'gradient' || btn.type === 'flat') btnStyle.backgroundColor = btn.bgColor || '#145DCC';
-               if (btn.type === 'gradient') btnStyle.background = `linear-gradient(135deg, ${btn.bgColor || '#145DCC'}, ${btn.bgColor ? btn.bgColor+'cc' : '#104ea3'})`;
-               if (btn.type === 'outline') { btnStyle.backgroundColor = 'transparent'; btnStyle.borderColor = btn.borderColor || '#ffffff'; btnStyle.borderWidth = `${btn.borderSize || 2}px`; btnStyle.borderStyle = 'solid'; }
-               if (btn.type === 'texture') { btnStyle.backgroundColor = btn.bgColor || '#145DCC'; btnStyle.backgroundImage = `repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 1px, transparent 0, transparent 50%)`; btnStyle.backgroundSize = '10px 10px'; }
-               if (btn.type === 'image' && btn.bgImage) { btnStyle.backgroundImage = `url(${btn.bgImage})`; btnStyle.backgroundSize = 'cover'; btnStyle.backgroundPosition = 'center'; }
-               btnStyle.color = btn.textColor || '#ffffff';
-               btnStyle.borderRadius = `${btn.borderRadius || 8}px`;
-               btnStyle.fontSize = `${btn.fontSize || 14}px`;
-               if (btn.borderSize > 0 && btn.type !== 'outline') { btnStyle.borderWidth = `${btn.borderSize}px`; btnStyle.borderStyle = 'solid'; btnStyle.borderColor = btn.borderColor || '#ffffff'; }
-               
-               return (
-                 <Button key={btn.id} style={btnStyle} className="font-bold whitespace-nowrap transition-transform hover:scale-105" onClick={() => handleButtonClick(btn.link)}>
-                    {btn.label}
-                 </Button>
-               );
-            })}
-            {showCta && block.content?.ctaPosition === pos && (
-              <Button 
-                size="sm" 
-                className={cn("rounded-xl h-8 sm:h-9 px-4 sm:px-6 font-bold text-[10px] sm:text-xs uppercase tracking-widest")} 
-                onClick={() => handleButtonClick(block.content.ctaLink)}
-              >
-                {block.content.ctaText}
-              </Button>
-            )}
-          </div>
-        );
-
-        return (
-          <div 
-            style={{ 
-              backgroundColor: isTransparent ? 'transparent' : (block.content?.backgroundColor || '#ffffff'),
-              color: block.content?.textColor || '#1a1a1a',
-              borderBottomColor: isTransparent ? 'transparent' : 'rgba(0,0,0,0.05)',
-              ...posStyles[navPosition],
-            }} 
-            className={cn(
-              "w-full px-4 sm:px-6 py-3 sm:py-4 border-b transition-all duration-300",
-              !isTransparent && "backdrop-blur-md shadow-sm",
-              navPosition === "fixed" && !isBuilder && "left-0 right-0"
-            )}
-          >
-            <div className="max-w-7xl mx-auto grid grid-cols-3 items-center gap-2 sm:gap-4">
-              {renderNavItems("left")}
-              {renderNavItems("center")}
-              {renderNavItems("right")}
-            </div>
-          </div>
-        );
-
+        return <NavbarBlock block={block} isBuilder={!!isBuilder} handleButtonClick={handleButtonClick} />;
       case "ultra-hero":
-        const trustItems = block.content?.trustItems || [];
-        const heroBgStyle: any = {
-          ...(block.content?.bgType === 'image' && block.content?.bgImage ? {
-            backgroundImage: `url(${block.content.bgImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          } : {})
-        };
-
-        const getButtonStyle = (btn: 'cta' | 'phone') => {
-          const type = block.content?.[`${btn}Type`] || (btn === 'cta' ? 'gradient' : 'outline');
-          const bg = block.content?.[`${btn}Bg`];
-          const text = block.content?.[`${btn}TextColor`];
-          const border = block.content?.[`${btn}BorderColor`];
-          const radius = block.content?.[`${btn}BorderRadius`];
-          const width = block.content?.[`${btn}BorderWidth`];
-
-          const s: any = {};
-          if (type === 'gradient' && btn === 'cta') {
-            s.background = 'linear-gradient(135deg, #f9a825, #e65c00)';
-          } else if (type === 'solid' || type === 'gradient') {
-            if (bg) s.backgroundColor = bg;
-          } else if (type === 'outline') {
-            s.backgroundColor = 'transparent';
-            s.borderStyle = 'solid';
-            s.borderWidth = `${width || 2}px`;
-            if (border) s.borderColor = border;
-          }
-
-          if (text) s.color = text;
-          if (radius !== undefined) s.borderRadius = `${radius}px`;
-          
-          return s;
-        };
-
-        return (
-          <div style={{ ...style, ...heroBgStyle }} className="w-full relative overflow-hidden">
-             {block.content?.bgType !== 'image' && (
-               <div className={cn(
-                 "absolute inset-0 -z-10",
-                 isOrganic ? "bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" : 
-                 isTraditional ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]" :
-                 "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950"
-               )} />
-             )}
-             {block.content?.bgType === 'image' && <div className="absolute inset-0 bg-black/40 -z-10" />}
-             
-             <div className="absolute inset-0 -z-10 opacity-[0.03]" style={{ backgroundImage: `repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)`, backgroundSize: '10px 10px' }} />
-
-             <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-24 text-center flex flex-col items-center">
-                <div 
-                  style={{ color: block.content?.badgeColor || '#facc15' }}
-                  className="mb-6 sm:mb-8 inline-flex items-center px-4 sm:px-5 py-1.5 sm:py-2 rounded-full bg-white/10 border border-white/20 text-[9px] sm:text-xs font-black uppercase tracking-[0.2em]"
-                >
-                  {block.content?.badgeText || "BSTI অনুমোদিত • BCSIR ল্যাব টেস্টেড"}
-                </div>
-
-                <h1 
-                  style={{ color: block.content?.titleColor || '#ffffff' }}
-                  className="text-3xl xs:text-4xl sm:text-7xl font-headline font-black leading-[1.1] sm:leading-[0.95] mb-4 tracking-tighter max-w-3xl"
-                >
-                  {renderTextWithHighlights(block.content?.title || "অসুস্থ ব্যক্তি ছাড়া সুস্থতার মূল্য কেউ বোঝে না", block.style?.highlightColor)}
-                </h1>
-
-                <p 
-                  style={{ color: block.content?.subtitleColor || 'rgba(253, 224, 71, 0.9)' }}
-                  className="text-base sm:text-2xl font-bold mb-8 sm:mb-10 tracking-tight"
-                >
-                  {block.content?.subtitle || "শক্তি ও সুস্বাস্থ্যের নির্ভরযোগ্য উপহার"}
-                </p>
-
-                <div className="bg-white rounded-2xl sm:rounded-full px-5 sm:px-8 py-2.5 sm:py-3 mb-10 sm:mb-12 shadow-2xl shadow-black/20 flex items-center gap-3 sm:gap-4 border-2 border-white/20">
-                   <span 
-                     style={{ color: block.content?.brandTitleColor || '#1a7c3e' }}
-                     className="text-xl sm:text-3xl font-black tracking-tighter"
-                   >
-                     "{block.content?.brandTitle || "সাম"}"
-                   </span>
-                   <div className="h-5 sm:h-6 w-px bg-slate-200" />
-                   <span 
-                     style={{ color: block.content?.brandSubtitleColor || '#64748b' }}
-                     className="text-[10px] sm:text-sm font-bold uppercase tracking-widest pt-1"
-                   >
-                     {block.content?.brandSubtitle || "প্রাকৃতিক স্বাস্থ্য সুরক্ষা"}
-                   </span>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full justify-center items-center mb-12 sm:mb-16">
-                   <Button 
-                     size="lg" 
-                     style={getButtonStyle('cta')}
-                     className={cn(
-                       "h-14 sm:h-16 px-8 sm:px-10 rounded-full text-white font-black text-lg sm:text-xl shadow-xl shadow-orange-950/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
-                     )}
-                     onClick={() => handleButtonClick(block.content?.ctaLink || "[checkout]")}
-                   >
-                     <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                     {block.content?.ctaText || "এখানে অর্ডার করুন"}
-                   </Button>
-
-                   <Button 
-                     variant="outline"
-                     size="lg" 
-                     style={getButtonStyle('phone')}
-                     className="h-14 sm:h-16 px-8 sm:px-10 rounded-full border-2 border-white/30 bg-white/5 hover:bg-white/10 font-bold text-base sm:text-lg w-full sm:w-auto"
-                     onClick={() => handleButtonClick(block.content?.phoneLink || "tel:01621611589")}
-                   >
-                     <Phone className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                     {block.content?.phoneText || "01621-611589"}
-                   </Button>
-                </div>
-
-                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-4 sm:gap-10 w-full pt-8 sm:pt-12 border-t border-white/10">
-                   {trustItems.map((item: any, i: number) => {
-                     const TrustIcon = (LucideIcons as any)[item.iconName] || CheckSquare;
-                     return (
-                       <div key={i} className="flex flex-col items-center gap-2 sm:gap-3 group">
-                          <div 
-                            style={{ 
-                              backgroundColor: block.content?.ribbonIconBg || 'rgba(255,255,255,0.1)',
-                              color: block.content?.ribbonIconColor || '#34d399'
-                            }}
-                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-all duration-300"
-                          >
-                             <TrustIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                          </div>
-                          <span 
-                            style={{ color: block.content?.ribbonTextColor || 'rgba(255,255,255,0.7)' }}
-                            className="text-[9px] sm:text-xs font-black uppercase tracking-widest transition-colors text-center"
-                          >
-                            {item.label}
-                          </span>
-                       </div>
-                     );
-                   })}
-                </div>
-             </div>
-          </div>
-        );
-
-      case "marquee":
-        const marqueeItems = block.content?.items || ["Text Point 1", "Text Point 2"];
-        return (
-          <div style={style} className="overflow-hidden bg-primary py-2 sm:py-3 w-full">
-             <div className="flex animate-marquee whitespace-nowrap gap-8 sm:gap-12 items-center">
-                {[...marqueeItems, ...marqueeItems, ...marqueeItems].map((txt, i) => (
-                  <div key={i} className="flex items-center gap-2 text-white font-bold text-xs sm:text-sm">
-                     <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-white/20 rounded-full flex items-center justify-center text-[8px] sm:text-[10px]">✓</div>
-                     {txt}
-                  </div>
-                ))}
-             </div>
-          </div>
-        );
-
+        return <HeroBlock {...commonProps} />;
+      case "header": return <HeaderBlock {...commonProps} />;
+      case "paragraph": return <ParagraphBlock {...commonProps} />;
+      case "button": return <ButtonBlock {...commonProps} />;
+      case "marquee": return <MarqueeBlock {...commonProps} />;
+      case "card": return <CardBlock {...commonProps} />;
+      case "accordion": return <AccordionBlock {...commonProps} />;
+      case "video": return <VideoBlock {...commonProps} />;
+      case "image": return <ImageBlock {...commonProps} />;
+      case "selector": return <SelectorBlock {...commonProps} />;
+      case "checked-list": return <CheckedListBlock {...commonProps} />;
+      case "carousel": return <CarouselBlock {...commonProps} />;
+      case "package-card": return <PackageCardBlock {...commonProps} />;
+      case "product-order-form": return <OrderFormBlock {...commonProps} />;
       case "row":
-        const colsCount = block.content?.columns || 1;
-        const gridColsMap: Record<number, string> = { 1: "md:grid-cols-1", 2: "md:grid-cols-2", 3: "md:grid-cols-3", 4: "md:grid-cols-4" };
-        const children = block.children || [];
-
+        const columns = block.content?.columns || 2;
         return (
-          <div 
-            style={style} 
-            className={cn(
-              "grid gap-4 sm:gap-6 px-4 max-w-6xl mx-auto w-full relative", 
-              "grid-cols-1", 
-              gridColsMap[colsCount] || "md:grid-cols-1",
-              isBuilder && "border-2 border-dashed border-primary/20 p-4 sm:p-6 rounded-3xl sm:rounded-[40px] bg-slate-50/5 min-h-[120px] transition-all hover:border-primary/40"
-            )}
-          >
-            {isBuilder && (
-              <div className="absolute top-3 left-8 px-2 py-0.5 bg-primary/10 rounded-full flex items-center gap-1.5 z-10">
-                 <Columns className="w-2.5 h-2.5 text-primary/50" />
-                 <span className="text-[7px] font-black text-primary/50 uppercase tracking-widest">Layout Row ({colsCount} Columns)</span>
-              </div>
-            )}
-
-            {Array.from({ length: colsCount }).map((_, colIdx) => {
-              const colChildren = children.filter(c => (c.style?.columnIndex ?? 0) === colIdx);
-              const colItemIds = colChildren.map(c => c.id);
-              
-              return (
-                <div key={colIdx} className={cn(
-                  "flex flex-col gap-4 min-h-[60px] relative pointer-events-auto",
-                  isBuilder && "border border-dashed border-slate-200/30 p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-white/5"
-                )}>
+          <div id={block.id} style={finalStyle} className="px-4 w-full max-w-7xl mx-auto">
+            <div className={cn(
+              "grid gap-4 sm:gap-8",
+              columns === 1 ? "grid-cols-1" : 
+              columns === 2 ? "grid-cols-1 md:grid-cols-2" : 
+              columns === 3 ? "grid-cols-1 md:grid-cols-3" : 
+              "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+            )}>
+              {[...Array(columns)].map((_, i) => (
+                <div key={i} className="space-y-4 min-h-[100px] flex flex-col items-center">
+                  {(block.children || []).filter((child: any) => child.colIdx === i).map((child: any) => (
+                    <div key={child.id} className="w-full">
+                       {isBuilder ? (
+                          <CanvasBlockWrapper
+                            block={child}
+                            products={products}
+                            store={store}
+                            isSelected={selectedBlockId === child.id}
+                            isMobile={isMobile}
+                            onSelect={onSelect}
+                            onRemove={onRemove}
+                            onMoveUp={onMoveUp}
+                            onMoveDown={onMoveDown}
+                            onInsertRequest={onInsertRequest}
+                            viewMode={viewMode}
+                            onAddNested={onAddNested}
+                            selectedBlockId={selectedBlockId}
+                            isBuilder={true}
+                            pageStyle={pageStyle}
+                          />
+                       ) : (
+                          <BlockRenderer
+                            block={child}
+                            products={products}
+                            store={store}
+                            isPreview={isPreview}
+                            viewMode={viewMode}
+                            pageStyle={pageStyle}
+                          />
+                       )}
+                    </div>
+                  ))}
                   {isBuilder && (
-                     <div className="absolute -top-2.5 left-4 px-2 py-0.5 bg-slate-100 rounded-full flex items-center gap-1 z-10 border border-slate-200 shadow-sm">
-                        <span className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Column {colIdx + 1}</span>
-                     </div>
-                  )}
-
-                  {isBuilder ? (
-                    <SortableContext items={colItemIds} strategy={verticalListSortingStrategy}>
-                      {colChildren.map((child: any) => (
-                        <CanvasBlockWrapper 
-                          key={child.id} 
-                          block={child} 
-                          products={products} 
-                          store={store}
-                          viewMode={viewMode} 
-                          isMobile={isMobile}
-                          onAddNested={onAddNested}
-                          isSelected={selectedBlockId === child.id}
-                          selectedBlockId={selectedBlockId}
-                          onSelect={onSelect}
-                          onRemove={onRemove}
-                          onMoveUp={onMoveUp}
-                          onMoveDown={onMoveDown}
-                          onInsertRequest={onInsertRequest}
-                          isBuilder={isBuilder}
-                          pageStyle={pageStyle}
-                        />
-                      ))}
-                    </SortableContext>
-                  ) : (
-                    colChildren.map((child: any) => (
-                      <BlockRenderer key={child.id} block={child} products={products} store={store} isPreview={isPreview} viewMode={viewMode} pageStyle={pageStyle} />
-                    ))
-                  )}
-
-                  {isBuilder && (
-                     <button 
-                       className="mt-auto pointer-events-auto h-8 border border-dashed border-slate-200 text-slate-300 hover:text-primary hover:border-primary/50 text-[8px] uppercase font-bold rounded-xl bg-white/10 flex items-center justify-center px-3 transition-all"
-                       onClick={(e) => { e.stopPropagation(); onAddNested?.(block.id, colIdx); }}
-                     >
-                       <Plus className="w-3 h-3 mr-1" />
-                       Add to Col {colIdx + 1}
-                     </button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full border-2 border-dashed border-slate-100 hover:border-primary/20 hover:bg-primary/5 h-12 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-300 hover:text-primary transition-all mt-auto"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddNested?.(block.id, i);
+                      }}
+                    >
+                      <Plus className="w-3 h-3 mr-2" /> Add to Column {i + 1}
+                    </Button>
                   )}
                 </div>
-              );
-            })}
-          </div>
-        );
-
-      case "accordion":
-        const accItems = block.content?.items || [{ id: "1", title: "Item 1", content: "Content 1" }];
-        return (
-          <div style={style} className="px-4 w-full max-w-6xl mx-auto">
-            <Accordion type="single" collapsible className="w-full">
-              {accItems.map((item: any) => (
-                <AccordionItem key={item.id} value={item.id} className="border-b-0 mb-2">
-                  <AccordionTrigger className={cn(
-                    "px-4 sm:px-6 py-3 sm:py-4 rounded-xl hover:no-underline font-bold text-sm text-left transition-all group",
-                    isOrganic ? "bg-[#fff] border-2 border-[#d9e8da] text-[#1b5e20] hover:bg-[#f0f7f0]" : 
-                    isTraditional ? "bg-[#fff] border-2 border-[#ddd] text-[#1a7c3e] hover:bg-[#e8f5ee]" :
-                    "bg-slate-50 hover:bg-slate-100"
-                  )}>
-                    <div className="flex items-center gap-3">
-                       {item.iconName && React.createElement((LucideIcons as any)[item.iconName], { className: "w-4 h-4 text-primary shrink-0" })}
-                       <div className="min-w-0">
-                          <p className="truncate">{item.title}</p>
-                          {item.subtitle && <p className="text-[9px] sm:text-[10px] font-normal text-muted-foreground opacity-60 truncate">{item.subtitle}</p>}
-                       </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className={cn(
-                    "px-4 sm:px-6 py-3 sm:py-4 bg-white rounded-b-xl border -mt-1",
-                    isOrganic ? "border-[#d9e8da]" : 
-                    isTraditional ? "border-[#ddd]" :
-                    "border-slate-50"
-                  )}>
-                    <div className="flex flex-col md:flex-row gap-4 items-start">
-                       {item.imageUrl && <img src={item.imageUrl} className="w-full md:w-32 aspect-video object-cover rounded-lg border" />}
-                       <div className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed flex-1">
-                          {item.content}
-                       </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
               ))}
-            </Accordion>
-          </div>
-        );
-
-      case "card":
-        const IconComp = block.content?.showIcon && block.content?.iconName ? (LucideIcons as any)[block.content.iconName] : null;
-        const cardTextAlign = block.style?.textAlign || "left";
-        const isHorizontal = block.content?.layout === "horizontal";
-        
-        return (
-          <div 
-            style={{
-              ...style,
-              borderWidth: block.content?.cardBorderSize ? `${block.content.cardBorderSize}px` : undefined,
-              borderRadius: block.content?.cardBorderRadius ? `${block.content.cardBorderRadius}px` : undefined,
-              borderColor: block.content?.cardBorderColor,
-              borderStyle: block.content?.cardBorderStyle || 'solid',
-              backgroundColor: block.content?.cardBgColor,
-            }} 
-            className={cn(
-              "px-4 w-full max-w-6xl mx-auto relative overflow-hidden",
-              isOrganic && !block.content?.cardBorderSize && !block.style?.borderWidth && "border-l-4 border-[#2d7a3a] bg-white rounded-r-xl shadow-sm",
-              isTraditional && !block.content?.cardBorderSize && !block.style?.borderWidth && "border-l-4 border-[#1a7c3e] bg-white rounded-r-xl shadow-sm"
-            )}
-          >
-            {renderBlockIcon()}
-            {block.content?.bgImage && <img src={block.content.bgImage} className="absolute inset-0 w-full h-full object-cover z-0 opacity-40" alt="" />}
-            <div className={cn("relative z-10 flex", 
-              isHorizontal ? "flex-col xs:flex-row items-center gap-3 sm:gap-4" : "flex-col gap-4",
-              {
-                "items-start text-left": !isHorizontal && cardTextAlign === "left",
-                "items-center text-center": !isHorizontal && cardTextAlign === "center",
-                "items-end text-right": !isHorizontal && cardTextAlign === "right",
-                "items-stretch text-justify": !isHorizontal && cardTextAlign === "justify"
-              }
-            )}>
-               {IconComp && <IconComp style={{ color: block.content?.iconColor || (isOrganic ? "#2d7a3a" : isTraditional ? "#1a7c3e" : "#145DCC") }} size={isMobile ? 24 : (block.content?.iconSize || 32)} className="shrink-0" />}
-               <div className="space-y-1 w-full flex-1">
-                  <h4 className={cn("font-bold text-lg sm:text-xl", (isOrganic || isTraditional) && `text-primary`)}>{block.content?.title || "Feature Title"}</h4>
-                  <p className="text-xs sm:text-sm opacity-80 leading-relaxed">{block.content?.subtitle || "Description placeholder..."}</p>
-                  {(block.content?.items || []).length > 0 && (
-                    <div className={cn("space-y-2 pt-2 w-full flex flex-col", {
-                        "items-start": isHorizontal || cardTextAlign === "left",
-                        "items-center": !isHorizontal && cardTextAlign === "center",
-                        "items-end": !isHorizontal && cardTextAlign === "right",
-                        "items-stretch": !isHorizontal && cardTextAlign === "justify"
-                    })}>
-                      {block.content.items.map((item: string, i: number) => {
-                          let prefix;
-                          const lStyle = block.content?.listStyle || "check";
-                          if (lStyle === "check") prefix = <Check className={cn("w-3 h-3 sm:w-3.5 sm:h-3.5", (isOrganic || isTraditional) ? "text-primary" : "text-primary")} />;
-                          else if (lStyle === "bullet") prefix = <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />;
-                          else if (lStyle === "number") prefix = <span className={cn("text-[9px] sm:text-[10px] font-bold", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>{i+1}.</span>;
-
-                          return (
-                            <div key={i} className="flex items-center gap-2">
-                              {prefix}
-                              <span className="text-xs sm:text-sm font-medium">{item}</span>
-                            </div>
-                          );
-                      })}
-                    </div>
-                  )}
-               </div>
             </div>
           </div>
         );
-
-      case "header":
-        const HeaderTag = block.content?.level || 'h2';
-        const headerSizes: any = { 
-          h1: 'text-3xl xs:text-4xl sm:text-6xl md:text-7xl lg:text-8xl', 
-          h2: 'text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl', 
-          h3: 'text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl' 
-        };
-        const headerThemeActive = isOrganic || isTraditional;
-        const isPill = block.style?.borderRadius && block.style.borderRadius > 20 && block.style.backgroundColor;
-
-        return (
-          <div 
-            style={style} 
-            className={cn(
-              "px-4 font-headline font-bold leading-tight",
-              isPill ? "w-fit mx-auto px-5 sm:px-6 py-1.5 sm:py-2" : "w-full",
-              headerThemeActive && !block.style?.backgroundColor && "text-center py-8 sm:py-12 text-white relative overflow-hidden",
-            )}
-          >
-            {headerThemeActive && !block.style?.backgroundColor && (
-               <div className={cn(
-                 "absolute inset-0 -z-10",
-                 isOrganic ? "bg-gradient-to-br from-[#1b5e20] via-[#2d7a3a] to-[#388e3c]" : "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]"
-               )} />
-            )}
-            {renderBlockIcon()}
-            <HeaderTag className={headerSizes[HeaderTag]}>
-              {renderTextWithHighlights(block.content?.text || "Heading", block.style?.highlightColor)}
-            </HeaderTag>
-          </div>
-        );
-
-      case "paragraph":
-        return <div style={style} className="px-4 w-full leading-relaxed whitespace-pre-wrap text-base sm:text-lg opacity-80">{renderBlockIcon()}{renderTextWithHighlights(block.content?.text || "Text", block.style?.highlightColor)}</div>;
-
       case "rich-text":
         return (
-          <div style={style} className="px-4 w-full">
+          <div id={block.id} style={finalStyle} className="px-4 w-full">
             <div 
               className="prose prose-sm xs:prose-base prose-slate max-w-none prose-p:my-1" 
               dangerouslySetInnerHTML={{ __html: block.content?.html || "Add your rich text content in the sidebar editor." }} 
             />
           </div>
         );
-
-      case "image":
-        return <div style={style} className="px-4 w-full">
-          {block.content?.url ? (
-            <img src={block.content.url} className="w-full h-auto shadow-md rounded-xl" alt="" />
-          ) : (
-            <div className="w-full aspect-video bg-slate-100 rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200 text-slate-400 gap-2">
-              <ImageIcon className="w-8 h-8 sm:w-10 sm:h-10 opacity-20" />
-              <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest">Image Placeholder</span>
-            </div>
-          )}
-        </div>;
-
-      case "button":
-        const btnStyleConfig = block.content || {};
-        const bs: any = { ...style };
-        if (btnStyleConfig.type === 'solid' || btnStyleConfig.type === 'gradient' || btnStyleConfig.type === 'flat') bs.backgroundColor = btnStyleConfig.bgColor || '#145DCC';
-        if (btnStyleConfig.type === 'gradient') bs.background = `linear-gradient(135deg, ${btnStyleConfig.bgColor || '#145DCC'}, ${btnStyleConfig.bgColor ? btnStyleConfig.bgColor+'cc' : '#104ea3'})`;
-        if (btnStyleConfig.type === 'outline') { bs.backgroundColor = 'transparent'; bs.borderColor = btnStyleConfig.borderColor || '#ffffff'; bs.borderWidth = `${btnStyleConfig.borderSize || 2}px`; bs.borderStyle = 'solid'; }
-        if (btnStyleConfig.type === 'texture') { bs.backgroundColor = btnStyleConfig.bgColor || '#145DCC'; bs.backgroundImage = `repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 1px, transparent 0, transparent 50%)`; bs.backgroundSize = '10px 10px'; }
-        if (btnStyleConfig.type === 'image' && btnStyleConfig.bgImage) { bs.backgroundImage = `url(${btnStyleConfig.bgImage})`; bs.backgroundSize = 'cover'; bs.backgroundPosition = 'center'; }
-        bs.color = btnStyleConfig.textColor || '#ffffff';
-        bs.borderRadius = `${btnStyleConfig.borderRadius || 8}px`;
-        
-        if (btnStyleConfig.borderSize > 0 && btnStyleConfig.type !== 'outline') { bs.borderWidth = `${btnStyleConfig.borderSize}px`; bs.borderStyle = 'solid'; bs.borderColor = btnStyleConfig.borderColor || '#ffffff'; }
-
-        return (
-          <div style={style} className="px-4 w-full flex justify-center flex-col items-center">
-            {renderBlockIcon()}
-            <Button 
-              size="lg" 
-              style={bs}
-              className="rounded-xl sm:rounded-2xl px-6 sm:px-12 h-12 sm:h-16 font-bold text-base sm:text-xl shadow-2xl transition-all hover:scale-105 w-full sm:w-auto"
-              onClick={() => handleButtonClick()}
-            >
-              {block.content?.text || "Action Button"}
-            </Button>
-          </div>
-        );
-
-      case "video":
-        const videoId = block.content?.url?.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)?.[1];
-        return (
-          <div style={style} className="px-4 w-full max-w-6xl mx-auto">
-             <div className="aspect-video w-full rounded-2xl sm:rounded-[40px] overflow-hidden shadow-2xl bg-black">
-                {videoId ? (
-                  <iframe 
-                    src={`https://www.youtube.com/embed/${videoId}`} 
-                    className="w-full h-full" 
-                    allowFullScreen 
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-2">
-                     <Play className="w-10 h-10 sm:w-12 sm:h-12 opacity-20" />
-                     <p className="text-[10px] sm:text-xs font-black uppercase">Video Placeholder</p>
-                  </div>
-                )}
-             </div>
-          </div>
-        );
-
       case "code":
         return isPreview ? null : (
-          <div style={style} className="px-4 w-full max-w-6xl mx-auto">
+          <div id={block.id} style={finalStyle} className="px-4 w-full max-w-6xl mx-auto">
              <div className="bg-slate-950 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10 space-y-4">
                 <div className="flex items-center gap-2 text-indigo-400">
                    <Code className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -816,10 +430,9 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
              </div>
           </div>
         );
-
       case "footer":
         return (
-          <footer style={style} className="px-4 w-full bg-slate-900 text-white rounded-t-2xl sm:rounded-t-[40px] py-12 sm:py-16">
+          <footer id={block.id} style={finalStyle} className="px-4 w-full bg-slate-900 text-white rounded-t-2xl sm:rounded-t-[40px] py-12 sm:py-16">
              <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 sm:gap-12">
                 <div className="space-y-4 sm:space-y-6">
                    <div className="flex items-center gap-3">
@@ -850,37 +463,6 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
              </div>
           </footer>
         );
-
-      case "product-order-form":
-        const productIds = block.content?.productIds || (block.content?.mainProductId ? [block.content.mainProductId] : []);
-        const selectedProducts = products.filter(p => productIds.includes(p.id));
-        return (
-          <div style={style} className="px-4 w-full max-w-5xl mx-auto text-left" data-block-type="product-order-form">
-             {selectedProducts.length > 0 ? (
-               <LandingPageOrderForm products={selectedProducts} store={store} isOrganic={isOrganic} isTraditional={isTraditional} />
-             ) : (
-               <div className="p-8 sm:p-12 bg-white rounded-2xl sm:rounded-[40px] shadow-sm border-2 border-dashed flex flex-col items-center justify-center gap-4 text-slate-300">
-                  <CreditCard className="w-8 h-8 sm:w-10 sm:h-10 opacity-10" />
-                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center">Select products in sidebar to see order form</span>
-               </div>
-             )}
-          </div>
-        );
-
-      case "checked-list":
-        return (
-          <div style={style} className="px-4 w-full max-w-6xl mx-auto space-y-3 sm:space-y-4">
-            {(block.content?.items || []).map((item: string, i: number) => (
-              <div key={i} className="flex items-start gap-3 sm:gap-4">
-                <div className="mt-1 bg-primary/10 p-1 sm:p-1.5 rounded-full text-primary shadow-sm">
-                  <CheckCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-primary text-white" />
-                </div>
-                <span className="text-base sm:text-xl font-medium pt-0.5">{item}</span>
-              </div>
-            ))}
-          </div>
-        );
-
       default: return null;
     }
   };
@@ -892,274 +474,3 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
   );
 }
 
-function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { products: any[], store: any, isOrganic: boolean, isTraditional: boolean }) {
-  const { toast } = useToast();
-  const db = useFirestore();
-  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState(false);
-  const [clientIp, setClientIp] = useState("");
-  const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || "");
-  const [selectedShipping, setSelectedShipping] = useState<any>(null);
-
-  const product = products.find(p => p.id === selectedProductId) || products[0];
-
-  const [formData, setFormData] = useState({
-    fullName: "",
-    phone: "",
-    address: "",
-    paymentMethod: "cod",
-    selectedManualMethodId: "",
-    transactionId: ""
-  });
-
-  useEffect(() => {
-    fetch("https://api.ipify.org?format=json")
-      .then(res => res.json())
-      .then(data => setClientIp(data.ip))
-      .catch(err => console.error("IP Capture Error:", err));
-
-    if (store?.shippingSettings?.enabled && store.shippingSettings.methods?.length > 0) {
-      setSelectedShipping(store.shippingSettings.methods[0]);
-    }
-  }, [store]);
-
-  const handlePlaceOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!product || !formData.fullName || !formData.phone || !formData.address) {
-      toast({ variant: "destructive", title: "তথ্য অসম্পূর্ণ" });
-      return;
-    }
-
-    if (formData.paymentMethod === 'manual' && !formData.transactionId) {
-      toast({ variant: "destructive", title: "পেমেন্ট তথ্য প্রয়োজন", description: "ট্রানজাকশন আইডি প্রদান করুন।" });
-      return;
-    }
-
-    setIsPlacingOrder(true);
-    try {
-      const blockValues = [clientIp, formData.phone].filter(Boolean);
-      if (blockValues.length > 0) {
-        const fraudQ = query(
-          collection(db, "fraud_blocks"),
-          where("storeId", "==", store.id),
-          where("value", "in", blockValues),
-          limit(1)
-        );
-        const fraudSnap = await getDocs(fraudQ);
-        if (!fraudSnap.empty) {
-          toast({ variant: "destructive", title: "অর্ডার গ্রহণ করা সম্ভব হচ্ছে না" });
-          setIsPlacingOrder(false);
-          return;
-        }
-      }
-
-      const shippingCost = selectedShipping?.cost || 0;
-      const subtotal = Number(product.currentPrice);
-      const total = subtotal + shippingCost;
-
-      const orderData = {
-        storeId: store.id,
-        ownerId: store.ownerId,
-        items: [{
-          id: product.id,
-          name: product.name,
-          price: Number(product.currentPrice),
-          image: product.featuredImage,
-          quantity: 1
-        }],
-        customer: { ...formData, ip: clientIp },
-        shipping: selectedShipping ? {
-          name: selectedShipping.name,
-          cost: shippingCost
-        } : { name: "Direct Order", cost: 0 },
-        subtotal: subtotal,
-        shippingCost: shippingCost,
-        total: total,
-        paymentMethod: formData.paymentMethod,
-        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
-        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
-        status: "pending",
-        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
-        isRead: false,
-        createdAt: serverTimestamp(),
-      };
-
-      await addDoc(collection(db, "orders"), orderData);
-      setOrderSuccess(true);
-      toast({ title: "অর্ডার সফল হয়েছে!" });
-    } catch (error) {
-      console.error(error);
-      toast({ variant: "destructive", title: "Order Failed" });
-    } finally {
-      setIsPlacingOrder(false);
-    }
-  };
-
-  const selectedManualMethod = store?.paymentSettings?.manualMethods?.find((m: any) => m.id === formData.selectedManualMethodId);
-
-  if (orderSuccess) {
-    return (
-      <Card className="rounded-[32px] sm:rounded-[40px] shadow-2xl p-8 sm:p-12 text-center bg-white animate-in zoom-in-95 duration-500">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto mb-6">
-          <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12" />
-        </div>
-        <h3 className="text-2xl sm:text-3xl font-headline font-black text-slate-900 uppercase">THANK YOU!</h3>
-        <p className="text-sm sm:text-slate-500 mt-2">আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে।</p>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className={cn(
-      "rounded-[32px] sm:rounded-[40px] shadow-2xl border-none overflow-hidden text-left bg-white",
-      (isOrganic || isTraditional) && "border-2 border-[#d9e8da] bg-[#fdf8f0]"
-    )}>
-      <div className={cn(
-        "text-white p-8 sm:p-14 text-center",
-        isOrganic ? "bg-[#1b5e20]" : isTraditional ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]" : "bg-[#161625]"
-      )}>
-        <h3 className="text-3xl sm:text-5xl font-headline font-black mb-3 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3>
-        <p className="text-white/60 font-medium uppercase tracking-[0.3em] text-[9px] sm:text-xs">নিরাপদ এবং দ্রুত ডেলিভারি</p>
-      </div>
-
-      <div className="p-6 sm:p-14 space-y-8 sm:space-y-12">
-        {products.length > 1 && (
-           <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
-              {products.map(p => (
-                <div 
-                  key={p.id} 
-                  onClick={() => setSelectedProductId(p.id)} 
-                  className={cn("flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer", selectedProductId === p.id ? "border-primary bg-primary/5" : "bg-white border-slate-100")}
-                >
-                  <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? 'border-primary' : 'border-slate-300')}>
-                    {selectedProductId === p.id && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
-                  </div>
-                  <img src={p.featuredImage} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-[10px] sm:text-xs truncate">{p.name}</p>
-                    <p className={cn("font-black text-xs sm:text-sm", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>{getCurrencySymbol(store?.currency)} {p.currentPrice}</p>
-                  </div>
-                </div>
-              ))}
-           </div>
-        )}
-
-        <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 pt-6 sm:pt-8 border-t">
-          <div className="space-y-6 sm:space-y-8">
-            <div className="space-y-3 sm:space-y-4">
-               <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>আপনার তথ্য</Label>
-               <Input placeholder="আপনার পুরো নাম" className="rounded-xl sm:rounded-2xl h-12 sm:h-14 bg-white border-2 border-slate-100 px-4 sm:px-6 text-base sm:text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
-               <Input placeholder="মোবাইল নাম্বার" className="rounded-xl sm:rounded-2xl h-12 sm:h-14 bg-white border-2 border-slate-100 px-4 sm:px-6 text-base sm:text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-               <Textarea placeholder="পুরো ঠিকানা (জেলা সহ)" className="rounded-2xl sm:rounded-3xl min-h-[100px] sm:min-h-[120px] bg-white border-2 border-slate-100 p-4 sm:p-6 text-base sm:text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
-            </div>
-
-            {store?.shippingSettings?.enabled && (
-              <div className="space-y-3 sm:space-y-4">
-                 <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>ডেলিভারি এরিয়া</Label>
-                 <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
-                   {store.shippingSettings.methods.map((method: any) => (
-                     <div 
-                       key={method.id} 
-                       className={cn("flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
-                       onClick={() => setSelectedShipping(method)}
-                     >
-                        <div className="flex items-center gap-3">
-                          <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", selectedShipping?.id === method.id ? 'border-primary' : 'border-slate-300')}>
-                            {selectedShipping?.id === method.id && <div className="w-2 h-2 rounded-full bg-primary" />}
-                          </div>
-                          <span className="font-bold text-xs sm:text-sm">{method.name}</span>
-                        </div>
-                        <span className="font-black text-xs sm:text-sm">{method.cost > 0 ? `${getCurrencySymbol(store?.currency)} ${method.cost}` : 'ফ্রি'}</span>
-                     </div>
-                   ))}
-                 </div>
-              </div>
-            )}
-
-            <div className="space-y-3 sm:space-y-4">
-               <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>পেমেন্ট মেথড</Label>
-               <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
-                  {store?.paymentSettings?.cod && (
-                    <div 
-                      className={cn("flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
-                      onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
-                    >
-                       <div className="flex items-center gap-3">
-                          <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
-                            {formData.paymentMethod === 'cod' && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
-                          </div>
-                          <span className="font-bold text-sm sm:text-base">ক্যাশ অন ডেলিভারি</span>
-                       </div>
-                       <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
-                    </div>
-                  )}
-
-                  {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
-                    <div 
-                      className={cn("flex flex-col p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
-                      onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
-                    >
-                       <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'manual' ? 'border-primary' : 'border-slate-300')}>
-                              {formData.paymentMethod === 'manual' && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
-                            </div>
-                            <span className="font-bold text-sm sm:text-base">বিকাশ/নগদ/রকেট</span>
-                          </div>
-                          <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
-                       </div>
-
-                       {formData.paymentMethod === 'manual' && (
-                         <div className="mt-4 pt-4 border-t border-primary/10 space-y-4 animate-in slide-in-from-top-2">
-                            <div className="grid grid-cols-2 gap-2">
-                               {store.paymentSettings.manualMethods.map((m: any) => (
-                                 <Button key={m.id} type="button" variant="outline" className={cn("h-9 sm:h-10 rounded-xl text-[9px] sm:text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white border-none' : '')} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: m.id})); }}>{m.name}</Button>
-                               ))}
-                            </div>
-                            {selectedManualMethod && (
-                               <div className="space-y-3 sm:space-y-4" onClick={(e) => e.stopPropagation()}>
-                                  <div className="p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl border-2 border-primary/10">
-                                     <p className="text-[9px] sm:text-[10px] font-black text-primary uppercase">নাম্বার: {selectedManualMethod.number}</p>
-                                     <p className="text-[9px] sm:text-[10px] text-slate-500 mt-1 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</p>
-                                  </div>
-                                  <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-11 sm:h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
-                               </div>
-                            )}
-                         </div>
-                       )}
-                    </div>
-                  )}
-               </div>
-            </div>
-          </div>
-
-          <div className="space-y-5 sm:space-y-6">
-            <div className={cn("p-8 sm:p-10 rounded-3xl sm:rounded-[40px] border space-y-4 sm:space-y-5", (isOrganic || isTraditional) ? "bg-white border-[#d9e8da]" : "bg-slate-50")}>
-              <div className="flex justify-between text-muted-foreground font-bold text-[10px] sm:text-xs uppercase tracking-widest">
-                <span>পণ্য মূল্য</span>
-                <span>{getCurrencySymbol(store?.currency)} {product?.currentPrice || 0}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground font-bold text-[10px] sm:text-xs uppercase tracking-widest">
-                <span>ডেলিভারি চার্জ</span>
-                <span className={cn("font-black", (selectedShipping?.cost || 0) > 0 ? "text-slate-900" : "text-emerald-500")}>
-                   { (selectedShipping?.cost || 0) > 0 ? `${getCurrencySymbol(store?.currency)} ${selectedShipping.cost}` : 'ফ্রি' }
-                </span>
-              </div>
-              <div className={cn("flex justify-between text-3xl sm:text-4xl font-black border-t pt-6 sm:pt-8 mt-4", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>
-                <span className="text-[9px] sm:text-xs pt-3 sm:pt-4 uppercase">মোট</span>
-                <span>{getCurrencySymbol(store?.currency)} {(Number(product?.currentPrice || 0) + (selectedShipping?.cost || 0)).toFixed(0)}</span>
-              </div>
-            </div>
-            <Button type="submit" disabled={isPlacingOrder || !product} className={cn("w-full h-16 sm:h-20 rounded-2xl sm:rounded-[32px] text-xl sm:text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", (isOrganic || isTraditional) ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "bg-primary")}>
-              {isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}
-            </Button>
-            <div className="flex items-center justify-center gap-2 text-slate-400 mt-2">
-              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
-              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em]">নিরাপদ পেমেন্ট ব্যবস্থা</span>
-            </div>
-          </div>
-        </form>
-      </div>
-    </Card>
-  );
-}

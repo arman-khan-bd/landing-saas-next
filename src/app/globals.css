@@ -1,23 +1,25 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 216 100% 97%; /* #EEF3FC */
+    --background: 216 100% 97%;
+    /* #EEF3FC */
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 216 82% 44%; /* #145DCC */
+    --primary: 216 82% 44%;
+    /* #145DCC */
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 150 70% 50%; /* #26D87F - Adjusted to HSL */
+    --accent: 150 70% 50%;
+    /* #26D87F - Adjusted to HSL */
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -54,17 +56,29 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground font-body;
   }
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-headline;
   }
 }
 
 @keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .animate-marquee {
@@ -72,8 +86,13 @@
 }
 
 @keyframes underline-draw {
-  from { width: 0; }
-  to { width: 100%; }
+  from {
+    width: 0;
+  }
+
+  to {
+    width: 100%;
+  }
 }
 
 .text-highlight {
@@ -96,4 +115,8 @@
 
 .ql-editor {
   min-height: 250px;
+}
+
+div#ion5 {
+  padding-bottom: 140px !important;
 }

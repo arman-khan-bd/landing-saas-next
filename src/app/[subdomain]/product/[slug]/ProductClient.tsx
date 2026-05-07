@@ -36,16 +36,16 @@ interface CartItem {
   quantity: number;
 }
 
-export default function ProductDetailPage() {
+export default function ProductDetailPage({ initialProduct, initialStore }: { initialProduct?: any, initialStore?: any }) {
   const { subdomain: paramsSubdomain, slug } = useParams();
   const [subdomain, setSubdomain] = useState<string>("");
   const { toast } = useToast();
   const router = useRouter();
 
-  const [product, setProduct] = useState<any>(null);
-  const [store, setStore] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedImage, setSelectedImage] = useState("");
+  const [product, setProduct] = useState<any>(initialProduct || null);
+  const [store, setStore] = useState<any>(initialStore || null);
+  const [loading, setLoading] = useState(!initialProduct);
+  const [selectedImage, setSelectedImage] = useState(initialProduct?.featuredImage || (initialProduct?.gallery && initialProduct.gallery[0]) || "");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [quantity, setItemQuantity] = useState(1);
@@ -109,7 +109,7 @@ export default function ProductDetailPage() {
       .catch(err => console.error("IP Capture Error:", err));
 
     if (subdomain && slug) {
-      fetchProductData();
+      if (!initialProduct) fetchProductData();
       const savedCart = localStorage.getItem(`cart_${subdomain}`);
       if (savedCart) {
         try {

@@ -29,6 +29,7 @@ export default function HomeManagerPage() {
     homePageTitle: "",
     description: "",
     homeBanner: "",
+    heroButtonText: "",
     offerBanner: false,
     offerText: "",
     offerLink: "",
@@ -54,6 +55,7 @@ export default function HomeManagerPage() {
           homePageTitle: data.homePageTitle || "",
           description: data.description || "",
           homeBanner: data.homeBanner || "",
+          heroButtonText: data.heroButtonText || "",
           offerBanner: data.offerBanner || false,
           offerText: data.offerText || "",
           offerLink: data.offerLink || "",
@@ -140,14 +142,23 @@ export default function HomeManagerPage() {
                    onChange={(e) => setHomeData({...homeData, description: e.target.value})}
                  />
                </div>
-               <div className="space-y-2">
-                 <Label>Hero Banner Image</Label>
-                 <CloudinaryUpload 
-                   value={homeData.homeBanner} 
-                   onUpload={(url) => setHomeData({...homeData, homeBanner: url})} 
-                   onRemove={() => setHomeData({...homeData, homeBanner: ""})} 
-                 />
-               </div>
+                <div className="space-y-2">
+                  <Label>Hero Banner Image</Label>
+                  <CloudinaryUpload 
+                    value={homeData.homeBanner} 
+                    onUpload={(url) => setHomeData({...homeData, homeBanner: url})} 
+                    onRemove={() => setHomeData({...homeData, homeBanner: ""})} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Hero Button Text</Label>
+                  <Input 
+                    placeholder="e.g. এখনই কিনুন" 
+                    value={homeData.heroButtonText} 
+                    onChange={(e) => setHomeData({...homeData, heroButtonText: e.target.value})}
+                    className="h-12 rounded-xl"
+                  />
+                </div>
             </CardContent>
           </Card>
 
@@ -290,7 +301,10 @@ export default function HomeManagerPage() {
                     {homeData.homeBanner && <img src={homeData.homeBanner} className="w-full h-full object-cover opacity-50" />}
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
                        <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Preview</p>
-                       <h5 className="font-bold text-sm truncate w-full">{homeData.homePageTitle || "Your Title"}</h5>
+                       <h5 className="font-bold text-sm truncate w-full mb-2">{homeData.homePageTitle || "Your Title"}</h5>
+                       <div className="bg-primary text-white text-[8px] font-black uppercase px-4 py-1.5 rounded-lg flex items-center gap-1 shadow-lg">
+                          {homeData.heroButtonText || "এখনই কিনুন"} <ShoppingBag className="w-2 h-2" />
+                       </div>
                     </div>
                  </div>
                  {homeData.offerBanner && (

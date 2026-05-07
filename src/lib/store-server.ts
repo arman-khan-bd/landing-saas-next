@@ -49,3 +49,22 @@ export async function getProductBySlug(storeId: string, slug: string) {
     return null;
   }
 }
+export async function getPageBySlug(storeId: string, slug: string) {
+  try {
+    const q = query(
+      collection(db, "pages"), 
+      where("storeId", "==", storeId), 
+      where("slug", "==", slug), 
+      limit(1)
+    );
+    const snap = await getDocs(q);
+    
+    if (snap.empty) return null;
+    
+    const data = { id: snap.docs[0].id, ...snap.docs[0].data() };
+    return sanitizeData(data);
+  } catch (error) {
+    console.error("Error fetching page on server:", error);
+    return null;
+  }
+}

@@ -1,0 +1,340 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { cn, getCurrencySymbol } from "@/lib/utils";
+import { useFirestore } from "@/firebase";
+import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  CheckCircle2, Truck, Smartphone, Loader2, Check,
+  CreditCard, ShieldCheck
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+
+interface OrderFormBlockProps {
+  block: any;
+  style: React.CSSProperties;
+  products: any[];
+  store: any;
+  isOrganic?: boolean;
+  isTraditional?: boolean;
+}
+
+export const OrderFormBlock = ({ block, style, products, store, isOrganic = false, isTraditional = false }: OrderFormBlockProps) => {
+  const productIds = block.content?.productIds || (block.content?.mainProductId ? [block.content.mainProductId] : []);
+  const selectedProducts = Array.isArray(products) ? products.filter(p => productIds.includes(p.id)) : [];
+
+  return (
+    <div id={block.id} style={style} className="px-4 w-full max-w-5xl mx-auto text-left" data-block-type="product-order-form">
+       {selectedProducts.length > 0 ? (
+         <LandingPageOrderForm products={selectedProducts} store={store} isOrganic={isOrganic} isTraditional={isTraditional} />
+       ) : (
+         <div className="p-8 sm:p-12 bg-white rounded-2xl sm:rounded-[40px] shadow-sm border-2 border-dashed flex flex-col items-center justify-center gap-4 text-slate-300">
+            <CreditCard className="w-8 h-8 sm:w-10 sm:h-10 opacity-10" />
+            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center">Select products in sidebar to see order form</span>
+         </div>
+       )}
+    </div>
+  );
+};
+
+function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { products: any[], store: any, isOrganic: boolean, isTraditional: boolean }) {
+  const { toast } = useToast();
+  const db = useFirestore();
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [clientIp, setClientIp] = useState("");
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>(products[0]?.id ? [products[0].id] : []);
+  const [selectedShipping, setSelectedShipping] = useState<any>(null);
+
+  const selectedProducts = products.filter(p => selectedProductIds.includes(p.id));
+
+  const [formData, setFormData] = useState({
+    fullName: "",
+    phone: "",
+    address: "",
+    paymentMethod: "cod",
+    selectedManualMethodId: "",
+    transactionId: ""
+  });
+
+  useEffect(() => {
+    fetch("https://api.ipify.org?format=json")
+      .then(res => res.json())
+      .then(data => setClientIp(data.ip))
+      .catch(err => console.error("IP Capture Error:", err));
+
+    if (store?.shippingSettings?.enabled && store.shippingSettings.methods?.length > 0) {
+      setSelectedShipping(store.shippingSettings.methods[0]);
+    }
+  }, [store]);
+
+  const toggleProduct = (productId: string) => {
+    if (productId === products[0]?.id) return;
+    setSelectedProductIds(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedProducts.length === 0 || !formData.fullName || !formData.phone || !formData.address) {
+      toast({ variant: "destructive", title: "তথ্য অসম্পূর্ণ" });
+      return;
+    }
+
+    if (formData.paymentMethod === 'manual' && !formData.transactionId) {
+      toast({ variant: "destructive", title: "পেমেন্ট তথ্য প্রয়োজন", description: "ট্রানজাকশন আইডি প্রদান করুন।" });
+      return;
+    }
+
+    setIsPlacingOrder(true);
+    try {
+      const blockValues = [clientIp, formData.phone].filter(Boolean);
+      if (blockValues.length > 0) {
+        const fraudQ = query(
+          collection(db, "fraud_blocks"),
+          where("storeId", "==", store.id),
+          where("value", "in", blockValues),
+          limit(1)
+        );
+        const fraudSnap = await getDocs(fraudQ);
+        if (!fraudSnap.empty) {
+          toast({ variant: "destructive", title: "অর্ডার গ্রহণ করা সম্ভব হচ্ছে না" });
+          setIsPlacingOrder(false);
+          return;
+        }
+      }
+
+      const shippingCost = selectedShipping?.cost || 0;
+      const subtotal = selectedProducts.reduce((acc, p) => acc + Number(p.currentPrice), 0);
+      const total = subtotal + shippingCost;
+
+      const orderData = {
+        storeId: store.id,
+        ownerId: store.ownerId,
+        items: selectedProducts.map(p => ({
+          id: p.id,
+          name: p.name,
+          price: Number(p.currentPrice),
+          image: p.featuredImage,
+          quantity: 1
+        })),
+        customer: { ...formData, ip: clientIp },
+        shipping: selectedShipping ? {
+          name: selectedShipping.name,
+          cost: shippingCost
+        } : { name: "Direct Order", cost: 0 },
+        subtotal: subtotal,
+        shippingCost: shippingCost,
+        total: total,
+        paymentMethod: formData.paymentMethod,
+        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
+        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
+        status: "pending",
+        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
+        isRead: false,
+        createdAt: serverTimestamp(),
+      };
+
+      await addDoc(collection(db, "orders"), orderData);
+      setOrderSuccess(true);
+      toast({ title: "অর্ডার সফল হয়েছে!" });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Order Failed" });
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+
+  const selectedManualMethod = store?.paymentSettings?.manualMethods?.find((m: any) => m.id === formData.selectedManualMethodId);
+
+  if (orderSuccess) {
+    return (
+      <Card className="rounded-[32px] sm:rounded-[40px] shadow-2xl p-8 sm:p-12 text-center bg-white animate-in zoom-in-95 duration-500">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto mb-6">
+          <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12" />
+        </div>
+        <h3 className="text-2xl sm:text-3xl font-headline font-black text-slate-900 uppercase">THANK YOU!</h3>
+        <p className="text-sm sm:text-slate-500 mt-2">আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে।</p>
+      </Card>
+    );
+  }
+
+  const subtotal = selectedProducts.reduce((acc, p) => acc + Number(p.currentPrice), 0);
+
+  return (
+    <Card className={cn(
+      "rounded-[32px] sm:rounded-[40px] shadow-2xl border-none overflow-hidden text-left bg-white",
+      (isOrganic || isTraditional) && "border-2 border-[#d9e8da] bg-[#fdf8f0]"
+    )}>
+      <div className={cn(
+        "text-white p-8 sm:p-14 text-center",
+        isOrganic ? "bg-[#1b5e20]" : isTraditional ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d]" : "bg-[#161625]"
+      )}>
+        <h3 className="text-3xl sm:text-5xl font-headline font-black mb-3 tracking-tighter uppercase">অর্ডার কনফার্ম করুন</h3>
+        <p className="text-white/60 font-medium uppercase tracking-[0.3em] text-[9px] sm:text-xs">নিরাপদ এবং দ্রুত ডেলিভারি</p>
+      </div>
+
+      <div className="p-6 sm:p-14 space-y-8 sm:space-y-12">
+        {products.length > 1 && (
+           <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
+              {products.map((p, idx) => {
+                const isSelected = selectedProductIds.includes(p.id);
+                const isRequired = idx === 0;
+                return (
+                  <div 
+                    key={p.id} 
+                    onClick={() => toggleProduct(p.id)} 
+                    className={cn(
+                      "flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer relative", 
+                      isSelected ? "border-primary bg-primary/5" : "bg-white border-slate-100",
+                      isRequired && "ring-1 ring-primary/20"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-4 h-4 sm:w-5 sm:h-5 rounded border-2 flex items-center justify-center transition-all", 
+                      isSelected ? 'bg-primary border-primary' : 'border-slate-300'
+                    )}>
+                      {isSelected && <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />}
+                    </div>
+                    <img src={p.featuredImage} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-[10px] sm:text-xs truncate">{p.name}</p>
+                      <p className={cn("font-black text-xs sm:text-sm", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>{getCurrencySymbol(store?.currency)} {p.currentPrice}</p>
+                    </div>
+                    {isRequired && (
+                      <span className="absolute -top-2 -right-2 bg-primary text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase">Required</span>
+                    )}
+                  </div>
+                );
+              })}
+           </div>
+        )}
+
+        <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 pt-6 sm:pt-8 border-t">
+          <div className="space-y-6 sm:space-y-8">
+            <div className="space-y-3 sm:space-y-4">
+               <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>আপনার তথ্য</Label>
+               <Input placeholder="আপনার পুরো নাম" className="rounded-xl sm:rounded-2xl h-12 sm:h-14 bg-white border-2 border-slate-100 px-4 sm:px-6 text-base sm:text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
+               <Input placeholder="মোবাইল নাম্বার" className="rounded-xl sm:rounded-2xl h-12 sm:h-14 bg-white border-2 border-slate-100 px-4 sm:px-6 text-base sm:text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+               <Textarea placeholder="পুরো ঠিকানা (জেলা সহ)" className="rounded-2xl sm:rounded-3xl min-h-[100px] sm:min-h-[120px] bg-white border-2 border-slate-100 p-4 sm:p-6 text-base sm:text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+            </div>
+
+            {store?.shippingSettings?.enabled && (
+              <div className="space-y-3 sm:space-y-4">
+                 <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>ডেলিভারি এরিয়া</Label>
+                 <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
+                   {store.shippingSettings.methods.map((method: any) => (
+                     <div 
+                       key={method.id} 
+                       className={cn("flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
+                       onClick={() => setSelectedShipping(method)}
+                     >
+                        <div className="flex items-center gap-3">
+                          <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", selectedShipping?.id === method.id ? 'border-primary' : 'border-slate-300')}>
+                            {selectedShipping?.id === method.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                          </div>
+                          <span className="font-bold text-xs sm:text-sm">{method.name}</span>
+                        </div>
+                        <span className="font-black text-xs sm:text-sm">{method.cost > 0 ? `${getCurrencySymbol(store?.currency)} ${method.cost}` : 'ফ্রি'}</span>
+                     </div>
+                   ))}
+                 </div>
+              </div>
+            )}
+
+            <div className="space-y-3 sm:space-y-4">
+               <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>পেমেন্ট মেথড</Label>
+               <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
+                  {store?.paymentSettings?.cod && (
+                    <div 
+                      className={cn("flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
+                      onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
+                    >
+                       <div className="flex items-center gap-3">
+                          <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
+                            {formData.paymentMethod === 'cod' && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
+                          </div>
+                          <span className="font-bold text-sm sm:text-base">ক্যাশ অন ডেলিভারি</span>
+                       </div>
+                       <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
+                    </div>
+                  )}
+
+                  {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
+                    <div 
+                      className={cn("flex flex-col p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
+                      onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
+                    >
+                       <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'manual' ? 'border-primary' : 'border-slate-300')}>
+                              {formData.paymentMethod === 'manual' && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
+                            </div>
+                            <span className="font-bold text-sm sm:text-base">বিকাশ/নগদ/রকেট</span>
+                          </div>
+                          <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
+                       </div>
+
+                       {formData.paymentMethod === 'manual' && (
+                         <div className="mt-4 pt-4 border-t border-primary/10 space-y-4 animate-in slide-in-from-top-2">
+                            <div className="grid grid-cols-2 gap-2">
+                               {store.paymentSettings.manualMethods.map((m: any) => (
+                                 <Button key={m.id} type="button" variant="outline" className={cn("h-9 sm:h-10 rounded-xl text-[9px] sm:text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white border-none' : '')} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: m.id})); }}>{m.name}</Button>
+                               ))}
+                            </div>
+                            {selectedManualMethod && (
+                               <div className="space-y-3 sm:space-y-4" onClick={(e) => e.stopPropagation()}>
+                                  <div className="p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl border-2 border-primary/10">
+                                     <p className="text-[9px] sm:text-[10px] font-black text-primary uppercase">নাম্বার: {selectedManualMethod.number}</p>
+                                     <p className="text-[9px] sm:text-[10px] text-slate-500 mt-1 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</p>
+                                  </div>
+                                  <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-11 sm:h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
+                               </div>
+                            )}
+                         </div>
+                       )}
+                    </div>
+                  )}
+               </div>
+            </div>
+          </div>
+
+          <div className="space-y-5 sm:space-y-6">
+            <div className={cn("p-8 sm:p-10 rounded-3xl sm:rounded-[40px] border space-y-4 sm:space-y-5", (isOrganic || isTraditional) ? "bg-white border-[#d9e8da]" : "bg-slate-50")}>
+              <div className="flex justify-between text-muted-foreground font-bold text-[10px] sm:text-xs uppercase tracking-widest">
+                <span>পণ্য মূল্য ({selectedProducts.length} টি)</span>
+                <span>{getCurrencySymbol(store?.currency)} {subtotal}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground font-bold text-[10px] sm:text-xs uppercase tracking-widest">
+                <span>ডেলিভারি চার্জ</span>
+                <span className={cn("font-black", (selectedShipping?.cost || 0) > 0 ? "text-slate-900" : "text-emerald-500")}>
+                   { (selectedShipping?.cost || 0) > 0 ? `${getCurrencySymbol(store?.currency)} ${selectedShipping.cost}` : 'ফ্রি' }
+                </span>
+              </div>
+              <div className={cn("flex justify-between text-3xl sm:text-4xl font-black border-t pt-6 sm:pt-8 mt-4", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>
+                <span className="text-[9px] sm:text-xs pt-3 sm:pt-4 uppercase">মোট</span>
+                <span>{getCurrencySymbol(store?.currency)} {(subtotal + (selectedShipping?.cost || 0)).toFixed(0)}</span>
+              </div>
+            </div>
+            <Button type="submit" disabled={isPlacingOrder || selectedProducts.length === 0} className={cn("w-full h-16 sm:h-20 rounded-2xl sm:rounded-[32px] text-xl sm:text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", (isOrganic || isTraditional) ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "bg-primary")}>
+              {isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}
+            </Button>
+            <div className="flex items-center justify-center gap-2 text-slate-400 mt-2">
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
+              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em]">নিরাপদ পেমেন্ট ব্যবস্থা</span>
+            </div>
+          </div>
+        </form>
+      </div>
+    </Card>
+  );
+}

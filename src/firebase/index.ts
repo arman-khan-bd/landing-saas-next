@@ -3,12 +3,19 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
 // Singleton pattern for Firebase initialization
 let cachedSdks: any = null;
 
 export function initializeFirebase() {
+  const isClient = typeof window !== "undefined";
+
+  // Check global scope first to survive HMR in development
+  if (isClient && (window as any)._firebaseCachedSdks) {
+    return (window as any)._firebaseCachedSdks;
+  }
+  
   if (cachedSdks) return cachedSdks;
 
   const apps = getApps();
@@ -18,11 +25,8 @@ export function initializeFirebase() {
     firebaseApp = apps[0];
   } else {
     try {
-      // In Vercel/Next.js environments, we must provide the config object
-      // since we aren't using Firebase App Hosting's automatic injection.
       firebaseApp = initializeApp(firebaseConfig);
     } catch (e) {
-      // Fallback: try automatic initialization if manual fails (e.g. if config is empty)
       try {
         firebaseApp = initializeApp();
       } catch (finalError) {
@@ -32,21 +36,41 @@ export function initializeFirebase() {
     }
   }
 
-  // Initialize Firestore with settings optimized for reliability and offline use.
-  // experimentalForceLongPolling is enabled to bypass potential WebSocket connectivity issues 
-  // commonly found in Cloud Workstation and proxied environments.
-  const firestore = initializeFirestore(firebaseApp, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager()
-    }),
-    experimentalForceLongPolling: true,
-  });
+  let firestore;
+  
+  // Use a simpler settings object to avoid conflicts
+  const firestoreSettings: any = {
+    experimentalForceLongPolling: true, // Needed for many proxy/firewall environments
+  };
+
+  if (isClient) {
+    try {
+      // Use multi-tab persistence
+      firestoreSettings.localCache = persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      });
+    } catch (e) {
+      console.warn("Firestore: Failed to initialize multi-tab cache manager:", e);
+    }
+  }
+
+  try {
+    // Attempt initialization with settings
+    firestore = initializeFirestore(firebaseApp, firestoreSettings);
+  } catch (e: any) {
+    // If already initialized, we must use getFirestore() as settings cannot be changed
+    firestore = getFirestore(firebaseApp);
+  }
 
   cachedSdks = {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore
   };
+
+  if (isClient) {
+    (window as any)._firebaseCachedSdks = cachedSdks;
+  }
   
   return cachedSdks;
 }
