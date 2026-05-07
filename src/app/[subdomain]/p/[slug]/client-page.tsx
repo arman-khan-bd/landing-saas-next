@@ -25,45 +25,89 @@ export default function RenderDynamicPage({ initialPage, initialStore, subdomain
   }, []);
 
   useEffect(() => {
-    // Re-fetch page data on client to bypass potential SSR caching of old builder state
     const fetchData = async () => {
-      if (!db || !store?.id || !slug) return;
+      if (!db || !subdomain || !slug) return;
+      
+      // Only show loading if we don't have initial data
+      if (!page || !store) setLoading(true);
+      
       try {
-        // Fetch Page
-        let pageSnap;
-        try {
-          const pageQ = query(
-            collection(db, "pages"), 
-            where("storeId", "==", store.id), 
-            where("slug", "==", slug),
-            orderBy("updatedAt", "desc"),
-            limit(1)
-          );
-          pageSnap = await getDocs(pageQ);
-        } catch (e) {
-          const pageQ = query(
-            collection(db, "pages"), 
-            where("storeId", "==", store.id), 
-            where("slug", "==", slug),
-            limit(1)
-          );
-          pageSnap = await getDocs(pageQ);
+        let currentStore = store;
+        
+        // Fetch store if missing
+        if (!currentStore) {
+          const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain), limit(1));
+          const storeSnap = await getDocs(storeQ);
+          if (!storeSnap.empty) {
+            currentStore = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
+            setStore(currentStore);
+          } else {
+            setError("Store not found");
+            setLoading(false);
+            return;
+          }
         }
 
-        if (pageSnap && !pageSnap.empty) {
-          setPage({ id: pageSnap.docs[0].id, ...pageSnap.docs[0].data() });
+        if (!currentStore?.id) {
+          setLoading(false);
+          return;
+        }
+
+        // Fetch Page
+        let matchedPage = null;
+        try {
+          const allPagesQ = query(collection(db, "pages"), where("storeId", "==", currentStore.id));
+          const allPagesSnap = await getDocs(allPagesQ);
+          
+          if (!allPagesSnap.empty) {
+            const pages = allPagesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            
+            // Try exact match first
+            matchedPage = pages.find(p => p.slug === slug);
+            
+            // Try case-insensitive match
+            if (!matchedPage) {
+              matchedPage = pages.find(p => p.slug?.toLowerCase() === slug.toLowerCase());
+            }
+            
+            // Try stripping hyphens
+            if (!matchedPage) {
+              matchedPage = pages.find(p => p.slug?.replace(/-/g, "") === slug.replace(/-/g, ""));
+            }
+            
+            // Fallback to most recently updated page if absolutely necessary
+            if (!matchedPage && pages.length > 0) {
+               matchedPage = pages.sort((a: any, b: any) => {
+                 const timeA = a.updatedAt?.toMillis ? a.updatedAt.toMillis() : 0;
+                 const timeB = b.updatedAt?.toMillis ? b.updatedAt.toMillis() : 0;
+                 return timeB - timeA;
+               })[0];
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching pages:", e);
+        }
+
+        if (matchedPage) {
+          setPage(matchedPage);
+        } else if (!page) {
+           setError("Page not found");
         }
 
         // Fetch Products
-        const prodQ = query(collection(db, "products"), where("storeId", "==", store.id));
+        const prodQ = query(collection(db, "products"), where("storeId", "==", currentStore.id));
         const prodSnap = await getDocs(prodQ);
         setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error fetching data on client:", err);
+        if (!page) setError(err.message || "Error loading page");
+      } finally {
+        setLoading(false);
       }
     };
+    
     fetchData();
-  }, [db, store?.id, slug]);
+  }, [db, store?.id, subdomain, slug]);
 
   if (loading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="w-12 h-12 animate-spin text-primary" /></div>;
   if (error || !page) return <div className="flex flex-col h-screen items-center justify-center space-y-4 px-6 text-center bg-white"><AlertCircle className="w-16 h-16 text-destructive opacity-20" /><h1 className="text-3xl font-headline font-bold">{error || "404 - Not Found"}</h1><p className="text-muted-foreground leading-relaxed">The page you're looking for was not found or is currently private.</p></div>;

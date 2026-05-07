@@ -51,14 +51,25 @@ export async function getProductBySlug(storeId: string, slug: string) {
 }
 export async function getPageBySlug(storeId: string, slug: string) {
   try {
-    const q = query(
-      collection(db, "pages"), 
-      where("storeId", "==", storeId), 
-      where("slug", "==", slug), 
-      orderBy("updatedAt", "desc"),
-      limit(1)
-    );
-    const snap = await getDocs(q);
+    let snap;
+    try {
+      const q = query(
+        collection(db, "pages"), 
+        where("storeId", "==", storeId), 
+        where("slug", "==", slug), 
+        orderBy("updatedAt", "desc"),
+        limit(1)
+      );
+      snap = await getDocs(q);
+    } catch (e) {
+      const q = query(
+        collection(db, "pages"), 
+        where("storeId", "==", storeId), 
+        where("slug", "==", slug), 
+        limit(1)
+      );
+      snap = await getDocs(q);
+    }
     
     if (snap.empty) return null;
     

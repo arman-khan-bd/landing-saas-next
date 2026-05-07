@@ -102,4 +102,10 @@ export interface PageStyle {
     showSocials?: boolean;
     copyright?: string;
   };
+  seoSettings?: {
+    title?: string;
+    description?: string;
+    keywords?: string;
+    ogImage?: string;
+  };
 }

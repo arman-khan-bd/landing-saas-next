@@ -188,8 +188,28 @@ export default function Storefront({
       setStore(storeData);
 
       // Parallel fetch for page, products, categories, and sub-categories
-      const [pageSnap, prodSnap, catSnap, subCatSnap] = await Promise.all([
-        getDocs(query(collection(firestore, "pages"), where("storeId", "==", storeData.id), where("slug", "==", "index"), limit(1))),
+      // Fetch pages with fuzzy/fallback matching
+      const allPagesSnap = await getDocs(query(collection(firestore, "pages"), where("storeId", "==", storeData.id)));
+      let matchedPage = null;
+      if (!allPagesSnap.empty) {
+        const pages = allPagesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        matchedPage = pages.find(p => p.slug === "index") || pages.find(p => p.slug?.toLowerCase() === "index");
+        
+        if (!matchedPage && pages.length > 0) {
+          matchedPage = pages.sort((a: any, b: any) => {
+            const timeA = a.updatedAt?.toMillis ? a.updatedAt.toMillis() : 0;
+            const timeB = b.updatedAt?.toMillis ? b.updatedAt.toMillis() : 0;
+            return timeB - timeA;
+          })[0];
+        }
+      }
+      
+      if (matchedPage) {
+        setPage(matchedPage);
+      }
+
+      // Fetch products, categories, sub-categories
+      const [prodSnap, catSnap, subCatSnap] = await Promise.all([
         getDocs(query(collection(firestore, "products"), where("storeId", "==", storeData.id), orderBy("createdAt", "desc"))).catch(() =>
           getDocs(query(collection(firestore, "products"), where("storeId", "==", storeData.id)))
         ),
@@ -197,29 +217,6 @@ export default function Storefront({
         getDocs(query(collection(firestore, "sub-categories"), where("storeId", "==", storeData.id))).catch(() => ({ docs: [] }))
       ]);
 
-      if (!pageSnap.empty) {
-        setPage(pageSnap.docs[0].data());
-      } else {
-        // Fallback: If no "index" page, try to get the most recent page
-        let fallbackPageSnap;
-        try {
-          fallbackPageSnap = await getDocs(query(
-            collection(firestore, "pages"), 
-            where("storeId", "==", storeData.id), 
-            orderBy("createdAt", "desc"), 
-            limit(1)
-          ));
-        } catch (e) {
-          fallbackPageSnap = await getDocs(query(
-            collection(firestore, "pages"), 
-            where("storeId", "==", storeData.id), 
-            limit(1)
-          ));
-        }
-        if (fallbackPageSnap && !fallbackPageSnap.empty) {
-          setPage(fallbackPageSnap.docs[0].data());
-        }
-      }
       setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
       const mainCats = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));

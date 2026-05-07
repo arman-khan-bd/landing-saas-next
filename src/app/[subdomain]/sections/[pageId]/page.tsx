@@ -496,6 +496,35 @@ export default function SectionBuilderPage() {
                       <CloudinaryUpload value={pageStyle.backgroundImage || ""} onUpload={(url) => setPageStyle(prev => ({ ...prev, backgroundImage: url }))} onRemove={() => setPageStyle(prev => ({ ...prev, backgroundImage: "" }))} />
                     </div>
                   </div>
+
+                  <div className="pt-4 border-t border-slate-100 space-y-4">
+                    <div className="space-y-1 mb-4">
+                      <Label className="text-xs font-bold text-slate-900">SEO Meta Data</Label>
+                      <p className="text-[10px] text-slate-500 font-medium tracking-widest uppercase">Search engine & social sharing preview</p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Meta Title</Label>
+                        <Input placeholder="Page Title (60 chars max)" value={pageStyle.seoSettings?.title || ""} onChange={(e) => setPageStyle(prev => ({ ...prev, seoSettings: { ...prev.seoSettings, title: e.target.value } }))} className="h-9 bg-slate-50 text-xs rounded-xl" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Meta Description</Label>
+                        <Input placeholder="Brief description of the page..." value={pageStyle.seoSettings?.description || ""} onChange={(e) => setPageStyle(prev => ({ ...prev, seoSettings: { ...prev.seoSettings, description: e.target.value } }))} className="h-9 bg-slate-50 text-xs rounded-xl" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Keywords</Label>
+                        <Input placeholder="comma, separated, keywords" value={pageStyle.seoSettings?.keywords || ""} onChange={(e) => setPageStyle(prev => ({ ...prev, seoSettings: { ...prev.seoSettings, keywords: e.target.value } }))} className="h-9 bg-slate-50 text-xs rounded-xl" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Social Share Image (OG:Image)</Label>
+                        <CloudinaryUpload value={pageStyle.seoSettings?.ogImage || ""} onUpload={(url) => setPageStyle(prev => ({ ...prev, seoSettings: { ...prev.seoSettings, ogImage: url } }))} onRemove={() => setPageStyle(prev => ({ ...prev, seoSettings: { ...prev.seoSettings, ogImage: "" } }))} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>
