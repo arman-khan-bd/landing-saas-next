@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useFirestore } from "@/firebase/provider";
 import { getSubdomain } from "@/lib/subdomain";
-import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Search, ShoppingBag, ShoppingCart, Loader2, Zap, ArrowRight, ShieldCheck, ChevronLeft, ChevronRight, X, Minus, Plus, Trash2, LayoutGrid } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -201,13 +201,22 @@ export default function Storefront({
         setPage(pageSnap.docs[0].data());
       } else {
         // Fallback: If no "index" page, try to get the most recent page
-        const fallbackPageSnap = await getDocs(query(
-          collection(firestore, "pages"), 
-          where("storeId", "==", storeData.id), 
-          orderBy("createdAt", "desc"), 
-          limit(1)
-        ));
-        if (!fallbackPageSnap.empty) {
+        let fallbackPageSnap;
+        try {
+          fallbackPageSnap = await getDocs(query(
+            collection(firestore, "pages"), 
+            where("storeId", "==", storeData.id), 
+            orderBy("createdAt", "desc"), 
+            limit(1)
+          ));
+        } catch (e) {
+          fallbackPageSnap = await getDocs(query(
+            collection(firestore, "pages"), 
+            where("storeId", "==", storeData.id), 
+            limit(1)
+          ));
+        }
+        if (fallbackPageSnap && !fallbackPageSnap.empty) {
           setPage(fallbackPageSnap.docs[0].data());
         }
       }

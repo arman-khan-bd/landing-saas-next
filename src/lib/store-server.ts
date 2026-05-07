@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase-server";
-import { collection, query, where, getDocs, limit, Timestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, Timestamp, orderBy } from "firebase/firestore";
 
 function sanitizeData(data: any) {
   if (!data) return data;
@@ -55,6 +55,7 @@ export async function getPageBySlug(storeId: string, slug: string) {
       collection(db, "pages"), 
       where("storeId", "==", storeId), 
       where("slug", "==", slug), 
+      orderBy("updatedAt", "desc"),
       limit(1)
     );
     const snap = await getDocs(q);

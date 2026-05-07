@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useFirestore } from "@/firebase/provider";
-import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
 import { Loader2, AlertCircle } from "lucide-react";
 import { BlockRenderer } from "../../builder/[pageId]/block-renderer";
 import Script from "next/script";
@@ -25,19 +25,45 @@ export default function RenderDynamicPage({ initialPage, initialStore, subdomain
   }, []);
 
   useEffect(() => {
-    // We already have page and store from SSR. Just need products for dynamic sections.
-    const fetchProducts = async () => {
-      if (!db || !store?.id) return;
+    // Re-fetch page data on client to bypass potential SSR caching of old builder state
+    const fetchData = async () => {
+      if (!db || !store?.id || !slug) return;
       try {
+        // Fetch Page
+        let pageSnap;
+        try {
+          const pageQ = query(
+            collection(db, "pages"), 
+            where("storeId", "==", store.id), 
+            where("slug", "==", slug),
+            orderBy("updatedAt", "desc"),
+            limit(1)
+          );
+          pageSnap = await getDocs(pageQ);
+        } catch (e) {
+          const pageQ = query(
+            collection(db, "pages"), 
+            where("storeId", "==", store.id), 
+            where("slug", "==", slug),
+            limit(1)
+          );
+          pageSnap = await getDocs(pageQ);
+        }
+
+        if (pageSnap && !pageSnap.empty) {
+          setPage({ id: pageSnap.docs[0].id, ...pageSnap.docs[0].data() });
+        }
+
+        // Fetch Products
         const prodQ = query(collection(db, "products"), where("storeId", "==", store.id));
         const prodSnap = await getDocs(prodQ);
         setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       } catch (err) {
-        console.error("Error fetching products on client:", err);
+        console.error("Error fetching data on client:", err);
       }
     };
-    fetchProducts();
-  }, [db, store?.id]);
+    fetchData();
+  }, [db, store?.id, slug]);
 
   if (loading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="w-12 h-12 animate-spin text-primary" /></div>;
   if (error || !page) return <div className="flex flex-col h-screen items-center justify-center space-y-4 px-6 text-center bg-white"><AlertCircle className="w-16 h-16 text-destructive opacity-20" /><h1 className="text-3xl font-headline font-bold">{error || "404 - Not Found"}</h1><p className="text-muted-foreground leading-relaxed">The page you're looking for was not found or is currently private.</p></div>;
