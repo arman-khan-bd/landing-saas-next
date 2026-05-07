@@ -154,7 +154,8 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
     }
   };
 
-  const selectedManualMethod = store?.paymentSettings?.manualMethods?.find((m: any) => m.id === formData.selectedManualMethodId);
+  const manualMethodsArray = Array.isArray(store?.paymentSettings?.manualMethods) ? store.paymentSettings.manualMethods : [];
+  const selectedManualMethod = manualMethodsArray.find((m: any) => m.id === formData.selectedManualMethodId);
 
   if (orderSuccess) {
     return (
@@ -232,7 +233,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
               <div className="space-y-3 sm:space-y-4">
                  <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>ডেলিভারি এরিয়া</Label>
                  <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
-                   {store.shippingSettings.methods.map((method: any) => (
+                   {(Array.isArray(store.shippingSettings.methods) ? store.shippingSettings.methods : []).map((method: any) => (
                      <div 
                        key={method.id} 
                        className={cn("flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
@@ -269,7 +270,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
                     </div>
                   )}
 
-                  {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
+                  {store?.paymentSettings?.manualEnabled && manualMethodsArray.length > 0 && (
                     <div 
                       className={cn("flex flex-col p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
                       onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
@@ -287,7 +288,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
                        {formData.paymentMethod === 'manual' && (
                          <div className="mt-4 pt-4 border-t border-primary/10 space-y-4 animate-in slide-in-from-top-2">
                             <div className="grid grid-cols-2 gap-2">
-                               {store.paymentSettings.manualMethods.map((m: any) => (
+                               {manualMethodsArray.map((m: any) => (
                                  <Button key={m.id} type="button" variant="outline" className={cn("h-9 sm:h-10 rounded-xl text-[9px] sm:text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white border-none' : '')} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: m.id})); }}>{m.name}</Button>
                                ))}
                             </div>
