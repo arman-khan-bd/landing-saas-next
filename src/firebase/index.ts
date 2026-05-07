@@ -62,6 +62,3 @@ export function initializeFirebase() {
   return cachedSdks;
 }
 
-// Export initialization function only
-export { initializeFirebase };
-
