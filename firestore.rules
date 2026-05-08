@@ -134,5 +134,10 @@ service cloud.firestore {
     match /custom_domain_requests/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     match /platformFeatures/{id} { allow read: if true; allow write: if isAdmin(); }
     match /saasPaymentMethods/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /platformSettings/{id} { allow read: if true; allow write: if isAdmin(); }
+    
+    // Platform Level Dashboard Rules
+    match /subscriptions/{id} { allow read: if isAdmin(); allow write: if isAdmin(); }
+    match /transactions/{id} { allow read: if isAdmin(); allow write: if isAdmin(); }
   }
 }
