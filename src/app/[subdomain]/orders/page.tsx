@@ -161,29 +161,33 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide">
+        <div className="flex items-center gap-2 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide snap-x select-none">
           {[
-            { id: "all", label: "All Orders", count: counts.all },
+            { id: "all", label: "All", count: counts.all },
             { id: "pending", label: "Pending", count: counts.pending },
-            { id: "processing", label: "Processing", count: counts.processing },
+            { id: "processing", label: "Process", count: counts.processing },
             { id: "shipped", label: "Shipped", count: counts.shipped },
-            { id: "completed", label: "Completed", count: counts.completed },
+            { id: "completed", label: "Done", count: counts.completed },
             { id: "spam", label: "Spam", count: counts.spam, color: "text-rose-500" },
           ].map((tab) => (
-            <Button
+            <button
               key={tab.id}
-              variant={activeFilter === tab.id ? "default" : "outline"}
               onClick={() => setActiveFilter(tab.id)}
               className={cn(
-                "rounded-xl h-9 px-4 text-[10px] font-black uppercase tracking-widest gap-2 shrink-0 border-border/50",
-                activeFilter !== tab.id && tab.color
+                "flex items-center gap-2 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 snap-center shrink-0",
+                activeFilter === tab.id 
+                  ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20" 
+                  : "bg-white text-slate-500 border border-slate-100 hover:bg-slate-50"
               )}
             >
               {tab.label}
-              <Badge variant="secondary" className="h-5 px-1.5 text-[9px] font-black bg-slate-100 text-slate-600 border-none">
+              <span className={cn(
+                "px-1.5 py-0.5 rounded-md text-[8px] font-black",
+                activeFilter === tab.id ? "bg-white/20 text-white" : "bg-slate-100 text-slate-400"
+              )}>
                 {tab.count}
-              </Badge>
-            </Button>
+              </span>
+            </button>
           ))}
         </div>
       </div>
@@ -333,65 +337,65 @@ export default function OrdersPage() {
             <p className="font-black text-xs uppercase tracking-widest">No orders found</p>
           </div>
         ) : paginatedOrders.map((order) => (
-          <Card key={order.id} className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden">
-            <div className="p-4">
-              {/* Top Row: ID + Date + Spam + Status */}
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <div className="flex flex-col gap-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[11px] font-black text-primary"># {order.id.slice(0, 10)}</span>
+          <div key={order.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 flex flex-col gap-3 active:scale-[0.99] transition-all duration-200">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-base shadow-lg shadow-slate-900/10 shrink-0">
+                  {order.customer?.fullName?.[0] || "?"}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="font-mono text-[9px] font-black text-primary truncate">#{order.id.slice(0, 8)}</span>
                     {order.isSpam && (
-                      <Badge className="h-4 px-1.5 text-[7px] font-black uppercase bg-rose-500 text-white border-none rounded shrink-0">SPAM</Badge>
+                      <span className="bg-rose-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0">SPAM</span>
                     )}
                   </div>
-                  <span className="text-[10px] text-slate-400">{order.createdAt?.toDate()?.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  <h4 className="font-black text-slate-900 truncate text-xs">{order.customer?.fullName || "Anonymous"}</h4>
+                  <p className="text-[9px] font-bold text-slate-400 mt-0.5">{order.createdAt?.toDate()?.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} • {order.customer?.phone}</p>
                 </div>
+              </div>
+              
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                <span className="text-xs font-black text-slate-900">{getCurrencySymbol(currency)}{order.total?.toFixed(2)}</span>
                 <Select
                   value={order.status}
                   onValueChange={(val) => handleStatusUpdate(order.id, val)}
                   disabled={updatingId === order.id}
                 >
-                  <SelectTrigger className="w-[110px] h-9 rounded-lg text-[10px] font-black uppercase border-none bg-slate-100 shrink-0 shadow-sm">
+                  <SelectTrigger className={cn(
+                    "w-[85px] h-6 rounded-lg text-[8px] font-black uppercase border-none px-2",
+                    order.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 
+                    order.status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-500'
+                  )}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="shipped">Shipped</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectContent className="rounded-2xl border-none shadow-2xl">
+                    <SelectItem value="pending" className="text-[10px] font-bold">Pending</SelectItem>
+                    <SelectItem value="processing" className="text-[10px] font-bold">Processing</SelectItem>
+                    <SelectItem value="shipped" className="text-[10px] font-bold">Shipped</SelectItem>
+                    <SelectItem value="completed" className="text-[10px] font-bold">Completed</SelectItem>
+                    <SelectItem value="cancelled" className="text-[10px] font-bold text-rose-500">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Customer Info */}
-              <div className="bg-slate-50 rounded-xl p-3 mb-3 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-slate-200 flex items-center justify-center text-slate-600 font-black text-sm shrink-0">
-                  {order.customer?.fullName?.[0] || "?"}
-                </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-sm text-slate-900 truncate">{order.customer?.fullName || "Unknown"}</p>
-                  <p className="text-[10px] text-slate-400 truncate">{order.customer?.phone}</p>
-                </div>
-              </div>
-
-              {/* Bottom Row: Total + Payment + Details Button */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] text-slate-400 uppercase font-black tracking-tight">Total</p>
-                  <p className="text-base font-black text-slate-900">{getCurrencySymbol(currency)}{order.total?.toFixed(2)}</p>
-                  <p className="text-[9px] uppercase font-bold text-slate-400">{order.paymentMethod}</p>
-                </div>
-                <Button
-                  size="sm"
-                  className="h-9 px-5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-sm"
-                  onClick={() => router.push(`/${subdomain}/orders/${order.id}`)}
-                >
-                  <Eye className="w-3.5 h-3.5 mr-1.5" /> Details
-                </Button>
-              </div>
             </div>
-          </Card>
+            
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-50/50">
+              <Button 
+                variant="ghost"
+                className="flex-1 rounded-xl h-9 bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-[9px] hover:bg-slate-100"
+                onClick={() => router.push(`/${subdomain}/orders/${order.id}`)}
+              >
+                <Eye className="w-3 h-3 mr-2" /> View Details
+              </Button>
+              <Button 
+                variant="outline"
+                className="w-9 h-9 rounded-xl border-slate-100 text-slate-400 hover:bg-slate-50 flex items-center justify-center p-0"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         ))}
 
         {totalPages > 1 && (
