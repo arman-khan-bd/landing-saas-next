@@ -6,18 +6,22 @@ import { Button } from "@/components/ui/button";
 import { 
   ArrowRight, ShoppingCart, ShieldCheck, Zap, LogIn, 
   CheckCircle2, Loader2, Star, Smartphone, Globe, 
-  Sparkles, Rocket, Lock, TrendingUp, MousePointer2 
+  Sparkles, Rocket, Lock, TrendingUp, MousePointer2,
+  Layout, BarChart3, MessageSquare, Laptop, Check,
+  Target, Award, Users, Heart
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useUser } from "@/firebase/provider";
+import { cn } from "@/lib/utils";
 
 // Icon mapping helper
 const ICON_MAP: Record<string, any> = {
   Zap, ShieldCheck, Star, Smartphone, Globe, 
-  Sparkles, Rocket, Lock, CheckCircle2, TrendingUp, MousePointer2
+  Sparkles, Rocket, Lock, CheckCircle2, TrendingUp, MousePointer2,
+  Layout, BarChart3, MessageSquare, Laptop
 };
 
 export default function Home() {
@@ -50,179 +54,261 @@ export default function Home() {
     }
   };
 
+  const defaultFeatures = [
+    { icon: Layout, title: "ল্যান্ডিং পেজ বিল্ডার", desc: "ড্র্যাগ এন্ড ড্রপ দিয়ে তৈরি করুন হাই-কনভার্টিং পেজ।" },
+    { icon: Smartphone, title: "OTP ভেরিফিকেশন", desc: "SMS এর মাধ্যমে কাস্টমার ভেরিফাই করুন।" },
+    { icon: BarChart3, title: "সেলস এনালাইটিক্স", desc: "ব্যবসার রিয়েল-টাইম ডাটা দেখুন।" },
+    { icon: MessageSquare, title: "কাস্টম ডোমেইন", desc: "আপনার নিজের ডোমেইন যুক্ত করুন।" },
+    { icon: Globe, title: "মাল্টি-টেন্যান্ট", desc: "নিরাপদ এবং স্কেলেবল প্ল্যাটফর্ম।" },
+    { icon: ShieldCheck, title: "ব্যাংক সিকিউরিটি", desc: "আপনার ডাটা সবসময় সুরক্ষিত।" }
+  ];
+
+  const currentFeatures = features.length > 0 ? features.map(f => ({
+    icon: ICON_MAP[f.icon] || Zap,
+    title: f.title,
+    desc: f.description
+  })) : defaultFeatures;
+
   return (
-    <div className="flex flex-col items-center min-h-screen bg-background overflow-x-hidden">
-      {/* Header - Compact App-Style */}
-      <header className="fixed top-0 w-full p-3 sm:p-5 flex justify-between items-center max-w-7xl mx-auto bg-background/90 backdrop-blur-md z-50 border-b border-border/5">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-            <ShoppingCart className="text-white w-4 h-4 sm:w-5 sm:h-5" />
+    <div className="flex flex-col items-center min-h-screen bg-slate-50 selection:bg-primary selection:text-white overflow-x-hidden">
+      {/* Compact Header */}
+      <header className="fixed top-0 w-full p-3 sm:p-4 flex justify-between items-center max-w-7xl mx-auto bg-white/90 backdrop-blur-md z-50 border-b border-slate-100 shadow-sm">
+        <div className="flex items-center gap-2 group cursor-pointer pl-2">
+          <div className="w-8 h-8 bg-slate-950 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-12">
+            <Rocket className="text-white w-4 h-4" />
           </div>
-          <span className="text-lg sm:text-xl font-headline font-black text-primary tracking-tight">IHut.Shop</span>
+          <span className="text-lg font-black text-slate-900 tracking-tighter uppercase">IHut.Shop</span>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-3">
+        
+        <div className="flex items-center gap-2 pr-2">
           <Link href={user ? "/dashboard" : "/auth"}>
-            <Button variant="ghost" size="sm" className="rounded-full px-3 h-8 sm:h-10 font-bold text-xs">
-              <LogIn className="w-3.5 h-3.5 mr-1.5" />
-              <span className="hidden xs:inline">{user ? "Dashboard" : "Login"}</span>
+            <Button variant="ghost" size="sm" className="rounded-xl px-4 h-9 font-black text-[10px] uppercase tracking-widest text-slate-600">
+              {user ? "ড্যাশবোর্ড" : "লগইন"}
             </Button>
           </Link>
           <Link href={user ? "/dashboard" : "/auth"}>
-            <Button size="sm" className="rounded-full px-4 h-8 sm:h-10 shadow-lg shadow-primary/20 font-bold text-xs uppercase tracking-wider">
-              {user ? "Dashboard" : "Launch"}
+            <Button size="sm" className="rounded-xl px-5 h-9 bg-slate-950 text-white font-black text-[10px] uppercase tracking-widest shadow-lg">
+               শুরু করুন
             </Button>
           </Link>
         </div>
       </header>
 
-      <main className="w-full max-w-6xl px-4 pt-24 sm:pt-40">
-        {/* Hero Section - High Density */}
-        <div className="text-center space-y-4 sm:space-y-6 max-w-4xl mx-auto">
-          <Badge className="bg-primary/10 text-primary border-none px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-[0.2em] animate-in fade-in slide-in-from-top-4 duration-700">
-            Next-Gen E-commerce
-          </Badge>
-          <h1 className="text-4xl xs:text-5xl sm:text-7xl md:text-8xl font-headline font-black leading-[1.05] sm:leading-[0.95] text-foreground tracking-tighter">
-            Build Your <span className="text-primary italic underline decoration-accent/30 decoration-4 sm:decoration-8 underline-offset-4 sm:underline-offset-8">Empire</span> Effortlessly
-          </h1>
-          <p className="text-sm sm:text-xl text-muted-foreground max-w-2xl mx-auto font-medium leading-relaxed px-2">
-            The multi-tenant engine designed for scale. Launch professional storefronts with landing pages and analytics in minutes.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 justify-center items-center pt-4 px-2">
-            <Link href={user ? "/dashboard" : "/auth"} className="w-full sm:w-auto">
-              <Button size="lg" className="w-full h-14 sm:h-16 px-8 sm:px-12 text-base sm:text-xl rounded-2xl sm:rounded-[24px] shadow-xl shadow-primary/20 font-black uppercase tracking-tight">
-                {user ? "Go to Dashboard" : "Start Selling"} <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5" />
-              </Button>
-            </Link>
-            <Link href="#pricing" className="w-full sm:w-auto">
-              <Button variant="outline" size="lg" className="w-full h-14 sm:h-16 px-8 sm:px-12 text-base sm:text-xl rounded-2xl sm:rounded-[24px] border-2 font-bold opacity-70 hover:opacity-100">
-                View Plans
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Dynamic Feature Grid */}
-        <div id="features" className="mt-20 sm:mt-40 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
-          {features.length > 0 ? (
-            features.map((feature) => (
-              <FeatureCard
-                key={feature.id}
-                icon={ICON_MAP[feature.icon] || Zap}
-                title={feature.title}
-                desc={feature.description}
-                accent={feature.accent || 'primary'}
-              />
-            ))
-          ) : (
-            <>
-              <FeatureCard
-                icon={Zap}
-                title="Instant Subdomains"
-                desc="Every store gets a unique [brand].ihut.shop address automatically. Zero config."
-                accent="accent"
-              />
-              <FeatureCard
-                icon={ShieldCheck}
-                title="Tenant Isolation"
-                desc="Your data is strictly isolated with bank-grade security rules. Safe and private."
-                accent="primary"
-              />
-              <FeatureCard
-                icon={Star}
-                title="AI Content Engine"
-                desc="Generate product data and store names using built-in Google Gemini integration."
-                accent="accent"
-              />
-            </>
-          )}
-        </div>
-
-        {/* Pricing Section - Compact Cards */}
-        <section id="pricing" className="mt-24 sm:mt-48 space-y-10 sm:space-y-16 pb-20">
-          <div className="text-center space-y-2 sm:space-y-4 px-2">
-            <h2 className="text-2xl sm:text-5xl font-headline font-black tracking-tight uppercase">Platform Tiers</h2>
-            <p className="text-muted-foreground text-sm sm:text-lg max-w-xl mx-auto">Choose a plan that fits your scale. Upgrade anytime.</p>
+      <main className="w-full">
+        {/* Compact Hero with Modern BG */}
+        <section className="relative pt-24 sm:pt-40 pb-16 sm:pb-24 px-4 overflow-hidden bg-slate-950">
+          <div className="absolute inset-0 opacity-20">
+             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px]" />
+             <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/30 to-transparent blur-3xl" />
+             <div className="absolute bottom-0 left-0 w-1/2 h-full bg-gradient-to-r from-accent/20 to-transparent blur-3xl" />
           </div>
 
-          {loading ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <div className="max-w-6xl mx-auto text-center space-y-6 sm:space-y-8 relative z-10">
+            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full animate-in fade-in zoom-in duration-700">
+               <Badge className="bg-primary text-white border-none rounded-md px-1.5 py-0.5 text-[8px] font-black uppercase">PRO</Badge>
+               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">অত্যাধুনিক ই-কমার্স সলিউশন</span>
             </div>
-          ) : plans.length === 0 ? (
-            <div className="bg-muted/30 rounded-3xl p-12 border-2 border-dashed text-center opacity-50">
-              <p className="font-bold uppercase tracking-widest text-[10px]">Updating Tiers...</p>
+
+            <h1 className="text-4xl sm:text-7xl font-black leading-[1] text-white tracking-tight">
+              আপনার অনলাইন ব্যবসা <br />
+              <span className="text-primary italic">এক ধাপ এগিয়ে</span>
+            </h1>
+
+            <p className="text-sm sm:text-xl text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed px-4 opacity-80">
+              ল্যান্ডিং পেজ, অর্ডার ম্যানেজমেন্ট এবং সেলস এনালাইটিক্স - সবকিছুই এখন আপনার হাতের মুঠোয়। মাত্র কয়েক মিনিটে শুরু করুন আপনার প্রফেশনাল স্টোর।
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center pt-4">
+              <Link href={user ? "/dashboard" : "/auth"} className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto h-14 sm:h-16 px-8 sm:px-12 text-base sm:text-xl rounded-2xl bg-primary text-white shadow-2xl shadow-primary/20 font-black uppercase tracking-tight hover:scale-105 active:scale-95 transition-all">
+                  শুরু করুন <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </Link>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-              {plans.map((plan) => (
-                <Card key={plan.id} className="group relative rounded-[32px] sm:rounded-[40px] border-border/50 bg-white hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col">
-                  {plan.price > 50 && (
-                    <div className="absolute top-0 right-0 bg-primary text-white px-4 py-1.5 rounded-bl-2xl font-black text-[9px] uppercase tracking-widest z-10 flex items-center gap-1.5 shadow-lg">
-                      <Star className="w-2.5 h-2.5 fill-white" /> Popular
-                    </div>
-                  )}
-                  <CardHeader className="p-6 sm:p-10 pb-4">
-                    <CardTitle className="text-xl sm:text-2xl font-black uppercase tracking-tight mb-1">{plan.name}</CardTitle>
-                    <CardDescription className="text-xs sm:text-base line-clamp-1 sm:line-clamp-2">{plan.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-6 sm:p-10 pt-0 flex-1 space-y-6 sm:space-y-8">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-3xl sm:text-5xl font-black text-primary">${plan.price}</span>
-                      <span className="text-slate-400 font-bold uppercase tracking-widest text-[9px] sm:text-xs">/ {plan.billingInterval}</span>
+          </div>
+        </section>
+
+        {/* Why Choose Us - New Section */}
+        <section className="py-16 sm:py-24 px-4 bg-white border-b border-slate-100">
+           <div className="max-w-7xl mx-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 sm:gap-20 items-center">
+                 <div className="space-y-8">
+                    <div className="space-y-4">
+                       <Badge className="bg-primary/10 text-primary border-none px-4 py-1 rounded-full font-black text-[10px] uppercase tracking-widest">কেন আমাদের বেছে নেবেন?</Badge>
+                       <h2 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight leading-tight uppercase">আপনার ব্যবসার বিশ্বস্ত সাথী</h2>
+                       <p className="text-slate-500 text-sm sm:text-lg font-medium leading-relaxed">আমরা শুধু একটি প্ল্যাটফর্ম নই, আমরা আপনার ব্যবসার প্রবৃদ্ধির প্রতিটি ধাপে আপনার পাশে আছি।</p>
                     </div>
 
-                    <div className="space-y-3">
-                      <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-2">Privileges</p>
-                      <div className="grid gap-2 sm:gap-3">
-                        {(plan.features || []).map((feat: string, i: number) => (
-                          <div key={i} className="flex items-center gap-2.5 text-[11px] sm:text-sm font-medium text-slate-600">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                            <span className="line-clamp-1">{feat}</span>
+                    <div className="grid gap-6">
+                       <div className="flex gap-4 group">
+                          <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                             <Target className="w-6 h-6" />
                           </div>
-                        ))}
-                      </div>
+                          <div className="space-y-1">
+                             <h4 className="font-black text-lg text-slate-900 uppercase tracking-tight">সহজ ইউজার ইন্টারফেস</h4>
+                             <p className="text-sm text-slate-500 font-medium leading-snug">কোনো টেকনিক্যাল জ্ঞান ছাড়াই আপনি আপনার স্টোর পরিচালনা করতে পারবেন সহজে।</p>
+                          </div>
+                       </div>
+                       <div className="flex gap-4 group">
+                          <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                             <Award className="w-6 h-6" />
+                          </div>
+                          <div className="space-y-1">
+                             <h4 className="font-black text-lg text-slate-900 uppercase tracking-tight">প্রিমিয়াম ডিজাইন</h4>
+                             <p className="text-sm text-slate-500 font-medium leading-snug">আমাদের প্রতিটি টেমপ্লেট আধুনিক এবং কনভার্সন বাড়াতে অপ্টিমাইজড করা।</p>
+                          </div>
+                       </div>
+                       <div className="flex gap-4 group">
+                          <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                             <Users className="w-6 h-6" />
+                          </div>
+                          <div className="space-y-1">
+                             <h4 className="font-black text-lg text-slate-900 uppercase tracking-tight">২৪/৭ কাস্টমার সাপোর্ট</h4>
+                             <p className="text-sm text-slate-500 font-medium leading-snug">যেকোনো সমস্যায় আমাদের সাপোর্ট টিম আপনার সেবায় সবসময় নিয়োজিত।</p>
+                          </div>
+                       </div>
                     </div>
-                  </CardContent>
-                  <div className="p-6 sm:p-10 pt-0">
+                 </div>
+                 <div className="relative group">
+                    <div className="absolute inset-0 bg-primary/10 rounded-[40px] rotate-3 scale-105 group-hover:rotate-6 transition-transform" />
+                    <div className="relative aspect-[4/3] bg-slate-100 rounded-[40px] overflow-hidden border-8 border-white shadow-2xl flex items-center justify-center">
+                       <Sparkles className="w-20 h-20 text-slate-300" />
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </section>
+
+        {/* Features Grid & List View */}
+        <section id="features" className="py-16 sm:py-24 bg-slate-50/50">
+          <div className="max-w-7xl mx-auto px-4 space-y-16 sm:space-y-24">
+            <div className="text-center space-y-3">
+               <h2 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight uppercase">প্ল্যাটফর্ম ফিচারসমূহ</h2>
+               <p className="text-slate-400 font-bold uppercase tracking-widest text-[9px] sm:text-[10px]">এক নজরে আপনার সব সুবিধা</p>
+            </div>
+
+            {/* Grid View */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+               {currentFeatures.map((f, i) => (
+                  <div key={i} className="p-6 sm:p-8 bg-white rounded-3xl border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all group">
+                     <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
+                        <f.icon className="w-5 h-5" />
+                     </div>
+                     <h3 className="text-lg font-black text-slate-900 mb-2 uppercase tracking-tight">{f.title}</h3>
+                     <p className="text-sm text-slate-500 font-medium leading-relaxed">{f.desc}</p>
+                  </div>
+               ))}
+            </div>
+
+            {/* List View - Compact */}
+            <div className="max-w-4xl mx-auto bg-white rounded-[32px] sm:rounded-[48px] p-6 sm:p-12 border border-slate-100 shadow-sm space-y-6 sm:space-y-8">
+               <div className="flex items-center justify-between border-b border-slate-50 pb-6">
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight">বিস্তারিত তালিকা</h3>
+                  <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest">সকল সুবিধা</Badge>
+               </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-x-12 sm:gap-y-6">
+                  {currentFeatures.map((f, i) => (
+                     <div key={i} className="flex items-center gap-4 py-3 border-b border-slate-50 last:border-0 md:border-0 md:odd:border-r md:odd:pr-6">
+                        <div className="w-6 h-6 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center shrink-0">
+                           <Check className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-sm sm:text-base font-bold text-slate-700">{f.title}</span>
+                     </div>
+                  ))}
+               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Compact Pricing */}
+        <section id="pricing" className="py-16 sm:py-24 px-4">
+          <div className="max-w-7xl mx-auto space-y-12 sm:space-y-20">
+            <div className="text-center space-y-3">
+              <h2 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight uppercase">সাশ্রয়ী প্যাকেজ</h2>
+              <p className="text-slate-500 text-sm sm:text-lg font-medium">আপনার সাধ্যের মধ্যেই সেরা সলিউশন।</p>
+            </div>
+
+            {loading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
+                {plans.map((plan) => (
+                  <div key={plan.id} className={cn(
+                     "relative flex flex-col p-8 rounded-[40px] border transition-all duration-300",
+                     plan.price > 50 ? "bg-slate-950 text-white border-slate-800 shadow-2xl scale-105 z-10" : "bg-white text-slate-900 border-slate-100"
+                  )}>
+                    {plan.price > 50 && (
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-white px-6 py-2 rounded-full font-black text-[8px] uppercase tracking-widest shadow-xl flex items-center gap-1.5">
+                        <Star className="w-2.5 h-2.5 fill-white" /> প্রো
+                      </div>
+                    )}
+                    
+                    <div className="mb-8">
+                      <h3 className="text-xl font-black uppercase mb-1">{plan.name}</h3>
+                      <p className={cn("text-xs font-medium opacity-60", plan.price > 50 ? "text-slate-300" : "text-slate-500")}>{plan.description}</p>
+                    </div>
+
+                    <div className="flex items-baseline gap-1.5 mb-10">
+                      <span className="text-4xl font-black">৳{plan.price}</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest opacity-40">/ মাস</span>
+                    </div>
+
+                    <div className="space-y-4 flex-1 mb-10">
+                       {(plan.features || []).slice(0, 6).map((feat: string, i: number) => (
+                        <div key={i} className="flex items-center gap-3">
+                           <CheckCircle2 className={cn("w-4 h-4 shrink-0", plan.price > 50 ? "text-primary" : "text-emerald-500")} />
+                           <span className="text-xs sm:text-sm font-bold opacity-80 line-clamp-1">{feat}</span>
+                        </div>
+                       ))}
+                    </div>
+
                     <Link href={user ? "/dashboard" : `/auth?planId=${plan.id}`}>
-                      <Button className="w-full h-12 sm:h-14 rounded-2xl text-sm sm:text-lg font-black uppercase tracking-tight group-hover:bg-primary group-hover:text-white transition-all shadow-xl shadow-primary/5">
-                        {user ? "Dashboard" : `Select ${plan.name}`}
+                      <Button size="lg" className={cn(
+                         "w-full h-14 rounded-2xl text-base font-black uppercase tracking-tight",
+                         plan.price > 50 ? "bg-primary text-white" : "bg-slate-950 text-white"
+                      )}>
+                        {user ? "ড্যাশবোর্ড" : "সিলেক্ট করুন"}
                       </Button>
                     </Link>
                   </div>
-                </Card>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Simplified CTA */}
+        <section className="px-4 pb-16 sm:pb-24">
+           <div className="max-w-5xl mx-auto bg-slate-950 rounded-[40px] p-8 sm:p-20 text-center text-white space-y-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[100px]" />
+              <h2 className="text-3xl sm:text-6xl font-black tracking-tight leading-none relative z-10">আজই আপনার যাত্রা শুরু করুন</h2>
+              <p className="text-sm sm:text-xl font-medium text-slate-400 relative z-10">কোনো লুকানো খরচ নেই। আমাদের সাথে আপনার ব্যবসা বাড়বে দ্বিগুণ গতিতে।</p>
+              <div className="relative z-10">
+                 <Link href="/auth">
+                   <Button size="lg" className="h-14 sm:h-20 px-8 sm:px-16 text-lg sm:text-2xl rounded-2xl sm:rounded-3xl bg-primary text-white shadow-2xl font-black uppercase tracking-tight">
+                      শুরু করুন <ArrowRight className="ml-2 w-5 h-5" />
+                   </Button>
+                 </Link>
+              </div>
+           </div>
         </section>
       </main>
 
-      <footer className="w-full border-t border-border/10 py-12 px-6 text-center space-y-6 bg-slate-50/50">
-        <div className="flex items-center justify-center gap-2">
-          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white">
-            <ShoppingCart className="w-4 h-4" />
-          </div>
-          <span className="text-lg font-headline font-black tracking-tight text-slate-900 uppercase">IHut.Shop</span>
+      <footer className="w-full border-t border-slate-100 py-12 px-6 bg-white">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+           <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-slate-950 rounded-lg flex items-center justify-center text-white">
+                <Rocket className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-lg font-black tracking-tighter text-slate-950 uppercase">IHut.Shop</span>
+           </div>
+           <p className="text-[9px] text-slate-300 font-black uppercase tracking-[0.4em]">
+             &copy; {new Date().getFullYear()} IHut.Shop.
+           </p>
         </div>
-        <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.4em]">
-          &copy; {new Date().getFullYear()} IHut.Shop CLOUD ENGINE.
-        </p>
       </footer>
-    </div>
-  );
-}
-
-function FeatureCard({ icon: Icon, title, desc, accent }: any) {
-  const accentClass = accent === 'accent' ? 'text-accent' : 'text-primary';
-  const bgClass = accent === 'accent' ? 'bg-accent/10' : 'bg-primary/10';
-
-  return (
-    <div className="p-6 sm:p-10 bg-white rounded-[24px] sm:rounded-[48px] shadow-sm border border-border/40 hover:shadow-xl transition-all duration-500 group">
-      <div className={`w-10 h-10 sm:w-14 ${bgClass} rounded-xl sm:rounded-2xl flex items-center justify-center mb-5 sm:mb-8 group-hover:scale-110 transition-transform`}>
-        <Icon className={`w-5 h-5 sm:w-7 sm:h-7 ${accentClass}`} />
-      </div>
-      <h3 className="text-lg sm:text-2xl font-headline font-black mb-2 sm:mb-4 tracking-tight leading-tight">{title}</h3>
-      <p className="text-xs sm:text-base text-muted-foreground font-medium leading-relaxed line-clamp-3">{desc}</p>
     </div>
   );
 }
