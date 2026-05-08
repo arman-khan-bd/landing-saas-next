@@ -151,20 +151,20 @@ export default function StoreDashboard() {
   };
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20">
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Console Overview</h1>
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs flex items-center gap-2">
-            <Activity className="w-3.5 h-3.5 text-emerald-500" /> Live performance analytics for {subdomain}
+          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Console Overview</h1>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] sm:text-xs flex items-center gap-2">
+            <Activity className="w-3.5 h-3.5 text-emerald-500" /> Live analytics for {subdomain}
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Button variant="outline" className="rounded-2xl h-12 px-6 border-slate-200 font-bold gap-2 text-slate-600 hover:bg-slate-50">
+        <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
+          <Button variant="outline" className="rounded-2xl h-10 sm:h-12 px-4 sm:px-6 border-slate-200 font-bold gap-2 text-slate-600 hover:bg-slate-50 shrink-0 text-xs">
             <Clock className="w-4 h-4" /> Last 30 Days
           </Button>
-          <Button className="rounded-2xl h-12 px-6 bg-slate-950 text-white font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-xl shadow-slate-950/20">
-            Generate Report
+          <Button className="rounded-2xl h-10 sm:h-12 px-4 sm:px-6 bg-slate-950 text-white font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-xl shadow-slate-950/20 shrink-0 text-xs">
+            Report
           </Button>
         </div>
       </div>
@@ -206,14 +206,14 @@ export default function StoreDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <Card className="lg:col-span-2 rounded-[48px] border-none shadow-2xl bg-white overflow-hidden group">
-          <CardHeader className="p-10 border-b border-slate-50 flex flex-row items-center justify-between">
+          <CardHeader className="p-6 sm:p-10 border-b border-slate-50 flex flex-row items-center justify-between">
             <div className="space-y-1">
-              <CardTitle className="font-black text-2xl text-slate-900 tracking-tight uppercase">Sales Trajectory</CardTitle>
-              <CardDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Revenue and Volume Correlation</CardDescription>
+              <CardTitle className="font-black text-lg sm:text-2xl text-slate-900 tracking-tight uppercase">Sales Trajectory</CardTitle>
+              <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Revenue Correlation</CardDescription>
             </div>
-            <Badge className="bg-indigo-600 text-white border-none rounded-xl px-4 py-1.5 font-black text-[10px] uppercase tracking-widest">Dynamic Stream</Badge>
+            <Badge className="bg-indigo-600 text-white border-none rounded-xl px-3 py-1 font-black text-[8px] sm:text-[10px] uppercase tracking-widest">Live</Badge>
           </CardHeader>
-          <CardContent className="p-10 h-[450px]">
+          <CardContent className="p-4 sm:p-10 h-[300px] sm:h-[450px]">
             <ChartContainer config={{
               revenue: { label: "Revenue", color: "#6366f1" },
               orders: { label: "Orders", color: "#10b981" }
@@ -296,29 +296,31 @@ export default function StoreDashboard() {
                   </div>
                 ) : (
                   recentOrders.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:scale-[1.01] transition-transform duration-300">
-                      <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 text-slate-400 group-hover:text-primary transition-colors">
-                          <ShoppingBag className="w-6 h-6" />
+                    <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 bg-slate-50 rounded-[24px] sm:rounded-3xl border border-slate-100 hover:scale-[1.01] transition-transform duration-300 gap-4">
+                      <div className="flex items-center gap-4 sm:gap-5">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 text-slate-400 shrink-0">
+                          <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
-                        <div>
-                          <p className="font-black text-slate-900">{order.customer?.fullName || "Verified Customer"}</p>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            #{order.id.slice(0, 12)} <span className="w-1 h-1 bg-slate-300 rounded-full" /> {order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), "MMM d, h:mm a") : "Live Now"}
+                        <div className="min-w-0">
+                          <p className="font-black text-slate-900 truncate text-sm sm:text-base">{order.customer?.fullName || "Verified Customer"}</p>
+                          <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            #{order.id.slice(0, 10)} <span className="w-1 h-1 bg-slate-300 rounded-full" /> {order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), "MMM d") : "Live"}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-8 text-right">
-                        <div className="hidden md:block">
-                          {getStatusBadge(order.status)}
+                      <div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-8 border-t sm:border-none pt-3 sm:pt-0">
+                        <div className="space-y-0.5 sm:space-y-1">
+                          <p className="font-black text-lg sm:text-xl text-slate-900">{getCurrencySymbol(currency)}{order.total?.toFixed(2)}</p>
+                          <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">{order.paymentMethod || "Prepaid"}</p>
                         </div>
-                        <div className="space-y-1">
-                          <p className="font-black text-xl text-slate-900">{getCurrencySymbol(currency)}{order.total?.toFixed(2)}</p>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{order.paymentMethod || "Prepaid"}</p>
+                        <div className="flex items-center gap-2">
+                          <div className="hidden sm:block">
+                            {getStatusBadge(order.status)}
+                          </div>
+                          <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white text-slate-400">
+                            <MoreVertical className="w-5 h-5" />
+                          </Button>
                         </div>
-                        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white text-slate-400">
-                          <MoreVertical className="w-5 h-5" />
-                        </Button>
                       </div>
                     </div>
                   ))
@@ -378,23 +380,23 @@ function MetricCard({ label, value, trend, trendUp, icon: Icon, color }: any) {
   };
 
   return (
-    <Card className="rounded-[40px] border-none shadow-2xl bg-white p-8 group hover:scale-[1.02] transition-all duration-500">
-      <CardContent className="p-0 space-y-6">
+    <Card className="rounded-[32px] sm:rounded-[40px] border-none shadow-2xl bg-white p-6 sm:p-8 group hover:scale-[1.02] transition-all duration-500">
+      <CardContent className="p-0 space-y-4 sm:space-y-6">
         <div className="flex justify-between items-start">
-          <div className={cn("p-4 rounded-2xl transition-transform group-hover:scale-110", colors[color])}>
-            <Icon className="w-7 h-7" />
+          <div className={cn("p-3 sm:p-4 rounded-2xl transition-transform group-hover:scale-110", colors[color])}>
+            <Icon className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
           <div className={cn(
-            "flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest",
+            "flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] sm:text-[10px] font-black uppercase tracking-widest",
             trendUp ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
           )}>
             {trendUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
             {trend}
           </div>
         </div>
-        <div className="space-y-1">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</p>
-          <h3 className="text-3xl font-black text-slate-900 tracking-tighter">{value}</h3>
+        <div className="space-y-0.5 sm:space-y-1">
+          <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</p>
+          <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">{value}</h3>
         </div>
       </CardContent>
     </Card>
