@@ -1,18 +1,26 @@
 import { db } from "@/lib/firebase-server";
 import { collection, query, where, getDocs, limit, Timestamp, orderBy } from "firebase/firestore";
 
-function sanitizeData(data: any) {
+function sanitizeData(data: any): any {
   if (!data) return data;
   
-  const clean = { ...data };
-  for (const key in clean) {
-    if (clean[key] instanceof Timestamp) {
-      clean[key] = clean[key].toDate().toISOString();
-    } else if (typeof clean[key] === 'object' && clean[key] !== null) {
-      clean[key] = sanitizeData(clean[key]);
-    }
+  if (Array.isArray(data)) {
+    return data.map(item => sanitizeData(item));
   }
-  return clean;
+  
+  if (typeof data === 'object' && data !== null) {
+    const clean: any = { ...data };
+    for (const key in clean) {
+      if (clean[key] instanceof Timestamp) {
+        clean[key] = clean[key].toDate().toISOString();
+      } else {
+        clean[key] = sanitizeData(clean[key]);
+      }
+    }
+    return clean;
+  }
+  
+  return data;
 }
 
 export async function getStoreBySubdomain(subdomain: string) {

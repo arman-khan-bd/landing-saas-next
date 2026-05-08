@@ -18,6 +18,7 @@ import { getTenantPath, getConsoleUrl, getCurrencySymbol } from "@/lib/utils";
 import { BlockRenderer } from "./builder/[pageId]/block-renderer";
 import { LazySection } from "./builder/[pageId]/lazy-section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageSkeleton } from "@/components/PageSkeleton";
 
 interface CartItem {
   id: string;
@@ -189,7 +190,15 @@ export default function Storefront({
 
       // Parallel fetch for page, products, categories, and sub-categories
       // Fetch pages with fuzzy/fallback matching
-      const allPagesSnap = await getDocs(query(collection(firestore, "pages"), where("storeId", "==", storeData.id)));
+      const [allPagesSnap, prodSnap, catSnap, subCatSnap] = await Promise.all([
+        getDocs(query(collection(firestore, "pages"), where("storeId", "==", storeData.id))),
+        getDocs(query(collection(firestore, "products"), where("storeId", "==", storeData.id), orderBy("createdAt", "desc"))).catch(() =>
+          getDocs(query(collection(firestore, "products"), where("storeId", "==", storeData.id)))
+        ),
+        getDocs(query(collection(firestore, "categories"), where("storeId", "==", storeData.id))),
+        getDocs(query(collection(firestore, "sub-categories"), where("storeId", "==", storeData.id))).catch(() => ({ docs: [] }))
+      ]);
+
       let matchedPage = null;
       if (!allPagesSnap.empty) {
         const pages = allPagesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -208,15 +217,6 @@ export default function Storefront({
         setPage(matchedPage);
       }
 
-      // Fetch products, categories, sub-categories
-      const [prodSnap, catSnap, subCatSnap] = await Promise.all([
-        getDocs(query(collection(firestore, "products"), where("storeId", "==", storeData.id), orderBy("createdAt", "desc"))).catch(() =>
-          getDocs(query(collection(firestore, "products"), where("storeId", "==", storeData.id)))
-        ),
-        getDocs(query(collection(firestore, "categories"), where("storeId", "==", storeData.id))),
-        getDocs(query(collection(firestore, "sub-categories"), where("storeId", "==", storeData.id))).catch(() => ({ docs: [] }))
-      ]);
-
       setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
       const mainCats = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -233,7 +233,7 @@ export default function Storefront({
     }
   };
 
-  if (loading) return <div className="min-h-screen flex flex-col items-center justify-center bg-white"><Loader2 className="w-10 h-10 animate-spin text-primary mb-2" /><p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Waking Up Business Matrix</p></div>;
+  if (loading) return <PageSkeleton />;
   if (!store) return <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center"><h1 className="text-2xl font-black">Store Registry Not Found</h1><Link href="/"><Button className="mt-6">Return to Hub</Button></Link></div>;
 
   const config = Array.isArray(page?.config) ? page.config : [];
@@ -388,38 +388,54 @@ export default function Storefront({
             </div>
 
             <div className="grid grid-cols-1 min-[340px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-              {(store.productDisplayType === "manual" && store.selectedProducts?.length > 0
-                ? products.filter(p => store.selectedProducts.includes(p.id))
-                : products.slice(0, 8)
-              ).map((p) => (
-                <Card key={p.id} className="group bg-white rounded-[32px] overflow-hidden border-none shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col">
-                  <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block aspect-square relative overflow-hidden bg-slate-50 border-b border-slate-100">
-                    {p.featuredImage && <img src={p.featuredImage} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={p.name} />}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
-                    {p.prevPrice && <div className="absolute top-4 left-4 bg-rose-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Sale</div>}
-                  </Link>
-                  <div className="p-3 md:p-6 space-y-2 md:space-y-4 flex-1 flex flex-col">
-                    <div className="space-y-0.5 md:space-y-1">
-                      <h4 className="font-bold text-[11px] md:text-sm text-slate-800 line-clamp-2 min-h-[32px] md:min-h-[40px] group-hover:text-primary transition-colors">{p.name}</h4>
-                      <p className="text-base md:text-2xl font-black text-slate-900">{getCurrencySymbol(store?.currency)}{Number(p.currentPrice).toFixed(2)}</p>
+              {products.length === 0 ? (
+                [1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                  <div key={i} className="space-y-4 bg-white p-3 md:p-6 rounded-[32px] border border-slate-100">
+                    <Skeleton className="aspect-square w-full rounded-2xl" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-6 w-1/2" />
                     </div>
-
-                    <div className="pt-1 space-y-1.5 mt-auto">
-                      <Button
-                        className="w-full h-auto py-3 md:h-12 rounded-lg md:rounded-xl font-black uppercase text-[9px] md:text-[10px] tracking-widest bg-slate-900 hover:bg-primary transition-all"
-                        onClick={() => addToCart(p)}
-                      >
-                        <ShoppingCart className="mr-1.5 w-3.5 h-3.5 md:w-4 md:h-4" /> কার্টে যোগ করুন
-                      </Button>
-                      <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block">
-                        <Button variant="outline" className="w-full h-9 md:h-12 rounded-lg md:rounded-xl font-black uppercase text-[9px] md:text-[10px] tracking-widest border-slate-200 hover:bg-slate-50 transition-all">
-                          Buy Now
-                        </Button>
-                      </Link>
+                    <div className="space-y-1.5 mt-auto">
+                      <Skeleton className="h-10 w-full rounded-xl" />
+                      <Skeleton className="h-10 w-full rounded-xl" />
                     </div>
                   </div>
-                </Card>
-              ))}
+                ))
+              ) : (
+                (store.productDisplayType === "manual" && store.selectedProducts?.length > 0
+                  ? products.filter(p => store.selectedProducts.includes(p.id))
+                  : products.slice(0, 8)
+                ).map((p) => (
+                  <Card key={p.id} className="group bg-white rounded-[32px] overflow-hidden border-none shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col">
+                    <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block aspect-square relative overflow-hidden bg-slate-50 border-b border-slate-100">
+                      {p.featuredImage && <img src={p.featuredImage} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={p.name} />}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
+                      {p.prevPrice && <div className="absolute top-4 left-4 bg-rose-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Sale</div>}
+                    </Link>
+                    <div className="p-3 md:p-6 space-y-2 md:space-y-4 flex-1 flex flex-col">
+                      <div className="space-y-0.5 md:space-y-1">
+                        <h4 className="font-bold text-[11px] md:text-sm text-slate-800 line-clamp-2 min-h-[32px] md:min-h-[40px] group-hover:text-primary transition-colors">{p.name}</h4>
+                        <p className="text-base md:text-2xl font-black text-slate-900">{getCurrencySymbol(store?.currency)}{Number(p.currentPrice).toFixed(2)}</p>
+                      </div>
+  
+                      <div className="pt-1 space-y-1.5 mt-auto">
+                        <Button
+                          className="w-full h-auto py-3 md:h-12 rounded-lg md:rounded-xl font-black uppercase text-[9px] md:text-[10px] tracking-widest bg-slate-900 hover:bg-primary transition-all"
+                          onClick={() => addToCart(p)}
+                        >
+                          <ShoppingCart className="mr-1.5 w-3.5 h-3.5 md:w-4 md:h-4" /> কার্টে যোগ করুন
+                        </Button>
+                        <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block">
+                          <Button variant="outline" className="w-full h-9 md:h-12 rounded-lg md:rounded-xl font-black uppercase text-[9px] md:text-[10px] tracking-widest border-slate-200 hover:bg-slate-50 transition-all">
+                            Buy Now
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
             </div>
           </section>
 

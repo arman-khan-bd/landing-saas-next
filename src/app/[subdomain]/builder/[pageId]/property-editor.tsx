@@ -1078,6 +1078,19 @@ export function PropertyEditor({ block, products, onChange, config }: PropertyEd
                  </div>
               </div>
            </PropertySection>
+
+           <PropertySection label="Form Options" icon={LucideIcons.Settings}>
+              <div className="space-y-3">
+                 <div className="flex items-center justify-between p-2.5 bg-slate-100/50 rounded-lg">
+                    <Label className="text-[10px] font-bold text-slate-900">Show Delivery Area</Label>
+                    <Switch 
+                       checked={block.content?.showShipping !== false} 
+                       onCheckedChange={(val) => onChange({ content: { showShipping: val } })} 
+                    />
+                 </div>
+                 <p className="text-[8px] text-slate-400 italic px-1">If disabled, delivery will be marked as free for all orders.</p>
+              </div>
+           </PropertySection>
         </div>
       );
 

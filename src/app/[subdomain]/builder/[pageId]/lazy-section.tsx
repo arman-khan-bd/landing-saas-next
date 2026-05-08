@@ -12,7 +12,7 @@ interface LazySectionProps {
   index: number;
 }
 
-export function LazySection({ block, products, store, pageStyle, index }: LazySectionProps) {
+export function LazySection({ block, products, store, pageStyle, index, isPreview = false }: LazySectionProps & { isPreview?: boolean }) {
   const [isVisible, setIsVisible] = useState(index === 0); // First section always visible
   const ref = useRef<HTMLDivElement>(null);
 
@@ -43,7 +43,7 @@ export function LazySection({ block, products, store, pageStyle, index }: LazySe
           block={block} 
           products={products} 
           store={store} 
-          isPreview 
+          isPreview={isPreview} 
           pageStyle={pageStyle} 
         />
       ) : (

@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface OrderFormBlockProps {
   block: any;
@@ -28,10 +29,38 @@ export const OrderFormBlock = ({ block, style, products, store, isOrganic = fals
   const productIds = block.content?.productIds || (block.content?.mainProductId ? [block.content.mainProductId] : []);
   const selectedProducts = Array.isArray(products) ? products.filter(p => productIds.includes(p.id)) : [];
 
+  // Determine if we should show a skeleton
+  const isInitialLoad = products.length === 0 && !block.isPreview;
+
+  if (isInitialLoad) {
+    return (
+      <div id={block.id} style={style} className="px-4 w-full max-w-5xl mx-auto space-y-6">
+        <Skeleton className="h-20 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-48 w-full rounded-3xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div id={block.id} style={style} className="px-4 w-full max-w-5xl mx-auto text-left" data-block-type="product-order-form">
        {selectedProducts.length > 0 ? (
-         <LandingPageOrderForm products={selectedProducts} store={store} isOrganic={isOrganic} isTraditional={isTraditional} />
+          <LandingPageOrderForm 
+            products={selectedProducts} 
+            store={store} 
+            isOrganic={isOrganic} 
+            isTraditional={isTraditional} 
+            showShipping={block.content?.showShipping !== false}
+          />
        ) : (
          <div className="p-8 sm:p-12 bg-white rounded-2xl sm:rounded-[40px] shadow-sm border-2 border-dashed flex flex-col items-center justify-center gap-4 text-slate-300">
             <CreditCard className="w-8 h-8 sm:w-10 sm:h-10 opacity-10" />
@@ -42,7 +71,7 @@ export const OrderFormBlock = ({ block, style, products, store, isOrganic = fals
   );
 };
 
-function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { products: any[], store: any, isOrganic: boolean, isTraditional: boolean }) {
+function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showShipping }: { products: any[], store: any, isOrganic: boolean, isTraditional: boolean, showShipping: boolean }) {
   const { toast } = useToast();
   const db = useFirestore();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -52,6 +81,8 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
 
   const selectedProducts = products.filter(p => selectedProductIds.includes(p.id));
+  const shippingCost = showShipping ? (selectedShipping?.cost || 0) : 0;
+  const subtotal = selectedProducts.reduce((acc, p) => acc + Number(p.currentPrice), 0);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -112,7 +143,6 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
         }
       }
 
-      const shippingCost = selectedShipping?.cost || 0;
       const subtotal = selectedProducts.reduce((acc, p) => acc + Number(p.currentPrice), 0);
       const total = subtotal + shippingCost;
 
@@ -127,10 +157,10 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
           quantity: 1
         })),
         customer: { ...formData, ip: clientIp },
-        shipping: selectedShipping ? {
+        shipping: (showShipping && selectedShipping) ? {
           name: selectedShipping.name,
           cost: shippingCost
-        } : { name: "Direct Order", cost: 0 },
+        } : { name: "Free Delivery", cost: 0 },
         subtotal: subtotal,
         shippingCost: shippingCost,
         total: total,
@@ -154,7 +184,11 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
     }
   };
 
-  const manualMethodsArray = Array.isArray(store?.paymentSettings?.manualMethods) ? store.paymentSettings.manualMethods : [];
+  const manualMethodsArray = (store?.paymentSettings?.manualMethods && typeof store.paymentSettings.manualMethods === 'object') 
+    ? (Array.isArray(store.paymentSettings.manualMethods) 
+        ? store.paymentSettings.manualMethods 
+        : Object.values(store.paymentSettings.manualMethods)) 
+    : [];
   const selectedManualMethod = manualMethodsArray.find((m: any) => m.id === formData.selectedManualMethodId);
 
   if (orderSuccess) {
@@ -169,7 +203,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
     );
   }
 
-  const subtotal = selectedProducts.reduce((acc, p) => acc + Number(p.currentPrice), 0);
+
 
   return (
     <Card className={cn(
@@ -229,7 +263,9 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
                <Textarea placeholder="পুরো ঠিকানা (জেলা সহ)" className="rounded-2xl sm:rounded-3xl min-h-[100px] sm:min-h-[120px] bg-white border-2 border-slate-100 p-4 sm:p-6 text-base sm:text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
             </div>
 
-            {store?.shippingSettings?.enabled && (
+            {showShipping && (store?.shippingSettings?.enabled === true || String(store?.shippingSettings?.enabled) === 'true') && 
+             Array.isArray(store?.shippingSettings?.methods) && 
+             store.shippingSettings.methods.length > 0 && (
               <div className="space-y-3 sm:space-y-4">
                  <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>ডেলিভারি এরিয়া</Label>
                  <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
@@ -317,13 +353,13 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
               </div>
               <div className="flex justify-between text-muted-foreground font-bold text-[10px] sm:text-xs uppercase tracking-widest">
                 <span>ডেলিভারি চার্জ</span>
-                <span className={cn("font-black", (selectedShipping?.cost || 0) > 0 ? "text-slate-900" : "text-emerald-500")}>
-                   { (selectedShipping?.cost || 0) > 0 ? `${getCurrencySymbol(store?.currency)} ${selectedShipping.cost}` : 'ফ্রি' }
+                <span className={cn("font-black", (shippingCost > 0) ? "text-slate-900" : "text-emerald-500")}>
+                   { shippingCost > 0 ? `${getCurrencySymbol(store?.currency)} ${shippingCost}` : 'ফ্রি' }
                 </span>
               </div>
               <div className={cn("flex justify-between text-3xl sm:text-4xl font-black border-t pt-6 sm:pt-8 mt-4", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>
                 <span className="text-[9px] sm:text-xs pt-3 sm:pt-4 uppercase">মোট</span>
-                <span>{getCurrencySymbol(store?.currency)} {(subtotal + (selectedShipping?.cost || 0)).toFixed(0)}</span>
+                <span>{getCurrencySymbol(store?.currency)} {(subtotal + shippingCost).toFixed(0)}</span>
               </div>
             </div>
             <Button type="submit" disabled={isPlacingOrder || selectedProducts.length === 0} className={cn("w-full h-16 sm:h-20 rounded-2xl sm:rounded-[32px] text-xl sm:text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", (isOrganic || isTraditional) ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "bg-primary")}>
