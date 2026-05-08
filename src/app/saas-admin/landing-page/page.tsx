@@ -2,23 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { useFirestore } from "@/firebase/provider";
-import { 
-  collection, query, orderBy, onSnapshot, doc, updateDoc, 
-  addDoc, deleteDoc, serverTimestamp 
+import {
+  collection, query, orderBy, onSnapshot, doc, updateDoc,
+  addDoc, deleteDoc, serverTimestamp
 } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Plus, Trash2, Edit, Loader2, Zap, ShieldCheck, Star, 
-  Smartphone, Globe, Sparkles, Rocket, Lock, 
-  CheckCircle2, TrendingUp, Search, MousePointer2
+import {
+  Plus, Trash2, Edit, Loader2, Zap, ShieldCheck, Star,
+  Smartphone, Globe, Sparkles, Rocket, Lock,
+  CheckCircle2, TrendingUp, Search, MousePointer2,
+  Layout
 } from "lucide-react";
-import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, 
-  DialogDescription, DialogFooter, DialogTrigger 
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+  DialogDescription, DialogFooter, DialogTrigger
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -154,7 +155,7 @@ export default function LandingPageManager() {
                   {ICON_OPTIONS.map((opt) => (
                     <button
                       key={opt.name}
-                      onClick={() => setFormData({...formData, icon: opt.name})}
+                      onClick={() => setFormData({ ...formData, icon: opt.name })}
                       className={`p-3 rounded-xl flex items-center justify-center transition-all ${formData.icon === opt.name ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:bg-white/5'}`}
                     >
                       <opt.icon className="w-5 h-5" />
@@ -166,11 +167,11 @@ export default function LandingPageManager() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Display Order</Label>
-                  <Input type="number" value={formData.order} onChange={(e) => setFormData({...formData, order: Number(e.target.value)})} className="bg-slate-800 border-none rounded-xl" />
+                  <Input type="number" value={formData.order} onChange={(e) => setFormData({ ...formData, order: Number(e.target.value) })} className="bg-slate-800 border-none rounded-xl" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Accent Color</Label>
-                  <Select value={formData.accent} onValueChange={(val) => setFormData({...formData, accent: val})}>
+                  <Select value={formData.accent} onValueChange={(val) => setFormData({ ...formData, accent: val })}>
                     <SelectTrigger className="bg-slate-800 border-none rounded-xl text-white">
                       <SelectValue />
                     </SelectTrigger>
@@ -184,12 +185,12 @@ export default function LandingPageManager() {
 
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Headline</Label>
-                <Input value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} placeholder="e.g. 100% Secure Payments" className="bg-slate-800 border-none rounded-xl h-12" />
+                <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. 100% Secure Payments" className="bg-slate-800 border-none rounded-xl h-12" />
               </div>
 
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Summary</Label>
-                <Textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Briefly describe the benefit..." className="bg-slate-800 border-none rounded-xl min-h-[100px]" />
+                <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Briefly describe the benefit..." className="bg-slate-800 border-none rounded-xl min-h-[100px]" />
               </div>
             </div>
             <DialogFooter className="pt-4">
@@ -226,8 +227,8 @@ export default function LandingPageManager() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                     <Badge variant="outline" className="bg-black/40 text-[10px] font-black border-white/10 px-2 py-0.5 rounded-lg text-slate-500">POS: {feature.order}</Badge>
-                     <h3 className="text-2xl font-black text-white">{feature.title}</h3>
+                    <Badge variant="outline" className="bg-black/40 text-[10px] font-black border-white/10 px-2 py-0.5 rounded-lg text-slate-500">POS: {feature.order}</Badge>
+                    <h3 className="text-2xl font-black text-white">{feature.title}</h3>
                   </div>
                   <p className="text-slate-400 text-sm leading-relaxed">{feature.description}</p>
                 </div>
@@ -238,13 +239,13 @@ export default function LandingPageManager() {
       </div>
 
       <div className="bg-indigo-600/10 border border-indigo-600/20 rounded-[40px] p-10 flex flex-col items-center text-center space-y-4">
-          <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-600/20">
-             <Layout className="w-7 h-7" />
-          </div>
-          <h4 className="text-2xl font-black text-white uppercase tracking-tight">Live Preview Synced</h4>
-          <p className="text-slate-400 max-w-md mx-auto leading-relaxed">
-            Changes made here are applied instantly using Firebase Real-time listeners. Your landing page is always up to date with your platform's latest highlights.
-          </p>
+        <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-600/20">
+          <Layout className="w-7 h-7" />
+        </div>
+        <h4 className="text-2xl font-black text-white uppercase tracking-tight">Live Preview Synced</h4>
+        <p className="text-slate-400 max-w-md mx-auto leading-relaxed">
+          Changes made here are applied instantly using Firebase Real-time listeners. Your landing page is always up to date with your platform's latest highlights.
+        </p>
       </div>
     </div>
   );
