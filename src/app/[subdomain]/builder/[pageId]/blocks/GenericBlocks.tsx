@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { 
-  Plus, Trash2, GripVertical, CheckCircle, 
+import {
+  Plus, Trash2, GripVertical, CheckCircle,
   ChevronUp, ChevronDown, Image as ImageIcon,
   Columns, LayoutList, Zap, ArrowRight, Star, BookOpen, Quote,
   Phone, Microscope, Banknote, RotateCcw, CheckSquare, Menu, Play, Code, Info
@@ -50,19 +50,19 @@ export const ButtonBlock = ({ block, style, handleButtonClick, renderTextWithHig
   const btnStyleConfig = block.content || {};
   const bs: any = { ...style };
   if (btnStyleConfig.type === 'solid' || btnStyleConfig.type === 'gradient' || btnStyleConfig.type === 'flat') bs.backgroundColor = btnStyleConfig.bgColor || '#145DCC';
-  if (btnStyleConfig.type === 'gradient') bs.backgroundImage = `linear-gradient(135deg, ${btnStyleConfig.bgColor || '#145DCC'}, ${btnStyleConfig.bgColor ? btnStyleConfig.bgColor+'cc' : '#104ea3'})`;
+  if (btnStyleConfig.type === 'gradient') bs.backgroundImage = `linear-gradient(135deg, ${btnStyleConfig.bgColor || '#145DCC'}, ${btnStyleConfig.bgColor ? btnStyleConfig.bgColor + 'cc' : '#104ea3'})`;
   if (btnStyleConfig.type === 'outline') { bs.backgroundColor = 'transparent'; bs.borderColor = btnStyleConfig.borderColor || '#ffffff'; bs.borderWidth = `${btnStyleConfig.borderSize || 2}px`; bs.borderStyle = 'solid'; }
   if (btnStyleConfig.type === 'texture') { bs.backgroundColor = btnStyleConfig.bgColor || '#145DCC'; bs.backgroundImage = `repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 1px, transparent 0, transparent 50%)`; bs.backgroundSize = '10px 10px'; }
   if (btnStyleConfig.type === 'image' && btnStyleConfig.bgImage) { bs.backgroundImage = `url(${btnStyleConfig.bgImage})`; bs.backgroundSize = 'cover'; bs.backgroundPosition = 'center'; }
   bs.color = btnStyleConfig.textColor || '#ffffff';
   bs.borderRadius = `${btnStyleConfig.borderRadius || 8}px`;
-  
+
   if (btnStyleConfig.borderSize > 0 && btnStyleConfig.type !== 'outline') { bs.borderWidth = `${btnStyleConfig.borderSize}px`; bs.borderStyle = 'solid'; bs.borderColor = btnStyleConfig.borderColor || '#ffffff'; }
 
   return (
     <div id={block.id} style={style} className="px-4 w-full flex justify-center flex-col items-center">
-      <Button 
-        size="lg" 
+      <Button
+        size="lg"
         style={bs}
         className="rounded-xl sm:rounded-2xl px-6 sm:px-12 h-12 sm:h-16 font-bold text-base sm:text-xl shadow-2xl transition-all hover:scale-105 w-full sm:w-auto"
         onClick={(e) => {
@@ -154,64 +154,95 @@ export const AccordionBlock = ({ block, style, renderTextWithHighlights }: Gener
   </div>
 );
 
+const optimizeCloudinaryUrl = (url: string) => {
+  if (!url || !url.includes('cloudinary.com')) return url;
+  if (url.includes('/upload/f_auto,q_auto/')) return url;
+  return url.replace('/upload/', '/upload/f_auto,q_auto/');
+};
+
 export const VideoBlock = ({ block, style }: GenericBlockProps) => {
+  const [isLoaded, setIsLoaded] = useState(false);
   const videoId = block.content?.url?.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)?.[1];
   const radius = block.content?.borderRadius !== undefined ? block.content.borderRadius : 0;
   const autoplay = !!block.content?.autoplay;
   
-  const videoSrc = videoId 
-    ? `https://www.youtube.com/embed/${videoId}${autoplay ? '?autoplay=1&loop=1&playlist='+videoId : ''}`
+  const customThumbnail = block.content?.customThumbnail ? optimizeCloudinaryUrl(block.content.customThumbnail) : null;
+  const youtubeThumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
+  const thumbnailUrl = customThumbnail || youtubeThumbnail;
+  
+  const videoSrc = videoId
+    ? `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&controls=1${autoplay ? '&autoplay=1&loop=1&playlist=' + videoId : ''}`
     : null;
 
   return (
     <div id={block.id} style={style} className="px-4 w-full max-w-6xl mx-auto">
-       <div 
-         className="aspect-video w-full overflow-hidden shadow-2xl bg-black relative" 
-         style={{ 
-           borderRadius: `${radius}px`,
-           isolation: 'isolate', 
-           transform: 'translateZ(0)', 
-           willChange: 'transform' 
-         }}
-       >
-          {videoSrc ? (
-            <iframe 
-              src={videoSrc} 
-              className="w-full h-full border-0 absolute inset-0" 
-              style={{ borderRadius: `${radius}px` }}
-              allow="autoplay; encrypted-media"
-              allowFullScreen 
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-white/20">
-              <Play className="w-12 h-12 sm:w-20 sm:h-20" />
-              <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest">Enter valid YouTube URL in sidebar</p>
+      <div
+        className="aspect-video w-full overflow-hidden shadow-2xl bg-slate-900 relative group"
+        style={{
+          borderRadius: `${radius}px`,
+          isolation: 'isolate',
+          transform: 'translateZ(0)',
+          willChange: 'transform'
+        }}
+      >
+        {thumbnailUrl && !isLoaded && (
+          <div
+            className="absolute inset-0 bg-cover bg-center z-0 transition-opacity duration-500"
+            style={{ backgroundImage: `url(${thumbnailUrl})` }}
+          >
+            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 group-hover:scale-110 transition-transform duration-300">
+                <Play className="w-6 h-6 sm:w-8 sm:h-8 fill-current" />
+              </div>
             </div>
-          )}
-       </div>
+          </div>
+        )}
+
+        {videoSrc ? (
+          <iframe
+            src={videoSrc}
+            className={cn(
+              "w-full h-full border-0 absolute inset-0 z-10 transition-opacity duration-700",
+              isLoaded ? "opacity-100" : "opacity-0"
+            )}
+            style={{ borderRadius: `${radius}px` }}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+            loading="lazy"
+            onLoad={() => setIsLoaded(true)}
+            title="YouTube Video"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-white/20">
+            <Play className="w-12 h-12 sm:w-20 sm:h-20" />
+            <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest">Enter valid YouTube URL in sidebar</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
 export const ImageBlock = ({ block, style }: GenericBlockProps) => {
   const radius = block.content?.borderRadius !== undefined ? block.content.borderRadius : 0;
-  
+  const imageUrl = optimizeCloudinaryUrl(block.content?.url);
+
   return (
     <div id={block.id} style={style} className="px-4 w-full flex justify-center">
-      <div 
-        className="overflow-hidden shadow-2xl" 
-        style={{ 
-          width: block.content?.width ? `${block.content.width}%` : 'auto', 
+      <div
+        className="overflow-hidden shadow-2xl"
+        style={{
+          width: block.content?.width ? `${block.content.width}%` : 'auto',
           maxWidth: '100%',
           borderRadius: `${radius}px`
         }}
       >
-        {block.content?.url ? (
-          <img src={block.content.url} alt="" className="w-full h-auto object-cover transition-transform duration-700 hover:scale-105" />
+        {imageUrl ? (
+          <img src={imageUrl} alt="" className="w-full h-auto object-cover transition-transform duration-700 hover:scale-105" />
         ) : (
           <div className="aspect-video bg-slate-50 flex flex-col items-center justify-center gap-4 text-slate-300">
-             <ImageIcon className="w-12 h-12 opacity-10" />
-             <p className="text-[10px] font-black uppercase tracking-widest">Upload image in sidebar</p>
+            <ImageIcon className="w-12 h-12 opacity-10" />
+            <p className="text-[10px] font-black uppercase tracking-widest">Upload image in sidebar</p>
           </div>
         )}
       </div>
@@ -230,7 +261,7 @@ export const SelectorBlock = ({ block, style, renderTextWithHighlights }: Generi
         selectorType === "cards" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 w-full" : ""
       )}>
         {options.map((opt: any, idx: number) => (
-          <div 
+          <div
             key={idx}
             onClick={(e) => {
               if (opt.targetId) {
@@ -241,8 +272,8 @@ export const SelectorBlock = ({ block, style, renderTextWithHighlights }: Generi
             }}
             className={cn(
               "cursor-pointer transition-all duration-300",
-              selectorType === "pills" ? "px-6 py-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 font-bold text-xs" : 
-              "p-6 rounded-3xl border border-slate-100 bg-white shadow-sm hover:shadow-md flex flex-col gap-2"
+              selectorType === "pills" ? "px-6 py-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 font-bold text-xs" :
+                "p-6 rounded-3xl border border-slate-100 bg-white shadow-sm hover:shadow-md flex flex-col gap-2"
             )}
           >
             <span className={cn(selectorType === "pills" ? "" : "text-sm font-black uppercase")}>
@@ -284,7 +315,7 @@ export const ScoreCardsBlock = ({ block, style, renderTextWithHighlights }: Gene
           const radius = 36;
           const circumference = 2 * Math.PI * radius;
           const offset = circumference - (item.score / 100) * circumference;
-          
+
           return (
             <div key={i} className="flex flex-col items-center gap-4 group">
               <div className="relative w-24 h-24 sm:w-32 sm:h-32">

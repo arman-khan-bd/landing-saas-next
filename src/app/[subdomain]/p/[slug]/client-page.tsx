@@ -17,6 +17,8 @@ export default function RenderDynamicPage({ initialPage, initialStore, subdomain
   const [page, setPage] = useState<any>(initialPage);
   const [store, setStore] = useState<any>(initialStore);
   const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false); 
+  const [error, setError] = useState<string | null>(null);
   const [productsLoading, setProductsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 

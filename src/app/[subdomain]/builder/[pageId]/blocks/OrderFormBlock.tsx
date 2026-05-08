@@ -15,6 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import { sendSMS } from "@/app/actions/sms";
+import { SmartphoneIcon, ShieldAlert } from "lucide-react";
 
 interface OrderFormBlockProps {
   block: any;
@@ -79,6 +86,13 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
   const [clientIp, setClientIp] = useState("");
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>(products[0]?.id ? [products[0].id] : []);
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
+  
+  // OTP States
+  const [sendingSms, setSendingSms] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [isVerified, setIsVerified] = useState(!!store?.isOtpDisabled);
+  const [otpCode, setOtpCode] = useState("");
 
   const selectedProducts = products.filter(p => selectedProductIds.includes(p.id));
   const shippingCost = showShipping ? (selectedShipping?.cost || 0) : 0;
@@ -98,7 +112,64 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
       .then(res => res.json())
       .then(data => setClientIp(data.ip))
       .catch(err => console.error("IP Capture Error:", err));
+  }, []);
 
+  const normalizePhoneNumber = (phone: string) => {
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 11 && cleaned.startsWith('0')) return '88' + cleaned;
+    if (cleaned.length === 13 && cleaned.startsWith('880')) return cleaned;
+    if (cleaned.length === 10) return '880' + cleaned;
+    return cleaned;
+  };
+
+  const handleSendOtp = async () => {
+    if (!formData.phone || formData.phone.length < 11) {
+      toast({ variant: "destructive", title: "Error", description: "সঠিক ফোন নম্বর দিন" });
+      return;
+    }
+    setSendingSms(true);
+    try {
+      const normalizedPhone = normalizePhoneNumber(formData.phone);
+      const res = await sendSMS(normalizedPhone, store?.name || "Store", store?.id);
+      if (res.success) {
+        setOtpSent(true);
+        toast({ title: "OTP Sent", description: "আপনার মোবাইলে একটি কোড পাঠানো হয়েছে।" });
+      } else {
+        toast({ variant: "destructive", title: "SMS Failed", description: res.error || "SMS পাঠাতে সমস্যা হয়েছে" });
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: "Something went wrong" });
+    } finally {
+      setSendingSms(false);
+    }
+  };
+
+  const handleVerifyOtp = async (code: string) => {
+    if (code.length !== 6) return;
+    setVerifying(true);
+    try {
+      const normalizedPhone = normalizePhoneNumber(formData.phone);
+      const q = query(
+        collection(db, "verification_codes"),
+        where("phone", "==", normalizedPhone),
+        where("code", "==", code),
+        limit(1)
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        setIsVerified(true);
+        toast({ title: "Verified", description: "ফোন নম্বর সফলভাবে ভেরিফাই হয়েছে" });
+      } else {
+        toast({ variant: "destructive", title: "Invalid Code", description: "সঠিক কোড দিন" });
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: "ভেরিফিকেশন ব্যর্থ হয়েছে" });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  useEffect(() => {
     if (store?.shippingSettings?.enabled && store.shippingSettings.methods?.length > 0) {
       setSelectedShipping(store.shippingSettings.methods[0]);
     }
@@ -198,7 +269,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
           <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12" />
         </div>
         <h3 className="text-2xl sm:text-3xl font-headline font-black text-slate-900 uppercase">THANK YOU!</h3>
-        <p className="text-sm sm:text-slate-500 mt-2">আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে।</p>
+        <p className="text-sm sm:text-slate-500 mt-2">আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে.</p>
       </Card>
     );
   }
@@ -259,7 +330,61 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
             <div className="space-y-3 sm:space-y-4">
                <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>আপনার তথ্য</Label>
                <Input placeholder="আপনার পুরো নাম" className="rounded-xl sm:rounded-2xl h-12 sm:h-14 bg-white border-2 border-slate-100 px-4 sm:px-6 text-base sm:text-lg" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
-               <Input placeholder="মোবাইল নাম্বার" className="rounded-xl sm:rounded-2xl h-12 sm:h-14 bg-white border-2 border-slate-100 px-4 sm:px-6 text-base sm:text-lg" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+               
+               <div className="space-y-1">
+                        <Label className="text-[10px] font-bold text-slate-800 uppercase">মোবাইল নম্বর <span className="text-rose-500">*</span></Label>
+                        <div className="flex gap-2">
+                          <Input 
+                            required 
+                            disabled={isVerified}
+                            value={formData.phone} 
+                            onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} 
+                            placeholder="01XXXXXXXXX" 
+                            className="h-11 sm:h-12 rounded-xl bg-white border-primary/20" 
+                          />
+                          {!store?.isOtpDisabled && !isVerified && (
+                            <Button 
+                              type="button"
+                              disabled={sendingSms || !formData.phone || formData.phone.length < 11}
+                              onClick={handleSendOtp}
+                              className="h-11 sm:h-12 px-4 rounded-xl shrink-0 text-[10px] font-black uppercase"
+                            >
+                              {sendingSms ? <Loader2 className="w-4 h-4 animate-spin" /> : otpSent ? "আবার পাঠান" : "ভেরিফাই"}
+                            </Button>
+                          )}
+                          {isVerified && (
+                             <div className="h-11 sm:h-12 w-12 flex items-center justify-center bg-emerald-50 text-emerald-500 rounded-xl border border-emerald-100">
+                                <CheckCircle2 className="w-5 h-5" />
+                             </div>
+                          )}
+                        </div>
+                        {otpSent && !isVerified && (
+                          <div className="mt-4 p-4 bg-primary/5 rounded-2xl border border-primary/10 space-y-3 animate-in slide-in-from-top-2">
+                            <Label className="text-[10px] font-black text-primary uppercase text-center block">ভেরিফিকেশন কোড লিখুন</Label>
+                            <div className="flex justify-center">
+                              <InputOTP 
+                                maxLength={6} 
+                                value={otpCode} 
+                                onChange={(val) => {
+                                  setOtpCode(val);
+                                  if (val.length === 6) handleVerifyOtp(val);
+                                }}
+                              >
+                                <InputOTPGroup>
+                                  <InputOTPSlot index={0} className="w-9 h-11 sm:w-10 sm:h-12 bg-white" />
+                                  <InputOTPSlot index={1} className="w-9 h-11 sm:w-10 sm:h-12 bg-white" />
+                                  <InputOTPSlot index={2} className="w-9 h-11 sm:w-10 sm:h-12 bg-white" />
+                                  <InputOTPSlot index={3} className="w-9 h-11 sm:w-10 sm:h-12 bg-white" />
+                                  <InputOTPSlot index={4} className="w-9 h-11 sm:w-10 sm:h-12 bg-white" />
+                                  <InputOTPSlot index={5} className="w-9 h-11 sm:w-10 sm:h-12 bg-white" />
+                                </InputOTPGroup>
+                              </InputOTP>
+                            </div>
+                            {verifying && <p className="text-[9px] text-center font-bold text-slate-400 uppercase tracking-widest animate-pulse">যাচাই করা হচ্ছে...</p>}
+                          </div>
+                        )}
+                      </div>
+               
                <Textarea placeholder="পুরো ঠিকানা (জেলা সহ)" className="rounded-2xl sm:rounded-3xl min-h-[100px] sm:min-h-[120px] bg-white border-2 border-slate-100 p-4 sm:p-6 text-base sm:text-lg" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
             </div>
 
@@ -362,7 +487,11 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
                 <span>{getCurrencySymbol(store?.currency)} {(subtotal + shippingCost).toFixed(0)}</span>
               </div>
             </div>
-            <Button type="submit" disabled={isPlacingOrder || selectedProducts.length === 0} className={cn("w-full h-16 sm:h-20 rounded-2xl sm:rounded-[32px] text-xl sm:text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", (isOrganic || isTraditional) ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "bg-primary")}>
+            <Button 
+              type="submit" 
+              disabled={isPlacingOrder || selectedProducts.length === 0 || (!isVerified && !store?.isOtpDisabled)} 
+              className={cn("w-full h-16 sm:h-20 rounded-2xl sm:rounded-[32px] text-xl sm:text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", (isOrganic || isTraditional) ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "bg-primary")}
+            >
               {isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}
             </Button>
             <div className="flex items-center justify-center gap-2 text-slate-400 mt-2">

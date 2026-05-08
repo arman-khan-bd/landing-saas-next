@@ -1212,6 +1212,15 @@ export function PropertyEditor({ block, products, onChange, config }: PropertyEd
                     <Label className="text-[10px] font-bold text-slate-900">Autoplay (Muted)</Label>
                     <Switch checked={!!block.content?.autoplay} onCheckedChange={(v) => onChange({ content: { autoplay: v } })} />
                  </div>
+                 
+                 <div className="space-y-2 pt-2">
+                    <Label className="text-[8px] font-bold text-slate-800 uppercase">Custom Thumbnail (Optional)</Label>
+                    <CloudinaryUpload 
+                       value={block.content?.customThumbnail || ""} 
+                       onUpload={(url) => onChange({ content: { customThumbnail: url } })} 
+                       onRemove={() => onChange({ content: { customThumbnail: "" } })} 
+                    />
+                 </div>
               </div>
            </PropertySection>
         </div>

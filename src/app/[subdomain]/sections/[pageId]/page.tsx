@@ -70,12 +70,19 @@ export default function SectionBuilderPage() {
   const [isPageSettingsOpen, setIsPageSettingsOpen] = useState(false);
   const [insertTarget, setInsertTarget] = useState<{ id?: string, position?: "before" | "after", parentId?: string, colIdx?: number } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
 
-  // Mobile responsiveness: close sidebar by default on mobile
+  // Mobile responsiveness: check for screen size and close sidebar
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-      setSidebarOpen(false);
-    }
+    const checkScreen = () => {
+      const isMobile = window.innerWidth < 1024;
+      setIsMobileScreen(isMobile);
+      if (isMobile) setSidebarOpen(false);
+    };
+    
+    checkScreen();
+    window.addEventListener('resize', checkScreen);
+    return () => window.removeEventListener('resize', checkScreen);
   }, []);
 
   const sensors = useSensors(
@@ -444,6 +451,27 @@ export default function SectionBuilderPage() {
     };
     return findBlock(config);
   })();
+
+  if (isMobileScreen) {
+    return (
+      <div className="fixed inset-0 bg-slate-900 z-[9999] flex flex-col items-center justify-center p-8 text-center space-y-6 overflow-hidden">
+        <div className="w-24 h-24 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-400 animate-pulse border border-indigo-500/20">
+          <Monitor className="w-12 h-12" />
+        </div>
+        <div className="space-y-3">
+          <h1 className="text-2xl font-black text-white uppercase tracking-tight">Desktop Required</h1>
+          <p className="text-slate-400 text-sm max-w-[280px] font-medium leading-relaxed">You need a desktop screen to edit landing pages. Please switch to a larger device to continue building.</p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={() => router.push(getTenantPath(subdomain as string, "/"))}
+          className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-all rounded-full px-8"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" /> Return to Store
+        </Button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
