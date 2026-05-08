@@ -3,11 +3,53 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
 import NextTopLoader from 'nextjs-toploader';
+import { db } from '@/lib/firebase-server';
+import { doc, getDoc } from 'firebase/firestore';
 
-export const metadata: Metadata = {
-  title: 'iHut | Multi-tenant E-commerce SaaS',
-  description: 'The ultimate platform for launching your online store in minutes.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const seoRef = doc(db, "platformSettings", "seo");
+    const seoSnap = await getDoc(seoRef);
+    
+    if (seoSnap.exists()) {
+      const data = seoSnap.data();
+      return {
+        title: data.metaTitle || 'iHut | Multi-tenant E-commerce SaaS',
+        description: data.metaDescription || 'The ultimate platform for launching your online store in minutes.',
+        keywords: data.keywords || 'ecommerce, saas, store builder',
+        icons: {
+          icon: data.favicon || '/favicon.ico',
+          apple: data.favicon || '/favicon.ico',
+        },
+        openGraph: {
+          title: data.metaTitle,
+          description: data.metaDescription,
+          images: [
+            {
+              url: data.ogImage || data.seoImage || '/og-image.png',
+              width: 1200,
+              height: 630,
+              alt: data.metaTitle,
+            }
+          ],
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title: data.metaTitle,
+          description: data.metaDescription,
+          images: [data.seoImage || data.ogImage || '/og-image.png'],
+        }
+      };
+    }
+  } catch (error) {
+    console.error("Metadata fetch error:", error);
+  }
+
+  return {
+    title: 'iHut | Multi-tenant E-commerce SaaS',
+    description: 'The ultimate platform for launching your online store in minutes.',
+  };
+}
 
 export default function RootLayout({
   children,
