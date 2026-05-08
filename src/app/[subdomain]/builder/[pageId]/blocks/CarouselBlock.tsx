@@ -11,9 +11,10 @@ interface CarouselBlockProps {
   block: any;
   style: React.CSSProperties;
   handleButtonClick: (link?: string, targetId?: string) => void;
+  renderTextWithHighlights: (text: string, highlightColor?: string) => React.ReactNode;
 }
 
-export const CarouselBlock = ({ block, style, handleButtonClick }: CarouselBlockProps) => {
+export const CarouselBlock = ({ block, style, handleButtonClick, renderTextWithHighlights }: CarouselBlockProps) => {
   const carouselItems = block.content?.items || [];
   const carouselSettings = block.content?.settings || {
     showArrows: true,
@@ -50,7 +51,12 @@ export const CarouselBlock = ({ block, style, handleButtonClick }: CarouselBlock
           "relative h-full w-full rounded-2xl sm:rounded-[40px] overflow-hidden flex flex-col transition-all duration-700 min-h-[400px] sm:min-h-[600px]",
           type === "box" ? "p-6 sm:p-12 justify-center" : ""
         )}
-        style={{ backgroundColor: type === "box" ? itemBg : "#000000", color: itemTextColor }}
+        style={{ 
+          backgroundColor: type === "box" ? itemBg : "#000000", 
+          color: itemTextColor,
+          isolation: 'isolate',
+          transform: 'translateZ(0)'
+        }}
       >
         {/* Background Layer */}
         {type === "image" && item.image && (
@@ -71,7 +77,7 @@ export const CarouselBlock = ({ block, style, handleButtonClick }: CarouselBlock
         {type === "video" && item.videoUrl && (
           <div className="absolute inset-0 z-0 bg-black">
              <iframe 
-                src={`https://www.youtube.com/embed/${item.videoUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)?.[1]}?autoplay=1&mute=1&controls=0&loop=1&playlist=${item.videoUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)?.[1]}`} 
+                src={`https://www.youtube.com/embed/${item.videoUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)?.[1]}?autoplay=1&controls=0&loop=1&playlist=${item.videoUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)?.[1]}`} 
                 className="w-full h-full scale-150" 
                 allow="autoplay; encrypted-media"
                 allowFullScreen 
@@ -88,7 +94,7 @@ export const CarouselBlock = ({ block, style, handleButtonClick }: CarouselBlock
                 className="text-3xl sm:text-6xl font-black uppercase tracking-tighter leading-[0.9] animate-in fade-in slide-in-from-bottom-4 duration-700"
                 style={{ color: item.headerColor || itemTextColor }}
               >
-                {item.header}
+                {renderTextWithHighlights(item.header, block.style?.highlightColor)}
               </h3>
             )}
             {item.paragraph && (
@@ -96,7 +102,7 @@ export const CarouselBlock = ({ block, style, handleButtonClick }: CarouselBlock
                 className="text-sm sm:text-xl opacity-90 leading-relaxed font-medium animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100"
                 style={{ color: item.paragraphColor || itemTextColor }}
               >
-                {item.paragraph}
+                {renderTextWithHighlights(item.paragraph, block.style?.highlightColor)}
               </p>
             )}
             {(item.buttonLabel) && (
@@ -109,7 +115,7 @@ export const CarouselBlock = ({ block, style, handleButtonClick }: CarouselBlock
                   }}
                   onClick={() => handleButtonClick(item.buttonLink, item.buttonTargetId)}
                 >
-                  {item.buttonLabel}
+                  {renderTextWithHighlights(item.buttonLabel, block.style?.highlightColor)}
                 </Button>
               </div>
             )}

@@ -450,7 +450,7 @@ export default function RedesignedDashboard() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-2xl border-border/50">
                               <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Quick Actions</DropdownMenuLabel>
-                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => router.push(`/${store.subdomain}/overview`)}>
+                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => router.push(`/${store.subdomain}/dashboard`)}>
                                 <LayoutDashboard className="w-4 h-4" />
                                 <span className="font-medium">Enter Manager</span>
                               </DropdownMenuItem>
@@ -537,7 +537,7 @@ export default function RedesignedDashboard() {
                           <p className="text-xs font-bold truncate">{store.plan?.name || 'Free Plan'}</p>
                         </div>
                       </div>
-                      <Button className="w-full rounded-[24px] h-14 font-black text-lg bg-slate-900 hover:bg-primary transition-all shadow-xl shadow-slate-900/10 group" onClick={() => router.push(`/${store.subdomain}/overview`)}>
+                      <Button className="w-full rounded-[24px] h-14 font-black text-lg bg-slate-900 hover:bg-primary transition-all shadow-xl shadow-slate-900/10 group" onClick={() => router.push(`/${store.subdomain}/dashboard`)}>
                         Enter Manager <ChevronRight className="ml-1 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </Button>
                     </CardContent>

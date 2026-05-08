@@ -8,9 +8,10 @@ interface PackageCardBlockProps {
   block: any;
   style: React.CSSProperties;
   handleButtonClick: (link?: string, targetId?: string) => void;
+  renderTextWithHighlights: (text: string, highlightColor?: string) => React.ReactNode;
 }
 
-export const PackageCardBlock = ({ block, style, handleButtonClick }: PackageCardBlockProps) => {
+export const PackageCardBlock = ({ block, style, handleButtonClick, renderTextWithHighlights }: PackageCardBlockProps) => {
   const packages = block.content?.packages || [];
   const packSettings = block.content?.settings || {
     desktopColumns: 3,
@@ -49,8 +50,8 @@ export const PackageCardBlock = ({ block, style, handleButtonClick }: PackageCar
             {pkg.texture && pkg.texture !== "none" && (
               <div className="absolute inset-0 z-0 pointer-events-none" style={{
                 backgroundImage: pkg.texture === "dots" ? "radial-gradient(circle, currentColor 1px, transparent 1px)" :
-                               pkg.texture === "grid" ? "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)" :
-                               "repeating-linear-gradient(45deg, transparent, transparent 10px, currentColor 10px, currentColor 11px)",
+                                pkg.texture === "grid" ? "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)" :
+                                "repeating-linear-gradient(45deg, transparent, transparent 10px, currentColor 10px, currentColor 11px)",
                 backgroundSize: pkg.texture === "grid" ? "20px 20px" : "15px 15px",
                 opacity: 0.05
               }} />
@@ -60,17 +61,17 @@ export const PackageCardBlock = ({ block, style, handleButtonClick }: PackageCar
               {pkg.badge && (
                 <div className="mb-4">
                   <span className="bg-primary/10 text-primary px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
-                    {pkg.badge}
+                    {renderTextWithHighlights(pkg.badge, block.style?.highlightColor)}
                   </span>
                 </div>
               )}
-              <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none mb-2">{pkg.header}</h3>
-              <p className="text-sm md:text-base opacity-70 font-medium leading-relaxed mb-8">{pkg.subtitle}</p>
+              <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none mb-2">{renderTextWithHighlights(pkg.header, block.style?.highlightColor)}</h3>
+              <p className="text-sm md:text-base opacity-70 font-medium leading-relaxed mb-8">{renderTextWithHighlights(pkg.subtitle, block.style?.highlightColor)}</p>
               
               {pkg.price && (
                  <div className="mb-8 mt-auto">
-                    <span className="text-4xl md:text-5xl font-black">{pkg.price}</span>
-                    {pkg.priceUnit && <span className="text-xs font-bold opacity-50 ml-1">/{pkg.priceUnit}</span>}
+                    <span className="text-4xl md:text-5xl font-black">{renderTextWithHighlights(pkg.price, block.style?.highlightColor)}</span>
+                    {pkg.priceUnit && <span className="text-xs font-bold opacity-50 ml-1">/{renderTextWithHighlights(pkg.priceUnit, block.style?.highlightColor)}</span>}
                  </div>
               )}
 
@@ -83,7 +84,7 @@ export const PackageCardBlock = ({ block, style, handleButtonClick }: PackageCar
                   }}
                   onClick={() => handleButtonClick(pkg.buttonLink, pkg.buttonTargetId)}
                 >
-                  {pkg.buttonLabel || "Get Started"}
+                  {renderTextWithHighlights(pkg.buttonLabel || "Get Started", block.style?.highlightColor)}
                 </Button>
               </div>
             </div>

@@ -69,7 +69,7 @@ export const HeroBlock = ({ block, style, renderTextWithHighlights, handleButton
             style={{ color: block.content?.badgeColor || '#facc15' }}
             className="mb-6 sm:mb-8 inline-flex items-center px-4 sm:px-5 py-1.5 sm:py-2 rounded-full bg-white/10 border border-white/20 text-[9px] sm:text-xs font-black uppercase tracking-[0.2em]"
           >
-            {block.content?.badgeText || "BSTI অনুমোদিত • BCSIR ল্যাব টেস্টেড"}
+            {renderTextWithHighlights(block.content?.badgeText || "BSTI অনুমোদিত • BCSIR ল্যাব টেস্টেড", block.style?.highlightColor)}
           </div>
 
           <h1 
@@ -83,7 +83,7 @@ export const HeroBlock = ({ block, style, renderTextWithHighlights, handleButton
             style={{ color: block.content?.subtitleColor || 'rgba(253, 224, 71, 0.9)' }}
             className="text-sm sm:text-2xl font-bold mb-6 sm:mb-10 tracking-tight"
           >
-            {block.content?.subtitle || "শক্তি ও সুস্বাস্থ্যের নির্ভরযোগ্য উপহার"}
+            {renderTextWithHighlights(block.content?.subtitle || "শক্তি ও সুস্বাস্থ্যের নির্ভরযোগ্য উপহার", block.style?.highlightColor)}
           </p>
 
           <div className="bg-white rounded-2xl sm:rounded-full px-4 sm:px-8 py-2 sm:py-3 mb-8 sm:mb-12 shadow-2xl shadow-black/20 flex items-center gap-2 sm:gap-4 border-2 border-white/20">
@@ -91,14 +91,14 @@ export const HeroBlock = ({ block, style, renderTextWithHighlights, handleButton
                style={{ color: block.content?.brandTitleColor || '#1a7c3e' }}
                className="text-lg sm:text-3xl font-black tracking-tighter"
              >
-               "{block.content?.brandTitle || "সাম"}"
+               "{renderTextWithHighlights(block.content?.brandTitle || "সাম", block.style?.highlightColor)}"
              </span>
              <div className="h-4 sm:h-6 w-px bg-slate-200" />
              <span 
                style={{ color: block.content?.brandSubtitleColor || '#64748b' }}
                className="text-[9px] sm:text-sm font-bold uppercase tracking-widest pt-0.5 sm:pt-1"
              >
-               {block.content?.brandSubtitle || "প্রাকৃতিক স্বাস্থ্য সুরক্ষা"}
+               {renderTextWithHighlights(block.content?.brandSubtitle || "প্রাকৃতিক স্বাস্থ্য সুরক্ষা", block.style?.highlightColor)}
              </span>
           </div>
 
@@ -115,7 +115,7 @@ export const HeroBlock = ({ block, style, renderTextWithHighlights, handleButton
                   }
                }}
              >
-               {block.content?.ctaText || "অর্ডার করতে এখানে ক্লিক করুন"}
+               {renderTextWithHighlights(block.content?.ctaText || "অর্ডার করতে এখানে ক্লিক করুন", block.style?.highlightColor)}
                <ArrowRight className="w-5 h-5 sm:w-7 sm:h-7" />
              </Button>
 
@@ -129,7 +129,7 @@ export const HeroBlock = ({ block, style, renderTextWithHighlights, handleButton
                }}
              >
                <Phone className="w-4 h-4 sm:w-6 sm:h-6" />
-               {block.content?.phone || "ফোন করুন"}
+               {renderTextWithHighlights(block.content?.phone || "ফোন করুন", block.style?.highlightColor)}
              </Button>
           </div>
 
@@ -140,8 +140,8 @@ export const HeroBlock = ({ block, style, renderTextWithHighlights, handleButton
                       <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 fill-yellow-400" />
                    </div>
                    <div className="text-left">
-                      <p className="text-[10px] sm:text-xs font-black text-white leading-none uppercase tracking-widest">{item.title || "Quality"}</p>
-                      <p className="text-[8px] sm:text-[10px] font-bold text-white/50">{item.subtitle || "Guaranteed"}</p>
+                      <p className="text-[10px] sm:text-xs font-black text-white leading-none uppercase tracking-widest">{renderTextWithHighlights(item.title || "Quality", block.style?.highlightColor)}</p>
+                      <p className="text-[8px] sm:text-[10px] font-bold text-white/50">{renderTextWithHighlights(item.subtitle || "Guaranteed", block.style?.highlightColor)}</p>
                    </div>
                 </div>
              ))}

@@ -10,9 +10,10 @@ interface NavbarBlockProps {
   block: any;
   isBuilder: boolean;
   handleButtonClick: (link?: string, targetId?: string) => void;
+  renderTextWithHighlights: (text: string, highlightColor?: string) => React.ReactNode;
 }
 
-export const NavbarBlock = ({ block, isBuilder, handleButtonClick }: NavbarBlockProps) => {
+export const NavbarBlock = ({ block, isBuilder, handleButtonClick, renderTextWithHighlights }: NavbarBlockProps) => {
   const LogoIcon = (LucideIcons as any)[block.content?.logoIcon] || Menu;
   const navItems = block.content?.items || [];
   const showCta = block.content?.showCta;
@@ -44,7 +45,7 @@ export const NavbarBlock = ({ block, isBuilder, handleButtonClick }: NavbarBlock
           ) : block.content?.logoType === "icon" ? (
             <LogoIcon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: block.content?.primaryColor || 'currentColor' }} />
           ) : (
-            <span className="font-headline font-black text-sm sm:text-lg uppercase tracking-tight">{block.content?.logoText || "LOGO"}</span>
+            <span className="font-headline font-black text-sm sm:text-lg uppercase tracking-tight">{renderTextWithHighlights(block.content?.logoText || "LOGO", block.style?.highlightColor)}</span>
           )}
         </div>
       )}
@@ -56,7 +57,7 @@ export const NavbarBlock = ({ block, isBuilder, handleButtonClick }: NavbarBlock
             }
             handleButtonClick(item.link, item.targetId);
           }} className="text-sm font-bold opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap">
-            {item.label}
+            {renderTextWithHighlights(item.label, block.style?.highlightColor)}
           </button>
         ))}
       </div>
@@ -74,7 +75,7 @@ export const NavbarBlock = ({ block, isBuilder, handleButtonClick }: NavbarBlock
          
          return (
            <Button key={btn.id} style={btnStyle} className="font-bold whitespace-nowrap transition-transform hover:scale-105" onClick={() => handleButtonClick(btn.link)}>
-              {btn.label}
+              {renderTextWithHighlights(btn.label, block.style?.highlightColor)}
            </Button>
          );
       })}
@@ -84,7 +85,7 @@ export const NavbarBlock = ({ block, isBuilder, handleButtonClick }: NavbarBlock
           className={cn("rounded-xl h-8 sm:h-9 px-4 sm:px-6 font-bold text-[10px] sm:text-xs uppercase tracking-widest")} 
           onClick={() => handleButtonClick(block.content.ctaLink)}
         >
-          {block.content.ctaText}
+          {renderTextWithHighlights(block.content.ctaText, block.style?.highlightColor)}
         </Button>
       )}
     </div>

@@ -19,6 +19,7 @@ export type BlockType =
   | "video"
   | "code"
   | "selector"
+  | "score-cards"
   | "footer";
 
 export interface Block {
@@ -52,7 +53,7 @@ export interface Block {
     borderColor?: string;
     borderRadius?: number;
     boxShadow?: "none" | "sm" | "md" | "lg" | "xl";
-    animation?: "none" | "fadeIn" | "slideUp" | "zoomIn" | "bounce";
+    animation?: "none" | "fadeIn" | "slideUp" | "zoomIn" | "bounce" | "joy" | "celebrate" | "scroll-down" | "cross-sign" | "check-mark";
     hideDesktop?: boolean;
     hideMobile?: boolean;
     desktopColumns?: number;

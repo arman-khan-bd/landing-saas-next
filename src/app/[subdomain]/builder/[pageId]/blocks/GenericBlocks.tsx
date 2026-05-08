@@ -38,19 +38,19 @@ export const HeaderBlock = ({ block, style, renderTextWithHighlights }: GenericB
   );
 };
 
-export const ParagraphBlock = ({ block, style }: GenericBlockProps) => (
+export const ParagraphBlock = ({ block, style, renderTextWithHighlights }: GenericBlockProps) => (
   <div id={block.id} style={style} className="px-4 w-full max-w-4xl mx-auto">
     <p className="opacity-80 leading-relaxed font-medium">
-      {block.content?.text || "Paragraph text goes here..."}
+      {renderTextWithHighlights(block.content?.text || "Paragraph text goes here...", block.style?.highlightColor)}
     </p>
   </div>
 );
 
-export const ButtonBlock = ({ block, style, handleButtonClick }: GenericBlockProps) => {
+export const ButtonBlock = ({ block, style, handleButtonClick, renderTextWithHighlights }: GenericBlockProps) => {
   const btnStyleConfig = block.content || {};
   const bs: any = { ...style };
   if (btnStyleConfig.type === 'solid' || btnStyleConfig.type === 'gradient' || btnStyleConfig.type === 'flat') bs.backgroundColor = btnStyleConfig.bgColor || '#145DCC';
-  if (btnStyleConfig.type === 'gradient') bs.background = `linear-gradient(135deg, ${btnStyleConfig.bgColor || '#145DCC'}, ${btnStyleConfig.bgColor ? btnStyleConfig.bgColor+'cc' : '#104ea3'})`;
+  if (btnStyleConfig.type === 'gradient') bs.backgroundImage = `linear-gradient(135deg, ${btnStyleConfig.bgColor || '#145DCC'}, ${btnStyleConfig.bgColor ? btnStyleConfig.bgColor+'cc' : '#104ea3'})`;
   if (btnStyleConfig.type === 'outline') { bs.backgroundColor = 'transparent'; bs.borderColor = btnStyleConfig.borderColor || '#ffffff'; bs.borderWidth = `${btnStyleConfig.borderSize || 2}px`; bs.borderStyle = 'solid'; }
   if (btnStyleConfig.type === 'texture') { bs.backgroundColor = btnStyleConfig.bgColor || '#145DCC'; bs.backgroundImage = `repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 1px, transparent 0, transparent 50%)`; bs.backgroundSize = '10px 10px'; }
   if (btnStyleConfig.type === 'image' && btnStyleConfig.bgImage) { bs.backgroundImage = `url(${btnStyleConfig.bgImage})`; bs.backgroundSize = 'cover'; bs.backgroundPosition = 'center'; }
@@ -74,20 +74,22 @@ export const ButtonBlock = ({ block, style, handleButtonClick }: GenericBlockPro
           }
         }}
       >
-        {block.content?.text || "Action Button"}
+        {renderTextWithHighlights(block.content?.text || "Action Button", block.style?.highlightColor)}
       </Button>
     </div>
   );
 };
 
-export const MarqueeBlock = ({ block, style }: GenericBlockProps) => (
+export const MarqueeBlock = ({ block, style, renderTextWithHighlights }: GenericBlockProps) => (
   <div id={block.id} style={style} className="w-full bg-slate-900 overflow-hidden py-4 sm:py-8 select-none">
     <div className="flex whitespace-nowrap animate-marquee">
       {[...Array(10)].map((_, i) => (
         <div key={i} className="flex items-center gap-8 sm:gap-16 mx-4 sm:mx-8">
           {(block.content?.items || []).map((text: string, idx: number) => (
             <div key={idx} className="flex items-center">
-              <span className="text-white font-black uppercase tracking-tighter opacity-100">{text}</span>
+              <span className="text-white font-black uppercase tracking-tighter opacity-100">
+                {renderTextWithHighlights(text, block.style?.highlightColor)}
+              </span>
             </div>
           ))}
         </div>
@@ -96,7 +98,7 @@ export const MarqueeBlock = ({ block, style }: GenericBlockProps) => (
   </div>
 );
 
-export const CardBlock = ({ block, style }: GenericBlockProps) => {
+export const CardBlock = ({ block, style, renderTextWithHighlights }: GenericBlockProps) => {
   const Icon = (LucideIcons as any)[block.content?.iconName || "Star"] || Star;
   return (
     <div id={block.id} style={style} className="px-4 w-full max-w-md mx-auto">
@@ -106,16 +108,26 @@ export const CardBlock = ({ block, style }: GenericBlockProps) => {
             <Icon className="w-6 h-6 sm:w-8 sm:h-8" />
           </div>
         )}
-        <div className="space-y-2 sm:space-y-3">
-          <h4 className="text-xl sm:text-2xl font-headline font-black uppercase tracking-tight">{block.content?.title || "Feature Title"}</h4>
-          <p className="text-sm sm:text-base text-slate-500 font-medium leading-relaxed">{block.content?.subtitle || "Feature description goes here..."}</p>
-        </div>
+        {((block.content?.title ?? "Feature Title") || (block.content?.subtitle ?? "Feature description goes here...")) && (
+          <div className="space-y-2 sm:space-y-3">
+            {(block.content?.title ?? "Feature Title") && (
+              <h4 className="text-xl sm:text-2xl font-headline font-black uppercase tracking-tight">
+                {renderTextWithHighlights(block.content?.title ?? "Feature Title", block.style?.highlightColor)}
+              </h4>
+            )}
+            {(block.content?.subtitle ?? "Feature description goes here...") && (
+              <p className="text-sm sm:text-base text-slate-500 font-medium leading-relaxed">
+                {renderTextWithHighlights(block.content?.subtitle ?? "Feature description goes here...", block.style?.highlightColor)}
+              </p>
+            )}
+          </div>
+        )}
         {(block.content?.items || []).length > 0 && (
           <div className="space-y-2 sm:space-y-3 pt-2 sm:pt-4">
             {block.content.items.map((item: string, i: number) => (
               <div key={i} className="flex items-center gap-3 text-xs sm:text-sm font-bold text-slate-700">
                 <CheckCircle className="w-4 h-4 text-primary" />
-                <span>{item}</span>
+                <span>{renderTextWithHighlights(item, block.style?.highlightColor)}</span>
               </div>
             ))}
           </div>
@@ -125,16 +137,16 @@ export const CardBlock = ({ block, style }: GenericBlockProps) => {
   );
 };
 
-export const AccordionBlock = ({ block, style }: GenericBlockProps) => (
+export const AccordionBlock = ({ block, style, renderTextWithHighlights }: GenericBlockProps) => (
   <div id={block.id} style={style} className="px-4 w-full max-w-4xl mx-auto">
     <Accordion type="single" collapsible className="w-full space-y-3 sm:space-y-4">
       {(block.content?.items || []).map((item: any, i: number) => (
         <AccordionItem key={i} value={`item-${i}`} className="border-none bg-white rounded-xl sm:rounded-3xl px-4 sm:px-8 shadow-sm hover:shadow-md transition-all">
           <AccordionTrigger className="hover:no-underline py-4 sm:py-6">
-            <span className="text-left text-sm sm:text-xl font-black uppercase tracking-tight">{item.title}</span>
+            <span className="text-left text-sm sm:text-xl font-black uppercase tracking-tight">{renderTextWithHighlights(item.title, block.style?.highlightColor)}</span>
           </AccordionTrigger>
           <AccordionContent className="pb-4 sm:pb-8 text-sm sm:text-lg text-slate-500 font-medium leading-relaxed">
-            {item.content}
+            {renderTextWithHighlights(item.content, block.style?.highlightColor)}
           </AccordionContent>
         </AccordionItem>
       ))}
@@ -144,13 +156,30 @@ export const AccordionBlock = ({ block, style }: GenericBlockProps) => (
 
 export const VideoBlock = ({ block, style }: GenericBlockProps) => {
   const videoId = block.content?.url?.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)?.[1];
+  const radius = block.content?.borderRadius !== undefined ? block.content.borderRadius : 0;
+  const autoplay = !!block.content?.autoplay;
+  
+  const videoSrc = videoId 
+    ? `https://www.youtube.com/embed/${videoId}${autoplay ? '?autoplay=1&loop=1&playlist='+videoId : ''}`
+    : null;
+
   return (
     <div id={block.id} style={style} className="px-4 w-full max-w-6xl mx-auto">
-       <div className="aspect-video w-full rounded-2xl sm:rounded-[40px] overflow-hidden shadow-2xl bg-black">
-          {videoId ? (
+       <div 
+         className="aspect-video w-full overflow-hidden shadow-2xl bg-black relative" 
+         style={{ 
+           borderRadius: `${radius}px`,
+           isolation: 'isolate', 
+           transform: 'translateZ(0)', 
+           willChange: 'transform' 
+         }}
+       >
+          {videoSrc ? (
             <iframe 
-              src={`https://www.youtube.com/embed/${videoId}`} 
-              className="w-full h-full" 
+              src={videoSrc} 
+              className="w-full h-full border-0 absolute inset-0" 
+              style={{ borderRadius: `${radius}px` }}
+              allow="autoplay; encrypted-media"
               allowFullScreen 
             />
           ) : (
@@ -164,27 +193,33 @@ export const VideoBlock = ({ block, style }: GenericBlockProps) => {
   );
 };
 
-export const ImageBlock = ({ block, style }: GenericBlockProps) => (
-  <div id={block.id} style={style} className="px-4 w-full flex justify-center">
-    <div className={cn(
-      "overflow-hidden shadow-2xl",
-      block.content?.borderRadius === 'full' ? 'rounded-full' : 
-      block.content?.borderRadius === 'none' ? 'rounded-none' : 
-      'rounded-2xl sm:rounded-[40px]'
-    )} style={{ width: block.content?.width ? `${block.content.width}%` : 'auto', maxWidth: '100%' }}>
-      {block.content?.url ? (
-        <img src={block.content.url} alt="" className="w-full h-auto object-cover transition-transform duration-700 hover:scale-105" />
-      ) : (
-        <div className="aspect-video bg-slate-50 flex flex-col items-center justify-center gap-4 text-slate-300">
-           <ImageIcon className="w-12 h-12 opacity-10" />
-           <p className="text-[10px] font-black uppercase tracking-widest">Upload image in sidebar</p>
-        </div>
-      )}
+export const ImageBlock = ({ block, style }: GenericBlockProps) => {
+  const radius = block.content?.borderRadius !== undefined ? block.content.borderRadius : 0;
+  
+  return (
+    <div id={block.id} style={style} className="px-4 w-full flex justify-center">
+      <div 
+        className="overflow-hidden shadow-2xl" 
+        style={{ 
+          width: block.content?.width ? `${block.content.width}%` : 'auto', 
+          maxWidth: '100%',
+          borderRadius: `${radius}px`
+        }}
+      >
+        {block.content?.url ? (
+          <img src={block.content.url} alt="" className="w-full h-auto object-cover transition-transform duration-700 hover:scale-105" />
+        ) : (
+          <div className="aspect-video bg-slate-50 flex flex-col items-center justify-center gap-4 text-slate-300">
+             <ImageIcon className="w-12 h-12 opacity-10" />
+             <p className="text-[10px] font-black uppercase tracking-widest">Upload image in sidebar</p>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
-export const SelectorBlock = ({ block, style }: GenericBlockProps) => {
+export const SelectorBlock = ({ block, style, renderTextWithHighlights }: GenericBlockProps) => {
   const options = block.content?.options || [{ label: "Option 1", value: "1" }, { label: "Option 2", value: "2" }];
   const selectorType = block.content?.selectorType || "pills";
   return (
@@ -210,7 +245,9 @@ export const SelectorBlock = ({ block, style }: GenericBlockProps) => {
               "p-6 rounded-3xl border border-slate-100 bg-white shadow-sm hover:shadow-md flex flex-col gap-2"
             )}
           >
-            <span className={cn(selectorType === "pills" ? "" : "text-sm font-black uppercase")}>{opt.label}</span>
+            <span className={cn(selectorType === "pills" ? "" : "text-sm font-black uppercase")}>
+              {renderTextWithHighlights(opt.label, block.style?.highlightColor)}
+            </span>
             {selectorType === "cards" && opt.description && <p className="text-xs text-slate-500">{opt.description}</p>}
           </div>
         ))}
@@ -219,15 +256,65 @@ export const SelectorBlock = ({ block, style }: GenericBlockProps) => {
   );
 };
 
-export const CheckedListBlock = ({ block, style }: GenericBlockProps) => (
+export const CheckedListBlock = ({ block, style, renderTextWithHighlights }: GenericBlockProps) => (
   <div id={block.id} style={style} className="px-4 w-full max-w-6xl mx-auto space-y-3 sm:space-y-4">
     {(block.content?.items || []).map((item: string, i: number) => (
       <div key={i} className="flex items-start gap-3 sm:gap-4">
         <div className="mt-1 bg-primary/10 p-1 sm:p-1.5 rounded-full text-primary shadow-sm">
           <CheckCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-primary text-white" />
         </div>
-        <span className="text-base sm:text-xl font-medium pt-0.5">{item}</span>
+        <span className="text-base sm:text-xl font-medium pt-0.5">{renderTextWithHighlights(item, block.style?.highlightColor)}</span>
       </div>
     ))}
   </div>
 );
+
+export const ScoreCardsBlock = ({ block, style, renderTextWithHighlights }: GenericBlockProps) => {
+  const items = block.content?.items || [
+    { label: "Performance", score: 90, color: "#22c55e" },
+    { label: "Accessibility", score: 85, color: "#3b82f6" },
+    { label: "Best Practices", score: 95, color: "#a855f7" },
+    { label: "SEO", score: 100, color: "#f97316" }
+  ];
+
+  return (
+    <div id={block.id} style={style} className="px-4 w-full max-w-6xl mx-auto py-12">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        {items.map((item: any, i: number) => {
+          const radius = 36;
+          const circumference = 2 * Math.PI * radius;
+          const offset = circumference - (item.score / 100) * circumference;
+          
+          return (
+            <div key={i} className="flex flex-col items-center gap-4 group">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="50%" cy="50%" r={radius}
+                    className="stroke-slate-100 fill-none"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="50%" cy="50%" r={radius}
+                    className="score-circle fill-none"
+                    strokeWidth="8"
+                    stroke={item.color || "#3b82f6"}
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={offset}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xl sm:text-3xl font-black">{renderTextWithHighlights(String(item.score), block.style?.highlightColor)}</span>
+                </div>
+              </div>
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-slate-500 text-center">
+                {renderTextWithHighlights(item.label, block.style?.highlightColor)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};

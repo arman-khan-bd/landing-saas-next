@@ -561,10 +561,55 @@ export function PropertyEditor({ block, products, onChange, config }: PropertyEd
         </div>
       );
 
+    case "score-cards":
+      return (
+        <div className="space-y-6">
+           <PropertySection label="Performance Metrics" icon={LucideIcons.Activity}>
+              <div className="space-y-4">
+                 {(block.content?.items || []).map((item: any, idx: number) => (
+                   <div key={idx} className="p-3 bg-black/20 rounded-xl space-y-2 relative group">
+                      <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-5 w-5 text-rose-400 opacity-0 group-hover:opacity-100" onClick={() => {
+                        const items = block.content.items.filter((_:any, i:number) => i !== idx);
+                        onChange({ content: { items } });
+                      }}><Trash2 className="w-2.5 h-2.5" /></Button>
+                      <Input value={item.label} onChange={(e) => {
+                         const items = [...block.content.items];
+                         items[idx].label = e.target.value;
+                         onChange({ content: { items } });
+                      }} className="h-7 text-[10px]" placeholder="Metric Label" />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[7px] uppercase font-black">Score (0-100)</Label>
+                          <Input type="number" value={item.score} onChange={(e) => {
+                             const items = [...block.content.items];
+                             items[idx].score = Number(e.target.value);
+                             onChange({ content: { items } });
+                          }} className="h-7 text-[10px]" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[7px] uppercase font-black">Color</Label>
+                          <Input type="color" value={item.color || "#3b82f6"} onChange={(e) => {
+                             const items = [...block.content.items];
+                             items[idx].color = e.target.value;
+                             onChange({ content: { items } });
+                          }} className="h-7 w-full p-1 border-none bg-black/20" />
+                        </div>
+                      </div>
+                   </div>
+                 ))}
+                 <Button variant="outline" className="w-full h-8 text-[9px] border-dashed" onClick={() => {
+                   const items = [...(block.content?.items || []), { label: "New Metric", score: 90, color: "#3b82f6" }];
+                   onChange({ content: { items } });
+                 }}>+ Add Metric</Button>
+              </div>
+           </PropertySection>
+        </div>
+      );
+
     case "accordion":
       return (
         <div className="space-y-6">
-           <PropertySection label="FAQ Content" icon={List}>
+           <PropertySection label="FAQ Content" icon={LucideIcons.List}>
               <div className="space-y-3">
                  {(block.content?.items || []).map((item: any, idx: number) => (
                    <div key={idx} className="p-3 bg-black/20 rounded-xl space-y-2 relative group">
@@ -1106,8 +1151,17 @@ export function PropertyEditor({ block, products, onChange, config }: PropertyEd
                       <Input type="number" value={block.content?.width || 100} onChange={(e) => onChange({ content: { width: Number(e.target.value) } })} className="h-8 bg-slate-100 border-slate-200 text-slate-900 text-[10px] px-2" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Max Width (px)</Label>
-                      <Input type="number" value={block.content?.maxWidth || 1200} onChange={(e) => onChange({ content: { maxWidth: Number(e.target.value) } })} className="h-8 bg-slate-100 border-slate-200 text-slate-900 text-[10px] px-2" />
+                      <Label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Border Radius</Label>
+                      <div className="flex items-center gap-2">
+                         <Slider 
+                            value={[block.content?.borderRadius || 0]} 
+                            max={100} 
+                            step={1} 
+                            onValueChange={([v]) => onChange({ content: { borderRadius: v } })} 
+                            className="flex-1"
+                         />
+                         <span className="text-[10px] text-slate-500 min-w-[24px]">{block.content?.borderRadius || 0}px</span>
+                      </div>
                     </div>
                  </div>
               </div>
@@ -1120,15 +1174,29 @@ export function PropertyEditor({ block, products, onChange, config }: PropertyEd
         <div className="space-y-6">
            <PropertySection label="Video Configuration" icon={LucideIcons.Play}>
               <div className="space-y-4">
-                 <Input 
-                    value={block.content?.url || ""} 
-                    onChange={(e) => onChange({ content: { url: e.target.value } })} 
-                    placeholder="Video URL (YouTube/Vimeo/Direct)" 
-                    className="h-8 bg-slate-100/80 border-slate-200 text-slate-900 text-xs" 
-                 />
-                 <p className="text-[7px] text-slate-400 italic">Supports YouTube links, Vimeo, or direct MP4 URLs.</p>
-                 <div className="flex items-center justify-between">
-                    <Label className="text-[10px] font-bold text-slate-900">Autoplay</Label>
+                 <div className="space-y-1">
+                    <Label className="text-[8px] font-bold text-slate-800 uppercase">Video URL</Label>
+                    <Input 
+                        value={block.content?.url || ""} 
+                        onChange={(e) => onChange({ content: { url: e.target.value } })} 
+                        placeholder="YouTube/Vimeo URL" 
+                        className="h-8 bg-slate-100/80 border-slate-200 text-slate-900 text-xs" 
+                    />
+                 </div>
+                 <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                       <Label className="text-[10px] font-bold text-slate-900">Border Radius</Label>
+                       <span className="text-[8px] font-bold text-slate-400">{block.content?.borderRadius || 40}px</span>
+                    </div>
+                    <Slider 
+                       value={[block.content?.borderRadius || 40]} 
+                       max={100} 
+                       step={1} 
+                       onValueChange={([v]) => onChange({ content: { borderRadius: v } })} 
+                    />
+                 </div>
+                 <div className="flex items-center justify-between p-2.5 bg-slate-100/50 rounded-lg">
+                    <Label className="text-[10px] font-bold text-slate-900">Autoplay (Muted)</Label>
                     <Switch checked={!!block.content?.autoplay} onCheckedChange={(v) => onChange({ content: { autoplay: v } })} />
                  </div>
               </div>
@@ -1781,7 +1849,8 @@ export function GlobalStyleEditor({ block, onChange }: { block: Block; onChange:
           </div>
        </PropertySection>
 
-       <PropertySection label="Visual Texture" icon={ImageIcon}>
+
+       <PropertySection label="Visual Texture" icon={ImageIcon}>
           <div className="space-y-4">
              <div className="space-y-1">
                 <Label className="text-[8px] text-slate-600 font-semibold">Background Image</Label>
@@ -1816,6 +1885,26 @@ export function GlobalStyleEditor({ block, onChange }: { block: Block; onChange:
                    step={1} 
                    onValueChange={(val) => onChange({ style: { opacity: val[0] / 100 } })} 
                 />
+             </div>
+
+             <div className="space-y-1">
+                <Label className="text-[8px] text-slate-600 font-semibold uppercase tracking-widest">Entrance Animation</Label>
+                <Select value={block.style?.animation || "none"} onValueChange={(val) => onChange({ style: { animation: val } })}>
+                   <SelectTrigger className="h-8 bg-slate-100 border-slate-200 text-slate-900 text-[10px]"><SelectValue /></SelectTrigger>
+                   <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="fadeIn">Fade In</SelectItem>
+                      <SelectItem value="slideUp">Slide Up</SelectItem>
+                      <SelectItem value="zoomIn">Zoom In</SelectItem>
+                      <SelectItem value="bounce">Bounce</SelectItem>
+                      <SelectItem value="joy">Joy (Happy)</SelectItem>
+                      <SelectItem value="celebrate">Celebrate</SelectItem>
+                      <SelectItem value="scroll-down">Scroll Down</SelectItem>
+                      <SelectItem value="cross-sign">Cross Sign (No)</SelectItem>
+                      <SelectItem value="check-mark">Check Mark (Yes)</SelectItem>
+                   </SelectContent>
+                </Select>
+                <p className="text-[7px] text-slate-400 mt-1 italic">Tip: Use [animate:text] in content fields for word-level effects.</p>
              </div>
           </div>
        </PropertySection>

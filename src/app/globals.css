@@ -120,3 +120,105 @@
 div#ion5 {
   padding-bottom: 140px !important;
 }
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+.animate-bounce { animation: bounce 2s infinite; }
+
+@keyframes joy {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.1) rotate(2deg); }
+  50% { transform: scale(1) rotate(-2deg); }
+  75% { transform: scale(1.1) rotate(1deg); }
+}
+.animate-joy { animation: joy 0.6s ease-in-out infinite; }
+
+@keyframes celebrate {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2) rotate(5deg); }
+  100% { transform: scale(1); }
+}
+.animate-celebrate { animation: celebrate 0.5s ease-in-out; }
+
+@keyframes scroll-down {
+  0% { transform: translateY(-20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.animate-scroll-down { animation: scroll-down 1s ease-out forwards; }
+
+@keyframes cross-sign {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+.animate-cross-sign { animation: cross-sign 0.4s ease-in-out; }
+
+@keyframes check-mark {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.animate-check-mark { animation: check-mark 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+/* Visual Markers & Decorations */
+.marker-cross {
+  position: relative;
+  display: inline-block;
+}
+
+.marker-cross::before,
+.marker-cross::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background-color: #ef4444;
+  border-radius: 2px;
+  transform: translateY(-50%) rotate(15deg);
+  animation: cross-draw 0.4s ease-out forwards;
+}
+
+.marker-cross::after {
+  transform: translateY(-50%) rotate(-15deg);
+}
+
+@keyframes cross-draw {
+  0% { width: 0; opacity: 0; }
+  100% { width: 100%; opacity: 1; }
+}
+
+.marker-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.marker-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 8px;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='8' viewBox='0 0 100 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 5.5C20 2 40 8 60 4.5C80 1 99 5.5 99 5.5' stroke='%23facc15' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  animation: underline-grow 0.6s ease-out forwards;
+}
+
+@keyframes underline-grow {
+  0% { transform: scaleX(0); transform-origin: left; }
+  100% { transform: scaleX(1); transform-origin: left; }
+}
+
+/* Circular Score Animation */
+@keyframes circle-fill {
+  0% { stroke-dasharray: 0 100; }
+}
+
+.score-circle {
+  transition: all 1s ease-out;
+}

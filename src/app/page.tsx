@@ -12,6 +12,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useUser } from "@/firebase/provider";
 
 // Icon mapping helper
 const ICON_MAP: Record<string, any> = {
@@ -23,6 +24,7 @@ export default function Home() {
   const [plans, setPlans] = useState<any[]>([]);
   const [features, setFeatures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useUser();
 
   useEffect(() => {
     fetchPlans();
@@ -59,14 +61,16 @@ export default function Home() {
           <span className="text-lg sm:text-xl font-headline font-black text-primary tracking-tight">IHut.Shop</span>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3">
-          <Link href="/auth">
+          <Link href={user ? "/dashboard" : "/auth"}>
             <Button variant="ghost" size="sm" className="rounded-full px-3 h-8 sm:h-10 font-bold text-xs">
               <LogIn className="w-3.5 h-3.5 mr-1.5" />
-              <span className="hidden xs:inline">Login</span>
+              <span className="hidden xs:inline">{user ? "Dashboard" : "Login"}</span>
             </Button>
           </Link>
-          <Link href="/auth">
-            <Button size="sm" className="rounded-full px-4 h-8 sm:h-10 shadow-lg shadow-primary/20 font-bold text-xs uppercase tracking-wider">Launch</Button>
+          <Link href={user ? "/dashboard" : "/auth"}>
+            <Button size="sm" className="rounded-full px-4 h-8 sm:h-10 shadow-lg shadow-primary/20 font-bold text-xs uppercase tracking-wider">
+              {user ? "Dashboard" : "Launch"}
+            </Button>
           </Link>
         </div>
       </header>
@@ -84,9 +88,9 @@ export default function Home() {
             The multi-tenant engine designed for scale. Launch professional storefronts with landing pages and analytics in minutes.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 justify-center items-center pt-4 px-2">
-            <Link href="/auth" className="w-full sm:w-auto">
+            <Link href={user ? "/dashboard" : "/auth"} className="w-full sm:w-auto">
               <Button size="lg" className="w-full h-14 sm:h-16 px-8 sm:px-12 text-base sm:text-xl rounded-2xl sm:rounded-[24px] shadow-xl shadow-primary/20 font-black uppercase tracking-tight">
-                Start Selling <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5" />
+                {user ? "Go to Dashboard" : "Start Selling"} <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </Link>
             <Link href="#pricing" className="w-full sm:w-auto">
@@ -180,9 +184,9 @@ export default function Home() {
                     </div>
                   </CardContent>
                   <div className="p-6 sm:p-10 pt-0">
-                    <Link href={`/auth?planId=${plan.id}`}>
+                    <Link href={user ? "/dashboard" : `/auth?planId=${plan.id}`}>
                       <Button className="w-full h-12 sm:h-14 rounded-2xl text-sm sm:text-lg font-black uppercase tracking-tight group-hover:bg-primary group-hover:text-white transition-all shadow-xl shadow-primary/5">
-                        Select {plan.name}
+                        {user ? "Dashboard" : `Select ${plan.name}`}
                       </Button>
                     </Link>
                   </div>

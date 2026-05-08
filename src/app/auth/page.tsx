@@ -40,9 +40,15 @@ function AuthPageContent() {
     subdomain: "",
   });
 
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) router.push("/dashboard");
+      if (user) {
+        router.push("/dashboard");
+      } else {
+        setCheckingAuth(false);
+      }
     });
     return () => unsubscribe();
   }, [router]);
@@ -164,6 +170,14 @@ function AuthPageContent() {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (isLogin) {
     return (

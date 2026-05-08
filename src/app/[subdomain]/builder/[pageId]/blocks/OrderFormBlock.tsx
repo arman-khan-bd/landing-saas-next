@@ -24,7 +24,7 @@ interface OrderFormBlockProps {
   isTraditional?: boolean;
 }
 
-export const OrderFormBlock = ({ block, style, products, store, isOrganic = false, isTraditional = false }: OrderFormBlockProps) => {
+export const OrderFormBlock = ({ block, style, products, store, isOrganic = false, isTraditional = false, renderTextWithHighlights }: OrderFormBlockProps & { renderTextWithHighlights: any }) => {
   const productIds = block.content?.productIds || (block.content?.mainProductId ? [block.content.mainProductId] : []);
   const selectedProducts = Array.isArray(products) ? products.filter(p => productIds.includes(p.id)) : [];
 

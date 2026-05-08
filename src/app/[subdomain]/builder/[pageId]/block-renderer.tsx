@@ -39,7 +39,7 @@ import { PackageCardBlock } from "./blocks/PackageCardBlock";
 import { 
   HeaderBlock, ParagraphBlock, ButtonBlock, MarqueeBlock, 
   CardBlock, AccordionBlock, VideoBlock, ImageBlock, 
-  SelectorBlock, CheckedListBlock 
+  SelectorBlock, CheckedListBlock, ScoreCardsBlock
 } from "./blocks/GenericBlocks";
 
 interface BlockRendererProps {
@@ -61,24 +61,91 @@ interface BlockRendererProps {
   pageStyle?: PageStyle;
 }
 
-const renderTextWithHighlights = (text: string, highlightColor?: string) => {
+const renderTextWithHighlights = (text: string, highlightColor?: string): React.ReactNode => {
   if (!text) return "";
-  const parts = text.split(/(\[.*?\])/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('[') && part.endsWith(']')) {
-      const word = part.slice(1, -1);
-      return (
-        <span 
-          key={i} 
-          className="text-highlight font-bold" 
-          style={{ '--highlight-color': highlightColor || '#FFD700' } as any}
-        >
-          {word}
-        </span>
-      );
+
+  // Helper function to recursively parse text
+  const parseText = (input: string): React.ReactNode[] => {
+    const parts = [];
+    let currentText = "";
+    let i = 0;
+
+    while (i < input.length) {
+      if (input[i] === '[') {
+        // Push accumulated text
+        if (currentText) {
+          parts.push(currentText);
+          currentText = "";
+        }
+
+        // Find matching closing bracket
+        let depth = 1;
+        let j = i + 1;
+        while (j < input.length && depth > 0) {
+          if (input[j] === '[') depth++;
+          if (input[j] === ']') depth--;
+          j++;
+        }
+
+        if (depth === 0) {
+          const innerContent = input.slice(i + 1, j - 1);
+          
+          if (innerContent.includes(':')) {
+             const firstColonIdx = innerContent.indexOf(':');
+             const tagPart = innerContent.slice(0, firstColonIdx);
+             const wordPart = innerContent.slice(firstColonIdx + 1);
+             
+             let className = "";
+             let styleObj: any = {};
+             
+             if (tagPart.includes('=')) {
+               const [tag, val] = tagPart.split('=');
+               if (tag === 'c' || tag === 'color') styleObj.color = val;
+               if (tag === 'bg') styleObj.backgroundColor = val;
+               if (tag === 'pad') {
+                  styleObj.padding = val;
+                  styleObj.borderRadius = '4px';
+               }
+             } else {
+               if (tagPart === 'b') className += " font-bold";
+               else if (tagPart === 'i') className += " italic";
+               else if (tagPart === 'u') className += " underline underline-offset-4";
+               else if (tagPart === 's') className += " line-through";
+               else if (tagPart === 'cross') className += " marker-cross";
+               else if (tagPart === 'underline') className += " marker-underline";
+               else className += ` animate-${tagPart}`;
+             }
+
+             parts.push(
+               <span key={i} className={cn("inline-block", className)} style={styleObj}>
+                 {parseText(wordPart)}
+               </span>
+             );
+          } else {
+             // Handle old default highlight style without colon
+             parts.push(
+               <span key={i} className="text-highlight font-bold inline-block" style={{ '--highlight-color': highlightColor || '#FFD700' } as any}>
+                 {parseText(innerContent)}
+               </span>
+             );
+          }
+          i = j;
+          continue;
+        }
+      }
+      
+      currentText += input[i];
+      i++;
     }
-    return part;
-  });
+
+    if (currentText) {
+      parts.push(currentText);
+    }
+
+    return parts;
+  };
+
+  return <>{parseText(text)}</>;
 };
 
 export function CanvasBlockWrapper({ block, products, store, isSelected, isMobile, onSelect, onRemove, onMoveUp, onMoveDown, onInsertRequest, viewMode, onAddNested, selectedBlockId, isBuilder, pageStyle }: any) {
@@ -324,7 +391,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
   const renderContent = () => {
     switch (block.type) {
       case "navbar":
-        return <NavbarBlock block={block} isBuilder={!!isBuilder} handleButtonClick={handleButtonClick} />;
+        return <NavbarBlock block={block} isBuilder={!!isBuilder} handleButtonClick={handleButtonClick} renderTextWithHighlights={renderTextWithHighlights} />;
       case "ultra-hero":
         return <HeroBlock {...commonProps} />;
       case "header": return <HeaderBlock {...commonProps} />;
@@ -340,6 +407,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
       case "carousel": return <CarouselBlock {...commonProps} />;
       case "package-card": return <PackageCardBlock {...commonProps} />;
       case "product-order-form": return <OrderFormBlock {...commonProps} />;
+      case "score-cards": return <ScoreCardsBlock {...commonProps} />;
       case "row":
         const columns = block.content?.columns || 2;
         return (
@@ -353,39 +421,44 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
             )}>
               {[...Array(columns)].map((_, i) => (
                 <div key={i} className="space-y-4 min-h-[100px] flex flex-col items-center">
-                  {(block.children || []).filter((child: any) => child.colIdx === i).map((child: any) => (
-                    <div key={child.id} className="w-full">
-                       {isBuilder ? (
-                          <CanvasBlockWrapper
-                            block={child}
-                            products={products}
-                            store={store}
-                            isSelected={selectedBlockId === child.id}
-                            isMobile={isMobile}
-                            onSelect={onSelect}
-                            onRemove={onRemove}
-                            onMoveUp={onMoveUp}
-                            onMoveDown={onMoveDown}
-                            onInsertRequest={onInsertRequest}
-                            viewMode={viewMode}
-                            onAddNested={onAddNested}
-                            selectedBlockId={selectedBlockId}
-                            isBuilder={true}
-                            pageStyle={pageStyle}
-                          />
-                       ) : (
-                          <BlockRenderer
-                            block={child}
-                            products={products}
-                            store={store}
-                            isPreview={isPreview}
-                            viewMode={viewMode}
-                            pageStyle={pageStyle}
-                            isMobile={isMobile}
-                          />
-                       )}
-                    </div>
-                  ))}
+                  <SortableContext
+                    items={(block.children || []).filter((child: any) => child.colIdx === i || child.style?.columnIndex === i).map((c: any) => c.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {(block.children || []).filter((child: any) => child.colIdx === i || child.style?.columnIndex === i).map((child: any) => (
+                      <div key={child.id} className="w-full">
+                         {isBuilder ? (
+                            <CanvasBlockWrapper
+                              block={child}
+                              products={products}
+                              store={store}
+                              isSelected={selectedBlockId === child.id}
+                              isMobile={isMobile}
+                              onSelect={onSelect}
+                              onRemove={onRemove}
+                              onMoveUp={onMoveUp}
+                              onMoveDown={onMoveDown}
+                              onInsertRequest={onInsertRequest}
+                              viewMode={viewMode}
+                              onAddNested={onAddNested}
+                              selectedBlockId={selectedBlockId}
+                              isBuilder={true}
+                              pageStyle={pageStyle}
+                            />
+                         ) : (
+                            <BlockRenderer
+                              block={child}
+                              products={products}
+                              store={store}
+                              isPreview={isPreview}
+                              viewMode={viewMode}
+                              pageStyle={pageStyle}
+                              isMobile={isMobile}
+                            />
+                         )}
+                      </div>
+                    ))}
+                  </SortableContext>
                   {isBuilder && (
                     <Button 
                       variant="ghost" 
@@ -469,7 +542,14 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
   };
 
   return (
-    <div ref={containerRef} className={cn("relative w-full", block.style?.animation !== 'none' && "overflow-hidden")}>
+    <div 
+      ref={containerRef} 
+      className={cn(
+        "relative w-full", 
+        block.style?.animation !== 'none' && "overflow-hidden",
+        block.style?.animation && block.style.animation !== 'none' && !['fadeIn', 'slideUp', 'zoomIn'].includes(block.style.animation) && `animate-${block.style.animation}`
+      )}
+    >
       {renderContent()}
     </div>
   );

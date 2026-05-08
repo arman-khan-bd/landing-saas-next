@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getTenantPath } from "@/lib/utils";
 import { BlockRenderer, CanvasBlockWrapper } from "../../builder/[pageId]/block-renderer";
 import { PropertyEditor } from "../../builder/[pageId]/property-editor";
+import { FloatingTextToolbar } from "../../builder/[pageId]/floating-toolbar";
 import { Block, BlockType, PageStyle } from "../../builder/[pageId]/types";
 import { cn } from "@/lib/utils";
 import {
@@ -86,6 +87,73 @@ export default function SectionBuilderPage() {
     if (firestore && subdomain && pageId) {
       fetchData();
     }
+
+    const handleFormatCanvas = (e: any) => {
+      const { blockId, selectedText, format, value } = e.detail;
+      
+      setConfig(prev => {
+        if (!prev) return prev;
+        const newBlocks = prev.map((b: any) => {
+          if (b.id === blockId) {
+            const newContent = { ...b.content };
+            let replaced = false;
+            
+            const formattedText = format === "remove" ? selectedText : (value ? `[${format}=${value}:${selectedText}]` : `[${format}:${selectedText}]`);
+
+            // If we are removing formatting, we need to find the existing tag and strip it.
+            // But since the DOM selection gives us the raw text, the text in the string might already have tags!
+            // Wait, if it's "remove", we just remove tags around the selected text.
+            // A simple naive approach: if we find `[tag:selectedText]`, replace it with `selectedText`.
+            const regex = new RegExp(`\\[[a-zA-Z0-9-]+(?:=[^\\]:]+)?:(${selectedText.replace(/[-\\/\\\\^$*+?.()|[\\]{}]/g, '\\\\$&')})\\]`, 'g');
+
+            // Try to find the text in common string fields
+            for (const key in newContent) {
+              if (typeof newContent[key] === 'string') {
+                if (format === "remove" && regex.test(newContent[key])) {
+                  newContent[key] = newContent[key].replace(regex, '$1');
+                  replaced = true;
+                  break;
+                } else if (format !== "remove" && newContent[key].includes(selectedText)) {
+                  newContent[key] = newContent[key].replace(selectedText, formattedText);
+                  replaced = true;
+                  break;
+                }
+              }
+            }
+            
+            // Look deeply if not found in root string properties
+            if (!replaced && Array.isArray(newContent.items)) {
+              newContent.items = newContent.items.map((item: any) => {
+                if (typeof item === 'string' && item.includes(selectedText)) {
+                  replaced = true;
+                  return item.replace(selectedText, formattedText);
+                } else if (typeof item === 'object') {
+                  const newItem = { ...item };
+                  for (const k in newItem) {
+                    if (typeof newItem[k] === 'string' && newItem[k].includes(selectedText)) {
+                      newItem[k] = newItem[k].replace(selectedText, formattedText);
+                      replaced = true;
+                      break;
+                    }
+                  }
+                  return newItem;
+                }
+                return item;
+              });
+            }
+
+            if (replaced) {
+              return { ...b, content: newContent };
+            }
+          }
+          return b;
+        });
+        return newBlocks;
+      });
+    };
+
+    document.addEventListener("format-canvas-text", handleFormatCanvas);
+    return () => document.removeEventListener("format-canvas-text", handleFormatCanvas);
   }, [subdomain, pageId, firestore]);
 
   const fetchData = async () => {
@@ -151,13 +219,91 @@ export default function SectionBuilderPage() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setConfig((items) => {
-        const oldIndex = items.findIndex((i) => i.id === active.id);
-        const newIndex = items.findIndex((i) => i.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
-      });
-    }
+    if (!over || active.id === over.id) return;
+
+    setConfig((prev) => {
+      let activeItem: any = null;
+      let activeParentId: string | null = null;
+      let overItem: any = null;
+      let overParentId: string | null = null;
+
+      // Helper to find items
+      const findItem = (items: any[], parentId: string | null = null) => {
+        for (const item of items) {
+          if (item.id === active.id) { activeItem = item; activeParentId = parentId; }
+          if (item.id === over.id) { overItem = item; overParentId = parentId; }
+          if (item.children) findItem(item.children, item.id);
+        }
+      };
+      findItem(prev);
+
+      if (!activeItem || !overItem) return prev;
+
+      // If they are in the same container (same parent)
+      if (activeParentId === overParentId) {
+        if (activeParentId === null) {
+          // Top level
+          const oldIndex = prev.findIndex((i) => i.id === active.id);
+          const newIndex = prev.findIndex((i) => i.id === over.id);
+          return arrayMove(prev, oldIndex, newIndex);
+        } else {
+          // Nested level
+          return prev.map(block => {
+            if (block.id === activeParentId) {
+              const children = [...(block.children || [])];
+              const oldIndex = children.findIndex((i: any) => i.id === active.id);
+              const newIndex = children.findIndex((i: any) => i.id === over.id);
+              const movedChildren = arrayMove(children, oldIndex, newIndex);
+              // ensure the colIdx matches if they dropped it on an item in a different column?
+              // wait, if we arrayMove, we just reorder. 
+              // If we want to change colIdx, we need to inherit the overItem's colIdx.
+              movedChildren[newIndex] = { 
+                ...movedChildren[newIndex], 
+                colIdx: overItem.colIdx ?? movedChildren[newIndex].colIdx,
+                style: { ...movedChildren[newIndex].style, columnIndex: overItem.style?.columnIndex ?? movedChildren[newIndex].style?.columnIndex }
+              };
+              return { ...block, children: movedChildren };
+            }
+            return block;
+          });
+        }
+      } else {
+        // Moving between different containers (e.g. from one column to another, or root to column)
+        // For now, we simply remove from old parent and insert into new parent.
+        const newConfig = JSON.parse(JSON.stringify(prev)); // deep copy
+        
+        // Remove from old
+        let itemToMove = null;
+        if (activeParentId === null) {
+          const idx = newConfig.findIndex((i: any) => i.id === active.id);
+          itemToMove = newConfig.splice(idx, 1)[0];
+        } else {
+          const parent = newConfig.find((b: any) => b.id === activeParentId);
+          if (parent && parent.children) {
+            const idx = parent.children.findIndex((i: any) => i.id === active.id);
+            itemToMove = parent.children.splice(idx, 1)[0];
+          }
+        }
+
+        if (!itemToMove) return prev;
+
+        // Insert into new
+        if (overParentId === null) {
+          const idx = newConfig.findIndex((i: any) => i.id === over.id);
+          newConfig.splice(idx, 0, itemToMove);
+        } else {
+          const parent = newConfig.find((b: any) => b.id === overParentId);
+          if (parent && parent.children) {
+            const idx = parent.children.findIndex((i: any) => i.id === over.id);
+            // Inherit colIdx from overItem
+            itemToMove.colIdx = overItem.colIdx;
+            if (itemToMove.style) itemToMove.style.columnIndex = overItem.style?.columnIndex;
+            parent.children.splice(idx, 0, itemToMove);
+          }
+        }
+        return newConfig;
+      }
+    });
   };
 
   const updateBlock = (id: string, updates: any) => {
@@ -182,12 +328,13 @@ export default function SectionBuilderPage() {
   };
 
   const addBlock = (type: BlockType, target?: any) => {
-    const newBlock: Block = {
+    const newBlock: any = {
       id: Math.random().toString(36).substr(2, 9),
       type,
       content: getDefaultContent(type),
       style: type === "row" ? getDefaultStyle(type) : { ...getDefaultStyle(type), columnIndex: target?.colIdx ?? 0 },
-      children: type === "row" ? [] : undefined
+      children: type === "row" ? [] : undefined,
+      colIdx: target?.colIdx ?? 0
     };
 
     if (target?.parentId) {
@@ -264,6 +411,14 @@ export default function SectionBuilderPage() {
           { id: "3", header: "Enterprise", subtitle: "Unlimited scale", price: "$99", buttonLabel: "Contact Us", texture: "diagonal" }
         ],
         settings: { desktopColumns: 3, gap: 20 }
+      };
+      case "score-cards": return {
+        items: [
+          { label: "Performance", score: 90, color: "#22c55e" },
+          { label: "Accessibility", score: 85, color: "#3b82f6" },
+          { label: "Best Practices", score: 95, color: "#a855f7" },
+          { label: "SEO", score: 100, color: "#f97316" }
+        ]
       };
       default: return {};
     }
@@ -371,6 +526,7 @@ export default function SectionBuilderPage() {
 
   return (
     <div className="flex h-screen bg-white overflow-hidden text-slate-900">
+      <FloatingTextToolbar />
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
@@ -554,6 +710,7 @@ export default function SectionBuilderPage() {
                   <WidgetGridButton icon={LucideIcons.ListFilter} label="Selector" onClick={() => addBlock("selector", insertTarget || undefined)} />
                   <WidgetGridButton icon={LucideIcons.LayoutList} label="Carousel" onClick={() => addBlock("carousel", insertTarget || undefined)} highlight />
                   <WidgetGridButton icon={LucideIcons.Package} label="Packages" onClick={() => addBlock("package-card", insertTarget || undefined)} highlight />
+                  <WidgetGridButton icon={LucideIcons.Activity} label="Scores" onClick={() => addBlock("score-cards", insertTarget || undefined)} />
                 </div>
               </DialogContent>
             </Dialog>
