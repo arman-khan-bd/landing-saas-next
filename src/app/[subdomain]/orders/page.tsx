@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { getCurrencySymbol } from "@/lib/utils";
+import { cn, getCurrencySymbol } from "@/lib/utils";
 
 export default function OrdersPage() {
   const { subdomain } = useParams();
@@ -26,6 +26,9 @@ export default function OrdersPage() {
   const [stats, setStats] = useState({ revenue: 0, count: 0 });
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currency, setCurrency] = useState("BDT");
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchOrders();
@@ -82,21 +85,41 @@ export default function OrdersPage() {
     }
   };
 
-  const filteredOrders = orders.filter(o =>
-    o.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    o.customer?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    o.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOrders = orders.filter(o => {
+    const matchesSearch = o.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o.customer?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (activeFilter === "all") return matchesSearch;
+    if (activeFilter === "spam") return matchesSearch && o.isSpam;
+    return matchesSearch && o.status === activeFilter;
+  });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeFilter]);
+
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const counts = {
+    all: orders.length,
+    pending: orders.filter(o => o.status === 'pending').length,
+    processing: orders.filter(o => o.status === 'processing').length,
+    shipped: orders.filter(o => o.status === 'shipped').length,
+    completed: orders.filter(o => o.status === 'completed').length,
+    spam: orders.filter(o => o.isSpam).length,
+  };
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto pb-20">
+    <div className="space-y-6 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pb-20">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 uppercase font-headline">Order Management</h1>
-        <p className="text-sm text-muted-foreground">Monitor real-time sales and fulfillment status.</p>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 uppercase font-headline">Order Management</h1>
+        <p className="text-[11px] sm:text-sm text-muted-foreground">Monitor real-time sales and fulfillment status.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden">
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 sm:mx-0 px-4 sm:px-0 sm:grid sm:grid-cols-3 scrollbar-hide snap-x">
+        <Card className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden shrink-0 w-[240px] sm:w-auto snap-center">
           <div className="p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Revenue</p>
@@ -105,7 +128,7 @@ export default function OrdersPage() {
             <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600"><Wallet className="w-4 h-4" /></div>
           </div>
         </Card>
-        <Card className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden">
+        <Card className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden shrink-0 w-[240px] sm:w-auto snap-center">
           <div className="p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Orders</p>
@@ -114,7 +137,7 @@ export default function OrdersPage() {
             <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600"><ShoppingCart className="w-4 h-4" /></div>
           </div>
         </Card>
-        <Card className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden">
+        <Card className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden shrink-0 w-[240px] sm:w-auto snap-center">
           <div className="p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Platform Tier</p>
@@ -125,15 +148,43 @@ export default function OrdersPage() {
         </Card>
       </div>
 
-      <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search Order ID, Customer..."
-            className="pl-9 rounded-xl bg-white border-border/50 h-10 shadow-sm text-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3">
+          <div className="relative flex-1 sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search Order ID, Customer..."
+              className="pl-9 rounded-xl bg-white border-border/50 h-10 shadow-sm text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide">
+          {[
+            { id: "all", label: "All Orders", count: counts.all },
+            { id: "pending", label: "Pending", count: counts.pending },
+            { id: "processing", label: "Processing", count: counts.processing },
+            { id: "shipped", label: "Shipped", count: counts.shipped },
+            { id: "completed", label: "Completed", count: counts.completed },
+            { id: "spam", label: "Spam", count: counts.spam, color: "text-rose-500" },
+          ].map((tab) => (
+            <Button
+              key={tab.id}
+              variant={activeFilter === tab.id ? "default" : "outline"}
+              onClick={() => setActiveFilter(tab.id)}
+              className={cn(
+                "rounded-xl h-9 px-4 text-[10px] font-black uppercase tracking-widest gap-2 shrink-0 border-border/50",
+                activeFilter !== tab.id && tab.color
+              )}
+            >
+              {tab.label}
+              <Badge variant="secondary" className="h-5 px-1.5 text-[9px] font-black bg-slate-100 text-slate-600 border-none">
+                {tab.count}
+              </Badge>
+            </Button>
+          ))}
         </div>
       </div>
 
@@ -160,11 +211,16 @@ export default function OrdersPage() {
                       <p className="font-bold uppercase tracking-widest text-xs">No orders found</p>
                     </TableCell>
                   </TableRow>
-                ) : filteredOrders.map((order) => (
+                ) : paginatedOrders.map((order) => (
                   <TableRow key={order.id} className="hover:bg-primary/5 transition-colors border-border/50 group">
                     <TableCell className="py-3 px-4">
                       <div className="flex flex-col">
-                        <span className="font-mono text-xs font-bold text-primary">#{order.id.slice(0, 8)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-primary">#{order.id.slice(0, 8)}</span>
+                          {order.isSpam && (
+                            <Badge className="h-4 px-1.5 text-[8px] font-black uppercase tracking-widest bg-rose-500 hover:bg-rose-600 text-white border-none rounded">SPAM</Badge>
+                          )}
+                        </div>
                         <span className="text-[10px] text-muted-foreground">{order.createdAt?.toDate()?.toLocaleDateString()}</span>
                       </div>
                     </TableCell>
@@ -222,29 +278,83 @@ export default function OrdersPage() {
                 ))}
               </TableBody>
             </Table>
+            {totalPages > 1 && (
+              <div className="p-4 border-t bg-muted/20 flex items-center justify-between gap-4">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredOrders.length)} of {filteredOrders.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <Button
+                        key={p}
+                        variant={currentPage === p ? "default" : "ghost"}
+                        size="sm"
+                        className="h-8 w-8 rounded-lg text-[10px] font-black"
+                        onClick={() => setCurrentPage(p)}
+                      >
+                        {p}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:hidden pb-10">
-        {filteredOrders.map((order) => (
-          <Card key={order.id} className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden p-4 space-y-3">
-            <div className="flex justify-between items-start">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-primary uppercase tracking-widest leading-none">#{order.id.slice(0, 8)}</span>
-                <h4 className="text-base font-bold text-slate-900 mt-1 leading-tight">{order.customer?.fullName}</h4>
-                <span className="text-[11px] text-muted-foreground">{order.customer?.phone}</span>
-              </div>
-              <div className="flex flex-col items-end gap-2">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="animate-spin w-8 h-8 text-primary opacity-30" />
+          </div>
+        ) : paginatedOrders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 opacity-40">
+            <ShoppingCart className="w-12 h-12" />
+            <p className="font-black text-xs uppercase tracking-widest">No orders found</p>
+          </div>
+        ) : paginatedOrders.map((order) => (
+          <Card key={order.id} className="rounded-2xl border-border/50 bg-white shadow-sm overflow-hidden">
+            <div className="p-4">
+              {/* Top Row: ID + Date + Spam + Status */}
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[11px] font-black text-primary"># {order.id.slice(0, 10)}</span>
+                    {order.isSpam && (
+                      <Badge className="h-4 px-1.5 text-[7px] font-black uppercase bg-rose-500 text-white border-none rounded shrink-0">SPAM</Badge>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-400">{order.createdAt?.toDate()?.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                </div>
                 <Select
                   value={order.status}
                   onValueChange={(val) => handleStatusUpdate(order.id, val)}
                   disabled={updatingId === order.id}
                 >
-                  <SelectTrigger className="w-24 h-7 rounded-lg text-[9px] font-black uppercase border-none bg-slate-100">
+                  <SelectTrigger className="w-[110px] h-9 rounded-lg text-[10px] font-black uppercase border-none bg-slate-100 shrink-0 shadow-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="processing">Processing</SelectItem>
                     <SelectItem value="shipped">Shipped</SelectItem>
@@ -253,16 +363,67 @@ export default function OrdersPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t border-slate-50">
-              <div className="flex flex-col">
-                <p className="text-[9px] text-slate-400 uppercase font-black tracking-tight leading-none">Order Total</p>
-                <p className="text-lg font-black text-slate-900">{getCurrencySymbol(currency)}{order.total?.toFixed(2)}</p>
+
+              {/* Customer Info */}
+              <div className="bg-slate-50 rounded-xl p-3 mb-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-slate-200 flex items-center justify-center text-slate-600 font-black text-sm shrink-0">
+                  {order.customer?.fullName?.[0] || "?"}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-sm text-slate-900 truncate">{order.customer?.fullName || "Unknown"}</p>
+                  <p className="text-[10px] text-slate-400 truncate">{order.customer?.phone}</p>
+                </div>
               </div>
-              <Button variant="outline" size="sm" className="rounded-xl h-8 px-4 text-xs font-bold border-slate-200" onClick={() => router.push(`/${subdomain}/orders/${order.id}`)}>Details</Button>
+
+              {/* Bottom Row: Total + Payment + Details Button */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] text-slate-400 uppercase font-black tracking-tight">Total</p>
+                  <p className="text-base font-black text-slate-900">{getCurrencySymbol(currency)}{order.total?.toFixed(2)}</p>
+                  <p className="text-[9px] uppercase font-bold text-slate-400">{order.paymentMethod}</p>
+                </div>
+                <Button
+                  size="sm"
+                  className="h-9 px-5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-sm"
+                  onClick={() => router.push(`/${subdomain}/orders/${order.id}`)}
+                >
+                  <Eye className="w-3.5 h-3.5 mr-1.5" /> Details
+                </Button>
+              </div>
             </div>
           </Card>
         ))}
+
+        {totalPages > 1 && (
+          <div className="flex flex-col gap-3 py-4">
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 flex-1 rounded-xl text-[10px] font-black uppercase"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+              >
+                Prev
+              </Button>
+              <div className="bg-white border rounded-xl px-4 h-9 flex items-center justify-center font-black text-xs">
+                {currentPage} / {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 flex-1 rounded-xl text-[10px] font-black uppercase"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+              >
+                Next
+              </Button>
+            </div>
+            <p className="text-[9px] text-center font-bold text-muted-foreground uppercase tracking-widest">
+              Total {filteredOrders.length} Orders
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

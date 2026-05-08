@@ -121,8 +121,10 @@ export default function UncompletedOrderDetailPage() {
           <Button variant="outline" className="rounded-xl h-10 text-[10px] sm:text-xs font-bold border-rose-100 text-rose-500 hover:bg-rose-50">
             <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Discard
           </Button>
-          <Button className="rounded-xl h-10 text-[10px] sm:text-xs font-black shadow-lg shadow-primary/20">
-            <Mail className="w-3.5 h-3.5 mr-1.5" /> Send Reminder
+          <Button className="rounded-xl h-10 text-[10px] sm:text-xs font-black shadow-lg shadow-primary/20 bg-indigo-600 hover:bg-indigo-700 text-white" asChild>
+            <a href={`tel:${item.customer?.phone || ''}`}>
+              <Phone className="w-3.5 h-3.5 mr-1.5" /> Call Customer
+            </a>
           </Button>
         </div>
       </div>
@@ -260,8 +262,10 @@ export default function UncompletedOrderDetailPage() {
                     </div>
                  </div>
 
-                 <Button variant="secondary" className="w-full h-11 sm:h-12 rounded-xl sm:rounded-2xl font-bold text-[10px] sm:text-xs uppercase tracking-widest gap-2 bg-slate-50 hover:bg-slate-100">
-                    <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Contact Directly
+                 <Button variant="secondary" className="w-full h-11 sm:h-12 rounded-xl sm:rounded-2xl font-bold text-[10px] sm:text-xs uppercase tracking-widest gap-2 bg-slate-50 hover:bg-slate-100" asChild>
+                    <a href={`mailto:${item.customer?.email || ''}`}>
+                       <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Send Email
+                    </a>
                  </Button>
               </CardContent>
            </Card>

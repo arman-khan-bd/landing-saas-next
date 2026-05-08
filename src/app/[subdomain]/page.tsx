@@ -2,9 +2,6 @@ import { Metadata, ResolvingMetadata } from "next";
 import { getStoreBySubdomain, getPageBySlug } from "@/lib/store-server";
 import StorefrontClient from "./StorefrontClient";
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 type Props = {
   params: Promise<{ subdomain: string }>;
 };

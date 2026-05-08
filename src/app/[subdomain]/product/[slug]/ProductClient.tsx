@@ -179,22 +179,26 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
     setSendingSms(true);
     try {
       const normalizedPhone = normalizePhoneNumber(formData.phone);
-      const storeName = store?.name || "Store";
 
-      // Check IP Block
-      const ipQ = query(
-        collection(db, "customers"),
+      // Phone Block Check
+      const phoneBlockQ = query(
+        collection(db, "fraud_blocks"),
         where("storeId", "==", store.id),
-        where("ips", "array-contains", clientIp),
-        where("status.ipBlocked", "==", true)
+        where("type", "==", "phone"),
+        where("value", "==", normalizedPhone),
+        limit(1)
       );
-      const ipSnap = await getDocs(ipQ);
-      if (!ipSnap.empty) {
-        toast({ variant: "destructive", title: "Access Denied", description: "You are blocked from admin." });
+      const phoneBlockSnap = await getDocs(phoneBlockQ);
+      if (!phoneBlockSnap.empty) {
+        toast({ 
+          variant: "destructive", 
+          title: "Access Restricted", 
+          description: "এই মোবাইল নম্বরটি দিয়ে অর্ডার করা সম্ভব নয়।" 
+        });
         return;
       }
 
-      const result = await sendSMS(normalizedPhone, storeName, store.id);
+      const result = await sendSMS(normalizedPhone, store?.name || "Store", store.id);
 
       if (!result.success) {
         toast({
@@ -288,19 +292,36 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
 
     setIsPlacingOrder(true);
     try {
-      const blockValues = [clientIp, formData.phone].filter(Boolean);
-      if (blockValues.length > 0) {
-        const fraudQ = query(
+      const normalizedPhone = normalizePhoneNumber(formData.phone);
+
+      // Phone Block Check (Final)
+      const phoneBlockQ = query(
+        collection(db, "fraud_blocks"),
+        where("storeId", "==", store.id),
+        where("type", "==", "phone"),
+        where("value", "==", normalizedPhone),
+        limit(1)
+      );
+      const phoneBlockSnap = await getDocs(phoneBlockQ);
+      if (!phoneBlockSnap.empty) {
+        toast({ variant: "destructive", title: "অর্ডার গ্রহণ করা সম্ভব হচ্ছে না", description: "আপনার ফোন নম্বরটি নিষিদ্ধ করা হয়েছে।" });
+        setIsPlacingOrder(false);
+        return;
+      }
+
+      // IP Spam Check
+      let isSpam = false;
+      if (clientIp) {
+        const ipBlockQ = query(
           collection(db, "fraud_blocks"),
           where("storeId", "==", store.id),
-          where("value", "in", blockValues),
+          where("type", "==", "ip"),
+          where("value", "==", clientIp),
           limit(1)
         );
-        const fraudSnap = await getDocs(fraudQ);
-        if (!fraudSnap.empty) {
-          toast({ variant: "destructive", title: "Transaction Denied", description: "Security restriction applied." });
-          setIsPlacingOrder(false);
-          return;
+        const ipBlockSnap = await getDocs(ipBlockQ);
+        if (!ipBlockSnap.empty) {
+          isSpam = true;
         }
       }
 
@@ -320,7 +341,7 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
         }],
         customer: {
           fullName: formData.fullName,
-          phone: normalizePhoneNumber(formData.phone),
+          phone: normalizedPhone,
           address: formData.address,
           ip: clientIp
         },
@@ -337,6 +358,7 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
         status: "pending",
         paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
         isRead: false,
+        isSpam: isSpam,
         createdAt: serverTimestamp(),
       };
 
@@ -355,7 +377,7 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
       });
 
       toast({ title: "অর্ডার সফল হয়েছে!", description: "আপনার অর্ডারটি গ্রহণ করা হয়েছে।" });
-      setFormData({ fullName: "", phone: "", address: "", paymentMethod: "cod", selectedManualMethodId: "", transactionId: "" });
+      setFormData({ fullName: "", phone: "", address: "", paymentMethod: "cod", selectedManualMethodId: "", transactionId: "", otp: "" });
     } catch (error) {
       console.error(error);
       toast({ variant: "destructive", title: "Order Failed" });

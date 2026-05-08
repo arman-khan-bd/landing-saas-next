@@ -130,6 +130,25 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
     setSendingSms(true);
     try {
       const normalizedPhone = normalizePhoneNumber(formData.phone);
+
+      // Phone Block Check
+      const phoneBlockQ = query(
+        collection(db, "fraud_blocks"),
+        where("storeId", "==", store.id),
+        where("type", "==", "phone"),
+        where("value", "==", normalizedPhone),
+        limit(1)
+      );
+      const phoneBlockSnap = await getDocs(phoneBlockQ);
+      if (!phoneBlockSnap.empty) {
+        toast({ 
+          variant: "destructive", 
+          title: "Access Restricted", 
+          description: "এই মোবাইল নম্বরটি দিয়ে অর্ডার করা সম্ভব নয়।" 
+        });
+        return;
+      }
+
       const res = await sendSMS(normalizedPhone, store?.name || "Store", store?.id);
       if (res.success) {
         setOtpSent(true);
@@ -198,19 +217,36 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
 
     setIsPlacingOrder(true);
     try {
-      const blockValues = [clientIp, formData.phone].filter(Boolean);
-      if (blockValues.length > 0) {
-        const fraudQ = query(
+      const normalizedPhone = normalizePhoneNumber(formData.phone);
+
+      // Phone Block Check (Final)
+      const phoneBlockQ = query(
+        collection(db, "fraud_blocks"),
+        where("storeId", "==", store.id),
+        where("type", "==", "phone"),
+        where("value", "==", normalizedPhone),
+        limit(1)
+      );
+      const phoneBlockSnap = await getDocs(phoneBlockQ);
+      if (!phoneBlockSnap.empty) {
+        toast({ variant: "destructive", title: "অর্ডার গ্রহণ করা সম্ভব হচ্ছে না", description: "আপনার ফোন নম্বরটি নিষিদ্ধ করা হয়েছে।" });
+        setIsPlacingOrder(false);
+        return;
+      }
+
+      // IP Spam Check
+      let isSpam = false;
+      if (clientIp) {
+        const ipBlockQ = query(
           collection(db, "fraud_blocks"),
           where("storeId", "==", store.id),
-          where("value", "in", blockValues),
+          where("type", "==", "ip"),
+          where("value", "==", clientIp),
           limit(1)
         );
-        const fraudSnap = await getDocs(fraudQ);
-        if (!fraudSnap.empty) {
-          toast({ variant: "destructive", title: "অর্ডার গ্রহণ করা সম্ভব হচ্ছে না" });
-          setIsPlacingOrder(false);
-          return;
+        const ipBlockSnap = await getDocs(ipBlockQ);
+        if (!ipBlockSnap.empty) {
+          isSpam = true;
         }
       }
 
@@ -227,7 +263,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
           image: p.featuredImage,
           quantity: 1
         })),
-        customer: { ...formData, ip: clientIp },
+        customer: { ...formData, phone: normalizedPhone, ip: clientIp },
         shipping: (showShipping && selectedShipping) ? {
           name: selectedShipping.name,
           cost: shippingCost
@@ -241,6 +277,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
         status: "pending",
         paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
         isRead: false,
+        isSpam: isSpam,
         createdAt: serverTimestamp(),
       };
 
@@ -273,8 +310,6 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
       </Card>
     );
   }
-
-
 
   return (
     <Card className={cn(
@@ -448,20 +483,34 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
 
                        {formData.paymentMethod === 'manual' && (
                          <div className="mt-4 pt-4 border-t border-primary/10 space-y-4 animate-in slide-in-from-top-2">
-                            <div className="grid grid-cols-2 gap-2">
-                               {manualMethodsArray.map((m: any) => (
-                                 <Button key={m.id} type="button" variant="outline" className={cn("h-9 sm:h-10 rounded-xl text-[9px] sm:text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white border-none' : '')} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: m.id})); }}>{m.name}</Button>
-                               ))}
-                            </div>
-                            {selectedManualMethod && (
-                               <div className="space-y-3 sm:space-y-4" onClick={(e) => e.stopPropagation()}>
-                                  <div className="p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl border-2 border-primary/10">
-                                     <p className="text-[9px] sm:text-[10px] font-black text-primary uppercase">নাম্বার: {selectedManualMethod.number}</p>
-                                     <p className="text-[9px] sm:text-[10px] text-slate-500 mt-1 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</p>
-                                  </div>
-                                  <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-11 sm:h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
-                               </div>
-                            )}
+                           <div className="grid grid-cols-1 xs:grid-cols-3 gap-2">
+                              {manualMethodsArray.map((m: any) => (
+                                <div 
+                                  key={m.id} 
+                                  onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: m.id})) }} 
+                                  className={cn("p-2 sm:p-3 rounded-xl border-2 text-center transition-all", formData.selectedManualMethodId === m.id ? 'border-primary bg-white' : 'border-slate-100')}
+                                >
+                                  <p className="text-[10px] font-black uppercase">{m.name}</p>
+                                  <p className="text-[8px] font-bold opacity-60">{m.type}</p>
+                                </div>
+                              ))}
+                           </div>
+
+                           {selectedManualMethod && (
+                             <div className="p-4 bg-white rounded-2xl border-2 border-primary/10 space-y-4">
+                                <div className="text-center space-y-1">
+                                   <p className="text-[10px] font-black uppercase text-slate-400">Send Money to</p>
+                                   <p className="text-xl sm:text-2xl font-black text-primary tracking-wider">{selectedManualMethod.number}</p>
+                                   <p className="text-[9px] font-bold text-slate-500 italic">টোটাল {getCurrencySymbol(store?.currency)} {total.toFixed(0)} টাকা পাঠিয়ে নিচের বক্সে ট্রানজাকশন আইডি দিন।</p>
+                                </div>
+                                <Input 
+                                  placeholder="Transaction ID (TRXID)" 
+                                  className="h-11 sm:h-12 rounded-xl bg-slate-50 border-none px-4 text-center font-mono font-black" 
+                                  value={formData.transactionId} 
+                                  onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value}))} 
+                                />
+                             </div>
+                           )}
                          </div>
                        )}
                     </div>
@@ -470,34 +519,62 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
             </div>
           </div>
 
-          <div className="space-y-5 sm:space-y-6">
-            <div className={cn("p-8 sm:p-10 rounded-3xl sm:rounded-[40px] border space-y-4 sm:space-y-5", (isOrganic || isTraditional) ? "bg-white border-[#d9e8da]" : "bg-slate-50")}>
-              <div className="flex justify-between text-muted-foreground font-bold text-[10px] sm:text-xs uppercase tracking-widest">
-                <span>পণ্য মূল্য ({selectedProducts.length} টি)</span>
-                <span>{getCurrencySymbol(store?.currency)} {subtotal}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground font-bold text-[10px] sm:text-xs uppercase tracking-widest">
-                <span>ডেলিভারি চার্জ</span>
-                <span className={cn("font-black", (shippingCost > 0) ? "text-slate-900" : "text-emerald-500")}>
-                   { shippingCost > 0 ? `${getCurrencySymbol(store?.currency)} ${shippingCost}` : 'ফ্রি' }
-                </span>
-              </div>
-              <div className={cn("flex justify-between text-3xl sm:text-4xl font-black border-t pt-6 sm:pt-8 mt-4", (isOrganic || isTraditional) ? "text-primary" : "text-primary")}>
-                <span className="text-[9px] sm:text-xs pt-3 sm:pt-4 uppercase">মোট</span>
-                <span>{getCurrencySymbol(store?.currency)} {(subtotal + shippingCost).toFixed(0)}</span>
-              </div>
-            </div>
-            <Button 
-              type="submit" 
-              disabled={isPlacingOrder || selectedProducts.length === 0 || (!isVerified && !store?.isOtpDisabled)} 
-              className={cn("w-full h-16 sm:h-20 rounded-2xl sm:rounded-[32px] text-xl sm:text-2xl font-black uppercase tracking-widest shadow-2xl transition-transform hover:scale-[1.02]", (isOrganic || isTraditional) ? "bg-gradient-to-br from-[#1a7c3e] via-[#0f5a2b] to-[#0a3d1d] hover:opacity-90 shadow-primary/20" : "bg-primary")}
-            >
-              {isPlacingOrder ? <Loader2 className="animate-spin" /> : "অর্ডার সম্পন্ন করুন"}
-            </Button>
-            <div className="flex items-center justify-center gap-2 text-slate-400 mt-2">
-              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
-              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em]">নিরাপদ পেমেন্ট ব্যবস্থা</span>
-            </div>
+          <div className="space-y-8 sm:space-y-10">
+             <div className="bg-slate-50 rounded-3xl p-6 sm:p-10 border-2 border-slate-100 space-y-6 sm:space-y-8">
+                <div className="space-y-4">
+                   <h4 className="text-lg font-black uppercase tracking-tight border-b pb-4">অর্ডার সামারি</h4>
+                   <div className="space-y-3 sm:space-y-4">
+                      {selectedProducts.map(p => (
+                        <div key={p.id} className="flex justify-between items-center text-sm sm:text-base">
+                           <span className="font-bold text-slate-600">১x {p.name}</span>
+                           <span className="font-black">{getCurrencySymbol(store?.currency)} {p.currentPrice}</span>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+
+                <div className="space-y-3 sm:space-y-4 border-t pt-6">
+                   <div className="flex justify-between text-sm sm:text-base">
+                      <span className="font-bold text-slate-400 uppercase tracking-widest">সাব-টোটাল</span>
+                      <span className="font-bold">{getCurrencySymbol(store?.currency)} {subtotal.toFixed(0)}</span>
+                   </div>
+                   <div className="flex justify-between text-sm sm:text-base">
+                      <span className="font-bold text-slate-400 uppercase tracking-widest">ডেলিভারি চার্জ</span>
+                      <span className="font-bold text-emerald-600">{shippingCost > 0 ? `${getCurrencySymbol(store?.currency)} ${shippingCost}` : 'ফ্রি'}</span>
+                   </div>
+                   <div className="flex justify-between pt-4 border-t">
+                      <span className="text-lg sm:text-xl font-black uppercase tracking-tighter">সর্বমোট</span>
+                      <span className={cn("text-2xl sm:text-4xl font-headline font-black", (isOrganic || isTraditional) ? "text-[#c0392b]" : "text-primary")}>
+                        {getCurrencySymbol(store?.currency)} {total.toFixed(0)}
+                      </span>
+                   </div>
+                </div>
+             </div>
+
+             <Button 
+               disabled={isPlacingOrder} 
+               className={cn(
+                 "w-full h-16 sm:h-24 rounded-[24px] sm:rounded-[40px] font-black text-xl sm:text-3xl uppercase tracking-[0.1em] shadow-2xl transition-all hover:scale-[1.02] active:scale-95",
+                 isOrganic ? "bg-[#1b5e20] shadow-[#1b5e20]/30" : isTraditional ? "bg-[#0a3d1d] shadow-[#0a3d1d]/30" : "bg-primary shadow-primary/30"
+               )}
+             >
+               {isPlacingOrder ? <Loader2 className="w-8 h-8 animate-spin" /> : "অর্ডার কনফার্ম করুন"}
+             </Button>
+
+             <div className="flex items-center justify-center gap-4 sm:gap-6">
+                <div className="flex flex-col items-center gap-1">
+                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                      <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
+                   </div>
+                   <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-widest">Secure</span>
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                      <Truck className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-500" />
+                   </div>
+                   <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-widest">Fast Delivery</span>
+                </div>
+             </div>
           </div>
         </form>
       </div>

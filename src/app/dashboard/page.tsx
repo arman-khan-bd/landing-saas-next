@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { getStoreUrl } from "@/lib/utils";
+import { cn, getStoreUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -450,10 +450,6 @@ export default function RedesignedDashboard() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-2xl border-border/50">
                               <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Quick Actions</DropdownMenuLabel>
-                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => router.push(`/${store.subdomain}/dashboard`)}>
-                                <LayoutDashboard className="w-4 h-4" />
-                                <span className="font-medium">Enter Manager</span>
-                              </DropdownMenuItem>
                               <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => router.push(`/${store.subdomain}/settings`)}>
                                 <Settings className="w-4 h-4" />
                                 <span className="font-medium">Store Settings</span>
@@ -462,10 +458,6 @@ export default function RedesignedDashboard() {
                               <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => handleToggleMaintenance(store.id, store.isMaintenance)}>
                                 <Hammer className={`w-4 h-4 ${store.isMaintenance ? 'text-primary' : ''}`} />
                                 <span className="font-medium">Maintenance Mode: {store.isMaintenance ? 'ON' : 'OFF'}</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => handleToggleStatus(store.id, store.status)}>
-                                <Power className={`w-4 h-4 ${store.status === 'online' ? 'text-emerald-500' : 'text-slate-400'}`} />
-                                <span className="font-medium">{store.status === 'online' ? 'Deactivate Store' : 'Activate Store'}</span>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               {!store.managePassword ? (
@@ -520,6 +512,11 @@ export default function RedesignedDashboard() {
                           {store.status === 'offline' && (
                             <Badge className="bg-slate-100 text-slate-500 border-none text-[8px] font-black uppercase">Offline</Badge>
                           )}
+                          {store.isSuspended && (
+                            <Badge className="bg-rose-600 text-white border-none text-[8px] font-black uppercase flex items-center gap-1 shadow-lg shadow-rose-500/20">
+                              <AlertTriangle className="w-2.5 h-2.5" /> Suspended
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </CardHeader>
@@ -528,8 +525,8 @@ export default function RedesignedDashboard() {
                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                           <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Status</p>
                           <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${store.subscription?.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                            <span className="text-xs font-bold capitalize">{store.subscription?.status || 'active'}</span>
+                            <span className={`w-2 h-2 rounded-full ${store.isSuspended ? 'bg-rose-500' : store.subscription?.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                            <span className="text-xs font-bold capitalize">{store.isSuspended ? 'Suspended' : store.subscription?.status || 'active'}</span>
                           </div>
                         </div>
                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
@@ -537,8 +534,16 @@ export default function RedesignedDashboard() {
                           <p className="text-xs font-bold truncate">{store.plan?.name || 'Free Plan'}</p>
                         </div>
                       </div>
-                      <Button className="w-full rounded-[24px] h-14 font-black text-lg bg-slate-900 hover:bg-primary transition-all shadow-xl shadow-slate-900/10 group" onClick={() => router.push(`/${store.subdomain}/dashboard`)}>
-                        Enter Manager <ChevronRight className="ml-1 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      <Button
+                        className={cn(
+                          "w-full rounded-[24px] h-14 font-black text-lg transition-all shadow-xl group",
+                          store.isSuspended ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none" : "bg-slate-900 hover:bg-primary shadow-slate-900/10 text-white"
+                        )}
+                        onClick={() => !store.isSuspended && router.push(`/${store.subdomain}/dashboard`)}
+                        disabled={store.isSuspended}
+                      >
+                        {store.isSuspended ? "Access Restricted" : "Enter Manager"}
+                        {!store.isSuspended && <ChevronRight className="ml-1 w-5 h-5 group-hover:translate-x-1 transition-transform" />}
                       </Button>
                     </CardContent>
                   </Card>

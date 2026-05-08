@@ -22,6 +22,7 @@ interface Notification {
   description: string;
   time: string;
   read: boolean;
+  isSpam?: boolean;
 }
 
 export default function NotificationsPage() {
@@ -79,7 +80,8 @@ export default function NotificationsPage() {
             description: `${data.customer?.fullName || 'A customer'} placed an order for ${getCurrencySymbol(currentCurrency)}${data.total?.toFixed(2)}`,
             time: data.createdAt?.toDate?.()?.toLocaleString() || "Recent",
             read: data.isRead || false,
-            createdAt: data.createdAt
+            createdAt: data.createdAt,
+            isSpam: data.isSpam || false
           };
         });
         
@@ -304,11 +306,15 @@ export default function NotificationsPage() {
                     {getIcon(n.type)}
                   </div>
                   <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className={cn(
-                        "font-bold text-sm sm:text-lg truncate",
-                        !n.read ? 'text-primary' : 'text-foreground'
-                      )}>{n.title}</h4>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h4 className={cn(
+                          "font-bold text-sm sm:text-lg truncate",
+                          !n.read ? 'text-primary' : 'text-foreground'
+                        )}>{n.title}</h4>
+                        {n.isSpam && (
+                          <Badge className="h-4 px-1.5 text-[8px] font-black uppercase tracking-widest bg-rose-500 text-white border-none rounded shrink-0">SPAM</Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                         <span className="hidden xs:flex text-[8px] sm:text-[10px] font-black uppercase text-muted-foreground items-center gap-1 tracking-widest">
                           <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> {n.time.split(',')[0]}

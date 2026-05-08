@@ -23,6 +23,8 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [currency, setCurrency] = useState("BDT");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchProducts();
@@ -72,6 +74,13 @@ export default function ProductsPage() {
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
@@ -118,7 +127,7 @@ export default function ProductsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredProducts.map((product) => (
+                    {paginatedProducts.map((product) => (
                       <TableRow key={product.id} className="hover:bg-muted/30 border-border/50">
                         <TableCell className="pl-6">
                           <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center border border-border overflow-hidden shadow-sm">
@@ -171,13 +180,53 @@ export default function ProductsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                {totalPages > 1 && (
+                  <div className="p-4 border-t bg-muted/20 flex items-center justify-between gap-4">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredProducts.length)} of {filteredProducts.length}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(prev => prev - 1)}
+                      >
+                        Previous
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                          <Button
+                            key={p}
+                            variant={currentPage === p ? "default" : "ghost"}
+                            size="sm"
+                            className="h-8 w-8 rounded-lg text-[10px] font-black"
+                            onClick={() => setCurrentPage(p)}
+                          >
+                            {p}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(prev => prev + 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
           {/* Mobile Card List View */}
           <div className="grid grid-cols-1 gap-4 md:hidden pb-10">
-            {filteredProducts.map((product) => (
+            {paginatedProducts.map((product) => (
               <Card key={product.id} className="rounded-3xl border-border/50 overflow-hidden shadow-sm active:scale-[0.98] transition-transform">
                 <CardContent className="p-4">
                   <div className="flex gap-4">
@@ -222,6 +271,37 @@ export default function ProductsPage() {
                 </CardContent>
               </Card>
             ))}
+
+            {totalPages > 1 && (
+              <div className="flex flex-col gap-3 py-4">
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 flex-1 rounded-xl text-[10px] font-black uppercase"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                  >
+                    Prev
+                  </Button>
+                  <div className="bg-white border rounded-xl px-4 h-9 flex items-center justify-center font-black text-xs">
+                    {currentPage} / {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 flex-1 rounded-xl text-[10px] font-black uppercase"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+                <p className="text-[9px] text-center font-bold text-muted-foreground uppercase tracking-widest">
+                  Total {filteredProducts.length} Products
+                </p>
+              </div>
+            )}
           </div>
         </>
       )}

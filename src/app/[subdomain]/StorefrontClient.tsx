@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useFirestore } from "@/firebase/provider";
 import { getSubdomain } from "@/lib/subdomain";
-import { collection, query, where, getDocs, limit, orderBy, onSnapshot, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Search, ShoppingBag, ShoppingCart, Loader2, ArrowRight, ChevronLeft, ChevronRight, X, Minus, Plus, Trash2, LayoutGrid, Package, Image as ImageIcon } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -19,8 +19,6 @@ import { BlockRenderer } from "./builder/[pageId]/block-renderer";
 import { LazySection } from "./builder/[pageId]/lazy-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageSkeleton } from "@/components/PageSkeleton";
-import { useUser } from "@/firebase/provider";
-import { ShieldAlert, LogIn } from "lucide-react";
 
 interface CartItem {
   id: string;
@@ -64,10 +62,6 @@ export default function Storefront({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { user } = useUser();
-  const isOwner = user?.uid && store?.ownerId === user?.uid;
-  const isSuspendedStatus = store?.status === "suspended";
-  const shouldBlockContent = isSuspendedStatus && !isOwner;
 
   useEffect(() => {
     setMounted(true);
@@ -133,23 +127,13 @@ export default function Storefront({
 
   useEffect(() => {
     if (subdomain) {
-      // Real-time store listener for immediate status updates (suspension)
-      const q = query(collection(firestore, "stores"), where("subdomain", "==", subdomain), limit(1));
-      const unsub = onSnapshot(q, (snap) => {
-        if (!snap.empty) {
-          const storeData = { id: snap.docs[0].id, ...snap.docs[0].data() };
-          setStore(storeData);
-          if (!page) fetchStoreAndPage(); // Fallback for initial load
-        }
-      });
-
-      if (store?.id) {
+      if (!store || !page) {
+        fetchStoreAndPage();
+      } else if (store?.id) {
         fetchProducts(store.id);
       }
-
-      return () => unsub();
     }
-  }, [subdomain, firestore, store?.id, !!page]);
+  }, [subdomain, !!store, !!page, store?.id, firestore]);
 
   const fetchProducts = async (storeId: string) => {
     if (!firestore) return;
@@ -255,27 +239,6 @@ export default function Storefront({
   const config = Array.isArray(page?.config) ? page.config : [];
   const pageStyle = page?.pageStyle || { backgroundColor: "#FFFFFF", paddingTop: 0, paddingBottom: 40 };
 
-  if (shouldBlockContent) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center text-center p-6 space-y-10 animate-in fade-in duration-700">
-        <div className="w-24 h-24 sm:w-32 sm:h-32 bg-rose-50 rounded-[40px] flex items-center justify-center text-rose-500 shadow-2xl border border-rose-100 animate-bounce">
-          <ShieldAlert className="w-12 h-12 sm:w-16 sm:h-16" />
-        </div>
-        <div className="space-y-4">
-          <h1 className="text-4xl sm:text-7xl font-headline font-black text-slate-950 uppercase tracking-tighter leading-none">Website Suspended</h1>
-          <p className="text-slate-500 max-w-md mx-auto font-medium text-sm sm:text-lg">This storefront is currently unavailable. Please contact the site administrator for more information.</p>
-        </div>
-        {!user && (
-          <Link href="/auth">
-            <Button className="rounded-2xl h-14 sm:h-16 px-8 sm:px-12 bg-slate-900 text-white font-black uppercase tracking-widest text-xs sm:text-sm shadow-xl hover:scale-105 transition-all">
-              <LogIn className="mr-2 w-4 h-4 sm:w-5 h-5" /> Owner Login
-            </Button>
-          </Link>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div
       className="min-h-screen"
@@ -287,12 +250,6 @@ export default function Storefront({
       }}
     >
       <div className="animate-in fade-in duration-700">
-        {/* Custom Nav for Suspended State - Visible to everyone if suspended */}
-        {isSuspendedStatus && (
-           <div className="bg-rose-600 text-white py-2.5 px-4 text-center text-[10px] sm:text-[11px] font-black uppercase tracking-widest sticky top-0 z-[100] shadow-xl">
-             This website has been suspended by the platform administrator
-           </div>
-        )}
           {/* Hero Main Content - Full Width */}
           <div className="max-w-7xl mx-auto px-4 md:px-6 pt-6">
             <div className="w-full min-h-[350px] sm:min-h-[450px] md:min-h-[550px] rounded-[32px] sm:rounded-[48px] relative overflow-hidden bg-slate-900 group shadow-2xl">
@@ -444,8 +401,6 @@ export default function Storefront({
                </Link>
             </div>
           </section>
-              </>
-            )}
 
         </div>
 

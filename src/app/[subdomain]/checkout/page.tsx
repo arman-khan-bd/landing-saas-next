@@ -99,51 +99,35 @@ export default function CheckoutPage() {
         if (storeData.shippingSettings?.enabled && storeData.shippingSettings.methods?.length > 0) {
           setSelectedShipping(storeData.shippingSettings.methods[0]);
         }
+        if (storeData.isOtpDisabled) setIsVerified(true);
+      } else {
+        router.push('/');
       }
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
-      if (cart.length > 0) {
-        fpixel.event('InitiateCheckout', {
-          content_ids: cart.map(i => i.id),
-          content_type: 'product',
-          value: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0),
-          currency: 'BDT'
-        });
-      }
     }
   };
 
-  const saveDraft = useCallback(async (data: typeof formData) => {
+  const saveDraft = useCallback(async (data: any) => {
     if (!store || cart.length === 0) return;
-    if (!data.fullName && !data.phone) return;
-
-    const draftData = {
-      storeId: store.id,
-      ownerId: store.ownerId,
-      items: cart,
-      customer: {
-        fullName: data.fullName,
-        email: data.email,
-        phone: data.phone,
-        address: data.address,
-        ip: clientIp
-      },
-      subtotal: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0),
-      shippingCost: selectedShipping?.cost || 0,
-      total: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0) + (selectedShipping?.cost || 0),
-      shipping: selectedShipping ? {
-        id: selectedShipping.id,
-        name: selectedShipping.name,
-        cost: selectedShipping.cost
-      } : null,
-      isRead: false,
-      lastUpdated: serverTimestamp(),
-      subdomain
-    };
-
     try {
+      const draftData = {
+        storeId: store.id,
+        ownerId: store.ownerId,
+        items: cart,
+        customer: {
+          fullName: data.fullName,
+          email: data.email,
+          phone: normalizePhoneNumber(data.phone),
+          address: data.address,
+          ip: clientIp
+        },
+        total: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0) + (selectedShipping?.cost || 0),
+        lastUpdated: serverTimestamp(),
+      };
+
       if (draftId) {
         await updateDoc(doc(db, "uncompleted_orders", draftId), draftData);
       } else {
@@ -178,22 +162,26 @@ export default function CheckoutPage() {
     setSendingSms(true);
     try {
       const normalizedPhone = normalizePhoneNumber(formData.phone);
-      const storeName = store?.name || "Store";
       
-      // Check IP Block
-      const ipQ = query(
-        collection(db, "customers"),
+      // Phone Block Check
+      const phoneBlockQ = query(
+        collection(db, "fraud_blocks"),
         where("storeId", "==", store.id),
-        where("ips", "array-contains", clientIp),
-        where("status.ipBlocked", "==", true)
+        where("type", "==", "phone"),
+        where("value", "==", normalizedPhone),
+        limit(1)
       );
-      const ipSnap = await getDocs(ipQ);
-      if (!ipSnap.empty) {
-        toast({ variant: "destructive", title: "Access Denied", description: "You are blocked from admin." });
+      const phoneBlockSnap = await getDocs(phoneBlockQ);
+      if (!phoneBlockSnap.empty) {
+        toast({ 
+          variant: "destructive", 
+          title: "Access Restricted", 
+          description: "This mobile number is restricted from placing orders." 
+        });
         return;
       }
 
-      const result = await sendSMS(normalizedPhone, storeName, store.id);
+      const result = await sendSMS(normalizedPhone, store?.name || "Store", store.id);
       
       if (!result.success) {
         toast({ 
@@ -271,19 +259,36 @@ export default function CheckoutPage() {
 
     setIsPlacingOrder(true);
     try {
-      const blockValues = [clientIp, formData.phone].filter(Boolean);
-      if (blockValues.length > 0) {
-        const fraudQ = query(
+      const normalizedPhone = normalizePhoneNumber(formData.phone);
+      
+      // Phone Block Check (Final)
+      const phoneBlockQ = query(
+        collection(db, "fraud_blocks"),
+        where("storeId", "==", store.id),
+        where("type", "==", "phone"),
+        where("value", "==", normalizedPhone),
+        limit(1)
+      );
+      const phoneBlockSnap = await getDocs(phoneBlockQ);
+      if (!phoneBlockSnap.empty) {
+        toast({ variant: "destructive", title: "Transaction Denied", description: "Your phone number has been restricted by the merchant." });
+        setIsPlacingOrder(false);
+        return;
+      }
+
+      // IP Spam Check
+      let isSpam = false;
+      if (clientIp) {
+        const ipBlockQ = query(
           collection(db, "fraud_blocks"),
           where("storeId", "==", store.id),
-          where("value", "in", blockValues),
+          where("type", "==", "ip"),
+          where("value", "==", clientIp),
           limit(1)
         );
-        const fraudSnap = await getDocs(fraudQ);
-        if (!fraudSnap.empty) {
-          toast({ variant: "destructive", title: "Transaction Denied", description: "Your details have been restricted by the merchant." });
-          setIsPlacingOrder(false);
-          return;
+        const ipBlockSnap = await getDocs(ipBlockQ);
+        if (!ipBlockSnap.empty) {
+          isSpam = true;
         }
       }
 
@@ -294,7 +299,7 @@ export default function CheckoutPage() {
         customer: {
           fullName: formData.fullName,
           email: formData.email,
-          phone: normalizePhoneNumber(formData.phone),
+          phone: normalizedPhone,
           address: formData.address,
           ip: clientIp
         },
@@ -311,6 +316,7 @@ export default function CheckoutPage() {
         status: "pending",
         paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
         isRead: false,
+        isSpam: isSpam,
         createdAt: serverTimestamp(),
       };
 
@@ -402,160 +408,160 @@ export default function CheckoutPage() {
                                  <InputOTPSlot index={5} className="bg-white" />
                                </InputOTPGroup>
                              </InputOTP>
-                            <Button 
-                              size="sm" 
-                              variant="secondary" 
-                              className="w-full h-10 rounded-xl text-[10px] font-bold bg-primary text-white hover:bg-primary/90" 
-                              onClick={verifyOtp} 
-                              disabled={verifying || formData.otp.length < 6}
-                            >
-                              {verifying ? <Loader2 className="w-3 h-3 animate-spin" /> : "Verify & Continue"}
-                            </Button>
+                             <Button size="sm" variant="outline" className="rounded-xl font-bold px-8 h-9" onClick={verifyOtp} disabled={verifying || formData.otp.length !== 6}>
+                               {verifying ? <Loader2 className="w-3 h-3 animate-spin" /> : "Verify Code"}
+                             </Button>
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email Address (Optional)</Label><Input placeholder="john@example.com" className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm" value={formData.email} onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))} /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Full Delivery Address *</Label><Textarea placeholder="Flat, House, Street, Area, City" className="min-h-[80px] rounded-xl bg-slate-50 border-none p-4 text-sm" value={formData.address} onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))} /></div>
+
+                  <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email Address (Optional)</Label><Input placeholder="email@example.com" className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm" value={formData.email} onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))} /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Delivery Address *</Label><Textarea placeholder="Area, City, House/Road details..." className="min-h-[100px] rounded-xl bg-slate-50 border-none p-4 text-sm resize-none" value={formData.address} onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))} /></div>
                 </CardContent>
               </Card>
             </section>
 
-            {store?.shippingSettings?.enabled && store.shippingSettings.methods?.length > 0 && (
-              <section className="space-y-6">
-                <div className="flex items-center gap-3"><div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500"><Truck className="w-5 h-5" /></div><h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Shipping Zone</h2></div>
-                <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
-                  <CardContent className="p-6 sm:p-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {store.shippingSettings.methods.map((method: any) => (
-                        <div 
-                          key={method.id} 
-                          className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} 
-                          onClick={() => setSelectedShipping(method)}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedShipping?.id === method.id ? 'border-primary' : 'border-slate-300')}>
-                              {selectedShipping?.id === method.id && <div className="w-2 h-2 rounded-full bg-primary" />}
-                            </div>
-                            <div className="min-w-0">
-                              <span className="font-bold text-base cursor-pointer truncate block">{method.name}</span>
-                              <p className="text-xs text-muted-foreground">{method.cost > 0 ? `${getCurrencySymbol(store?.currency)}${method.cost.toFixed(2)}` : 'Free Delivery'}</p>
-                            </div>
+            <section className="space-y-4">
+              <div className="flex items-center gap-2"><div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary"><Truck className="w-4 h-4" /></div><h2 className="text-lg font-headline font-black tracking-tight text-slate-900 uppercase">Delivery Logistics</h2></div>
+              <RadioGroup value={selectedShipping?.id} onValueChange={(val) => setSelectedShipping(store.shippingSettings.methods.find((m: any) => m.id === val))} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {store?.shippingSettings?.methods?.map((method: any) => (
+                  <Label key={method.id} className={cn("relative flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer bg-white", selectedShipping?.id === method.id ? "border-primary bg-primary/5 shadow-md" : "border-transparent hover:border-slate-200")}>
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value={method.id} id={method.id} className="sr-only" />
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-colors", selectedShipping?.id === method.id ? "bg-primary text-white" : "bg-slate-50 text-slate-400")}><Truck className="w-5 h-5" /></div>
+                      <div className="text-left">
+                        <p className="font-bold text-slate-900 text-sm">{method.name}</p>
+                        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">{method.duration || "Standard"}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                       <p className="font-black text-primary text-lg">{method.cost > 0 ? `${getCurrencySymbol(store.currency)}${method.cost}` : 'FREE'}</p>
+                    </div>
+                  </Label>
+                ))}
+              </RadioGroup>
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center gap-2"><div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary"><CreditCard className="w-4 h-4" /></div><h2 className="text-lg font-headline font-black tracking-tight text-slate-900 uppercase">Payment Strategy</h2></div>
+              <RadioGroup value={formData.paymentMethod} onValueChange={(val) => setFormData(prev => ({...prev, paymentMethod: val}))} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Label className={cn("relative flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer bg-white group", formData.paymentMethod === 'cod' ? "border-primary bg-primary/5 shadow-md" : "border-transparent hover:border-slate-200")}>
+                  <RadioGroupItem value="cod" id="cod" className="sr-only" />
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-colors", formData.paymentMethod === 'cod' ? "bg-primary text-white" : "bg-slate-50 text-slate-400")}><Truck className="w-5 h-5" /></div>
+                    {formData.paymentMethod === 'cod' && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                  </div>
+                  <div className="text-left">
+                    <p className="font-black text-slate-900 text-sm">Cash on Delivery</p>
+                    <p className="text-[10px] text-slate-500 font-medium leading-relaxed mt-1 uppercase tracking-tighter">Pay securely when items arrive at your doorstep.</p>
+                  </div>
+                </Label>
+
+                {store?.paymentSettings?.manualEnabled && (
+                  <Label className={cn("relative flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer bg-white group", formData.paymentMethod === 'manual' ? "border-primary bg-primary/5 shadow-md" : "border-transparent hover:border-slate-200")}>
+                    <RadioGroupItem value="manual" id="manual" className="sr-only" />
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-colors", formData.paymentMethod === 'manual' ? "bg-primary text-white" : "bg-slate-50 text-slate-400")}><Smartphone className="w-5 h-5" /></div>
+                      {formData.paymentMethod === 'manual' && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                    </div>
+                    <div className="text-left">
+                      <p className="font-black text-slate-900 text-sm">Mobile Banking</p>
+                      <p className="text-[10px] text-slate-500 font-medium leading-relaxed mt-1 uppercase tracking-tighter">Bkash, Nagad or Rocket manual payment processing.</p>
+                    </div>
+                  </Label>
+                )}
+              </RadioGroup>
+
+              {formData.paymentMethod === 'manual' && (
+                <div className="p-6 bg-white rounded-[32px] border-none shadow-sm space-y-6 animate-in slide-in-from-top-2">
+                  <div className="space-y-4">
+                    <Label className="text-[10px] font-black uppercase text-slate-400">Select Gateway</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {store?.paymentSettings?.manualMethods?.map((method: any) => (
+                        <button key={method.id} type="button" onClick={() => setFormData(prev => ({...prev, selectedManualMethodId: method.id}))} className={cn("p-4 rounded-2xl border-2 transition-all text-left", formData.selectedManualMethodId === method.id ? "border-indigo-600 bg-indigo-50" : "border-slate-100 hover:border-slate-200")}>
+                          <div className="flex items-center justify-between mb-2">
+                             <p className="font-black text-xs text-slate-900">{method.name}</p>
+                             {formData.selectedManualMethodId === method.id && <div className="w-2 h-2 rounded-full bg-indigo-600" />}
                           </div>
+                          <p className="text-[10px] font-bold text-indigo-600">{method.number}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {selectedManualMethod && (
+                    <div className="p-6 bg-slate-50 rounded-3xl space-y-6 border border-slate-100">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-slate-100"><ShieldCheck className="w-5 h-5 text-indigo-600" /></div>
+                        <div className="space-y-2">
+                          <p className="text-xs font-black uppercase tracking-tight text-slate-900">Payment Instructions</p>
+                          <p className="text-[11px] text-slate-600 leading-relaxed font-medium">Please send <span className="font-black text-indigo-600">{getCurrencySymbol(store.currency)}{cartTotal.toFixed(0)}</span> to the number below using {selectedManualMethod.name} ({selectedManualMethod.type}).</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-2xl border flex items-center justify-between">
+                         <div>
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Target Number</p>
+                            <p className="text-xl font-mono font-black text-slate-900">{selectedManualMethod.number}</p>
+                         </div>
+                         <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 hover:bg-slate-50" onClick={() => { navigator.clipboard.writeText(selectedManualMethod.number); toast({title: "Copied!"}) }}><Copy className="w-4 h-4" /></Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Verification Transaction ID</Label>
+                        <Input placeholder="TRXID..." className="h-12 rounded-2xl bg-white border-slate-200 px-5 text-lg font-mono font-black placeholder:font-sans placeholder:text-sm" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value}))} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          </div>
+
+          <div className="lg:col-span-2">
+            <div className="sticky top-10 space-y-6">
+              <section className="space-y-4">
+                <div className="flex items-center gap-2"><div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary"><ShoppingCart className="w-4 h-4" /></div><h2 className="text-lg font-headline font-black tracking-tight text-slate-900 uppercase">Order Summary</h2></div>
+                <Card className="rounded-[32px] border-none shadow-xl overflow-hidden bg-white">
+                  <CardContent className="p-0">
+                    <div className="p-6 md:p-8 space-y-6">
+                      {cart.map((item) => (
+                        <div key={item.id} className="flex items-center gap-4">
+                          <div className="w-16 h-16 rounded-2xl bg-slate-50 overflow-hidden border border-slate-100 shrink-0"><img src={item.image} className="w-full h-full object-cover" /></div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-black text-slate-900 text-sm truncate uppercase tracking-tight">{item.name}</h4>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{item.quantity} × {getCurrencySymbol(store?.currency)}{item.price}</p>
+                          </div>
+                          <p className="font-black text-slate-900">{getCurrencySymbol(store?.currency)}{(item.price * item.quantity).toFixed(0)}</p>
                         </div>
                       ))}
+                    </div>
+
+                    <div className="p-8 bg-slate-50 space-y-4 border-t border-slate-100">
+                      <div className="flex justify-between text-sm font-medium text-slate-500"><span>Subtotal</span><span className="font-black text-slate-900">{getCurrencySymbol(store?.currency)}{cartSubtotal.toFixed(0)}</span></div>
+                      <div className="flex justify-between text-sm font-medium text-slate-500"><span>Shipping</span><span className="font-black text-emerald-600">{shippingCost > 0 ? `${getCurrencySymbol(store?.currency)}${shippingCost}` : 'FREE'}</span></div>
+                      <Separator className="my-4 bg-slate-200" />
+                      <div className="flex justify-between items-end">
+                        <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Grand Total</p>
+                          <p className="text-4xl font-headline font-black text-primary tracking-tighter leading-none">{getCurrencySymbol(store?.currency)}{cartTotal.toFixed(0)}</p>
+                        </div>
+                        <div className="text-right">
+                           <p className="text-[10px] font-black text-emerald-500 uppercase flex items-center gap-1 justify-end"><ShieldCheck className="w-3 h-3" /> Secure Checkout</p>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               </section>
-            )}
 
-            <section className="space-y-6">
-              <div className="flex items-center gap-3"><div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent"><CreditCard className="w-5 h-5" /></div><h2 className="text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Payment Strategy</h2></div>
-              <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
-                <CardContent className="p-6 sm:p-8 space-y-4">
-                  {store?.paymentSettings?.cod && (
-                    <div 
-                      className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} 
-                      onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
-                          {formData.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
-                        </div>
-                        <span className="font-bold text-base cursor-pointer">Cash on Delivery</span>
-                      </div>
-                      <Truck className="w-5 h-5 text-slate-300" />
-                    </div>
-                  )}
-                  {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
-                    <div 
-                      className={cn("flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} 
-                      onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'manual' ? 'border-primary' : 'border-slate-300')}>
-                            {formData.paymentMethod === 'manual' && <div className="w-2 h-2 rounded-full bg-primary" />}
-                          </div>
-                          <span className="font-bold text-base cursor-pointer">Manual Payment</span>
-                        </div>
-                        <SmartphoneIcon className="w-5 h-5 text-slate-300" />
-                      </div>
-                      {formData.paymentMethod === 'manual' && (
-                        <div className="mt-6 p-6 bg-white/80 rounded-2xl border border-primary/10 space-y-6 animate-in slide-in-from-top-2" onClick={(e) => e.stopPropagation()}>
-                          <div className="space-y-4">
-                            <Label className="text-[10px] font-black uppercase text-slate-400">Select Provider</Label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              {store.paymentSettings.manualMethods.map((method: any) => (
-                                <div key={method.id} onClick={() => setFormData(prev => ({...prev, selectedManualMethodId: method.id}))} className={cn("p-4 rounded-xl border-2 transition-all text-center cursor-pointer", formData.selectedManualMethodId === method.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-50 bg-slate-50 hover:bg-slate-100')}><p className="text-xs font-black uppercase tracking-tight">{method.name}</p></div>
-                              ))}
-                            </div>
-                          </div>
-                          {selectedManualMethod && (
-                            <div className="space-y-6">
-                              <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between group">
-                                <div className="space-y-1">
-                                  <p className="text-[10px] font-black uppercase text-primary">Number</p>
-                                  <p className="text-lg font-mono font-black text-slate-900 select-all">{selectedManualMethod.number}</p>
-                                  {selectedManualMethod.instructions && <div className="text-[11px] leading-relaxed text-slate-600 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</div>}
-                                </div>
-                                <Button 
-                                  type="button" 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 rounded-lg hover:bg-primary/5 text-primary shrink-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigator.clipboard.writeText(selectedManualMethod.number);
-                                    toast({ title: "Copied", description: "Payment number copied to clipboard." });
-                                  }}
-                                >
-                                  <Copy className="w-3.5 h-3.5" />
-                                </Button>
-                              </div>
-                              <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400">Transaction ID *</Label>
-                                <Input placeholder="Enter the ID from your SMS" className="h-12 rounded-xl bg-white border-primary/20 font-mono text-center text-lg" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </section>
-          </div>
-
-          <div className="lg:col-span-2 space-y-4">
-            <h2 className="text-lg font-headline font-black tracking-tight text-slate-900 uppercase">Order Strategy</h2>
-            <Card className="rounded-[32px] border-none shadow-xl bg-white overflow-hidden sticky top-20">
-              <CardContent className="p-6 space-y-5">
-                <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
-                  {cart.map((item) => (
-                    <div key={item.id} className="flex gap-3 items-center"><div className="w-12 h-12 rounded-lg bg-slate-50 border overflow-hidden shrink-0"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div><div className="flex-1 min-w-0"><h4 className="font-bold text-[11px] line-clamp-1">{item.name}</h4><p className="text-slate-400 text-[9px] font-bold">Qty: {item.quantity} × {getCurrencySymbol(store?.currency)}{item.price.toFixed(2)}</p></div><p className="font-black text-xs text-slate-900">{getCurrencySymbol(store?.currency)}{(item.price * item.quantity).toFixed(2)}</p></div>
-                  ))}
-                </div>
-                <div className="space-y-2.5 pt-4 border-t border-slate-100">
-                  <div className="flex justify-between text-xs"><span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Subtotal</span><span className="font-bold text-xs">{getCurrencySymbol(store?.currency)}{cartSubtotal.toFixed(2)}</span></div>
-                  <div className="flex justify-between text-xs"><span className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Delivery</span><span className={cn("font-black text-xs", shippingCost > 0 ? "text-slate-900" : "text-emerald-500")}>{shippingCost > 0 ? `${getCurrencySymbol(store?.currency)}${shippingCost.toFixed(2)}` : 'FREE'}</span></div>
-                  <Separator className="bg-slate-50" /><div className="flex justify-between items-end pt-1"><span className="text-slate-900 font-black uppercase tracking-tight text-base leading-none">Total</span><span className="text-2xl font-black text-primary tracking-tighter">{getCurrencySymbol(store?.currency)}{cartTotal.toFixed(2)}</span></div>
-                    <Button 
-                      type="button" 
-                      className="w-full h-16 rounded-[24px] text-xl font-black shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:grayscale" 
-                      disabled={isPlacingOrder || (!isVerified && (store?.otpVerification !== false)) || cart.length === 0}
-                      onClick={handlePlaceOrder}
-                    >
-                      {isPlacingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : (!isVerified && (store?.otpVerification !== false)) ? "Verify to Complete" : "Confirm My Order"}
-                    </Button>
-                </div>
-                {!isVerified && (store?.otpVerification !== false) && <p className="text-[10px] text-center font-bold text-rose-500 uppercase tracking-widest animate-pulse">Verification Required to Checkout</p>}
-                <div className="flex items-center justify-center gap-2 text-slate-400"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /><span className="text-[8px] font-black uppercase tracking-[0.2em]">Global Secure Network</span></div>
-              </CardContent>
-            </Card>
+              <Button onClick={handlePlaceOrder} disabled={isPlacingOrder} className="w-full h-16 rounded-[24px] bg-primary text-white font-black text-xl uppercase tracking-widest shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50">
+                {isPlacingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : "Complete Purchase"}
+              </Button>
+              <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">Fully Encrypted Transaction Control</p>
+            </div>
           </div>
         </div>
       </main>

@@ -39,6 +39,8 @@ export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchCustomers();
@@ -84,6 +86,13 @@ export default function CustomersPage() {
       (c.notes && c.notes.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [customers, searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   if (loading) {
     return (
@@ -139,7 +148,7 @@ export default function CustomersPage() {
                             No customers found matching your search.
                         </TableCell>
                     </TableRow>
-                ) : filteredCustomers.map((customer) => (
+                ) : paginatedCustomers.map((customer) => (
                   <TableRow key={customer.id} className="hover:bg-slate-50/80 transition-colors border-border/50 group">
                     <TableCell className="py-6 px-8">
                       <div className="flex items-center gap-4">
@@ -226,13 +235,29 @@ export default function CustomersPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                </Table>
+                {totalPages > 1 && (
+                  <div className="p-4 border-t bg-muted/20 flex items-center justify-between gap-4">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredCustomers.length)} of {filteredCustomers.length}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" className="h-8 rounded-lg text-[10px] font-black uppercase tracking-widest" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)}>Previous</Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                          <Button key={p} variant={currentPage === p ? "default" : "ghost"} size="sm" className="h-8 w-8 rounded-lg text-[10px] font-black" onClick={() => setCurrentPage(p)}>{p}</Button>
+                        ))}
+                      </div>
+                      <Button variant="outline" size="sm" className="h-8 rounded-lg text-[10px] font-black uppercase tracking-widest" disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => prev + 1)}>Next</Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
       <div className="grid grid-cols-1 gap-4 lg:hidden pb-10">
-        {filteredCustomers.map((customer) => (
+        {paginatedCustomers.map((customer) => (
           <Card key={customer.id} className="rounded-[32px] border-border/50 bg-white shadow-lg overflow-hidden border-2">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-6">
@@ -270,6 +295,17 @@ export default function CustomersPage() {
             </CardContent>
           </Card>
         ))}
+
+        {totalPages > 1 && (
+          <div className="flex flex-col gap-3 py-4">
+            <div className="flex items-center justify-center gap-2">
+              <Button variant="outline" size="sm" className="h-9 flex-1 rounded-xl text-[10px] font-black uppercase" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)}>Prev</Button>
+              <div className="bg-white border rounded-xl px-4 h-9 flex items-center justify-center font-black text-xs">{currentPage} / {totalPages}</div>
+              <Button variant="outline" size="sm" className="h-9 flex-1 rounded-xl text-[10px] font-black uppercase" disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => prev + 1)}>Next</Button>
+            </div>
+            <p className="text-[9px] text-center font-bold text-muted-foreground uppercase tracking-widest">Total {filteredCustomers.length} Customers</p>
+          </div>
+        )}
       </div>
     </div>
   );

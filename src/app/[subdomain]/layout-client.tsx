@@ -7,7 +7,7 @@ import { getSubdomain } from "@/lib/subdomain";
 import { collection, query, where, getDocs, onSnapshot, doc, getDoc, updateDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home, ShoppingCart, WifiOff, Palette } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home, ShoppingCart, WifiOff, Palette, ShieldAlert, AlertTriangle, Sparkles, Hammer } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,14 +22,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { writeBatch } from "firebase/firestore";
 
-export default function StoreLayoutClient({ 
-  children, 
-  initialStore, 
-  initialSubdomain 
-}: { 
-  children: React.ReactNode, 
-  initialStore?: any, 
-  initialSubdomain?: string 
+export default function StoreLayoutClient({
+  children,
+  initialStore,
+  initialSubdomain
+}: {
+  children: React.ReactNode,
+  initialStore?: any,
+  initialSubdomain?: string
 }) {
   const { subdomain: paramsSubdomain } = useParams();
   const [subdomain, setSubdomain] = useState<string>(initialSubdomain || "");
@@ -68,7 +68,7 @@ export default function StoreLayoutClient({
 
   const adminSegments = ["dashboard", "overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "sections", "home-manager"];
   const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`));
-  
+
   // EDITOR DETECT: Only hide sidebar when inside the specific page editor /[pageId]
   // Normalized path examples: "/sections", "/sections/abc123"
   const isEditor = normalizedPath.startsWith("/sections/") && normalizedPath.split("/").filter(Boolean).length > 1;
@@ -123,32 +123,32 @@ export default function StoreLayoutClient({
     );
 
     const unsubOrders = onSnapshot(ordersQ, (snap) => {
-        setCounts(prev => ({ ...prev, orders: snap.size }));
-        const orderNotifs = snap.docs.map(d => ({ id: d.id, type: 'order', title: 'New Order', description: `Order #${d.id.slice(0,6)} from ${d.data().customer?.fullName}`, time: d.data().createdAt, href: `/orders/${d.id}` }));
-        setNotifications(prev => {
-            const filtered = prev.filter(n => n.type !== 'order');
-            return [...filtered, ...orderNotifs].sort((a,b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
-        });
-    }, (err) => {});
+      setCounts(prev => ({ ...prev, orders: snap.size }));
+      const orderNotifs = snap.docs.map(d => ({ id: d.id, type: 'order', title: 'New Order', description: `Order #${d.id.slice(0, 6)} from ${d.data().customer?.fullName}`, time: d.data().createdAt, href: `/orders/${d.id}` }));
+      setNotifications(prev => {
+        const filtered = prev.filter(n => n.type !== 'order');
+        return [...filtered, ...orderNotifs].sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
+      });
+    }, (err) => { });
 
     const unsubUncompleted = onSnapshot(uncompletedQ, (snap) => {
-        setCounts(prev => ({ ...prev, uncompleted: snap.size }));
-        const draftNotifs = snap.docs.map(d => ({ id: d.id, type: 'draft', title: 'Abandoned Cart', description: `Draft #${d.id.slice(0,6)} by ${d.data().customer?.fullName || 'Guest'}`, time: d.data().lastUpdated, href: `/orders/uncompleted/${d.id}` }));
-        setNotifications(prev => {
-            const filtered = prev.filter(n => n.type !== 'draft');
-            return [...filtered, ...draftNotifs].sort((a,b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
-        });
-    }, (err) => {});
+      setCounts(prev => ({ ...prev, uncompleted: snap.size }));
+      const draftNotifs = snap.docs.map(d => ({ id: d.id, type: 'draft', title: 'Abandoned Cart', description: `Draft #${d.id.slice(0, 6)} by ${d.data().customer?.fullName || 'Guest'}`, time: d.data().lastUpdated, href: `/orders/uncompleted/${d.id}` }));
+      setNotifications(prev => {
+        const filtered = prev.filter(n => n.type !== 'draft');
+        return [...filtered, ...draftNotifs].sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
+      });
+    }, (err) => { });
 
     const unsubSystem = onSnapshot(systemQ, (snap) => {
-        setCounts(prev => ({ ...prev, system: snap.size }));
-        const sysNotifs = snap.docs.map(d => ({ id: d.id, type: 'system', title: d.data().title || 'System Alert', description: d.data().message, time: d.data().createdAt, href: '/notifications' }));
-        setNotifications(prev => {
-            const filtered = prev.filter(n => n.type !== 'system');
-            return [...filtered, ...sysNotifs].sort((a,b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
-        });
-    }, (err) => {});
-    const unsubCustomers = onSnapshot(customersQ, (snap) => setCounts(prev => ({ ...prev, customers: snap.size })), (err) => {});
+      setCounts(prev => ({ ...prev, system: snap.size }));
+      const sysNotifs = snap.docs.map(d => ({ id: d.id, type: 'system', title: d.data().title || 'System Alert', description: d.data().message, time: d.data().createdAt, href: '/notifications' }));
+      setNotifications(prev => {
+        const filtered = prev.filter(n => n.type !== 'system');
+        return [...filtered, ...sysNotifs].sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
+      });
+    }, (err) => { });
+    const unsubCustomers = onSnapshot(customersQ, (snap) => setCounts(prev => ({ ...prev, customers: snap.size })), (err) => { });
 
     return () => {
       unsubOrders();
@@ -180,6 +180,13 @@ export default function StoreLayoutClient({
 
       const storeData = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
 
+      // Set up real-time listener for the store document to catch suspension/updates
+      onSnapshot(doc(firestore, "stores", storeData.id), (docSnap) => {
+        if (docSnap.exists()) {
+          setStore({ id: docSnap.id, ...docSnap.data() });
+        }
+      });
+
       if (storeData.ownerId !== uid && role !== 'admin') {
         if (isAdminPath) setAccessDenied(true);
       } else {
@@ -190,7 +197,7 @@ export default function StoreLayoutClient({
           try {
             const { timestamp } = JSON.parse(savedSession);
             if (Date.now() - timestamp < 3600000) setIsPasswordVerified(true);
-          } catch (e) {}
+          } catch (e) { }
         }
         if (!storeData.managePassword || role === 'admin') setIsPasswordVerified(true);
       }
@@ -219,27 +226,27 @@ export default function StoreLayoutClient({
   const markAllAsRead = async () => {
     if (!firestore || !auth?.currentUser || !store?.id) return;
     try {
-        const batch = writeBatch(firestore);
-        
-        // Mark orders as read
-        const ordersQ = query(collection(firestore, "orders"), where("storeId", "==", store.id), where("isRead", "==", false));
-        const oSnap = await getDocs(ordersQ);
-        oSnap.docs.forEach(d => batch.update(d.ref, { isRead: true }));
+      const batch = writeBatch(firestore);
 
-        // Mark uncompleted as read
-        const uQ = query(collection(firestore, "uncompleted_orders"), where("storeId", "==", store.id), where("isRead", "==", false));
-        const uSnap = await getDocs(uQ);
-        uSnap.docs.forEach(d => batch.update(d.ref, { isRead: true }));
+      // Mark orders as read
+      const ordersQ = query(collection(firestore, "orders"), where("storeId", "==", store.id), where("isRead", "==", false));
+      const oSnap = await getDocs(ordersQ);
+      oSnap.docs.forEach(d => batch.update(d.ref, { isRead: true }));
 
-        // Mark system as read
-        const sQ = query(collection(firestore, "system_notifications"), where("userId", "==", auth.currentUser.uid), where("read", "==", false));
-        const sSnap = await getDocs(sQ);
-        sSnap.docs.forEach(d => batch.update(d.ref, { read: true }));
+      // Mark uncompleted as read
+      const uQ = query(collection(firestore, "uncompleted_orders"), where("storeId", "==", store.id), where("isRead", "==", false));
+      const uSnap = await getDocs(uQ);
+      uSnap.docs.forEach(d => batch.update(d.ref, { isRead: true }));
 
-        await batch.commit();
-        toast({ title: "Notifications cleared" });
+      // Mark system as read
+      const sQ = query(collection(firestore, "system_notifications"), where("userId", "==", auth.currentUser.uid), where("read", "==", false));
+      const sSnap = await getDocs(sQ);
+      sSnap.docs.forEach(d => batch.update(d.ref, { read: true }));
+
+      await batch.commit();
+      toast({ title: "Notifications cleared" });
     } catch (e) {
-        console.error(e);
+      console.error(e);
     }
   };
 
@@ -266,6 +273,80 @@ export default function StoreLayoutClient({
       </Card>
     </div>
   );
+
+  if (store?.isMaintenance && !isAdminPath) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-white flex items-center justify-center p-6">
+        <div className="max-w-md w-full text-center space-y-8 animate-in fade-in zoom-in duration-500">
+          <div className="w-24 h-24 bg-amber-50 text-amber-500 rounded-[32px] flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10 border border-amber-100">
+            <Hammer className="w-12 h-12" />
+          </div>
+          <div className="space-y-3">
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Maintenance Mode</h1>
+            <p className="text-slate-500 font-medium text-lg leading-relaxed px-4">
+              We're currently performing scheduled maintenance to improve your experience. We'll be back shortly!
+            </p>
+          </div>
+          <div className="pt-6">
+            <div className="bg-slate-50 border border-slate-100 rounded-3xl p-8 space-y-6">
+              <div className="flex items-center gap-4 text-left">
+                <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5 text-indigo-500" />
+                </div>
+                <p className="text-sm font-bold text-slate-700">New features and optimizations are being deployed.</p>
+              </div>
+              {auth?.currentUser?.uid === store.ownerId ? (
+                <Button
+                  onClick={() => router.push(getTenantPath(subdomain, '/dashboard'))}
+                  className="w-full h-14 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-widest hover:scale-[1.02] transition-transform"
+                >
+                  Go to Manager
+                </Button>
+              ) : (
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Estimated Completion: Soon</p>
+              )}
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">{store.name}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (store?.isSuspended) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-white flex items-center justify-center p-6">
+        <div className="max-w-md w-full text-center space-y-8 animate-in fade-in zoom-in duration-500">
+          <div className="w-24 h-24 bg-rose-50 text-rose-500 rounded-[32px] flex items-center justify-center mx-auto shadow-xl shadow-rose-500/10 border border-rose-100">
+            <AlertTriangle className="w-12 h-12" />
+          </div>
+          <div className="space-y-3">
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Store Suspended</h1>
+            <p className="text-slate-500 font-medium text-lg leading-relaxed px-4">
+              This store has been temporarily suspended by the platform administration.
+            </p>
+          </div>
+          <div className="pt-6">
+            <div className="bg-slate-50 border border-slate-100 rounded-3xl p-8 space-y-6">
+              <div className="flex items-center gap-4 text-left">
+                <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center shrink-0">
+                  <ShieldAlert className="w-5 h-5 text-amber-500" />
+                </div>
+                <p className="text-sm font-bold text-slate-700">Access to this website is currently restricted.</p>
+              </div>
+              <Button
+                onClick={() => window.location.href = '/'}
+                className="w-full h-14 rounded-2xl bg-slate-950 text-white font-black uppercase tracking-widest hover:scale-[1.02] transition-transform"
+              >
+                Return to Home
+              </Button>
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">IHut.Shop Trust & Safety</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isAdminPath && !isPasswordVerified && !accessDenied) return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
@@ -385,61 +466,61 @@ export default function StoreLayoutClient({
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="relative p-2 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-full outline-none transition-all">
-                        <Bell className="w-5 h-5" />
-                        {(counts.orders + counts.uncompleted + counts.system) > 0 && (
-                            <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-black text-white flex items-center justify-center rounded-full border-2 border-white animate-in zoom-in">
-                                {counts.orders + counts.uncompleted + counts.system}
-                            </span>
-                        )}
+                      <Bell className="w-5 h-5" />
+                      {(counts.orders + counts.uncompleted + counts.system) > 0 && (
+                        <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-black text-white flex items-center justify-center rounded-full border-2 border-white animate-in zoom-in">
+                          {counts.orders + counts.uncompleted + counts.system}
+                        </span>
+                      )}
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-[380px] rounded-[32px] p-2 border-border/50 shadow-2xl bg-white/95 backdrop-blur-xl">
                     <div className="p-4 flex items-center justify-between">
-                        <h3 className="font-black uppercase tracking-widest text-[10px] text-slate-400">Activity Stream</h3>
-                        {notifications.length > 0 && (
-                            <Button variant="ghost" className="h-7 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/5" onClick={markAllAsRead}>Mark all read</Button>
-                        )}
+                      <h3 className="font-black uppercase tracking-widest text-[10px] text-slate-400">Activity Stream</h3>
+                      {notifications.length > 0 && (
+                        <Button variant="ghost" className="h-7 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/5" onClick={markAllAsRead}>Mark all read</Button>
+                      )}
                     </div>
                     <DropdownMenuSeparator className="bg-slate-50" />
                     <ScrollArea className="h-[400px]">
-                        {notifications.length === 0 ? (
-                            <div className="p-12 text-center space-y-3">
-                                <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto text-slate-200"><Bell className="w-6 h-6" /></div>
-                                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Inbox Zero</p>
-                            </div>
-                        ) : (
-                            <div className="p-2 space-y-1">
-                                {notifications.map((n) => (
-                                    <DropdownMenuItem key={n.id} className="rounded-2xl p-4 cursor-pointer hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group" onClick={() => markAsRead(n.id, n.type, n.href)}>
-                                        <div className="flex gap-4">
-                                            <div className={cn(
-                                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                                                n.type === 'order' ? "bg-emerald-50 text-emerald-600" :
-                                                n.type === 'draft' ? "bg-amber-50 text-amber-600" : "bg-primary/5 text-primary"
-                                            )}>
-                                                {n.type === 'order' ? <ShoppingBag className="w-5 h-5" /> : 
-                                                 n.type === 'draft' ? <AlertCircle className="w-5 h-5" /> : <Bell className="w-5 h-5" />}
-                                            </div>
-                                            <div className="space-y-1 overflow-hidden">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <p className="text-xs font-black uppercase text-slate-900 truncate">{n.title}</p>
-                                                    <span className="text-[9px] font-bold text-slate-400 shrink-0">{n.time?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                </div>
-                                                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{n.description}</p>
-                                            </div>
-                                        </div>
-                                    </DropdownMenuItem>
-                                ))}
-                            </div>
-                        )}
+                      {notifications.length === 0 ? (
+                        <div className="p-12 text-center space-y-3">
+                          <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto text-slate-200"><Bell className="w-6 h-6" /></div>
+                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Inbox Zero</p>
+                        </div>
+                      ) : (
+                        <div className="p-2 space-y-1">
+                          {notifications.map((n) => (
+                            <DropdownMenuItem key={n.id} className="rounded-2xl p-4 cursor-pointer hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group" onClick={() => markAsRead(n.id, n.type, n.href)}>
+                              <div className="flex gap-4">
+                                <div className={cn(
+                                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                                  n.type === 'order' ? "bg-emerald-50 text-emerald-600" :
+                                    n.type === 'draft' ? "bg-amber-50 text-amber-600" : "bg-primary/5 text-primary"
+                                )}>
+                                  {n.type === 'order' ? <ShoppingBag className="w-5 h-5" /> :
+                                    n.type === 'draft' ? <AlertCircle className="w-5 h-5" /> : <Bell className="w-5 h-5" />}
+                                </div>
+                                <div className="space-y-1 overflow-hidden">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-xs font-black uppercase text-slate-900 truncate">{n.title}</p>
+                                    <span className="text-[9px] font-bold text-slate-400 shrink-0">{n.time?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+                                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{n.description}</p>
+                                </div>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
+                      )}
                     </ScrollArea>
                     {notifications.length > 10 && (
-                        <>
-                            <DropdownMenuSeparator className="bg-slate-50" />
-                            <div className="p-2">
-                                <Button variant="ghost" className="w-full h-12 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary hover:bg-primary/5" onClick={() => router.push(getTenantPath(subdomain, "/notifications"))}>See all notifications</Button>
-                            </div>
-                        </>
+                      <>
+                        <DropdownMenuSeparator className="bg-slate-50" />
+                        <div className="p-2">
+                          <Button variant="ghost" className="w-full h-12 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary hover:bg-primary/5" onClick={() => router.push(getTenantPath(subdomain, "/notifications"))}>See all notifications</Button>
+                        </div>
+                      </>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>

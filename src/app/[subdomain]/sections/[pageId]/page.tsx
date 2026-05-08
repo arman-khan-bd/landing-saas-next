@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useFirestore } from "@/firebase/provider";
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from "firebase/firestore";
-import { Loader2, AlertCircle, Save, ArrowLeft, Plus, Smartphone, Monitor, Trash2, Layout, Settings, Sparkles, ChevronLeft, ChevronRight, Layers, Eye, Smartphone as MobileIcon, Menu, X, ShieldAlert } from "lucide-react";
+import { Loader2, AlertCircle, Save, ArrowLeft, Plus, Smartphone, Monitor, Trash2, Layout, Settings, Sparkles, ChevronLeft, ChevronRight, Layers, Eye, Smartphone as MobileIcon, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getTenantPath } from "@/lib/utils";
@@ -553,14 +553,7 @@ export default function SectionBuilderPage() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-white overflow-hidden text-slate-900">
-      {store?.status === "suspended" && (
-        <div className="bg-rose-600 text-white py-2.5 px-4 text-center text-[10px] font-black uppercase tracking-widest z-[100] shrink-0 shadow-lg flex items-center justify-center gap-2">
-          <ShieldAlert className="w-3.5 h-3.5" />
-          This website has been suspended by the platform administrator
-        </div>
-      )}
-      <div className="flex flex-1 overflow-hidden relative">
+    <div className="flex h-screen bg-white overflow-hidden text-slate-900">
       <FloatingTextToolbar />
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
@@ -853,7 +846,6 @@ export default function SectionBuilderPage() {
                 </div>
               </footer>
             )}
-            </div>
           </div>
         </div>
       </div>

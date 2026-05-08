@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useFirestore, useAuth } from "@/firebase/provider";
-import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc, query, where, getDocs, deleteDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -12,7 +12,7 @@ import {
    Mail, Loader2, Package, Globe, ShieldAlert,
    ShieldCheck, AlertTriangle, Fingerprint, Lock,
    CreditCard, Smartphone, CheckCircle2, MoreVertical,
-   Truck
+   Truck, Unlock
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -36,6 +36,7 @@ export default function OrderDetailPage() {
    const [blocking, setBlocking] = useState(false);
    const [updating, setUpdating] = useState(false);
    const [currency, setCurrency] = useState("BDT");
+   const [activeBlocks, setActiveBlocks] = useState<Record<string, string>>({}); // { "ip:1.2.3.4": "docId", "phone:880...": "docId" }
 
    useEffect(() => {
       if (id && db) {
@@ -67,6 +68,9 @@ export default function OrderDetailPage() {
                   setCurrency(storeSnap.data().currency || "BDT");
                }
             }
+
+            // Check Active Blocks
+            fetchActiveBlocks(data);
          } else {
             toast({ variant: "destructive", title: "Order not found" });
             router.back();
@@ -76,6 +80,28 @@ export default function OrderDetailPage() {
       } finally {
          setLoading(false);
       }
+   };
+
+   const fetchActiveBlocks = async (orderData: any) => {
+     if (!orderData.storeId) return;
+     const valuesToCheck = [];
+     if (orderData.customer?.ip) valuesToCheck.push(orderData.customer.ip);
+     if (orderData.customer?.phone) valuesToCheck.push(orderData.customer.phone);
+     
+     if (valuesToCheck.length === 0) return;
+
+     const q = query(
+       collection(db, "fraud_blocks"),
+       where("storeId", "==", orderData.storeId),
+       where("value", "in", valuesToCheck)
+     );
+     const snap = await getDocs(q);
+     const blocks: Record<string, string> = {};
+     snap.docs.forEach(doc => {
+       const data = doc.data();
+       blocks[`${data.type}:${data.value}`] = doc.id;
+     });
+     setActiveBlocks(blocks);
    };
 
    const handleStatusUpdate = async (newStatus: string) => {
@@ -110,9 +136,39 @@ export default function OrderDetailPage() {
       }
    };
 
-   const handleBlockAction = async (type: 'ip' | 'phone' | 'customer' | 'address') => {
+   const handleBlockAction = async (type: 'ip' | 'phone' | 'customer') => {
       if (!order || !auth.currentUser) return;
 
+      const val = type === 'ip' ? order.customer?.ip : type === 'phone' ? order.customer?.phone : null;
+      const existingBlockId = type !== 'customer' && val ? activeBlocks[`${type}:${val}`] : null;
+
+      if (existingBlockId) {
+        // Unblock Action
+        if (!(await confirm({
+          title: `Unblock ${type.toUpperCase()}`,
+          message: `Are you sure you want to restore access for this ${type.toUpperCase()}?`,
+          confirmText: "Unblock Now",
+          variant: "primary"
+        }))) return;
+
+        setBlocking(true);
+        try {
+          await deleteDoc(doc(db, "fraud_blocks", existingBlockId));
+          setActiveBlocks(prev => {
+            const next = { ...prev };
+            delete next[`${type}:${val}`];
+            return next;
+          });
+          toast({ title: "Access Restored" });
+        } catch (e) {
+          toast({ variant: "destructive", title: "Action Failed" });
+        } finally {
+          setBlocking(false);
+        }
+        return;
+      }
+
+      // Block Action
       const confirmOptions = type === 'customer'
          ? {
             title: "Block Total Identity?",
@@ -150,9 +206,6 @@ export default function OrderDetailPage() {
          if (type === 'customer' && order.customer?.email) {
             itemsToBlock.push({ type: 'email', value: order.customer.email });
          }
-         if ((type === 'address' || type === 'customer') && order.customer?.address) {
-            itemsToBlock.push({ type: 'address', value: order.customer.address });
-         }
 
          if (itemsToBlock.length === 0) {
             toast({ variant: "destructive", title: "No data to block" });
@@ -160,9 +213,10 @@ export default function OrderDetailPage() {
             return;
          }
 
-         itemsToBlock.forEach(item => {
-            addDoc(collection(db, "fraud_blocks"), { ...baseBlockData, ...item });
-         });
+         for (const item of itemsToBlock) {
+            const docRef = await addDoc(collection(db, "fraud_blocks"), { ...baseBlockData, ...item });
+            setActiveBlocks(prev => ({ ...prev, [`${item.type}:${item.value}`]: docRef.id }));
+         }
 
          toast({ title: "Security Updated", description: "Identity markers successfully restricted." });
       } catch (error) {
@@ -176,6 +230,9 @@ export default function OrderDetailPage() {
    if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-primary w-10 h-10" /></div>;
    if (!order) return null;
 
+   const isIpBlocked = order.customer?.ip && activeBlocks[`ip:${order.customer.ip}`];
+   const isPhoneBlocked = order.customer?.phone && activeBlocks[`phone:${order.customer.phone}`];
+
    return (
       <div className="max-w-5xl mx-auto pb-20 space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 sm:px-0">
          {/* Header */}
@@ -185,7 +242,12 @@ export default function OrderDetailPage() {
                   <ChevronLeft className="w-5 h-5" />
                </Button>
                <div>
-                  <h1 className="text-xl sm:text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Order Details</h1>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl sm:text-2xl font-headline font-black tracking-tight text-slate-900 uppercase">Order Details</h1>
+                    {order.isSpam && (
+                      <Badge className="bg-rose-500 hover:bg-rose-600 text-white border-none rounded px-2 py-0 h-5 text-[9px] font-black tracking-widest uppercase">SPAM</Badge>
+                    )}
+                  </div>
                   <p className="text-muted-foreground text-[10px] sm:text-xs font-mono">#{order.id}</p>
                </div>
             </div>
@@ -205,6 +267,19 @@ export default function OrderDetailPage() {
                <Badge variant="outline" className="h-10 rounded-xl px-4 font-bold text-[10px]">{order.paymentMethod?.toUpperCase()}</Badge>
             </div>
          </div>
+
+         {/* Spam Warning */}
+         {order.isSpam && (
+            <div className="bg-rose-50 border-2 border-rose-100 rounded-[24px] p-4 flex items-center gap-4 animate-in slide-in-from-top-4 duration-500">
+               <div className="w-10 h-10 bg-rose-600 rounded-full flex items-center justify-center text-white shrink-0 shadow-lg shadow-rose-200">
+                  <ShieldAlert className="w-6 h-6" />
+               </div>
+               <div>
+                  <h4 className="text-rose-900 font-black uppercase text-xs tracking-widest">Potential Fraud Detected</h4>
+                  <p className="text-rose-600 text-[11px] font-medium leading-tight mt-0.5">This order originated from a restricted network (IP Block). Review carefully before shipping.</p>
+               </div>
+            </div>
+         )}
 
          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
             <div className="lg:col-span-2 space-y-6 sm:space-y-8">
@@ -345,19 +420,37 @@ export default function OrderDetailPage() {
                      </div>
 
                      <div className="space-y-4">
-                        <div className="flex items-center gap-3 group">
-                           <Phone className="w-4 h-4 text-primary" />
-                           <div className="min-w-0">
-                              <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Phone</p>
-                              <p className="text-sm font-bold truncate">{order.customer?.phone}</p>
+                        <div className="flex items-center justify-between group">
+                           <div className="flex items-center gap-3">
+                              <Phone className="w-4 h-4 text-primary" />
+                              <div className="min-w-0">
+                                 <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Phone</p>
+                                 <p className="text-sm font-bold truncate">{order.customer?.phone}</p>
+                              </div>
                            </div>
+                           {order.customer?.phone && (
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-primary hover:bg-primary/10" asChild>
+                                 <a href={`tel:${order.customer.phone}`}>
+                                    <Phone className="w-3.5 h-3.5 fill-primary" />
+                                 </a>
+                              </Button>
+                           )}
                         </div>
-                        <div className="flex items-center gap-3 group">
-                           <Mail className="w-4 h-4 text-primary" />
-                           <div className="min-w-0">
-                              <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Email</p>
-                              <p className="text-sm font-bold truncate">{order.customer?.email || "No email provided"}</p>
+                        <div className="flex items-center justify-between group">
+                           <div className="flex items-center gap-3">
+                              <Mail className="w-4 h-4 text-primary" />
+                              <div className="min-w-0">
+                                 <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Email</p>
+                                 <p className="text-sm font-bold truncate">{order.customer?.email || "No email provided"}</p>
+                              </div>
                            </div>
+                           {order.customer?.email && (
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-primary hover:bg-primary/10" asChild>
+                                 <a href={`mailto:${order.customer.email}`}>
+                                    <Mail className="w-3.5 h-3.5" />
+                                 </a>
+                              </Button>
+                           )}
                         </div>
                         <div className="flex items-start gap-3 group">
                            <MapPin className="w-4 h-4 text-primary mt-0.5" />
@@ -405,22 +498,28 @@ export default function OrderDetailPage() {
 
                      <div className="grid grid-cols-1 gap-2.5">
                         <Button
-                           variant="outline"
-                           className="rounded-xl h-12 justify-start border-rose-200 text-rose-600 hover:bg-rose-100 font-bold text-xs"
+                           variant={isIpBlocked ? "secondary" : "outline"}
+                           className={cn(
+                             "rounded-xl h-12 justify-start font-bold text-xs",
+                             isIpBlocked ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none" : "border-rose-200 text-rose-600 hover:bg-rose-100"
+                           )}
                            onClick={() => handleBlockAction('ip')}
                            disabled={blocking || !order.customer?.ip}
                         >
-                           <Fingerprint className="w-4 h-4 mr-2" />
-                           {blocking ? "Processing..." : "Block IP Address"}
+                           {isIpBlocked ? <Unlock className="w-4 h-4 mr-2" /> : <Fingerprint className="w-4 h-4 mr-2" />}
+                           {blocking ? "Processing..." : isIpBlocked ? "Unblock IP Address" : "Block IP Address"}
                         </Button>
                         <Button
-                           variant="outline"
-                           className="rounded-xl h-12 justify-start border-rose-200 text-rose-600 hover:bg-rose-100 font-bold text-xs"
+                           variant={isPhoneBlocked ? "secondary" : "outline"}
+                           className={cn(
+                             "rounded-xl h-12 justify-start font-bold text-xs",
+                             isPhoneBlocked ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none" : "border-rose-200 text-rose-600 hover:bg-rose-100"
+                           )}
                            onClick={() => handleBlockAction('phone')}
                            disabled={blocking || !order.customer?.phone}
                         >
-                           <Phone className="w-4 h-4 mr-2" />
-                           {blocking ? "Processing..." : "Block Phone Number"}
+                           {isPhoneBlocked ? <Unlock className="w-4 h-4 mr-2" /> : <Phone className="w-4 h-4 mr-2" />}
+                           {blocking ? "Processing..." : isPhoneBlocked ? "Unblock Phone Number" : "Block Phone Number"}
                         </Button>
                         <Button
                            className="rounded-xl h-12 justify-start bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-lg shadow-rose-200"

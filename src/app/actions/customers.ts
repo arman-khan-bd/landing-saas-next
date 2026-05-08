@@ -18,15 +18,27 @@ export async function syncCustomerData(orderData: any) {
   }
 
   try {
-    // Search for customer by phone number in this store
+    // Search for customer by phone number or email in this store
     const customersRef = collection(db, "customers");
-    const q = query(customersRef, where("storeId", "==", storeId), where("phones", "array-contains", normalizedPhone));
-    const snap = await getDocs(q);
+    const phoneQ = query(customersRef, where("storeId", "==", storeId), where("phones", "array-contains", normalizedPhone));
+    const phoneSnap = await getDocs(phoneQ);
+    
+    let existingDoc = null;
+    if (!phoneSnap.empty) {
+      existingDoc = phoneSnap.docs[0];
+    } else if (email) {
+      const emailQ = query(customersRef, where("storeId", "==", storeId), where("emails", "array-contains", email));
+      const emailSnap = await getDocs(emailQ);
+      if (!emailSnap.empty) existingDoc = emailSnap.docs[0];
+    }
 
-    if (!snap.empty) {
-      // Update existing customer
-      const customerDoc = snap.docs[0];
+    if (existingDoc) {
+      // Update existing customer with latest data
       const updatePayload: any = {
+        fullName: customer.fullName || existingDoc.data().fullName,
+        primaryPhone: normalizedPhone,
+        primaryEmail: email || existingDoc.data().primaryEmail,
+        primaryAddress: address || existingDoc.data().primaryAddress,
         phones: arrayUnion(normalizedPhone),
         lastActive: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -36,13 +48,17 @@ export async function syncCustomerData(orderData: any) {
       if (address) updatePayload.addresses = arrayUnion(address);
       if (ip) updatePayload.ips = arrayUnion(ip);
 
-      await updateDoc(doc(db, "customers", customerDoc.id), updatePayload);
-      return customerDoc.id;
+      await updateDoc(doc(db, "customers", existingDoc.id), updatePayload);
+      return existingDoc.id;
     } else {
       // Create new customer
       const newCustomer = {
         storeId,
         ownerId,
+        fullName: customer.fullName || "Anonymous",
+        primaryPhone: normalizedPhone,
+        primaryEmail: email || "",
+        primaryAddress: address || "",
         phones: [normalizedPhone],
         emails: email ? [email] : [],
         addresses: address ? [address] : [],

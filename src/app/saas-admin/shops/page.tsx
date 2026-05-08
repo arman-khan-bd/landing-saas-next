@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useFirestore } from "@/firebase/provider";
-import { collection, getDocs, query, orderBy, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, deleteDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
@@ -45,28 +44,31 @@ export default function AdminShops() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this shop permanently? All products and pages will be lost.")) return;
+  const handleToggleSuspend = async (shop: any) => {
+    const newStatus = !shop.isSuspended;
+    const actionText = newStatus ? "Suspended" : "Reactivated";
+    if (!confirm(`Are you sure you want to ${newStatus ? 'suspend' : 'reactivate'} this shop?`)) return;
+    
     try {
-      await deleteDoc(doc(firestore!, "stores", id));
-      toast({ title: "Shop Removed", description: "The store has been purged from the system." });
+      await updateDoc(doc(firestore!, "stores", shop.id), {
+        isSuspended: newStatus,
+        suspendedAt: newStatus ? serverTimestamp() : null
+      });
+      toast({ 
+        title: `Shop ${actionText}`, 
+        description: `The store access has been ${actionText.toLowerCase()}.` 
+      });
       fetchShops();
     } catch (error) {
       toast({ variant: "destructive", title: "Action Failed" });
     }
   };
 
-  const handleToggleSuspend = async (shop: any) => {
-    const isSuspending = shop.status !== "suspended";
-    const actionText = isSuspending ? "Suspend" : "Reactivate";
-    if (!confirm(`Are you sure you want to ${actionText} this shop?`)) return;
-    
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this shop permanently? All products and pages will be lost.")) return;
     try {
-      await updateDoc(doc(firestore!, "stores", shop.id), {
-        status: isSuspending ? "suspended" : "active",
-        suspendedAt: isSuspending ? new Date() : null
-      });
-      toast({ title: `Shop ${isSuspending ? 'Suspended' : 'Activated'}` });
+      await deleteDoc(doc(firestore!, "stores", id));
+      toast({ title: "Shop Removed", description: "The store has been purged from the system." });
       fetchShops();
     } catch (error) {
       toast({ variant: "destructive", title: "Action Failed" });
@@ -134,14 +136,14 @@ export default function AdminShops() {
                     {shop.ownerId?.slice(0, 10)}...
                   </TableCell>
                   <TableCell className="py-5 px-8">
-                     {shop.status === "suspended" ? (
-                       <Badge className="bg-rose-600/10 text-rose-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
-                         Suspended
-                       </Badge>
+                     {shop.isSuspended ? (
+                        <Badge className="bg-rose-600/10 text-rose-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
+                          Suspended
+                        </Badge>
                      ) : (
-                       <Badge className="bg-emerald-600/10 text-emerald-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
-                         Active
-                       </Badge>
+                        <Badge className="bg-emerald-600/10 text-emerald-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
+                          Active
+                        </Badge>
                      )}
                   </TableCell>
                   <TableCell className="py-5 px-8 text-right">
@@ -161,8 +163,8 @@ export default function AdminShops() {
                           className="gap-3 py-3 rounded-xl cursor-pointer"
                           onClick={() => handleToggleSuspend(shop)}
                         >
-                          <AlertTriangle className={shop.status === 'suspended' ? 'w-4 h-4 text-emerald-500' : 'w-4 h-4 text-amber-500'} /> 
-                          {shop.status === 'suspended' ? 'Reactivate Shop' : 'Suspend Shop'}
+                          <AlertTriangle className={shop.isSuspended ? "w-4 h-4 text-emerald-500" : "w-4 h-4 text-amber-500"} /> 
+                          {shop.isSuspended ? "Reactivate Shop" : "Suspend Shop"}
                         </DropdownMenuItem>
                         <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer text-rose-500" onClick={() => handleDelete(shop.id)}>
                           <Trash2 className="w-4 h-4" /> Purge Store
