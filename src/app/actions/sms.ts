@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/firebase-server";
-import { collection, query, where, getDocs, Timestamp, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, Timestamp, addDoc, serverTimestamp, doc, getDoc, updateDoc, increment } from "firebase/firestore";
 
 export async function sendSMS(phone: string, storeName: string, storeId: string) {
   // Check if phone is blocked
@@ -29,6 +29,50 @@ export async function sendSMS(phone: string, storeName: string, storeId: string)
     }
   } catch (error) {
     console.error("Block check error:", error);
+  }
+
+  // Package-based SMS Limit Check
+  try {
+    const storeRef = doc(db, "stores", storeId);
+    const storeSnap = await getDoc(storeRef);
+    
+    if (storeSnap.exists()) {
+      const storeData = storeSnap.data();
+      const smsCount = storeData.smsCount || 0;
+      
+      // Fetch current active/pending subscription plan
+      const subQ = query(
+        collection(db, "stores", storeId, "subscription"),
+        where("status", "in", ["active", "pending"])
+      );
+      const subSnap = await getDocs(subQ);
+      
+      if (!subSnap.empty) {
+        const subData = subSnap.docs[0].data();
+        const planId = subData.planId;
+        const planSnap = await getDoc(doc(db, "subscriptionPlans", planId));
+        
+        if (planSnap.exists()) {
+          const planData = planSnap.data();
+          const smsLimit = planData.smsLimit || 0;
+          
+          if (smsCount >= smsLimit) {
+            // Auto deactivate OTP verification
+            await updateDoc(storeRef, { otpVerification: false });
+            return { 
+              success: false, 
+              error: "SMS limit reached for your current plan. OTP verification has been disabled." 
+            };
+          }
+        }
+      } else {
+        // No active subscription? Maybe allow a small default or block.
+        // For now, let's assume no subscription means 0 limit or they shouldn't send SMS.
+        return { success: false, error: "No active subscription found. Please upgrade to send SMS." };
+      }
+    }
+  } catch (error) {
+    console.error("SMS Limit check error:", error);
   }
 
   // Rate limiting check
@@ -89,6 +133,16 @@ export async function sendSMS(phone: string, storeName: string, storeId: string)
         createdAt: serverTimestamp(),
         expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 mins
       });
+
+      // Increment SMS count for store
+      try {
+        await updateDoc(doc(db, "stores", storeId), {
+          smsCount: increment(1)
+        });
+      } catch (e) {
+        console.error("Increment SMS count error:", e);
+      }
+
       return { success: true };
     }
     

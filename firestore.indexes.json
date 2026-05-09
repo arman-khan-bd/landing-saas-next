@@ -77,6 +77,34 @@
       ]
     },
     {
+      "collectionGroup": "customers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "storeId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "phones",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "customers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "storeId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "emails",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
+    },
+    {
       "collectionGroup": "products",
       "queryScope": "COLLECTION",
       "fields": [

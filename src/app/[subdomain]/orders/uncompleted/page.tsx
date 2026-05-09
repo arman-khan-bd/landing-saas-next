@@ -85,7 +85,7 @@ export default function UncompletedOrdersPage() {
         <p className="text-[10px] sm:text-sm text-muted-foreground font-medium uppercase tracking-wider opacity-70">Monitor customers who started checkout but didn't complete the purchase.</p>
       </div>
 
-      <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-6">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
         <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
             <ShoppingCart className="w-12 h-12 text-amber-600" />
@@ -107,6 +107,18 @@ export default function UncompletedOrdersPage() {
           <div className="mt-3 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-blue-500" />
             <span className="text-[9px] font-bold text-blue-600 uppercase">Estimated Value</span>
+          </div>
+        </div>
+
+        <div className="hidden lg:block bg-slate-900 rounded-3xl p-5 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-20">
+            <Mail className="w-12 h-12 text-white" />
+          </div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Recovery Pulse</p>
+          <h3 className="text-2xl font-black text-white uppercase font-headline italic">Automated</h3>
+          <div className="mt-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span className="text-[9px] font-bold text-amber-500 uppercase">System Active</span>
           </div>
         </div>
       </div>

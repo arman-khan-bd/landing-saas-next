@@ -540,12 +540,19 @@ export default function StoreSettingsPage() {
                 </div>
                 <Switch
                   checked={settings.otpVerification}
+                  disabled={currentPlan && (settings.smsCount || 0) >= (currentPlan.smsLimit || 0)}
                   onCheckedChange={(val) => setSettings({
                     ...settings,
                     otpVerification: val
                   })}
                 />
               </div>
+              {currentPlan && (settings.smsCount || 0) >= (currentPlan.smsLimit || 0) && (
+                <div className="mt-2 p-3 bg-rose-50 rounded-xl border border-rose-100 flex items-center gap-2 text-rose-600">
+                  <AlertCircle className="w-4 h-4" />
+                  <p className="text-[10px] font-bold uppercase">SMS limit reached for your plan. Please upgrade to reactivate OTP.</p>
+                </div>
+              )}
 
               <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-6">
                 <div className="flex items-center justify-between">
@@ -728,6 +735,35 @@ export default function StoreSettingsPage() {
                 <div className="text-center py-12 bg-slate-50 rounded-[32px] border-2 border-dashed">
                   <Clock className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                   <h4 className="font-bold text-lg text-slate-600">No Active Subscription</h4>
+                </div>
+              )}
+
+              {currentPlan && (
+                <div className="mt-8 p-8 bg-indigo-50/30 rounded-[32px] border border-indigo-100 flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
+                      <Smartphone className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg">SMS Verification Usage</h4>
+                      <p className="text-xs text-slate-500">Track your verification message consumption.</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center sm:items-end gap-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-indigo-600">{settings.smsCount || 0}</span>
+                      <span className="text-slate-400 font-bold">/ {currentPlan.smsLimit || 0}</span>
+                    </div>
+                    <div className="w-48 h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-indigo-600 transition-all duration-1000" 
+                        style={{ width: `${Math.min(((settings.smsCount || 0) / (currentPlan.smsLimit || 1)) * 100, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] font-black uppercase text-slate-400 mt-1">
+                      {Math.max(0, (currentPlan.smsLimit || 0) - (settings.smsCount || 0))} Messages Remaining
+                    </p>
+                  </div>
                 </div>
               )}
 

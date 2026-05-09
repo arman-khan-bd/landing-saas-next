@@ -40,7 +40,8 @@ export default function AdminSubscriptions() {
     currency: "USD",
     billingInterval: "month",
     features: "",
-    isActive: true
+    isActive: true,
+    smsLimit: "100"
   });
 
   useEffect(() => {
@@ -67,6 +68,7 @@ export default function AdminSubscriptions() {
       const planData = {
         ...formData,
         price: Number(formData.price),
+        smsLimit: Number(formData.smsLimit || 0),
         features: formData.features.split(',').map(f => f.trim()).filter(f => f),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -91,6 +93,7 @@ export default function AdminSubscriptions() {
       const updateData = {
         ...formData,
         price: Number(formData.price),
+        smsLimit: Number(formData.smsLimit || 0),
         features: formData.features.split(',').map(f => f.trim()).filter(f => f),
         updatedAt: serverTimestamp(),
       };
@@ -125,7 +128,8 @@ export default function AdminSubscriptions() {
       currency: "USD",
       billingInterval: "month",
       features: "",
-      isActive: true
+      isActive: true,
+      smsLimit: "100"
     });
   };
 
@@ -138,7 +142,8 @@ export default function AdminSubscriptions() {
       currency: plan.currency || "USD",
       billingInterval: plan.billingInterval || "month",
       features: (plan.features || []).join(", "),
-      isActive: plan.isActive ?? true
+      isActive: plan.isActive ?? true,
+      smsLimit: (plan.smsLimit || 0).toString()
     });
   };
 
@@ -232,6 +237,18 @@ export default function AdminSubscriptions() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">SMS Verification Limit</Label>
+                <Input 
+                  type="number"
+                  placeholder="e.g. 100" 
+                  className="h-12 rounded-xl bg-slate-800 border-none px-4" 
+                  value={formData.smsLimit}
+                  onChange={(e) => setFormData({...formData, smsLimit: e.target.value})}
+                />
+                <p className="text-[10px] text-slate-400">Total SMS allowed for this tier before auto-disabling OTP.</p>
+              </div>
+
               <div className="flex items-center justify-between p-4 bg-slate-800 rounded-2xl">
                  <div className="space-y-0.5">
                     <p className="text-sm font-bold">Public Listing</p>
@@ -295,6 +312,10 @@ export default function AdminSubscriptions() {
                  <div className="space-y-3">
                     <p className="text-[10px] font-black uppercase text-indigo-400 tracking-[0.2em]">Tier Privileges</p>
                     <div className="grid gap-2">
+                       <div className="flex items-center gap-2 text-xs font-black text-white">
+                          <Smartphone className="w-3.5 h-3.5 text-indigo-400" />
+                          {plan.smsLimit || 0} SMS Verifications
+                       </div>
                        {(plan.features || []).map((feature: string, i: number) => (
                          <div key={i} className="flex items-center gap-2 text-xs font-medium text-slate-300">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
@@ -381,6 +402,18 @@ export default function AdminSubscriptions() {
                   value={formData.features}
                   onChange={(e) => setFormData({...formData, features: e.target.value})}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">SMS Verification Limit</Label>
+                <Input 
+                  type="number"
+                  placeholder="e.g. 100" 
+                  className="h-12 rounded-xl bg-slate-800 border-none px-4 text-white" 
+                  value={formData.smsLimit}
+                  onChange={(e) => setFormData({...formData, smsLimit: e.target.value})}
+                />
+                <p className="text-[10px] text-slate-400">Total SMS allowed for this tier before auto-disabling OTP.</p>
               </div>
             </div>
             <DialogFooter className="p-6 border-t border-white/5">

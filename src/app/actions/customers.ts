@@ -9,10 +9,12 @@ export async function syncCustomerData(orderData: any) {
 
   if (!phone) return;
 
-  // Standardize phone number
+  // Standardize phone number to match checkout logic
   let normalizedPhone = phone.replace(/\D/g, '');
   if (normalizedPhone.length === 11 && normalizedPhone.startsWith('0')) {
     normalizedPhone = '88' + normalizedPhone;
+  } else if (normalizedPhone.length === 13 && normalizedPhone.startsWith('880')) {
+    // Already normalized
   } else if (normalizedPhone.length === 10) {
     normalizedPhone = '880' + normalizedPhone;
   }
