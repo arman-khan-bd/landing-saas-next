@@ -527,7 +527,7 @@ export default function StoreLayoutClient({
                 <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">{auth?.currentUser?.email?.[0].toUpperCase()}</div>
               </div>
             </header>
-            <main className="flex-1 p-6 md:p-10">{children}</main>
+            <main className="flex-1 p-0 md:p-10">{children}</main>
           </SidebarInset>
         </div>
       </ConfirmationProvider>
