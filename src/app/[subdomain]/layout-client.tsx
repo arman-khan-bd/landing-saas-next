@@ -107,8 +107,7 @@ export default function StoreLayoutClient({
     const uncompletedQ = query(
       collection(firestore, "uncompleted_orders"),
       where("storeId", "==", store.id),
-      where("ownerId", "==", auth.currentUser.uid),
-      where("isRead", "==", false)
+      where("ownerId", "==", auth.currentUser.uid)
     );
 
     const systemQ = query(
@@ -445,7 +444,15 @@ export default function StoreLayoutClient({
 
               <Collapsible defaultOpen className="group/collapsible">
                 <SidebarGroup>
-                  <SidebarGroupLabel asChild><CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors"><span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Sales</span><ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" /></CollapsibleTrigger></SidebarGroupLabel>
+                  <SidebarGroupLabel asChild>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Sales</span>
+                        {counts.uncompleted > 0 && <Badge className="h-4 px-1.5 bg-amber-500 text-white text-[8px] font-black border-none rounded-full">{counts.uncompleted}</Badge>}
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </CollapsibleTrigger>
+                  </SidebarGroupLabel>
                   <CollapsibleContent><SidebarGroupContent><SidebarMenu className="mt-2">
                     {salesItems.map((item) => (
                       <SidebarMenuItem key={item.title}><SidebarMenuButton asChild isActive={normalizedPath === item.href} className="rounded-xl h-10 px-4"><Link href={getTenantPath(subdomain, item.href)} className="flex items-center justify-between gap-3 w-full"><div className="flex items-center gap-3"><item.icon className={`w-4 h-4 ${normalizedPath === item.href ? 'text-primary' : 'text-muted-foreground'}`} /><span className="text-sm font-medium">{item.title}</span></div>{item.count > 0 && <Badge className="h-5 px-2 bg-primary/10 text-primary text-[10px] font-black border-none rounded-full">{item.count}</Badge>}</Link></SidebarMenuButton></SidebarMenuItem>

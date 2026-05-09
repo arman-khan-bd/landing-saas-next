@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, Smartphone, ShieldAlert, SmartphoneIcon, User, Copy } from "lucide-react";
+import { ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, Smartphone, ShieldAlert, SmartphoneIcon, User, Copy, ShoppingCart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -99,7 +99,7 @@ export default function CheckoutPage() {
         if (storeData.shippingSettings?.enabled && storeData.shippingSettings.methods?.length > 0) {
           setSelectedShipping(storeData.shippingSettings.methods[0]);
         }
-        if (storeData.isOtpDisabled) setIsVerified(true);
+        if (storeData.otpVerification === false || storeData.isOtpDisabled) setIsVerified(true);
       } else {
         router.push('/');
       }
@@ -162,7 +162,7 @@ export default function CheckoutPage() {
     setSendingSms(true);
     try {
       const normalizedPhone = normalizePhoneNumber(formData.phone);
-      
+
       // Phone Block Check
       const phoneBlockQ = query(
         collection(db, "fraud_blocks"),
@@ -173,25 +173,25 @@ export default function CheckoutPage() {
       );
       const phoneBlockSnap = await getDocs(phoneBlockQ);
       if (!phoneBlockSnap.empty) {
-        toast({ 
-          variant: "destructive", 
-          title: "Access Restricted", 
-          description: "This mobile number is restricted from placing orders." 
+        toast({
+          variant: "destructive",
+          title: "Access Restricted",
+          description: "This mobile number is restricted from placing orders."
         });
         return;
       }
 
       const result = await sendSMS(normalizedPhone, store?.name || "Store", store.id);
-      
+
       if (!result.success) {
-        toast({ 
-          variant: "destructive", 
-          title: "Failed", 
-          description: result.error || "Please try again later." 
+        toast({
+          variant: "destructive",
+          title: "Failed",
+          description: result.error || "Please try again later."
         });
         return;
       }
-      
+
       setOtpSent(true);
       toast({ title: "OTP Sent", description: "Verification code sent to your mobile." });
     } catch (error) {
@@ -239,11 +239,17 @@ export default function CheckoutPage() {
   const cartSubtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const shippingCost = selectedShipping?.cost || 0;
   const cartTotal = cartSubtotal + shippingCost;
-
+ 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!formData.fullName || !formData.phone || !formData.address) {
       toast({ variant: "destructive", title: "Missing Information", description: "Please fill in all required fields." });
+      return;
+    }
+
+    if (store?.shippingSettings?.enabled && !selectedShipping) {
+      toast({ variant: "destructive", title: "ডেলিভারি এরিয়া নির্বাচন করুন", description: "অনুগ্রহ করে আপনার ডেলিভারি এরিয়া নির্বাচন করুন।" });
       return;
     }
 
@@ -260,7 +266,7 @@ export default function CheckoutPage() {
     setIsPlacingOrder(true);
     try {
       const normalizedPhone = normalizePhoneNumber(formData.phone);
-      
+
       // Phone Block Check (Final)
       const phoneBlockQ = query(
         collection(db, "fraud_blocks"),
@@ -321,7 +327,7 @@ export default function CheckoutPage() {
       };
 
       const orderRef = await addDoc(collection(db, "orders"), orderData);
-      
+
       // Sync Customer Data
       await syncCustomerData({
         ...orderData,
@@ -333,7 +339,7 @@ export default function CheckoutPage() {
         localStorage.removeItem(`draftId_${subdomain}`);
       }
       localStorage.removeItem(`cart_${subdomain}`);
-      
+
       fpixel.event('Purchase', {
         value: cartTotal,
         currency: 'BDT',
@@ -377,15 +383,15 @@ export default function CheckoutPage() {
               <Card className="rounded-[24px] border-none shadow-sm overflow-hidden bg-white">
                 <CardContent className="p-4 md:p-8 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Full Name *</Label><Input placeholder="John Doe" className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm" value={formData.fullName} onChange={(e) => setFormData(prev => ({...prev, fullName: e.target.value}))} /></div>
-                    
+                    <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Full Name *</Label><Input placeholder="John Doe" className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm" value={formData.fullName} onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))} /></div>
+
                     <div className="space-y-1.5">
                       <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Contact Number *</Label>
                       <div className="space-y-2">
                         <div className="flex gap-2">
                           <div className="relative flex-1">
-                            <Input placeholder="01XXXXXXXXX" className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm" value={formData.phone} onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} disabled={isVerified} />
-                            {isVerified && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-500" />}
+                            <Input placeholder="01XXXXXXXXX" className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm" value={formData.phone} onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))} disabled={isVerified && store?.otpVerification !== false} />
+                            {isVerified && (store?.otpVerification !== false) && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-500" />}
                           </div>
                           {(store?.otpVerification !== false) && !isVerified && (
                             <Button size="sm" className="h-10 px-4 rounded-xl text-[10px] font-bold" onClick={sendVerificationCode} disabled={sendingSms || !formData.phone}>{sendingSms ? <Loader2 className="w-3 h-3 animate-spin" /> : otpSent ? "Resend" : "Verify"}</Button>
@@ -394,31 +400,31 @@ export default function CheckoutPage() {
                         {(store?.otpVerification !== false) && otpSent && !isVerified && (
                           <div className="flex flex-col gap-3 items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in slide-in-from-top-1">
                             <Label className="text-[9px] font-black uppercase text-slate-400">Enter Verification Code</Label>
-                            <InputOTP 
-                               maxLength={6} 
-                               value={formData.otp} 
-                               onChange={(val) => setFormData(prev => ({...prev, otp: val}))}
-                             >
-                               <InputOTPGroup>
-                                 <InputOTPSlot index={0} className="bg-white" />
-                                 <InputOTPSlot index={1} className="bg-white" />
-                                 <InputOTPSlot index={2} className="bg-white" />
-                                 <InputOTPSlot index={3} className="bg-white" />
-                                 <InputOTPSlot index={4} className="bg-white" />
-                                 <InputOTPSlot index={5} className="bg-white" />
-                               </InputOTPGroup>
-                             </InputOTP>
-                             <Button size="sm" variant="outline" className="rounded-xl font-bold px-8 h-9" onClick={verifyOtp} disabled={verifying || formData.otp.length !== 6}>
-                               {verifying ? <Loader2 className="w-3 h-3 animate-spin" /> : "Verify Code"}
-                             </Button>
+                            <InputOTP
+                              maxLength={6}
+                              value={formData.otp}
+                              onChange={(val) => setFormData(prev => ({ ...prev, otp: val }))}
+                            >
+                              <InputOTPGroup>
+                                <InputOTPSlot index={0} className="bg-white" />
+                                <InputOTPSlot index={1} className="bg-white" />
+                                <InputOTPSlot index={2} className="bg-white" />
+                                <InputOTPSlot index={3} className="bg-white" />
+                                <InputOTPSlot index={4} className="bg-white" />
+                                <InputOTPSlot index={5} className="bg-white" />
+                              </InputOTPGroup>
+                            </InputOTP>
+                            <Button size="sm" variant="outline" className="rounded-xl font-bold px-8 h-9" onClick={verifyOtp} disabled={verifying || formData.otp.length !== 6}>
+                              {verifying ? <Loader2 className="w-3 h-3 animate-spin" /> : "Verify Code"}
+                            </Button>
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email Address (Optional)</Label><Input placeholder="email@example.com" className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm" value={formData.email} onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))} /></div>
-                  <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Delivery Address *</Label><Textarea placeholder="Area, City, House/Road details..." className="min-h-[100px] rounded-xl bg-slate-50 border-none p-4 text-sm resize-none" value={formData.address} onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))} /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email Address (Optional)</Label><Input placeholder="email@example.com" className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm" value={formData.email} onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} /></div>
+                  <div className="space-y-1.5"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Delivery Address *</Label><Textarea placeholder="Area, City, House/Road details..." className="min-h-[100px] rounded-xl bg-slate-50 border-none p-4 text-sm resize-none" value={formData.address} onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))} /></div>
                 </CardContent>
               </Card>
             </section>
@@ -437,7 +443,7 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                       <p className="font-black text-primary text-lg">{method.cost > 0 ? `${getCurrencySymbol(store.currency)}${method.cost}` : 'FREE'}</p>
+                      <p className="font-black text-primary text-lg">{method.cost > 0 ? `${getCurrencySymbol(store.currency)}${method.cost}` : 'FREE'}</p>
                     </div>
                   </Label>
                 ))}
@@ -446,7 +452,7 @@ export default function CheckoutPage() {
 
             <section className="space-y-4">
               <div className="flex items-center gap-2"><div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary"><CreditCard className="w-4 h-4" /></div><h2 className="text-lg font-headline font-black tracking-tight text-slate-900 uppercase">Payment Strategy</h2></div>
-              <RadioGroup value={formData.paymentMethod} onValueChange={(val) => setFormData(prev => ({...prev, paymentMethod: val}))} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <RadioGroup value={formData.paymentMethod} onValueChange={(val) => setFormData(prev => ({ ...prev, paymentMethod: val }))} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Label className={cn("relative flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer bg-white group", formData.paymentMethod === 'cod' ? "border-primary bg-primary/5 shadow-md" : "border-transparent hover:border-slate-200")}>
                   <RadioGroupItem value="cod" id="cod" className="sr-only" />
                   <div className="flex items-center justify-between mb-4">
@@ -480,10 +486,10 @@ export default function CheckoutPage() {
                     <Label className="text-[10px] font-black uppercase text-slate-400">Select Gateway</Label>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {store?.paymentSettings?.manualMethods?.map((method: any) => (
-                        <button key={method.id} type="button" onClick={() => setFormData(prev => ({...prev, selectedManualMethodId: method.id}))} className={cn("p-4 rounded-2xl border-2 transition-all text-left", formData.selectedManualMethodId === method.id ? "border-indigo-600 bg-indigo-50" : "border-slate-100 hover:border-slate-200")}>
+                        <button key={method.id} type="button" onClick={() => setFormData(prev => ({ ...prev, selectedManualMethodId: method.id }))} className={cn("p-4 rounded-2xl border-2 transition-all text-left", formData.selectedManualMethodId === method.id ? "border-indigo-600 bg-indigo-50" : "border-slate-100 hover:border-slate-200")}>
                           <div className="flex items-center justify-between mb-2">
-                             <p className="font-black text-xs text-slate-900">{method.name}</p>
-                             {formData.selectedManualMethodId === method.id && <div className="w-2 h-2 rounded-full bg-indigo-600" />}
+                            <p className="font-black text-xs text-slate-900">{method.name}</p>
+                            {formData.selectedManualMethodId === method.id && <div className="w-2 h-2 rounded-full bg-indigo-600" />}
                           </div>
                           <p className="text-[10px] font-bold text-indigo-600">{method.number}</p>
                         </button>
@@ -502,16 +508,16 @@ export default function CheckoutPage() {
                       </div>
 
                       <div className="bg-white p-4 rounded-2xl border flex items-center justify-between">
-                         <div>
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Target Number</p>
-                            <p className="text-xl font-mono font-black text-slate-900">{selectedManualMethod.number}</p>
-                         </div>
-                         <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 hover:bg-slate-50" onClick={() => { navigator.clipboard.writeText(selectedManualMethod.number); toast({title: "Copied!"}) }}><Copy className="w-4 h-4" /></Button>
+                        <div>
+                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Target Number</p>
+                          <p className="text-xl font-mono font-black text-slate-900">{selectedManualMethod.number}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 hover:bg-slate-50" onClick={() => { navigator.clipboard.writeText(selectedManualMethod.number); toast({ title: "Copied!" }) }}><Copy className="w-4 h-4" /></Button>
                       </div>
 
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Verification Transaction ID</Label>
-                        <Input placeholder="TRXID..." className="h-12 rounded-2xl bg-white border-slate-200 px-5 text-lg font-mono font-black placeholder:font-sans placeholder:text-sm" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value}))} />
+                        <Input placeholder="TRXID..." className="h-12 rounded-2xl bg-white border-slate-200 px-5 text-lg font-mono font-black placeholder:font-sans placeholder:text-sm" value={formData.transactionId} onChange={(e) => setFormData(prev => ({ ...prev, transactionId: e.target.value }))} />
                       </div>
                     </div>
                   )}
@@ -549,7 +555,7 @@ export default function CheckoutPage() {
                           <p className="text-4xl font-headline font-black text-primary tracking-tighter leading-none">{getCurrencySymbol(store?.currency)}{cartTotal.toFixed(0)}</p>
                         </div>
                         <div className="text-right">
-                           <p className="text-[10px] font-black text-emerald-500 uppercase flex items-center gap-1 justify-end"><ShieldCheck className="w-3 h-3" /> Secure Checkout</p>
+                          <p className="text-[10px] font-black text-emerald-500 uppercase flex items-center gap-1 justify-end"><ShieldCheck className="w-3 h-3" /> Secure Checkout</p>
                         </div>
                       </div>
                     </div>

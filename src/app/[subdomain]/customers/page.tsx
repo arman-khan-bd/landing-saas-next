@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Customer {
   id: string;
+  fullName?: string;
   phones: string[];
   emails: string[];
   ips: string[];
@@ -156,8 +157,8 @@ export default function CustomersPage() {
                           {customer.phones[0]?.[customer.phones[0].length - 1] || "C"}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-bold text-slate-900 text-base">{customer.phones[0]}</span>
-                          <span className="text-[10px] text-muted-foreground font-medium">{customer.emails[0] || "No Email"}</span>
+                          <span className="font-bold text-slate-900 text-base">{customer.fullName || customer.phones[0]}</span>
+                          <span className="text-[10px] text-muted-foreground font-medium">{customer.phones[0]} • {customer.emails[0] || "No Email"}</span>
                         </div>
                       </div>
                     </TableCell>
@@ -266,7 +267,8 @@ export default function CustomersPage() {
                     {customer.phones[0]?.[0]}
                   </div>
                   <div>
-                    <h4 className="font-black text-xl leading-tight text-slate-900">{customer.phones[0]}</h4>
+                    <h4 className="font-black text-xl leading-tight text-slate-900">{customer.fullName || customer.phones[0]}</h4>
+                    <p className="text-[10px] text-slate-400 font-bold">{customer.phones[0]}</p>
                     <div className="flex gap-1 mt-1">
                       {customer.status.phoneBlocked && <Badge className="bg-rose-500 text-white border-none rounded-lg text-[8px] font-black">BLOCKED</Badge>}
                       <Badge variant="secondary" className="rounded-lg text-[8px] font-black tracking-widest">CUSTOMER</Badge>

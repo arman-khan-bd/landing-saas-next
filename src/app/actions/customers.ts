@@ -37,7 +37,7 @@ export async function syncCustomerData(orderData: any) {
     if (existingDoc) {
       // Update existing customer with latest data
       const updatePayload: any = {
-        fullName: customer.fullName || existingDoc.data().fullName,
+        fullName: customer.fullName || existingDoc.data().fullName || "Anonymous",
         primaryPhone: normalizedPhone,
         primaryEmail: email || existingDoc.data().primaryEmail,
         primaryAddress: address || existingDoc.data().primaryAddress,
@@ -45,6 +45,8 @@ export async function syncCustomerData(orderData: any) {
         lastActive: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
+
+      if (customer.fullName) updatePayload.names = arrayUnion(customer.fullName);
       
       if (email) updatePayload.emails = arrayUnion(email);
       if (address) updatePayload.addresses = arrayUnion(address);
@@ -58,6 +60,7 @@ export async function syncCustomerData(orderData: any) {
         storeId,
         ownerId,
         fullName: customer.fullName || "Anonymous",
+        names: customer.fullName ? [customer.fullName] : ["Anonymous"],
         primaryPhone: normalizedPhone,
         primaryEmail: email || "",
         primaryAddress: address || "",

@@ -25,6 +25,8 @@ import { getCurrencySymbol } from "@/lib/utils";
 
 interface Customer {
   id: string;
+  fullName?: string;
+  names: string[];
   phones: string[];
   emails: string[];
   ips: string[];
@@ -52,6 +54,8 @@ export default function CustomerDetailsPage() {
   const [notes, setNotes] = useState("");
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [currency, setCurrency] = useState("BDT");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 10;
 
   useEffect(() => {
     fetchCustomerData();
@@ -150,8 +154,8 @@ export default function CustomerDetailsPage() {
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-headline font-black tracking-tight text-slate-900 uppercase">Profile: {customer.phones[0]}</h1>
-            <p className="text-[10px] text-muted-foreground font-mono uppercase opacity-60">Customer ID: {customer.id}</p>
+            <h1 className="text-xl font-headline font-black tracking-tight text-slate-900 uppercase">Profile: {customer.fullName || customer.phones[0]}</h1>
+            <p className="text-[10px] text-muted-foreground font-mono uppercase opacity-60">Primary Identifier: {customer.phones[0]} • ID: {customer.id}</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -172,6 +176,15 @@ export default function CustomerDetailsPage() {
             </CardHeader>
             <CardContent className="p-6 space-y-8">
               <div className="space-y-6">
+                <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><User className="w-3 h-3" /> Recorded Names</Label>
+                    <div className="flex flex-wrap gap-2">
+                        {customer.names?.length > 0 ? customer.names.map((n, i) => (
+                            <Badge key={i} className="bg-slate-100 text-slate-700 border-none rounded-xl px-3 py-1 text-xs font-bold">{n}</Badge>
+                        )) : <Badge className="bg-slate-100 text-slate-700 border-none rounded-xl px-3 py-1 text-xs font-bold">{customer.fullName || "Anonymous"}</Badge>}
+                    </div>
+                </div>
+
                 <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><Phone className="w-3 h-3" /> Phone Numbers</Label>
                     <div className="flex flex-wrap gap-2">
@@ -314,7 +327,7 @@ export default function CustomerDetailsPage() {
                     <TableRow>
                         <TableCell colSpan={5} className="py-20 text-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">No orders found for this identity</TableCell>
                     </TableRow>
-                  ) : orders.map((order) => (
+                  ) : orders.slice((currentPage - 1) * ordersPerPage, currentPage * ordersPerPage).map((order) => (
                     <TableRow key={order.id} className="border-border/50 hover:bg-slate-50 transition-colors">
                       <TableCell className="px-6 py-4">
                         <span className="font-mono text-[10px] font-bold text-slate-900">#{order.id.slice(0, 8).toUpperCase()}</span>
@@ -346,6 +359,33 @@ export default function CustomerDetailsPage() {
                   ))}
                 </TableBody>
               </Table>
+              {orders.length > ordersPerPage && (
+                <div className="p-4 border-t bg-slate-50/50 flex items-center justify-between">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Page {currentPage} of {Math.ceil(orders.length / ordersPerPage)}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 rounded-lg font-bold text-[10px] uppercase"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Prev
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 rounded-lg font-bold text-[10px] uppercase"
+                      onClick={() => setCurrentPage(prev => Math.min(Math.ceil(orders.length / ordersPerPage), prev + 1))}
+                      disabled={currentPage === Math.ceil(orders.length / ordersPerPage)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

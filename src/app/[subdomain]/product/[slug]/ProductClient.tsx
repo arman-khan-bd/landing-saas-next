@@ -138,6 +138,7 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
         if (storeData.shippingSettings?.enabled && storeData.shippingSettings.methods?.length > 0) {
           setSelectedShipping(storeData.shippingSettings.methods[0]);
         }
+        if (storeData.otpVerification === false || storeData.isOtpDisabled) setIsVerified(true);
       }
 
       const q = query(collection(db, "products"), where("slug", "==", slug), limit(1));
@@ -278,6 +279,11 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
     if (!product) return;
     if (!formData.fullName || !formData.phone || !formData.address) {
       toast({ variant: "destructive", title: "তথ্য অসম্পূর্ণ", description: "অনুগ্রহ করে সব প্রয়োজনীয় তথ্য প্রদান করুন।" });
+      return;
+    }
+
+    if (store?.shippingSettings?.enabled && !selectedShipping) {
+      toast({ variant: "destructive", title: "ডেলিভারি এরিয়া নির্বাচন করুন", description: "অনুগ্রহ করে আপনার ডেলিভারি এরিয়া নির্বাচন করুন।" });
       return;
     }
     if (!isVerified && (store?.otpVerification !== false)) {
@@ -514,9 +520,9 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
                               className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm"
                               value={formData.phone}
                               onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                              disabled={isVerified}
+                              disabled={isVerified && store?.otpVerification !== false}
                             />
-                            {isVerified && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />}
+                            {isVerified && (store?.otpVerification !== false) && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />}
                           </div>
                           {(store?.otpVerification !== false) && !isVerified && (
                             <Button

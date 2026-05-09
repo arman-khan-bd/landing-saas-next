@@ -21,6 +21,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { sendSMS } from "@/app/actions/sms";
+import { syncCustomerData } from "@/app/actions/customers";
 import { SmartphoneIcon, ShieldAlert } from "lucide-react";
 
 interface OrderFormBlockProps {
@@ -91,12 +92,13 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
   const [sendingSms, setSendingSms] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [isVerified, setIsVerified] = useState(!!store?.isOtpDisabled);
+  const [isVerified, setIsVerified] = useState(store?.otpVerification === false || !!store?.isOtpDisabled);
   const [otpCode, setOtpCode] = useState("");
 
   const selectedProducts = products.filter(p => selectedProductIds.includes(p.id));
   const shippingCost = showShipping ? (selectedShipping?.cost || 0) : 0;
   const subtotal = selectedProducts.reduce((acc, p) => acc + Number(p.currentPrice), 0);
+  const total = subtotal + shippingCost;
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -210,6 +212,16 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
       return;
     }
 
+    if (showShipping && store?.shippingSettings?.enabled && !selectedShipping) {
+      toast({ variant: "destructive", title: "ডেলিভারি এরিয়া নির্বাচন করুন", description: "অনুগ্রহ করে আপনার ডেলিভারি এরিয়া নির্বাচন করুন।" });
+      return;
+    }
+
+    if (!isVerified && (store?.otpVerification !== false)) {
+      toast({ variant: "destructive", title: "নাম্বার ভেরিফাই করুন", description: "অর্ডার করার আগে মোবাইল নাম্বার ভেরিফাই করা প্রয়োজন।" });
+      return;
+    }
+
     if (formData.paymentMethod === 'manual' && !formData.transactionId) {
       toast({ variant: "destructive", title: "পেমেন্ট তথ্য প্রয়োজন", description: "ট্রানজাকশন আইডি প্রদান করুন।" });
       return;
@@ -281,7 +293,14 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
         createdAt: serverTimestamp(),
       };
 
-      await addDoc(collection(db, "orders"), orderData);
+      const orderRef = await addDoc(collection(db, "orders"), orderData);
+      
+      // Sync Customer Data
+      await syncCustomerData({
+        ...orderData,
+        id: orderRef.id
+      });
+
       setOrderSuccess(true);
       toast({ title: "অর্ডার সফল হয়েছে!" });
     } catch (error) {
@@ -371,13 +390,13 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
                         <div className="flex gap-2">
                           <Input 
                             required 
-                            disabled={isVerified}
+                            disabled={isVerified && store?.otpVerification !== false}
                             value={formData.phone} 
                             onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} 
                             placeholder="01XXXXXXXXX" 
                             className="h-11 sm:h-12 rounded-xl bg-white border-primary/20" 
                           />
-                          {!store?.isOtpDisabled && !isVerified && (
+                          {(store?.otpVerification !== false) && !store?.isOtpDisabled && !isVerified && (
                             <Button 
                               type="button"
                               disabled={sendingSms || !formData.phone || formData.phone.length < 11}
@@ -387,7 +406,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
                               {sendingSms ? <Loader2 className="w-4 h-4 animate-spin" /> : otpSent ? "আবার পাঠান" : "ভেরিফাই"}
                             </Button>
                           )}
-                          {isVerified && (
+                          {(store?.otpVerification !== false) && isVerified && (
                              <div className="h-11 sm:h-12 w-12 flex items-center justify-center bg-emerald-50 text-emerald-500 rounded-xl border border-emerald-100">
                                 <CheckCircle2 className="w-5 h-5" />
                              </div>
