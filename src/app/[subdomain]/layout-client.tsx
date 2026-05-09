@@ -549,7 +549,18 @@ function StorefrontFooter({ store, subdomain }: { store: any, subdomain: string 
       <div className="max-w-7xl mx-auto space-y-8 md:space-y-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 text-center md:text-left">
           <div className="space-y-4 md:col-span-2">
-            <Link href={getTenantPath(subdomain, "/")} className="flex items-center justify-center md:justify-start gap-2.5"><div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-sm"><ShoppingBag className="w-5 h-5" /></div><span className="text-xl font-headline font-black tracking-tight uppercase text-slate-900">{store?.name || subdomain}</span></Link>
+            <Link href={getTenantPath(subdomain, "/")} className="flex items-center justify-center md:justify-start gap-2.5">
+              {store?.logo ? (
+                <img src={store.logo} alt={store.name} className="h-10 md:h-12 w-auto object-contain" />
+              ) : (
+                <>
+                  <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-sm">
+                    <ShoppingBag className="w-5 h-5" />
+                  </div>
+                  <span className="text-xl font-headline font-black tracking-tight uppercase text-slate-900">{store?.name || subdomain}</span>
+                </>
+              )}
+            </Link>
             <p className="text-slate-500 text-sm max-w-sm mx-auto md:mx-0 font-medium leading-relaxed">Quality products, fast delivery, and exceptional service.</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-2 gap-8 md:col-span-2">

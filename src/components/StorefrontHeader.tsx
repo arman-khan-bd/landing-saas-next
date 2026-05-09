@@ -82,7 +82,7 @@ export default function StorefrontHeader({ store, subdomain }: { store: any, sub
           {/* Logo Area */}
           <Link href={getTenantPath(subdomain, "/")} className="flex items-center gap-2 shrink-0 group">
             {store?.logo ? (
-              <img src={store.logo} alt={store.name} className="h-6 md:h-8 w-auto object-contain group-hover:scale-105 transition-transform" />
+              <img src={store.logo} alt={store.name} className="h-8 md:h-12 w-auto object-contain group-hover:scale-105 transition-transform" />
             ) : (
               <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-xl shadow-slate-900/20 group-hover:bg-primary transition-colors">

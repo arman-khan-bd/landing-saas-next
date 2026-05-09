@@ -24,6 +24,7 @@ export async function generateMetadata(
   const title = store.name || subdomain;
   const description = store.description || `Welcome to ${title} official storefront. Shop our latest collection.`;
   const logo = store.logo || "";
+  const favicon = store.favicon || logo || "/favicon.ico";
 
   return {
     title: {
@@ -44,9 +45,9 @@ export async function generateMetadata(
       images: logo ? [logo] : [],
     },
     icons: {
-      icon: logo || "/favicon.ico",
-      shortcut: logo || "/favicon.ico",
-      apple: logo || "/favicon.ico",
+      icon: favicon,
+      shortcut: favicon,
+      apple: favicon,
     },
   };
 }
