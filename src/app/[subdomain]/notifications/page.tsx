@@ -321,7 +321,6 @@ export default function NotificationsPage() {
                         </span>
                         {!n.read && <Badge className="bg-primary hover:bg-primary h-2 w-2 p-0 rounded-full border-none shadow-lg shadow-primary/50" />}
                       </div>
-                    </div>
                     <p className="text-slate-600 leading-relaxed text-xs sm:text-sm line-clamp-2">{n.description}</p>
                     
                     <div className="flex flex-wrap items-center gap-3 sm:gap-6 pt-3 sm:pt-4">
