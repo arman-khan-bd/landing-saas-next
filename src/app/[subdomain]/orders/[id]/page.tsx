@@ -12,7 +12,8 @@ import {
    Mail, Loader2, Package, Globe, ShieldAlert,
    ShieldCheck, AlertTriangle, Fingerprint, Lock,
    CreditCard, Smartphone, CheckCircle2, MoreVertical,
-   Truck, Unlock
+   Truck, Unlock,
+   ArrowRight
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -83,25 +84,25 @@ export default function OrderDetailPage() {
    };
 
    const fetchActiveBlocks = async (orderData: any) => {
-     if (!orderData.storeId) return;
-     const valuesToCheck = [];
-     if (orderData.customer?.ip) valuesToCheck.push(orderData.customer.ip);
-     if (orderData.customer?.phone) valuesToCheck.push(orderData.customer.phone);
-     
-     if (valuesToCheck.length === 0) return;
+      if (!orderData.storeId) return;
+      const valuesToCheck = [];
+      if (orderData.customer?.ip) valuesToCheck.push(orderData.customer.ip);
+      if (orderData.customer?.phone) valuesToCheck.push(orderData.customer.phone);
 
-     const q = query(
-       collection(db, "fraud_blocks"),
-       where("storeId", "==", orderData.storeId),
-       where("value", "in", valuesToCheck)
-     );
-     const snap = await getDocs(q);
-     const blocks: Record<string, string> = {};
-     snap.docs.forEach(doc => {
-       const data = doc.data();
-       blocks[`${data.type}:${data.value}`] = doc.id;
-     });
-     setActiveBlocks(blocks);
+      if (valuesToCheck.length === 0) return;
+
+      const q = query(
+         collection(db, "fraud_blocks"),
+         where("storeId", "==", orderData.storeId),
+         where("value", "in", valuesToCheck)
+      );
+      const snap = await getDocs(q);
+      const blocks: Record<string, string> = {};
+      snap.docs.forEach(doc => {
+         const data = doc.data();
+         blocks[`${data.type}:${data.value}`] = doc.id;
+      });
+      setActiveBlocks(blocks);
    };
 
    const handleStatusUpdate = async (newStatus: string) => {
@@ -143,29 +144,29 @@ export default function OrderDetailPage() {
       const existingBlockId = type !== 'customer' && val ? activeBlocks[`${type}:${val}`] : null;
 
       if (existingBlockId) {
-        // Unblock Action
-        if (!(await confirm({
-          title: `Unblock ${type.toUpperCase()}`,
-          message: `Are you sure you want to restore access for this ${type.toUpperCase()}?`,
-          confirmText: "Unblock Now",
-          variant: "primary"
-        }))) return;
+         // Unblock Action
+         if (!(await confirm({
+            title: `Unblock ${type.toUpperCase()}`,
+            message: `Are you sure you want to restore access for this ${type.toUpperCase()}?`,
+            confirmText: "Unblock Now",
+            variant: "primary"
+         }))) return;
 
-        setBlocking(true);
-        try {
-          await deleteDoc(doc(db, "fraud_blocks", existingBlockId));
-          setActiveBlocks(prev => {
-            const next = { ...prev };
-            delete next[`${type}:${val}`];
-            return next;
-          });
-          toast({ title: "Access Restored" });
-        } catch (e) {
-          toast({ variant: "destructive", title: "Action Failed" });
-        } finally {
-          setBlocking(false);
-        }
-        return;
+         setBlocking(true);
+         try {
+            await deleteDoc(doc(db, "fraud_blocks", existingBlockId));
+            setActiveBlocks(prev => {
+               const next = { ...prev };
+               delete next[`${type}:${val}`];
+               return next;
+            });
+            toast({ title: "Access Restored" });
+         } catch (e) {
+            toast({ variant: "destructive", title: "Action Failed" });
+         } finally {
+            setBlocking(false);
+         }
+         return;
       }
 
       // Block Action
@@ -246,7 +247,7 @@ export default function OrderDetailPage() {
                      <div className="flex items-center gap-3">
                         <h1 className="text-2xl sm:text-4xl font-black font-headline tracking-tighter text-slate-900 uppercase italic">Order Details</h1>
                         {order.isSpam && (
-                          <Badge className="bg-rose-500 text-white border-none rounded-lg px-2.5 py-1 text-[10px] font-black tracking-widest uppercase shadow-lg shadow-rose-200">SPAM</Badge>
+                           <Badge className="bg-rose-500 text-white border-none rounded-lg px-2.5 py-1 text-[10px] font-black tracking-widest uppercase shadow-lg shadow-rose-200">SPAM</Badge>
                         )}
                      </div>
                      <p className="text-slate-400 text-[10px] sm:text-xs font-black tracking-[0.2em] uppercase mt-1">Ref: <span className="text-primary select-all">#{order.id}</span></p>
@@ -257,10 +258,10 @@ export default function OrderDetailPage() {
             <div className="flex flex-wrap items-center gap-3 bg-white p-2 rounded-[32px] border border-slate-100 shadow-sm sm:w-fit">
                <Select value={order.status} onValueChange={handleStatusUpdate} disabled={updating}>
                   <SelectTrigger className={cn(
-                    "h-12 rounded-[24px] border-none font-black text-[10px] uppercase tracking-widest px-6 shadow-sm transition-all",
-                    order.status === 'completed' ? 'bg-emerald-500 text-white' : 
-                    order.status === 'pending' ? 'bg-amber-500 text-white' : 
-                    order.status === 'cancelled' ? 'bg-rose-500 text-white' : 'bg-slate-900 text-white'
+                     "h-12 rounded-[24px] border-none font-black text-[10px] uppercase tracking-widest px-6 shadow-sm transition-all",
+                     order.status === 'completed' ? 'bg-emerald-500 text-white' :
+                        order.status === 'pending' ? 'bg-amber-500 text-white' :
+                           order.status === 'cancelled' ? 'bg-rose-500 text-white' : 'bg-slate-900 text-white'
                   )}>
                      <SelectValue />
                   </SelectTrigger>
@@ -272,7 +273,7 @@ export default function OrderDetailPage() {
                      <SelectItem value="cancelled" className="rounded-xl font-black uppercase text-[10px] text-rose-500">Cancelled</SelectItem>
                   </SelectContent>
                </Select>
-               
+
                <div className="flex items-center gap-2 px-4 h-12 bg-slate-50 rounded-[24px]">
                   <CreditCard className="w-4 h-4 text-slate-400" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{order.paymentMethod || 'COD'}</span>
@@ -429,7 +430,7 @@ export default function OrderDetailPage() {
                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Verified Identity</p>
                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">{order.customer?.fullName}</h3>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 gap-4">
                            <a href={`tel:${order.customer?.phone}`} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:bg-primary hover:border-primary transition-all">
                               <div className="flex items-center gap-4">
@@ -438,7 +439,7 @@ export default function OrderDetailPage() {
                               </div>
                               <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-white" />
                            </a>
-                           
+
                            {order.customer?.email && (
                               <a href={`mailto:${order.customer.email}`} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:bg-primary hover:border-primary transition-all">
                                  <div className="flex items-center gap-4">
@@ -502,8 +503,8 @@ export default function OrderDetailPage() {
                         <Button
                            variant={isIpBlocked ? "secondary" : "outline"}
                            className={cn(
-                             "rounded-2xl h-14 justify-start font-black text-[10px] uppercase tracking-widest px-6 transition-all",
-                             isIpBlocked ? "bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100" : "border-rose-100 text-rose-600 hover:bg-rose-50"
+                              "rounded-2xl h-14 justify-start font-black text-[10px] uppercase tracking-widest px-6 transition-all",
+                              isIpBlocked ? "bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100" : "border-rose-100 text-rose-600 hover:bg-rose-50"
                            )}
                            onClick={() => handleBlockAction('ip')}
                            disabled={blocking || !order.customer?.ip}
@@ -511,12 +512,12 @@ export default function OrderDetailPage() {
                            {isIpBlocked ? <Unlock className="w-4 h-4 mr-3" /> : <Fingerprint className="w-4 h-4 mr-3" />}
                            {blocking ? "COORDINATING..." : isIpBlocked ? "RELEASE IP RESTRICTION" : "RESTRICT IP ADDRESS"}
                         </Button>
-                        
+
                         <Button
                            variant={isPhoneBlocked ? "secondary" : "outline"}
                            className={cn(
-                             "rounded-2xl h-14 justify-start font-black text-[10px] uppercase tracking-widest px-6 transition-all",
-                             isPhoneBlocked ? "bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100" : "border-rose-100 text-rose-600 hover:bg-rose-50"
+                              "rounded-2xl h-14 justify-start font-black text-[10px] uppercase tracking-widest px-6 transition-all",
+                              isPhoneBlocked ? "bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100" : "border-rose-100 text-rose-600 hover:bg-rose-50"
                            )}
                            onClick={() => handleBlockAction('phone')}
                            disabled={blocking || !order.customer?.phone}
@@ -524,7 +525,7 @@ export default function OrderDetailPage() {
                            {isPhoneBlocked ? <Unlock className="w-4 h-4 mr-3" /> : <Phone className="w-4 h-4 mr-3" />}
                            {blocking ? "COORDINATING..." : isPhoneBlocked ? "RELEASE PHONE IDENTITY" : "RESTRICT PHONE IDENTITY"}
                         </Button>
-                        
+
                         <Button
                            className="rounded-2xl h-14 justify-start bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase tracking-widest px-6 shadow-xl shadow-rose-200 transition-all active:scale-95"
                            onClick={() => handleBlockAction('customer')}
