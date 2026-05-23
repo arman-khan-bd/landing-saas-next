@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase-server";
 import { collection, query, where, getDocs, limit, Timestamp, orderBy } from "firebase/firestore";
 
-function sanitizeData(data: any): any {
+export function sanitizeData(data: any): any {
   if (!data) return data;
   
   if (Array.isArray(data)) {
@@ -88,3 +88,47 @@ export async function getPageBySlug(storeId: string, slug: string) {
     return null;
   }
 }
+
+export async function getProductsByStore(storeId: string) {
+  try {
+    let snap;
+    try {
+      const q = query(
+        collection(db, "products"), 
+        where("storeId", "==", storeId), 
+        orderBy("createdAt", "desc")
+      );
+      snap = await getDocs(q);
+    } catch (e) {
+      const q = query(
+        collection(db, "products"), 
+        where("storeId", "==", storeId)
+      );
+      snap = await getDocs(q);
+    }
+    
+    const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return sanitizeData(data);
+  } catch (error) {
+    console.error("Error fetching products on server:", error);
+    return [];
+  }
+}
+
+export async function getCategoriesByStore(storeId: string) {
+  try {
+    const [catSnap, subCatSnap] = await Promise.all([
+      getDocs(query(collection(db, "categories"), where("storeId", "==", storeId))),
+      getDocs(query(collection(db, "sub-categories"), where("storeId", "==", storeId))).catch(() => ({ docs: [] }))
+    ]);
+    
+    const mainCats = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const subCats = subCatSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), isSub: true }));
+    
+    return sanitizeData([...mainCats, ...subCats]);
+  } catch (error) {
+    console.error("Error fetching categories on server:", error);
+    return [];
+  }
+}
+

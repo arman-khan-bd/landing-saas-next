@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getTenantPath, getConsoleUrl, getCurrencySymbol } from "@/lib/utils";
+import { getTenantPath, getConsoleUrl, getCurrencySymbol, optimizeCloudinaryUrl } from "@/lib/utils";
 import { BlockRenderer } from "./builder/[pageId]/block-renderer";
 import { LazySection } from "./builder/[pageId]/lazy-section";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,11 +31,15 @@ interface CartItem {
 export default function Storefront({
   initialStore,
   initialSubdomain,
-  initialPage
+  initialPage,
+  initialProducts,
+  initialCategories
 }: {
   initialStore?: any,
   initialSubdomain?: string,
-  initialPage?: any
+  initialPage?: any,
+  initialProducts?: any[],
+  initialCategories?: any[]
 }) {
   const { subdomain: paramsSubdomain } = useParams();
   const firestore = useFirestore();
@@ -55,9 +59,9 @@ export default function Storefront({
 
   const [store, setStore] = useState<any>(initialStore || null);
   const [page, setPage] = useState<any>(initialPage || null);
-  const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [catsLoading, setCatsLoading] = useState(true);
+  const [products, setProducts] = useState<any[]>(initialProducts || []);
+  const [categories, setCategories] = useState<any[]>(initialCategories || []);
+  const [catsLoading, setCatsLoading] = useState(!initialProducts);
   const [loading, setLoading] = useState(!initialStore);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -129,11 +133,11 @@ export default function Storefront({
     if (subdomain) {
       if (!store || !page) {
         fetchStoreAndPage();
-      } else if (store?.id) {
+      } else if (store?.id && (!initialProducts || products.length === 0)) {
         fetchProducts(store.id);
       }
     }
-  }, [subdomain, !!store, !!page, store?.id, firestore]);
+  }, [subdomain, !!store, !!page, store?.id, firestore, initialProducts, products.length]);
 
   const fetchProducts = async (storeId: string) => {
     if (!firestore) return;
@@ -201,7 +205,7 @@ export default function Storefront({
 
       let matchedPage = null;
       if (!allPagesSnap.empty) {
-        const pages = allPagesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const pages = allPagesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
         matchedPage = pages.find(p => p.slug === "index") || pages.find(p => p.slug?.toLowerCase() === "index");
         
         if (!matchedPage && pages.length > 0) {
@@ -256,7 +260,7 @@ export default function Storefront({
               {store.homeBanner ? (
                 <>
                   <img
-                    src={store.homeBanner}
+                    src={optimizeCloudinaryUrl(store.homeBanner, 1200)}
                     alt={store.name}
                     className="absolute inset-0 w-full h-full object-cover opacity-60 transition-transform duration-1000 group-hover:scale-105"
                   />
@@ -301,7 +305,7 @@ export default function Storefront({
                    >
                       <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-50 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform duration-500">
                          {cat.image ? (
-                            <img src={cat.image} className="w-full h-full object-cover" alt="" />
+                            <img src={optimizeCloudinaryUrl(cat.image, 200)} className="w-full h-full object-cover" alt="" />
                          ) : (
                             <Package className="w-8 h-8 text-slate-300 group-hover:text-primary transition-colors" />
                          )}
@@ -352,7 +356,7 @@ export default function Storefront({
                   <Card key={p.id} className="group bg-white rounded-[40px] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col h-full">
                     <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block aspect-square relative overflow-hidden bg-slate-50">
                       {p.featuredImage ? (
-                        <img src={p.featuredImage} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={p.name} />
+                        <img src={optimizeCloudinaryUrl(p.featuredImage, 400)} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={p.name} />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-200">
                            <ImageIcon className="w-16 h-16 opacity-10" />
@@ -440,7 +444,7 @@ export default function Storefront({
                 {cart.map((item) => (
                   <div key={item.id} className="flex gap-3 p-2 bg-slate-50 rounded-xl border border-slate-100">
                     <div className="w-14 h-14 rounded-lg bg-white overflow-hidden border shrink-0">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      <img src={optimizeCloudinaryUrl(item.image, 100)} alt={item.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div className="flex justify-between items-start">

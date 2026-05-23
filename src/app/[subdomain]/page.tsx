@@ -1,5 +1,5 @@
 import { Metadata, ResolvingMetadata } from "next";
-import { getStoreBySubdomain, getPageBySlug } from "@/lib/store-server";
+import { getStoreBySubdomain, getPageBySlug, getProductsByStore, getCategoriesByStore } from "@/lib/store-server";
 import StorefrontClient from "./StorefrontClient";
 
 type Props = {
@@ -37,15 +37,26 @@ export async function generateMetadata(
   };
 }
 
-
-
 export default async function StorefrontPage({ params }: Props) {
   const { subdomain } = await params;
   const store = await getStoreBySubdomain(subdomain);
-  
+
   if (!store) return null;
-  
-  const indexPage = await getPageBySlug(store.id, "index");
-  
-  return <StorefrontClient initialStore={store} initialSubdomain={subdomain} initialPage={indexPage} />;
+
+  // Pre-fetch page, products, and categories in parallel on the server
+  const [indexPage, products, categories] = await Promise.all([
+    getPageBySlug(store.id, "index"),
+    getProductsByStore(store.id),
+    getCategoriesByStore(store.id)
+  ]);
+
+  return (
+    <StorefrontClient
+      initialStore={store}
+      initialSubdomain={subdomain}
+      initialPage={indexPage}
+      initialProducts={products}
+      initialCategories={categories}
+    />
+  );
 }

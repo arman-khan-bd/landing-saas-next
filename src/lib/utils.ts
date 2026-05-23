@@ -66,3 +66,12 @@ export function formatPrice(amount: number, currencyCode: string = "BDT") {
   const symbol = getCurrencySymbol(currencyCode);
   return `${symbol}${Number(amount).toFixed(2)}`;
 }
+
+export function optimizeCloudinaryUrl(url: string, width: number = 600, quality: string = "auto"): string {
+  if (!url || typeof url !== "string") return url;
+  if (url.includes("res.cloudinary.com") && url.includes("/upload/")) {
+    return url.replace("/upload/", `/upload/w_${width},q_${quality},f_auto/`);
+  }
+  return url;
+}
+
