@@ -1,19 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFirestore } from "@/firebase/provider";
-import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, Globe, Image as ImageIcon, Sparkles, Share2 } from "lucide-react";
+import { Loader2, Save, Globe, Share2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 
 export default function SeoManager() {
-  const firestore = useFirestore();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -28,24 +27,38 @@ export default function SeoManager() {
   });
 
   useEffect(() => {
-    if (!firestore) return;
-    const unsub = onSnapshot(doc(firestore, "platformSettings", "seo"), (docSnap) => {
-      if (docSnap.exists()) {
-        setFormData(docSnap.data() as any);
+    const fetchSeoSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("platform_settings")
+          .select("value")
+          .eq("key", "seo")
+          .single();
+        
+        if (data && data.value) {
+          setFormData(data.value as any);
+        }
+      } catch (err) {
+        console.error("Error fetching SEO settings:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
-    return () => unsub();
-  }, [firestore]);
+    };
+    fetchSeoSettings();
+  }, [supabase]);
 
   const handleSave = async () => {
-    if (!firestore) return;
     setProcessing(true);
     try {
-      await setDoc(doc(firestore, "platformSettings", "seo"), {
-        ...formData,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      const { error } = await supabase
+        .from("platform_settings")
+        .upsert({
+          key: "seo",
+          value: formData,
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
       toast({ title: "SEO Settings Saved", description: "Your platform metadata is now updated." });
     } catch (error) {
       toast({ variant: "destructive", title: "Save Failed", description: "Please try again later." });

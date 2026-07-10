@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { cn, getCurrencySymbol } from "@/lib/utils";
-import { useFirestore } from "@/firebase/provider";
-import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { 
   CheckCircle2, Truck, Smartphone, Loader2, Check,
-  CreditCard, ShieldCheck
+  CreditCard, ShieldCheck, Sparkles, SmartphoneIcon, ShieldAlert
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,7 +21,6 @@ import {
 } from "@/components/ui/input-otp";
 import { sendSMS } from "@/app/actions/sms";
 import { syncCustomerData } from "@/app/actions/customers";
-import { SmartphoneIcon, ShieldAlert } from "lucide-react";
 
 interface OrderFormBlockProps {
   block: any;
@@ -70,10 +68,10 @@ export const OrderFormBlock = ({ block, style, products, store, isOrganic = fals
             showShipping={block.content?.showShipping !== false}
           />
        ) : (
-         <div className="p-8 sm:p-12 bg-white rounded-2xl sm:rounded-[40px] shadow-sm border-2 border-dashed flex flex-col items-center justify-center gap-4 text-slate-300">
-            <CreditCard className="w-8 h-8 sm:w-10 sm:h-10 opacity-10" />
-            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center">Select products in sidebar to see order form</span>
-         </div>
+          <div className="p-8 sm:p-12 bg-white rounded-2xl sm:rounded-[40px] shadow-sm border-2 border-dashed flex flex-col items-center justify-center gap-4 text-slate-300">
+             <CreditCard className="w-8 h-8 sm:w-10 sm:h-10 opacity-10" />
+             <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center">Select products in sidebar to see order form</span>
+          </div>
        )}
     </div>
   );
@@ -81,7 +79,7 @@ export const OrderFormBlock = ({ block, style, products, store, isOrganic = fals
 
 function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showShipping }: { products: any[], store: any, isOrganic: boolean, isTraditional: boolean, showShipping: boolean }) {
   const { toast } = useToast();
-  const db = useFirestore();
+  const supabase = useSupabaseClient();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [clientIp, setClientIp] = useState("");
@@ -134,15 +132,15 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
       const normalizedPhone = normalizePhoneNumber(formData.phone);
 
       // Phone Block Check
-      const phoneBlockQ = query(
-        collection(db, "fraud_blocks"),
-        where("storeId", "==", store.id),
-        where("type", "==", "phone"),
-        where("value", "==", normalizedPhone),
-        limit(1)
-      );
-      const phoneBlockSnap = await getDocs(phoneBlockQ);
-      if (!phoneBlockSnap.empty) {
+      const { data: phoneBlockData } = await supabase
+        .from("fraud_blocks")
+        .select("id")
+        .eq("store_id", store.id)
+        .eq("type", "phone")
+        .eq("value", normalizedPhone)
+        .limit(1);
+
+      if (phoneBlockData && phoneBlockData.length > 0) {
         toast({ 
           variant: "destructive", 
           title: "Access Restricted", 
@@ -170,14 +168,14 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
     setVerifying(true);
     try {
       const normalizedPhone = normalizePhoneNumber(formData.phone);
-      const q = query(
-        collection(db, "verification_codes"),
-        where("phone", "==", normalizedPhone),
-        where("code", "==", code),
-        limit(1)
-      );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
+      const { data: verificationData } = await supabase
+        .from("verification_codes")
+        .select("id")
+        .eq("phone", normalizedPhone)
+        .eq("code", code)
+        .limit(1);
+
+      if (verificationData && verificationData.length > 0) {
         setIsVerified(true);
         toast({ title: "Verified", description: "ফোন নম্বর সফলভাবে ভেরিফাই হয়েছে" });
       } else {
@@ -232,15 +230,15 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
       const normalizedPhone = normalizePhoneNumber(formData.phone);
 
       // Phone Block Check (Final)
-      const phoneBlockQ = query(
-        collection(db, "fraud_blocks"),
-        where("storeId", "==", store.id),
-        where("type", "==", "phone"),
-        where("value", "==", normalizedPhone),
-        limit(1)
-      );
-      const phoneBlockSnap = await getDocs(phoneBlockQ);
-      if (!phoneBlockSnap.empty) {
+      const { data: phoneBlockData } = await supabase
+        .from("fraud_blocks")
+        .select("id")
+        .eq("store_id", store.id)
+        .eq("type", "phone")
+        .eq("value", normalizedPhone)
+        .limit(1);
+
+      if (phoneBlockData && phoneBlockData.length > 0) {
         toast({ variant: "destructive", title: "অর্ডার গ্রহণ করা সম্ভব হচ্ছে না", description: "আপনার ফোন নম্বরটি নিষিদ্ধ করা হয়েছে।" });
         setIsPlacingOrder(false);
         return;
@@ -249,15 +247,14 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
       // IP Spam Check
       let isSpam = false;
       if (clientIp) {
-        const ipBlockQ = query(
-          collection(db, "fraud_blocks"),
-          where("storeId", "==", store.id),
-          where("type", "==", "ip"),
-          where("value", "==", clientIp),
-          limit(1)
-        );
-        const ipBlockSnap = await getDocs(ipBlockQ);
-        if (!ipBlockSnap.empty) {
+        const { data: ipBlockData } = await supabase
+          .from("fraud_blocks")
+          .select("id")
+          .eq("store_id", store.id)
+          .eq("type", "ip")
+          .eq("value", clientIp)
+          .limit(1);
+        if (ipBlockData && ipBlockData.length > 0) {
           isSpam = true;
         }
       }
@@ -266,8 +263,8 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
       const total = subtotal + shippingCost;
 
       const orderData = {
-        storeId: store.id,
-        ownerId: store.ownerId,
+        store_id: store.id,
+        owner_id: store.owner_id || store.ownerId,
         items: selectedProducts.map(p => ({
           id: p.id,
           name: p.name,
@@ -281,24 +278,31 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
           cost: shippingCost
         } : { name: "Free Delivery", cost: 0 },
         subtotal: subtotal,
-        shippingCost: shippingCost,
+        shipping_cost: shippingCost,
         total: total,
-        paymentMethod: formData.paymentMethod,
-        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
-        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
+        payment_method: formData.paymentMethod,
+        transaction_id: formData.paymentMethod === 'manual' ? formData.transactionId : null,
+        selected_manual_method_id: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
         status: "pending",
-        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
-        isRead: false,
-        isSpam: isSpam,
-        createdAt: serverTimestamp(),
+        payment_status: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
+        is_read: false,
+        is_spam: isSpam
       };
 
-      const orderRef = await addDoc(collection(db, "orders"), orderData);
+      const { data: insertedOrder, error: insertError } = await supabase
+        .from("orders")
+        .insert(orderData)
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
       
       // Sync Customer Data
       await syncCustomerData({
         ...orderData,
-        id: orderRef.id
+        storeId: store.id,
+        ownerId: store.ownerId,
+        id: insertedOrder.id
       });
 
       setOrderSuccess(true);
@@ -445,26 +449,26 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
             {showShipping && (store?.shippingSettings?.enabled === true || String(store?.shippingSettings?.enabled) === 'true') && 
              Array.isArray(store?.shippingSettings?.methods) && 
              store.shippingSettings.methods.length > 0 && (
-              <div className="space-y-3 sm:space-y-4">
-                 <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>ডেলিভারি এরিয়া</Label>
-                 <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
-                   {(Array.isArray(store.shippingSettings.methods) ? store.shippingSettings.methods : []).map((method: any) => (
-                     <div 
-                       key={method.id} 
-                       className={cn("flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
-                       onClick={() => setSelectedShipping(method)}
-                     >
-                        <div className="flex items-center gap-3">
-                          <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", selectedShipping?.id === method.id ? 'border-primary' : 'border-slate-300')}>
-                            {selectedShipping?.id === method.id && <div className="w-2 h-2 rounded-full bg-primary" />}
-                          </div>
-                          <span className="font-bold text-xs sm:text-sm">{method.name}</span>
-                        </div>
-                        <span className="font-black text-xs sm:text-sm">{method.cost > 0 ? `${getCurrencySymbol(store?.currency)} ${method.cost}` : 'ফ্রি'}</span>
-                     </div>
-                   ))}
-                 </div>
-              </div>
+               <div className="space-y-3 sm:space-y-4">
+                  <Label className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", (isOrganic || isTraditional) ? "text-primary" : "text-slate-400")}>ডেলিভারি এরিয়া</Label>
+                  <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
+                    {(Array.isArray(store.shippingSettings.methods) ? store.shippingSettings.methods : []).map((method: any) => (
+                      <div 
+                        key={method.id} 
+                        className={cn("flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
+                        onClick={() => setSelectedShipping(method)}
+                      >
+                         <div className="flex items-center gap-3">
+                           <div className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center", selectedShipping?.id === method.id ? 'border-primary' : 'border-slate-300')}>
+                             {selectedShipping?.id === method.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                           </div>
+                           <span className="font-bold text-xs sm:text-sm">{method.name}</span>
+                         </div>
+                         <span className="font-black text-xs sm:text-sm">{method.cost > 0 ? `${getCurrencySymbol(store?.currency)} ${method.cost}` : 'ফ্রি'}</span>
+                      </div>
+                    ))}
+                  </div>
+               </div>
             )}
 
             <div className="space-y-3 sm:space-y-4">
@@ -578,23 +582,23 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional, showS
                )}
              >
                {isPlacingOrder ? <Loader2 className="w-8 h-8 animate-spin" /> : "অর্ডার কনফার্ম করুন"}
-             </Button>
+              </Button>
 
-             <div className="flex items-center justify-center gap-4 sm:gap-6">
-                <div className="flex flex-col items-center gap-1">
-                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
-                      <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
-                   </div>
-                   <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-widest">Secure</span>
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
-                      <Truck className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-500" />
-                   </div>
-                   <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-widest">Fast Delivery</span>
-                </div>
-             </div>
-          </div>
+              <div className="flex items-center justify-center gap-4 sm:gap-6">
+                 <div className="flex flex-col items-center gap-1">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                       <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
+                    </div>
+                    <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-widest">Secure</span>
+                 </div>
+                 <div className="flex flex-col items-center gap-1">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                       <Truck className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-500" />
+                    </div>
+                    <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-widest">Fast Delivery</span>
+                 </div>
+              </div>
+           </div>
         </form>
       </div>
     </Card>

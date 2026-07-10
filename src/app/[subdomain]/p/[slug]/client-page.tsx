@@ -1,19 +1,13 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { useFirestore } from "@/firebase/provider";
-import { collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
-import { Loader2, AlertCircle } from "lucide-react";
+import { useSupabaseClient } from "@/supabase";
+import { AlertCircle } from "lucide-react";
 import { BlockRenderer } from "../../builder/[pageId]/block-renderer";
-import Script from "next/script";
 import { PageSkeleton } from "@/components/PageSkeleton";
 
-import { LazySection } from "../../builder/[pageId]/lazy-section";
-
 export default function RenderDynamicPage({ initialPage, initialStore, subdomain, slug }: any) {
-  const db = useFirestore();
+  const supabase = useSupabaseClient();
   const [page, setPage] = useState<any>(initialPage);
   const [store, setStore] = useState<any>(initialStore);
   const [products, setProducts] = useState<any[]>([]);
@@ -28,7 +22,7 @@ export default function RenderDynamicPage({ initialPage, initialStore, subdomain
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!db || !subdomain || !slug) return;
+      if (!subdomain || !slug) return;
       
       // Only show full page loading if we don't even have the store/page shell
       if (!page || !store) setLoading(true);
@@ -38,10 +32,14 @@ export default function RenderDynamicPage({ initialPage, initialStore, subdomain
         
         // 1. Fetch store if missing
         if (!currentStore) {
-          const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain), limit(1));
-          const storeSnap = await getDocs(storeQ);
-          if (!storeSnap.empty) {
-            currentStore = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
+          const { data: storeData } = await supabase
+            .from("stores")
+            .select("*")
+            .eq("subdomain", subdomain)
+            .single();
+
+          if (storeData) {
+            currentStore = storeData;
             setStore(currentStore);
           } else {
             setError("Store not found");
@@ -56,22 +54,22 @@ export default function RenderDynamicPage({ initialPage, initialStore, subdomain
         }
 
         // 2. Fetch Page and Products in parallel if we have store ID
-        const [allPagesSnap, prodSnap] = await Promise.all([
-          getDocs(query(collection(db, "pages"), where("storeId", "==", currentStore.id))),
-          getDocs(query(collection(db, "products"), where("storeId", "==", currentStore.id)))
+        const [pagesRes, prodRes] = await Promise.all([
+          supabase.from("pages").select("*").eq("store_id", currentStore.id),
+          supabase.from("products").select("*").eq("store_id", currentStore.id)
         ]);
 
         // Process Pages
-        if (!allPagesSnap.empty) {
-          const pages = allPagesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (pagesRes.data && pagesRes.data.length > 0) {
+          const pages = pagesRes.data;
           let matchedPage = pages.find(p => p.slug === slug);
           if (!matchedPage) matchedPage = pages.find(p => p.slug?.toLowerCase() === slug.toLowerCase());
           if (!matchedPage) matchedPage = pages.find(p => p.slug?.replace(/-/g, "") === slug.replace(/-/g, ""));
           
           if (!matchedPage && pages.length > 0) {
             matchedPage = pages.sort((a: any, b: any) => {
-              const timeA = a.updatedAt?.toMillis ? a.updatedAt.toMillis() : 0;
-              const timeB = b.updatedAt?.toMillis ? b.updatedAt.toMillis() : 0;
+              const timeA = new Date(a.updated_at || a.updatedAt || 0).getTime();
+              const timeB = new Date(b.updated_at || b.updatedAt || 0).getTime();
               return timeB - timeA;
             })[0];
           }
@@ -81,7 +79,7 @@ export default function RenderDynamicPage({ initialPage, initialStore, subdomain
         }
 
         // Process Products
-        setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setProducts(prodRes.data || []);
         setProductsLoading(false);
 
       } catch (err: any) {
@@ -94,13 +92,13 @@ export default function RenderDynamicPage({ initialPage, initialStore, subdomain
     };
     
     fetchData();
-  }, [db, subdomain, slug]);
+  }, [subdomain, slug]);
 
   if (loading) return <PageSkeleton />;
   if (error || !page) return <div className="flex flex-col h-screen items-center justify-center space-y-4 px-6 text-center bg-white"><AlertCircle className="w-16 h-16 text-destructive opacity-20" /><h1 className="text-3xl font-headline font-bold">{error || "404 - Not Found"}</h1><p className="text-muted-foreground leading-relaxed">The page you're looking for was not found or is currently private.</p></div>;
 
-  const config = Array.isArray(page?.config) ? page.config : [];
-  const pageStyle = page.pageStyle || { backgroundColor: "#FFFFFF", paddingTop: 0, paddingBottom: 40 };
+  const config = Array.isArray(page?.blocks || page?.config) ? (page.blocks || page.config) : [];
+  const pageStyle = page.page_style || page.pageStyle || { backgroundColor: "#FFFFFF", paddingTop: 0, paddingBottom: 40 };
 
   const getBackgroundStyles = () => {
     const styles: any = {
@@ -144,12 +142,11 @@ export default function RenderDynamicPage({ initialPage, initialStore, subdomain
     );
   };
 
-
   return (
     <div className="min-h-screen" style={getBackgroundStyles()}>
       {getTextureOverlay()}
       <div className="relative z-10">
-        {config.map((block: any, idx: number) => (
+        {config.map((block: any) => (
           <BlockRenderer 
             key={block.id} 
             block={block} 

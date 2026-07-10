@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useSupabaseClient } from "@/supabase";
 import {
   ArrowRight, ShoppingCart, ShieldCheck, Zap,
   CheckCircle2, Star, Smartphone, Globe,
@@ -13,7 +14,6 @@ import {
   Activity, Menu, X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useUser } from "@/firebase/provider";
 import { cn } from "@/lib/utils";
 
 // Icon mapping helper
@@ -29,6 +29,7 @@ interface LandingClientProps {
 }
 
 export default function LandingClient({ initialPlans, initialFeatures }: LandingClientProps) {
+  const supabase = useSupabaseClient();
   const [plans] = useState<any[]>(initialPlans || []);
   const [features] = useState<any[]>(initialFeatures || []);
   const [showAll, setShowAll] = useState(false);
@@ -36,7 +37,21 @@ export default function LandingClient({ initialPlans, initialFeatures }: Landing
   const [activeCategory, setActiveCategory] = useState("all");
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user } = useUser();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -208,7 +223,7 @@ export default function LandingClient({ initialPlans, initialFeatures }: Landing
                 { val: "৫০০+", label: "একটিভ স্টোর" },
                 { val: "৯৯.৯%", label: "আপটাইম" },
                 { val: "২৪/৭", label: "সাপোর্ট" },
-              ].map((s, i) => (
+                ].map((s, i) => (
                 <div key={i} className="text-center">
                   <div className="text-2xl sm:text-3xl font-black text-white">{s.val}</div>
                   <div className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-500 mt-0.5">{s.label}</div>

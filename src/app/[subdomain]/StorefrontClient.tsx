@@ -1,11 +1,9 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useFirestore } from "@/firebase/provider";
+import { useSupabaseClient } from "@/supabase";
 import { getSubdomain } from "@/lib/subdomain";
-import { collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Search, ShoppingBag, ShoppingCart, Loader2, ArrowRight, ChevronLeft, ChevronRight, X, Minus, Plus, Trash2, LayoutGrid, Package, Image as ImageIcon } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -42,7 +40,7 @@ export default function Storefront({
   initialCategories?: any[]
 }) {
   const { subdomain: paramsSubdomain } = useParams();
-  const firestore = useFirestore();
+  const supabase = useSupabaseClient();
   const [subdomain, setSubdomain] = useState<string>(initialSubdomain || "");
 
   useEffect(() => {
@@ -137,33 +135,28 @@ export default function Storefront({
         fetchProducts(store.id);
       }
     }
-  }, [subdomain, !!store, !!page, store?.id, firestore, initialProducts, products.length]);
+  }, [subdomain, !!store, !!page, store?.id, initialProducts, products.length]);
 
   const fetchProducts = async (storeId: string) => {
-    if (!firestore) return;
     setCatsLoading(true);
     try {
-      let prodSnap;
-      try {
-        const prodQuery = query(collection(firestore, "products"), where("storeId", "==", storeId), orderBy("createdAt", "desc"));
-        prodSnap = await getDocs(prodQuery);
-      } catch (error) {
-        const prodQuery = query(collection(firestore, "products"), where("storeId", "==", storeId));
-        prodSnap = await getDocs(prodQuery);
-      }
-      setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const { data: prodsData } = await supabase
+        .from("products")
+        .select("*")
+        .eq("store_id", storeId)
+        .order("created_at", { ascending: false });
+      
+      setProducts(prodsData || []);
 
-      // Fetch categories and sub-categories in parallel
-      const [catSnap, subCatSnap] = await Promise.all([
-        getDocs(query(collection(firestore, "categories"), where("storeId", "==", storeId))),
-        getDocs(query(collection(firestore, "sub-categories"), where("storeId", "==", storeId))).catch(() => ({ docs: [] }))
+      const [catRes, subCatRes] = await Promise.all([
+        supabase.from("categories").select("*").eq("store_id", storeId),
+        supabase.from("sub_categories").select("*").eq("store_id", storeId)
       ]);
 
-      const mainCats = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const subCats = subCatSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), isSub: true }));
+      const mainCats = catRes.data || [];
+      const subCats = (subCatRes.data || []).map(s => ({ ...s, isSub: true }));
 
       setCategories([...mainCats, ...subCats]);
-      console.log("Categories loaded in fetchProducts:", mainCats.length, "Sub-categories:", subCats.length);
     } catch (e) {
       console.error("Fetch Products Error:", e);
     } finally {
@@ -176,42 +169,39 @@ export default function Storefront({
        fetchProducts(initialStore.id);
        return;
     }
-    if (!firestore) return;
     setLoading(true);
     setCatsLoading(true);
     try {
-      const storeQuery = query(collection(firestore, "stores"), where("subdomain", "==", subdomain), limit(1));
-      const storeSnap = await getDocs(storeQuery);
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("subdomain", subdomain)
+        .single();
 
-      if (storeSnap.empty) {
+      if (!storeData) {
         setStore(null);
         setLoading(false);
         return;
       }
 
-      const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
       setStore(storeData);
 
-      // Parallel fetch for page, products, categories, and sub-categories
-      // Fetch pages with fuzzy/fallback matching
-      const [allPagesSnap, prodSnap, catSnap, subCatSnap] = await Promise.all([
-        getDocs(query(collection(firestore, "pages"), where("storeId", "==", storeData.id))),
-        getDocs(query(collection(firestore, "products"), where("storeId", "==", storeData.id), orderBy("createdAt", "desc"))).catch(() =>
-          getDocs(query(collection(firestore, "products"), where("storeId", "==", storeData.id)))
-        ),
-        getDocs(query(collection(firestore, "categories"), where("storeId", "==", storeData.id))),
-        getDocs(query(collection(firestore, "sub-categories"), where("storeId", "==", storeData.id))).catch(() => ({ docs: [] }))
+      const [pagesRes, prodRes, catRes, subCatRes] = await Promise.all([
+        supabase.from("pages").select("*").eq("store_id", storeData.id),
+        supabase.from("products").select("*").eq("store_id", storeData.id).order("created_at", { ascending: false }),
+        supabase.from("categories").select("*").eq("store_id", storeData.id),
+        supabase.from("sub_categories").select("*").eq("store_id", storeData.id)
       ]);
 
       let matchedPage = null;
-      if (!allPagesSnap.empty) {
-        const pages = allPagesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+      if (pagesRes.data && pagesRes.data.length > 0) {
+        const pages = pagesRes.data;
         matchedPage = pages.find(p => p.slug === "index") || pages.find(p => p.slug?.toLowerCase() === "index");
         
         if (!matchedPage && pages.length > 0) {
           matchedPage = pages.sort((a: any, b: any) => {
-            const timeA = a.updatedAt?.toMillis ? a.updatedAt.toMillis() : 0;
-            const timeB = b.updatedAt?.toMillis ? b.updatedAt.toMillis() : 0;
+            const timeA = new Date(a.updated_at || a.updatedAt || 0).getTime();
+            const timeB = new Date(b.updated_at || b.updatedAt || 0).getTime();
             return timeB - timeA;
           })[0];
         }
@@ -221,13 +211,12 @@ export default function Storefront({
         setPage(matchedPage);
       }
 
-      setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setProducts(prodRes.data || []);
 
-      const mainCats = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const subCats = subCatSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), isSub: true }));
+      const mainCats = catRes.data || [];
+      const subCats = (subCatRes.data || []).map(s => ({ ...s, isSub: true }));
 
       setCategories([...mainCats, ...subCats]);
-      console.log("Storefront Init Categories:", mainCats.length, "Sub-categories:", subCats.length);
 
     } catch (e) {
       console.error("Storefront Init Error:", e);
@@ -240,8 +229,8 @@ export default function Storefront({
   if (loading) return <PageSkeleton />;
   if (!store) return <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center"><h1 className="text-2xl font-black">Store Registry Not Found</h1><Link href="/"><Button className="mt-6">Return to Hub</Button></Link></div>;
 
-  const config = Array.isArray(page?.config) ? page.config : [];
-  const pageStyle = page?.pageStyle || { backgroundColor: "#FFFFFF", paddingTop: 0, paddingBottom: 40 };
+  const config = Array.isArray(page?.blocks || page?.config) ? (page.blocks || page.config) : [];
+  const pageStyle = page?.page_style || page?.pageStyle || { backgroundColor: "#FFFFFF", paddingTop: 0, paddingBottom: 40 };
 
   return (
     <div
@@ -276,7 +265,7 @@ export default function Storefront({
                     Welcome to {store.name}
                   </Badge>
                   <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-headline font-black text-white uppercase tracking-tighter leading-[0.9] sm:leading-[0.85] animate-in slide-in-from-bottom-8 duration-1000 delay-100">
-                    {store.homePageTitle || "Premium Collection"}
+                    {store.homePageTitle || store.home_page_title || "Premium Collection"}
                   </h1>
                   <p className="text-slate-300 text-sm sm:text-lg md:text-xl max-w-2xl mx-auto font-medium leading-relaxed animate-in slide-in-from-bottom-10 duration-1000 delay-200 px-4 opacity-80">
                     {store.description || "Experience the perfect blend of quality, innovation, and style in every product we create."}
@@ -405,7 +394,6 @@ export default function Storefront({
                </Link>
             </div>
           </section>
-
         </div>
 
       {/* Floating Cart Trigger */}
@@ -483,7 +471,3 @@ export default function Storefront({
     </div>
   );
 }
-
-const Layers = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" /><path d="m2.6 12.14 8.58 3.9a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83l-8.58 3.9a2 2 0 0 1-1.66 0l-8.58-3.9a1 1 0 0 0 0 1.83Z" /><path d="m2.6 16.14 8.58 3.9a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83l-8.58 3.9a2 2 0 0 1-1.66 0l-8.58-3.9a1 1 0 0 0 0 1.83Z" /></svg>
-);

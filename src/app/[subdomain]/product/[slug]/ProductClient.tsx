@@ -2,9 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { useSupabaseClient } from "@/supabase";
 import { getSubdomain } from "@/lib/subdomain";
-import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, ShoppingCart, Loader2, CheckCircle2, Plus, Minus, X, Trash2, ChevronLeft, ShieldCheck, Truck, CreditCard, Smartphone, Copy, Check } from "lucide-react";
 import Link from "next/link";
@@ -16,7 +15,6 @@ import { cn, getTenantPath, getCurrencySymbol } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -40,6 +38,7 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
   const { subdomain: paramsSubdomain, slug } = useParams();
   const [subdomain, setSubdomain] = useState<string>("");
   const { toast } = useToast();
+  const supabase = useSupabaseClient();
   const router = useRouter();
 
   const [product, setProduct] = useState<any>(initialProduct || null);
@@ -77,7 +76,6 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
         currency: 'BDT'
       });
       
-      // Also track InitiateCheckout as the form is visible on single product direct purchase
       fpixel.event('InitiateCheckout', {
         content_ids: [product.id],
         content_type: 'product',
@@ -130,10 +128,13 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
   const fetchProductData = async () => {
     setLoading(true);
     try {
-      const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain), limit(1));
-      const storeSnap = await getDocs(storeQ);
-      if (!storeSnap.empty) {
-        const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() } as any;
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("subdomain", subdomain)
+        .single();
+      
+      if (storeData) {
         setStore(storeData);
         if (storeData.shippingSettings?.enabled && storeData.shippingSettings.methods?.length > 0) {
           setSelectedShipping(storeData.shippingSettings.methods[0]);
@@ -141,14 +142,17 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
         if (storeData.otpVerification === false || storeData.isOtpDisabled) setIsVerified(true);
       }
 
-      const q = query(collection(db, "products"), where("slug", "==", slug), limit(1));
-      const snap = await getDocs(q);
-      if (snap.empty) {
+      const { data: productData } = await supabase
+        .from("products")
+        .select("*")
+        .eq("slug", slug)
+        .single();
+      
+      if (!productData) {
         setProduct(null);
       } else {
-        const data = { id: snap.docs[0].id, ...snap.docs[0].data() };
-        setProduct(data);
-        setSelectedImage(data.featuredImage || (data.gallery && data.gallery[0]) || "");
+        setProduct(productData);
+        setSelectedImage(productData.featuredImage || (productData.gallery && productData.gallery[0]) || "");
       }
     } catch (e) {
       console.error(e);
@@ -165,7 +169,6 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
     if (cleaned.length === 13 && cleaned.startsWith('880')) {
       return cleaned;
     }
-    // If it's just 10 digits or something else, try to make it 880...
     if (cleaned.length === 10) {
       return '880' + cleaned;
     }
@@ -182,15 +185,15 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
       const normalizedPhone = normalizePhoneNumber(formData.phone);
 
       // Phone Block Check
-      const phoneBlockQ = query(
-        collection(db, "fraud_blocks"),
-        where("storeId", "==", store.id),
-        where("type", "==", "phone"),
-        where("value", "==", normalizedPhone),
-        limit(1)
-      );
-      const phoneBlockSnap = await getDocs(phoneBlockQ);
-      if (!phoneBlockSnap.empty) {
+      const { data: phoneBlockData } = await supabase
+        .from("fraud_blocks")
+        .select("id")
+        .eq("store_id", store.id)
+        .eq("type", "phone")
+        .eq("value", normalizedPhone)
+        .limit(1);
+
+      if (phoneBlockData && phoneBlockData.length > 0) {
         toast({ 
           variant: "destructive", 
           title: "Access Restricted", 
@@ -225,14 +228,14 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
     setVerifying(true);
     try {
       const normalizedPhone = normalizePhoneNumber(formData.phone);
-      const q = query(
-        collection(db, "verification_codes"),
-        where("phone", "==", normalizedPhone),
-        where("code", "==", formData.otp),
-        limit(1)
-      );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
+      const { data: verificationData } = await supabase
+        .from("verification_codes")
+        .select("id")
+        .eq("phone", normalizedPhone)
+        .eq("code", formData.otp)
+        .limit(1);
+
+      if (verificationData && verificationData.length > 0) {
         setIsVerified(true);
         toast({ title: "ভেরিফিকেশন সফল", description: "এখন আপনি অর্ডার সম্পন্ন করতে পারেন।" });
       } else {
@@ -301,15 +304,15 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
       const normalizedPhone = normalizePhoneNumber(formData.phone);
 
       // Phone Block Check (Final)
-      const phoneBlockQ = query(
-        collection(db, "fraud_blocks"),
-        where("storeId", "==", store.id),
-        where("type", "==", "phone"),
-        where("value", "==", normalizedPhone),
-        limit(1)
-      );
-      const phoneBlockSnap = await getDocs(phoneBlockQ);
-      if (!phoneBlockSnap.empty) {
+      const { data: phoneBlockData } = await supabase
+        .from("fraud_blocks")
+        .select("id")
+        .eq("store_id", store.id)
+        .eq("type", "phone")
+        .eq("value", normalizedPhone)
+        .limit(1);
+
+      if (phoneBlockData && phoneBlockData.length > 0) {
         toast({ variant: "destructive", title: "অর্ডার গ্রহণ করা সম্ভব হচ্ছে না", description: "আপনার ফোন নম্বরটি নিষিদ্ধ করা হয়েছে।" });
         setIsPlacingOrder(false);
         return;
@@ -318,15 +321,14 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
       // IP Spam Check
       let isSpam = false;
       if (clientIp) {
-        const ipBlockQ = query(
-          collection(db, "fraud_blocks"),
-          where("storeId", "==", store.id),
-          where("type", "==", "ip"),
-          where("value", "==", clientIp),
-          limit(1)
-        );
-        const ipBlockSnap = await getDocs(ipBlockQ);
-        if (!ipBlockSnap.empty) {
+        const { data: ipBlockData } = await supabase
+          .from("fraud_blocks")
+          .select("id")
+          .eq("store_id", store.id)
+          .eq("type", "ip")
+          .eq("value", clientIp)
+          .limit(1);
+        if (ipBlockData && ipBlockData.length > 0) {
           isSpam = true;
         }
       }
@@ -336,8 +338,8 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
       const total = subtotal + shippingCost;
 
       const orderData = {
-        storeId: store.id,
-        ownerId: store.ownerId,
+        store_id: store.id,
+        owner_id: store.owner_id || store.ownerId,
         items: [{
           id: product.id,
           name: product.name,
@@ -356,23 +358,30 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
           cost: shippingCost
         } : { name: "Direct Order", cost: 0 },
         subtotal: subtotal,
-        shippingCost: shippingCost,
+        shipping_cost: shippingCost,
         total: total,
-        paymentMethod: formData.paymentMethod,
-        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
-        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
+        payment_method: formData.paymentMethod,
+        transaction_id: formData.paymentMethod === 'manual' ? formData.transactionId : null,
+        selected_manual_method_id: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
         status: "pending",
-        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
-        isRead: false,
-        isSpam: isSpam,
-        createdAt: serverTimestamp(),
+        payment_status: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
+        is_read: false,
+        is_spam: isSpam
       };
 
-      const orderRef = await addDoc(collection(db, "orders"), orderData);
+      const { data: insertedOrder, error: insertError } = await supabase
+        .from("orders")
+        .insert(orderData)
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
 
       await syncCustomerData({
         ...orderData,
-        id: orderRef.id
+        storeId: store.id,
+        ownerId: store.ownerId,
+        id: insertedOrder.id
       });
 
       fpixel.event('Purchase', {
@@ -420,7 +429,6 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">
-
       <main className="max-w-6xl mx-auto p-2 sm:p-4 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
           <section className="space-y-3">
@@ -679,7 +687,7 @@ export default function ProductDetailPage({ initialProduct, initialStore }: { in
                     <div className="w-16 h-16 rounded-xl bg-white overflow-hidden border shrink-0"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div>
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div className="flex justify-between items-start"><h4 className="font-bold text-xs leading-tight truncate pr-4">{item.name}</h4><button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-rose-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button></div>
-                      <div className="flex items-center justify-between"><p className="text-primary font-black text-sm">{getCurrencySymbol(store?.currency)}{(item.price).toFixed(2)}</p><div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5"><button onClick={() => updateCartQuantity(item.id, -1)} className="p-1 hover:bg-slate-50 rounded transition-all"><Minus className="w-3 h-3" /></button><span className="w-6 text-center text-[10px] font-bold">{item.quantity}</span><button onClick={() => updateCartQuantity(item.id, 1)} className="p-1 hover:bg-slate-50 rounded transition-all"><Plus className="w-3 h-3" /></button></div></div>
+                      <div className="flex items-center justify-between"><p className="text-primary font-black text-sm">{getCurrencySymbol(store?.currency)}{(item.price).toFixed(2)}</p><div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5"><button onClick={() => updateCartQuantity(item.id, -1)} className="p-1 hover:bg-slate-50 rounded transition-all"><Minus className="w-3.5 h-3.5" /></button><span className="w-6 text-center text-[10px] font-bold">{item.quantity}</span><button onClick={() => updateCartQuantity(item.id, 1)} className="p-1 hover:bg-slate-50 rounded transition-all"><Plus className="w-3.5 h-3.5" /></button></div></div>
                     </div>
                   </div>
                 ))}

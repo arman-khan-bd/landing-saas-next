@@ -1,4 +1,3 @@
-
 export type BlockType =
   | "header"
   | "paragraph"
@@ -89,7 +88,6 @@ export interface PageStyle {
   paddingBottom?: number;
   themeId?: string;
   accentColor?: string;
-  backgroundTexture?: string;
   backgroundOpacity?: number;
   backgroundSize?: string;
 }

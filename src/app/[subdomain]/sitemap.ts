@@ -1,7 +1,6 @@
 import { MetadataRoute } from 'next';
-import { db } from "@/lib/firebase-server";
-import { collection, query, where, getDocs } from "firebase/firestore";
 import { getStoreBySubdomain } from '@/lib/store-server';
+import { getSupabaseServerClient } from '@/supabase/server';
 
 export default async function sitemap({
   params,
@@ -15,25 +14,39 @@ export default async function sitemap({
 
   const baseUrl = `https://${subdomain}.ihut.shop`;
 
-  // Fetch all products for this store
-  const prodQuery = query(collection(db, "products"), where("storeId", "==", store.id));
-  const prodSnap = await getDocs(prodQuery);
-  const products = prodSnap.docs.map(doc => doc.data());
+  try {
+    const supabase = await getSupabaseServerClient();
+    // Fetch all products for this store
+    const { data: products } = await supabase
+      .from("products")
+      .select("slug")
+      .eq("store_id", store.id);
 
-  const productUrls = products.map((p) => ({
-    url: `${baseUrl}/product/${p.slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }));
-
-  return [
-    {
-      url: baseUrl,
+    const productUrls = (products || []).map((p) => ({
+      url: `${baseUrl}/product/${p.slug}`,
       lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 1,
-    },
-    ...productUrls,
-  ];
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }));
+
+    return [
+      {
+        url: baseUrl,
+        lastModified: new Date(),
+        changeFrequency: 'daily',
+        priority: 1,
+      },
+      ...productUrls,
+    ];
+  } catch (e) {
+    console.error("Error generating sitemap:", e);
+    return [
+      {
+        url: baseUrl,
+        lastModified: new Date(),
+        changeFrequency: 'daily',
+        priority: 1,
+      }
+    ];
+  }
 }

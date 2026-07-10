@@ -46,15 +46,23 @@ export default function AdminShops() {
   };
 
   const handleToggleSuspend = async (shop: any) => {
-    const newStatus = !shop.isSuspended;
+    const newStatus = !shop.is_suspended && !shop.isSuspended;
     const actionText = newStatus ? "Suspended" : "Reactivated";
     if (!confirm(`Are you sure you want to ${newStatus ? 'suspend' : 'reactivate'} this shop?`)) return;
     
     try {
-      await updateDoc(doc(firestore!, "stores", shop.id), {
-        isSuspended: newStatus,
-        suspendedAt: newStatus ? serverTimestamp() : null
-      });
+      const { error } = await supabase
+        .from("stores")
+        .update({
+          is_suspended: newStatus,
+          isSuspended: newStatus,
+          suspended_at: newStatus ? new Date().toISOString() : null,
+          suspendedAt: newStatus ? new Date().toISOString() : null
+        })
+        .eq("id", shop.id);
+      
+      if (error) throw error;
+
       toast({ 
         title: `Shop ${actionText}`, 
         description: `The store access has been ${actionText.toLowerCase()}.` 
@@ -68,7 +76,8 @@ export default function AdminShops() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this shop permanently? All products and pages will be lost.")) return;
     try {
-      await supabase.from("stores").delete().eq("id", id);
+      const { error } = await supabase.from("stores").delete().eq("id", id);
+      if (error) throw error;
       toast({ title: "Shop Removed", description: "The store has been purged from the system." });
       fetchShops();
     } catch (error) {
@@ -114,6 +123,12 @@ export default function AdminShops() {
                     <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-500" />
                   </TableCell>
                 </TableRow>
+              ) : filteredShops.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-20 text-center text-slate-500 font-bold uppercase text-xs tracking-widest">
+                    No shops found
+                  </TableCell>
+                </TableRow>
               ) : filteredShops.map((shop) => (
                 <TableRow key={shop.id} className="border-white/5 hover:bg-white/5 transition-colors group">
                   <TableCell className="py-5 px-8">
@@ -134,16 +149,16 @@ export default function AdminShops() {
                      </div>
                   </TableCell>
                   <TableCell className="py-5 px-8 font-mono text-xs text-slate-500">
-                   {shop.owner_id?.slice(0, 10)}...
+                    {(shop.owner_id || shop.ownerId)?.slice(0, 10)}...
                   </TableCell>
                   <TableCell className="py-5 px-8">
-                     {shop.isSuspended ? (
+                     {shop.is_suspended || shop.isSuspended ? (
                         <Badge className="bg-rose-600/10 text-rose-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
-                          Suspended
+                           Suspended
                         </Badge>
                      ) : (
                         <Badge className="bg-emerald-600/10 text-emerald-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
-                          Active
+                           Active
                         </Badge>
                      )}
                   </TableCell>
@@ -164,8 +179,8 @@ export default function AdminShops() {
                           className="gap-3 py-3 rounded-xl cursor-pointer"
                           onClick={() => handleToggleSuspend(shop)}
                         >
-                          <AlertTriangle className={shop.isSuspended ? "w-4 h-4 text-emerald-500" : "w-4 h-4 text-amber-500"} /> 
-                          {shop.isSuspended ? "Reactivate Shop" : "Suspend Shop"}
+                          <AlertTriangle className={shop.is_suspended || shop.isSuspended ? "w-4 h-4 text-emerald-500" : "w-4 h-4 text-amber-500"} /> 
+                          {shop.is_suspended || shop.isSuspended ? "Reactivate Shop" : "Suspend Shop"}
                         </DropdownMenuItem>
                         <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer text-rose-500" onClick={() => handleDelete(shop.id)}>
                           <Trash2 className="w-4 h-4" /> Purge Store

@@ -127,7 +127,7 @@ export const CarouselBlock = ({ block, style, handleButtonClick, renderTextWithH
 
   if (carouselItems.length === 0) {
      return (
-       <div id={block.id} style={finalStyle} className="px-4 w-full">
+       <div id={block.id} style={style} className="px-4 w-full">
          <div className="w-full aspect-video bg-slate-50 border-2 border-dashed border-slate-200 rounded-[40px] flex flex-col items-center justify-center gap-4 text-slate-400">
             <ImageIcon className="w-12 h-12 opacity-10" />
             <p className="text-[10px] font-black uppercase tracking-widest">Setup your carousel items in sidebar</p>

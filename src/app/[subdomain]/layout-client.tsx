@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
-import { useAuth, useFirestore } from "@/firebase/provider";
+import { useSupabaseClient } from "@/supabase";
 import { getSubdomain } from "@/lib/subdomain";
-import { collection, query, where, getDocs, onSnapshot, doc, getDoc, updateDoc } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home, ShoppingCart, WifiOff, Palette, ShieldAlert, AlertTriangle, Sparkles, Hammer } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home, ShoppingCart, WifiOff, Palette, ShieldAlert, AlertTriangle, Sparkles, Hammer, Tags } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,9 +16,8 @@ import { ConfirmationProvider } from "@/hooks/use-confirm";
 import { useToast } from "@/hooks/use-toast";
 import FBPixel from "@/components/FBPixel";
 import StorefrontHeader from "@/components/StorefrontHeader";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { writeBatch } from "firebase/firestore";
 
 export default function StoreLayoutClient({
   children,
@@ -46,8 +43,7 @@ export default function StoreLayoutClient({
     setSubdomain(sub);
   }, [paramsSubdomain]);
 
-  const auth = useAuth();
-  const firestore = useFirestore();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [store, setStore] = useState<any>(initialStore || null);
   const [loading, setLoading] = useState(true);
@@ -61,6 +57,7 @@ export default function StoreLayoutClient({
   const [counts, setCounts] = useState({ orders: 0, uncompleted: 0, system: 0, customers: 0 });
   const [notifications, setNotifications] = useState<any[]>([]);
   const [userRole, setUserRole] = useState<string>("user");
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   const normalizedPath = pathname.startsWith(`/${subdomain}/`)
     ? pathname.replace(`/${subdomain}`, "")
@@ -68,16 +65,15 @@ export default function StoreLayoutClient({
 
   const adminSegments = ["dashboard", "overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "sections", "home-manager"];
   const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`));
-
-  // EDITOR DETECT: Only hide sidebar when inside the specific page editor /[pageId]
-  // Normalized path examples: "/sections", "/sections/abc123"
   const isEditor = normalizedPath.startsWith("/sections/") && normalizedPath.split("/").filter(Boolean).length > 1;
 
   useEffect(() => {
-    if (!auth) return;
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const user = session?.user ?? null;
+      setCurrentUser(user);
       if (user) {
-        await verifyStoreAccess(user.uid);
+        await verifyStoreAccess(user.id);
       } else {
         if (isAdminPath) {
           window.location.href = getAuthUrl();
@@ -86,136 +82,158 @@ export default function StoreLayoutClient({
         }
       }
     });
-    return () => unsubscribe();
-  }, [subdomain, router, auth, isAdminPath]);
-
-  useEffect(() => {
-    if (!firestore || !store?.id || !auth?.currentUser || !isAdminPath || !isPasswordVerified) {
-      return;
-    }
-
-    const isStoreOwner = store.ownerId === auth.currentUser.uid;
-    if (!isStoreOwner && userRole !== 'admin') return;
-
-    const ordersQ = query(
-      collection(firestore, "orders"),
-      where("storeId", "==", store.id),
-      where("ownerId", "==", auth.currentUser.uid),
-      where("isRead", "==", false)
-    );
-
-    const uncompletedQ = query(
-      collection(firestore, "uncompleted_orders"),
-      where("storeId", "==", store.id),
-      where("ownerId", "==", auth.currentUser.uid)
-    );
-
-    const systemQ = query(
-      collection(firestore, "system_notifications"),
-      where("userId", "==", auth.currentUser.uid),
-      where("read", "==", false)
-    );
-
-    const customersQ = query(
-      collection(firestore, "customers"),
-      where("storeId", "==", store.id)
-    );
-
-    const unsubOrders = onSnapshot(ordersQ, (snap) => {
-      setCounts(prev => ({ ...prev, orders: snap.size }));
-      const orderNotifs = snap.docs.map(d => ({ id: d.id, type: 'order', title: 'New Order', description: `Order #${d.id.slice(0, 6)} from ${d.data().customer?.fullName}`, time: d.data().createdAt, href: `/orders/${d.id}` }));
-      setNotifications(prev => {
-        const filtered = prev.filter(n => n.type !== 'order');
-        return [...filtered, ...orderNotifs].sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
-      });
-    }, (err) => { });
-
-    const unsubUncompleted = onSnapshot(uncompletedQ, (snap) => {
-      setCounts(prev => ({ ...prev, uncompleted: snap.size }));
-      const draftNotifs = snap.docs.map(d => ({ id: d.id, type: 'draft', title: 'Abandoned Cart', description: `Draft #${d.id.slice(0, 6)} by ${d.data().customer?.fullName || 'Guest'}`, time: d.data().lastUpdated, href: `/orders/uncompleted/${d.id}` }));
-      setNotifications(prev => {
-        const filtered = prev.filter(n => n.type !== 'draft');
-        return [...filtered, ...draftNotifs].sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
-      });
-    }, (err) => { });
-
-    const unsubSystem = onSnapshot(systemQ, (snap) => {
-      setCounts(prev => ({ ...prev, system: snap.size }));
-      const sysNotifs = snap.docs.map(d => ({ id: d.id, type: 'system', title: d.data().title || 'System Alert', description: d.data().message, time: d.data().createdAt, href: '/notifications' }));
-      setNotifications(prev => {
-        const filtered = prev.filter(n => n.type !== 'system');
-        return [...filtered, ...sysNotifs].sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
-      });
-    }, (err) => { });
-    const unsubCustomers = onSnapshot(customersQ, (snap) => setCounts(prev => ({ ...prev, customers: snap.size })), (err) => { });
 
     return () => {
-      unsubOrders();
-      unsubUncompleted();
-      unsubSystem();
-      unsubCustomers();
+      subscription.unsubscribe();
     };
-  }, [firestore, store?.id, auth?.currentUser, userRole, isAdminPath, isPasswordVerified]);
+  }, [subdomain, isAdminPath]);
+
+  // Fetch counts and notifications
+  const fetchCountsAndNotifications = async () => {
+    if (!store?.id || !currentUser || !isAdminPath || !isPasswordVerified) return;
+
+    try {
+      // Get unread orders count
+      const { count: ordersCount, data: ordersData } = await supabase
+        .from("orders")
+        .select("*", { count: "exact" })
+        .eq("store_id", store.id)
+        .eq("is_read", false);
+
+      // Get uncompleted orders count
+      const { count: uncompletedCount, data: uncompletedData } = await supabase
+        .from("uncompleted_orders")
+        .select("*", { count: "exact" })
+        .eq("store_id", store.id);
+
+      // Get system notifications
+      const { count: systemCount, data: systemData } = await supabase
+        .from("system_notifications")
+        .select("*", { count: "exact" })
+        .eq("user_id", currentUser.id)
+        .eq("read", false);
+
+      // Get customers count
+      const { count: customersCount } = await supabase
+        .from("customers")
+        .select("*", { count: "exact", head: true })
+        .eq("store_id", store.id);
+
+      setCounts({
+        orders: ordersCount || 0,
+        uncompleted: uncompletedCount || 0,
+        system: systemCount || 0,
+        customers: customersCount || 0
+      });
+
+      // Build Notification items list
+      const orderNotifs = (ordersData || []).map(d => ({
+        id: d.id,
+        type: 'order',
+        title: 'New Order',
+        description: `Order #${d.id.slice(0, 6)} from ${d.customer?.fullName || 'Guest'}`,
+        time: d.created_at || d.createdAt,
+        href: `/orders/${d.id}`
+      }));
+
+      const draftNotifs = (uncompletedData || []).map(d => ({
+        id: d.id,
+        type: 'draft',
+        title: 'Abandoned Cart',
+        description: `Draft #${d.id.slice(0, 6)} by ${d.customer?.fullName || 'Guest'}`,
+        time: d.updated_at || d.updatedAt || d.created_at,
+        href: `/orders/uncompleted/${d.id}`
+      }));
+
+      const sysNotifs = (systemData || []).map(d => ({
+        id: d.id,
+        type: 'system',
+        title: d.title || 'System Alert',
+        description: d.message,
+        time: d.created_at || d.createdAt,
+        href: '/notifications'
+      }));
+
+      const allNotifs = [...orderNotifs, ...draftNotifs, ...sysNotifs].sort((a, b) => 
+        new Date(b.time).getTime() - new Date(a.time).getTime()
+      );
+
+      setNotifications(allNotifs);
+
+    } catch (e) {
+      console.error("Error fetching counts:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchCountsAndNotifications();
+    // Poll notifications every 30 seconds
+    const interval = setInterval(fetchCountsAndNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [store?.id, currentUser, isAdminPath, isPasswordVerified]);
 
   const verifyStoreAccess = async (uid: string) => {
-    if (!firestore || !subdomain) {
+    if (!subdomain) {
       setLoading(false);
       return;
     }
     try {
       setIsOffline(false);
-      const userRef = doc(firestore, "users", uid);
-      const userSnap = await getDoc(userRef);
-      const role = userSnap.exists() ? (userSnap.data().role || "user") : "user";
+      // Fetch user profile role
+      const { data: userProfile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", uid)
+        .single();
+      
+      const role = userProfile?.role || "user";
       setUserRole(role);
 
-      const q = query(collection(firestore, "stores"), where("subdomain", "==", subdomain));
-      const querySnapshot = await getDocs(q);
+      // Fetch store
+      const { data: storeData, error: storeError } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("subdomain", subdomain)
+        .single();
 
-      if (querySnapshot.empty) {
+      if (storeError || !storeData) {
         setLoading(false);
         return;
       }
 
-      const storeData = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
+      setStore(storeData);
 
-      // Set up real-time listener for the store document to catch suspension/updates
-      onSnapshot(doc(firestore, "stores", storeData.id), (docSnap) => {
-        if (docSnap.exists()) {
-          setStore({ id: docSnap.id, ...docSnap.data() });
-        }
-      });
-
-      if (storeData.ownerId !== uid && role !== 'admin') {
+      if (storeData.owner_id !== uid && role !== 'admin') {
         if (isAdminPath) setAccessDenied(true);
       } else {
-        setStore(storeData);
         const sessionKey = `vault_session_${subdomain}`;
         const savedSession = localStorage.getItem(sessionKey);
         if (savedSession) {
           try {
             const { timestamp } = JSON.parse(savedSession);
             if (Date.now() - timestamp < 3600000) setIsPasswordVerified(true);
-          } catch (e) { }
+          } catch (e) {}
         }
         if (!storeData.managePassword || role === 'admin') setIsPasswordVerified(true);
       }
     } catch (error: any) {
-      if (error.code === 'unavailable') setIsOffline(true);
+      console.error("Store access check error:", error);
     } finally {
-      // Ensure verification check is complete before hiding loader
       setLoading(false);
     }
   };
 
-
   const markAsRead = async (id: string, type: 'order' | 'draft' | 'system', href: string) => {
-    if (!firestore) return;
     try {
-      const collectionName = type === 'order' ? 'orders' : type === 'draft' ? 'uncompleted_orders' : 'system_notifications';
-      const fieldName = type === 'system' ? 'read' : 'isRead';
-      await updateDoc(doc(firestore, collectionName, id), { [fieldName]: true });
+      if (type === 'order') {
+        await supabase.from("orders").update({ is_read: true }).eq("id", id);
+      } else if (type === 'draft') {
+        await supabase.from("uncompleted_orders").update({ is_read: true }).eq("id", id);
+      } else if (type === 'system') {
+        await supabase.from("system_notifications").update({ read: true }).eq("id", id);
+      }
       router.push(getTenantPath(subdomain, href));
+      fetchCountsAndNotifications();
     } catch (e) {
       console.error(e);
       router.push(getTenantPath(subdomain, href));
@@ -223,27 +241,15 @@ export default function StoreLayoutClient({
   };
 
   const markAllAsRead = async () => {
-    if (!firestore || !auth?.currentUser || !store?.id) return;
+    if (!store?.id || !currentUser) return;
     try {
-      const batch = writeBatch(firestore);
-
-      // Mark orders as read
-      const ordersQ = query(collection(firestore, "orders"), where("storeId", "==", store.id), where("isRead", "==", false));
-      const oSnap = await getDocs(ordersQ);
-      oSnap.docs.forEach(d => batch.update(d.ref, { isRead: true }));
-
-      // Mark uncompleted as read
-      const uQ = query(collection(firestore, "uncompleted_orders"), where("storeId", "==", store.id), where("isRead", "==", false));
-      const uSnap = await getDocs(uQ);
-      uSnap.docs.forEach(d => batch.update(d.ref, { isRead: true }));
-
-      // Mark system as read
-      const sQ = query(collection(firestore, "system_notifications"), where("userId", "==", auth.currentUser.uid), where("read", "==", false));
-      const sSnap = await getDocs(sQ);
-      sSnap.docs.forEach(d => batch.update(d.ref, { read: true }));
-
-      await batch.commit();
+      await Promise.all([
+        supabase.from("orders").update({ is_read: true }).eq("store_id", store.id).eq("is_read", false),
+        supabase.from("uncompleted_orders").update({ is_read: true }).eq("store_id", store.id).eq("is_read", false),
+        supabase.from("system_notifications").update({ read: true }).eq("user_id", currentUser.id).eq("read", false)
+      ]);
       toast({ title: "Notifications cleared" });
+      fetchCountsAndNotifications();
     } catch (e) {
       console.error(e);
     }
@@ -294,7 +300,7 @@ export default function StoreLayoutClient({
                 </div>
                 <p className="text-sm font-bold text-slate-700">New features and optimizations are being deployed.</p>
               </div>
-              {auth?.currentUser?.uid === store.ownerId ? (
+              {currentUser?.id === store.owner_id || currentUser?.id === store.ownerId ? (
                 <Button
                   onClick={() => router.push(getTenantPath(subdomain, '/dashboard'))}
                   className="w-full h-14 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-widest hover:scale-[1.02] transition-transform"
@@ -351,7 +357,7 @@ export default function StoreLayoutClient({
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <Card className="max-w-md w-full p-10 rounded-[40px] shadow-2xl border-none text-center space-y-8">
         <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto"><Lock className="w-10 h-10" /></div>
-        <div><h2 className="text-3xl font-headline font-black tracking-tight">Vault PIN</h2><p className="text-muted-foreground mt-2">Enter your security code to manage this store.</p></div>
+        <div><h2 className="text-3xl font-headline font-black tracking-tight">Vault PIN</h2><p className="text-muted-foreground mt-2">Enter your security PIN to manage this store.</p></div>
         <form onSubmit={handleVaultAccess} className="space-y-4">
           <input type="password" placeholder="••••" className="h-14 rounded-2xl bg-slate-50 border-none text-center text-3xl font-bold tracking-[0.5em] w-full" value={managerPassword} onChange={(e) => setManagerPassword(e.target.value)} autoFocus />
           <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20">Unlock Dashboard</Button>
@@ -366,7 +372,7 @@ export default function StoreLayoutClient({
       <div className="max-w-md w-full text-center space-y-6 bg-white p-12 rounded-[40px] shadow-2xl border border-border/50">
         <div className="w-24 h-24 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6"><AlertCircle className="w-12 h-12 text-destructive" /></div>
         <h2 className="text-3xl font-headline font-bold">Access Denied</h2>
-        <p className="text-muted-foreground">You do not have permission to manage this tenant.</p>
+        <p className="text-muted-foreground">You do not have permission to manage this store.</p>
         <Link href={getConsoleUrl()}><Button className="w-full h-14 rounded-2xl text-lg font-bold">Back to My Console</Button></Link>
       </div>
     </div>
@@ -375,9 +381,7 @@ export default function StoreLayoutClient({
   const catalogItems = [
     { title: "Products", icon: ShoppingBag, href: "/products" },
     { title: "Categories", icon: Layers, href: "/categories" },
-    { title: "Sub Categories", icon: Bookmark, href: "/sub-categories" },
     { title: "Brands", icon: Store, href: "/brands" },
-    { title: "Taxes", icon: Percent, href: "/taxes" },
     { title: "Tags", icon: Tags, href: "/tags" },
   ];
 
@@ -393,7 +397,6 @@ export default function StoreLayoutClient({
         <FBPixel pixelId={store?.facebookPixelId} />
         {!isEditor && <StorefrontHeader store={store} subdomain={subdomain} />}
         <div className="flex-1">{children}</div>
-        {!isEditor && <StorefrontFooter store={store} subdomain={subdomain} />}
       </div>
     </ConfirmationProvider>
   );
@@ -455,7 +458,7 @@ export default function StoreLayoutClient({
                   </SidebarGroupLabel>
                   <CollapsibleContent><SidebarGroupContent><SidebarMenu className="mt-2">
                     {salesItems.map((item) => (
-                      <SidebarMenuItem key={item.title}><SidebarMenuButton asChild isActive={normalizedPath === item.href} className="rounded-xl h-10 px-4"><Link href={getTenantPath(subdomain, item.href)} className="flex items-center justify-between gap-3 w-full"><div className="flex items-center gap-3"><item.icon className={`w-4 h-4 ${normalizedPath === item.href ? 'text-primary' : 'text-muted-foreground'}`} /><span className="text-sm font-medium">{item.title}</span></div>{item.count > 0 && <Badge className="h-5 px-2 bg-primary/10 text-primary text-[10px] font-black border-none rounded-full">{item.count}</Badge>}</Link></SidebarMenuButton></SidebarMenuItem>
+                      <SidebarMenuItem key={item.title}><SidebarMenuButton asChild isActive={normalizedPath === item.href} className="rounded-xl h-10 px-4"><Link href={getTenantPath(subdomain, item.href)} className="flex items-between justify-between gap-3 w-full"><div className="flex items-center gap-3"><item.icon className={`w-4 h-4 ${normalizedPath === item.href ? 'text-primary' : 'text-muted-foreground'}`} /><span className="text-sm font-medium">{item.title}</span></div>{item.count > 0 && <Badge className="h-5 px-2 bg-primary/10 text-primary text-[10px] font-black border-none rounded-full">{item.count}</Badge>}</Link></SidebarMenuButton></SidebarMenuItem>
                     ))}
                   </SidebarMenu></SidebarGroupContent></CollapsibleContent>
                 </SidebarGroup>
@@ -511,7 +514,7 @@ export default function StoreLayoutClient({
                                 <div className="space-y-1 overflow-hidden">
                                   <div className="flex items-center justify-between gap-2">
                                     <p className="text-xs font-black uppercase text-slate-900 truncate">{n.title}</p>
-                                    <span className="text-[9px] font-bold text-slate-400 shrink-0">{n.time?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span className="text-[9px] font-bold text-slate-400 shrink-0">{new Date(n.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                   </div>
                                   <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{n.description}</p>
                                 </div>
@@ -521,17 +524,9 @@ export default function StoreLayoutClient({
                         </div>
                       )}
                     </ScrollArea>
-                    {notifications.length > 10 && (
-                      <>
-                        <DropdownMenuSeparator className="bg-slate-50" />
-                        <div className="p-2">
-                          <Button variant="ghost" className="w-full h-12 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary hover:bg-primary/5" onClick={() => router.push(getTenantPath(subdomain, "/notifications"))}>See all notifications</Button>
-                        </div>
-                      </>
-                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">{auth?.currentUser?.email?.[0].toUpperCase()}</div>
+                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">{currentUser?.email?.[0].toUpperCase()}</div>
               </div>
             </header>
             <main className="flex-1 p-0 md:p-10">{children}</main>
@@ -539,43 +534,5 @@ export default function StoreLayoutClient({
         </div>
       </ConfirmationProvider>
     </SidebarProvider>
-  );
-}
-
-function StorefrontFooter({ store, subdomain }: { store: any, subdomain: string }) {
-  if (!store) return null;
-  return (
-    <footer className="bg-white border-t border-slate-100 pt-10 md:pt-16 pb-8 md:pb-12 px-6 mt-auto">
-      <div className="max-w-7xl mx-auto space-y-8 md:space-y-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 text-center md:text-left">
-          <div className="space-y-4 md:col-span-2">
-            <Link href={getTenantPath(subdomain, "/")} className="flex items-center justify-center md:justify-start gap-2.5">
-              {store?.logo ? (
-                <img src={store.logo} alt={store.name} className="h-10 md:h-12 w-auto object-contain" />
-              ) : (
-                <>
-                  <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-sm">
-                    <ShoppingBag className="w-5 h-5" />
-                  </div>
-                  <span className="text-xl font-headline font-black tracking-tight uppercase text-slate-900">{store?.name || subdomain}</span>
-                </>
-              )}
-            </Link>
-            <p className="text-slate-500 text-sm max-w-sm mx-auto md:mx-0 font-medium leading-relaxed">Quality products, fast delivery, and exceptional service.</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-2 gap-8 md:col-span-2">
-            <div className="space-y-4 text-left md:text-left"><h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Shop</h4><ul className="space-y-2.5 text-sm font-bold text-slate-600"><li><Link href={getTenantPath(subdomain, "/all-products")} className="hover:text-primary transition-colors">All Products</Link></li></ul></div>
-            <div className="space-y-4 text-right md:text-left"><h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Support</h4><ul className="space-y-2.5 text-sm font-bold text-slate-600"><li><Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link></li></ul></div>
-          </div>
-        </div>
-        <div className="pt-6 md:pt-8 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">&copy; {new Date().getFullYear()} {(store?.name || subdomain).toUpperCase()}</div>
-          <div className="flex items-center gap-6">
-            <div className="hidden sm:flex items-center gap-2 text-slate-300"><ShieldCheck className="w-4 h-4 text-emerald-500" /><span className="text-[9px] font-black uppercase tracking-widest">Secure Payments</span></div>
-            <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100 hover:bg-white transition-all group"><span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Powered by</span><div className="flex items-center gap-1"><div className="w-4 h-4 bg-primary rounded-[4px] flex items-center justify-center"><ShoppingCart className="w-2.5 h-2.5 text-white" /></div><span className="text-[10px] font-headline font-black text-primary uppercase">IHut.Shop</span></div></Link>
-          </div>
-        </div>
-      </div>
-    </footer>
   );
 }

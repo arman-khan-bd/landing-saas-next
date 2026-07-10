@@ -1,5 +1,4 @@
-import { db } from "@/lib/firebase-server";
-import { collection, query, where, getDocs, limit, Timestamp, orderBy } from "firebase/firestore";
+import { getSupabaseServerClient } from "@/supabase/server";
 
 export function sanitizeData(data: any): any {
   if (!data) return data;
@@ -10,12 +9,18 @@ export function sanitizeData(data: any): any {
   
   if (typeof data === 'object' && data !== null) {
     const clean: any = { ...data };
+    
+    // Compatibility mapping: snake_case to camelCase
+    if (clean.store_id !== undefined && clean.storeId === undefined) clean.storeId = clean.store_id;
+    if (clean.owner_id !== undefined && clean.ownerId === undefined) clean.ownerId = clean.owner_id;
+    if (clean.created_at !== undefined && clean.createdAt === undefined) clean.createdAt = clean.created_at;
+    if (clean.updated_at !== undefined && clean.updatedAt === undefined) clean.updatedAt = clean.updated_at;
+    if (clean.page_style !== undefined && clean.pageStyle === undefined) clean.pageStyle = clean.page_style;
+    if (clean.config !== undefined && clean.blocks === undefined) clean.blocks = clean.config;
+    if (clean.blocks !== undefined && clean.config === undefined) clean.config = clean.blocks;
+
     for (const key in clean) {
-      if (clean[key] instanceof Timestamp) {
-        clean[key] = clean[key].toDate().toISOString();
-      } else {
-        clean[key] = sanitizeData(clean[key]);
-      }
+      clean[key] = sanitizeData(clean[key]);
     }
     return clean;
   }
@@ -25,12 +30,15 @@ export function sanitizeData(data: any): any {
 
 export async function getStoreBySubdomain(subdomain: string) {
   try {
-    const q = query(collection(db, "stores"), where("subdomain", "==", subdomain), limit(1));
-    const snap = await getDocs(q);
-    
-    if (snap.empty) return null;
-    
-    const data = { id: snap.docs[0].id, ...snap.docs[0].data() };
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("stores")
+      .select("*")
+      .eq("subdomain", subdomain)
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) return null;
     return sanitizeData(data);
   } catch (error) {
     console.error("Error fetching store on server:", error);
@@ -40,48 +48,48 @@ export async function getStoreBySubdomain(subdomain: string) {
 
 export async function getProductBySlug(storeId: string, slug: string) {
   try {
-    const q = query(
-      collection(db, "products"), 
-      where("storeId", "==", storeId), 
-      where("slug", "==", slug), 
-      limit(1)
-    );
-    const snap = await getDocs(q);
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("store_id", storeId)
+      .eq("slug", slug)
+      .limit(1)
+      .maybeSingle();
     
-    if (snap.empty) return null;
-    
-    const data = { id: snap.docs[0].id, ...snap.docs[0].data() };
+    if (error || !data) return null;
     return sanitizeData(data);
   } catch (error) {
     console.error("Error fetching product on server:", error);
     return null;
   }
 }
+
 export async function getPageBySlug(storeId: string, slug: string) {
   try {
-    let snap;
-    try {
-      const q = query(
-        collection(db, "pages"), 
-        where("storeId", "==", storeId), 
-        where("slug", "==", slug), 
-        orderBy("updatedAt", "desc"),
-        limit(1)
-      );
-      snap = await getDocs(q);
-    } catch (e) {
-      const q = query(
-        collection(db, "pages"), 
-        where("storeId", "==", storeId), 
-        where("slug", "==", slug), 
-        limit(1)
-      );
-      snap = await getDocs(q);
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("pages")
+      .select("*")
+      .eq("store_id", storeId)
+      .eq("slug", slug)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    if (error || !data) {
+      // Try fallback without ordering
+      const { data: fallbackData } = await supabase
+        .from("pages")
+        .select("*")
+        .eq("store_id", storeId)
+        .eq("slug", slug)
+        .limit(1)
+        .maybeSingle();
+      if (fallbackData) return sanitizeData(fallbackData);
+      return null;
     }
     
-    if (snap.empty) return null;
-    
-    const data = { id: snap.docs[0].id, ...snap.docs[0].data() };
     return sanitizeData(data);
   } catch (error) {
     console.error("Error fetching page on server:", error);
@@ -91,24 +99,23 @@ export async function getPageBySlug(storeId: string, slug: string) {
 
 export async function getProductsByStore(storeId: string) {
   try {
-    let snap;
-    try {
-      const q = query(
-        collection(db, "products"), 
-        where("storeId", "==", storeId), 
-        orderBy("createdAt", "desc")
-      );
-      snap = await getDocs(q);
-    } catch (e) {
-      const q = query(
-        collection(db, "products"), 
-        where("storeId", "==", storeId)
-      );
-      snap = await getDocs(q);
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("store_id", storeId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      // Try fallback without ordering
+      const { data: fallbackData } = await supabase
+        .from("products")
+        .select("*")
+        .eq("store_id", storeId);
+      return sanitizeData(fallbackData || []);
     }
     
-    const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    return sanitizeData(data);
+    return sanitizeData(data || []);
   } catch (error) {
     console.error("Error fetching products on server:", error);
     return [];
@@ -117,13 +124,14 @@ export async function getProductsByStore(storeId: string) {
 
 export async function getCategoriesByStore(storeId: string) {
   try {
-    const [catSnap, subCatSnap] = await Promise.all([
-      getDocs(query(collection(db, "categories"), where("storeId", "==", storeId))),
-      getDocs(query(collection(db, "sub-categories"), where("storeId", "==", storeId))).catch(() => ({ docs: [] }))
+    const supabase = await getSupabaseServerClient();
+    const [catRes, subCatRes] = await Promise.all([
+      supabase.from("categories").select("*").eq("store_id", storeId),
+      supabase.from("sub_categories").select("*").eq("store_id", storeId)
     ]);
     
-    const mainCats = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const subCats = subCatSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), isSub: true }));
+    const mainCats = catRes.data || [];
+    const subCats = (subCatRes.data || []).map((s: any) => ({ ...s, isSub: true }));
     
     return sanitizeData([...mainCats, ...subCats]);
   } catch (error) {
@@ -131,4 +139,3 @@ export async function getCategoriesByStore(storeId: string) {
     return [];
   }
 }
-

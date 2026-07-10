@@ -20,7 +20,8 @@ interface GenericBlockProps {
 }
 
 export const HeaderBlock = ({ block, style, renderTextWithHighlights }: GenericBlockProps) => {
-  const Tag = (block.content?.level || "h2") as keyof JSX.IntrinsicElements;
+  const level = block.content?.level || "h2";
+  const Tag = (level === "h1" ? "h1" : level === "h2" ? "h2" : level === "h3" ? "h3" : level === "h4" ? "h4" : "h2") as "h1" | "h2" | "h3" | "h4";
   const defaultSizes: any = {
     h1: "text-4xl sm:text-6xl",
     h2: "text-3xl sm:text-5xl",

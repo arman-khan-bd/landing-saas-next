@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { db } from "@/lib/firebase";
-import { collection, query, getDocs, orderBy, limit, doc, getDoc } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Users, ShieldCheck, ShieldX, Globe, Mail, Phone, ExternalLink, MoreHorizontal, Store, BarChart3, Clock } from "lucide-react";
+import { Search, Users, ShieldX, Store, Clock, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
 import { updateCustomerStatus } from "@/app/actions/customers";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,17 +17,18 @@ interface GlobalCustomer {
   emails: string[];
   ips: string[];
   status: {
-    phoneBlocked: boolean;
-    ipBlocked: boolean;
+    phoneBlocked?: boolean;
+    ipBlocked?: boolean;
   };
-  lastActive: any;
-  storeId: string;
+  last_active: string;
+  store_id: string;
   storeName?: string;
   notes: string;
 }
 
 export default function GlobalCustomersPage() {
   const { toast } = useToast();
+  const supabase = useSupabaseClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [customers, setCustomers] = useState<GlobalCustomer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,30 +41,42 @@ export default function GlobalCustomersPage() {
   const fetchGlobalCustomers = async () => {
     setLoading(true);
     try {
-      const q = query(collection(db, "customers"), orderBy("lastActive", "desc"), limit(100));
-      const snap = await getDocs(q);
+      const { data: customerData, error } = await supabase
+        .from("customers")
+        .select("*")
+        .order("last_active", { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
       
-      const list = await Promise.all(snap.docs.map(async (docSnap) => {
-        const data = docSnap.data();
-        // Try to get store name
+      const list = await Promise.all((customerData || []).map(async (customer) => {
         let storeName = "Unknown Store";
         try {
-            const storeRef = doc(db, "stores", data.storeId);
-            const sSnap = await getDoc(storeRef);
-            if (sSnap.exists()) storeName = sSnap.data().name;
+          const { data: store } = await supabase
+            .from("stores")
+            .select("name")
+            .eq("id", customer.store_id)
+            .single();
+          if (store) storeName = store.name;
         } catch (e) {}
 
         return { 
-            id: docSnap.id, 
-            ...data, 
-            storeName 
+          id: customer.id, 
+          phones: customer.phones || [],
+          emails: customer.emails || [],
+          ips: customer.ips || [],
+          status: customer.status || {},
+          last_active: customer.last_active || customer.lastActive || new Date().toISOString(),
+          store_id: customer.store_id,
+          notes: customer.notes || "",
+          storeName 
         } as GlobalCustomer;
       }));
 
       setCustomers(list);
       setStats({
         total: list.length,
-        blocked: list.filter(c => c.status.phoneBlocked || c.status.ipBlocked).length
+        blocked: list.filter(c => c.status?.phoneBlocked || c.status?.ipBlocked).length
       });
     } catch (e) {
       console.error("Global Fetch Error:", e);
@@ -151,10 +162,10 @@ export default function GlobalCustomersPage() {
                   <TableCell className="py-6 px-8">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-lg">
-                        {customer.phones[0]?.[0]}
+                        {customer.phones[0]?.[0] || "?"}
                       </div>
                       <div>
-                        <p className="text-white font-bold">{customer.phones[0]}</p>
+                        <p className="text-white font-bold">{customer.phones[0] || "Unknown"}</p>
                         <p className="text-xs text-slate-500">{customer.emails[0] || "Guest"}</p>
                       </div>
                     </div>
@@ -166,7 +177,7 @@ export default function GlobalCustomersPage() {
                     </div>
                   </TableCell>
                   <TableCell className="py-6 px-8 text-center">
-                    {customer.status.phoneBlocked || customer.status.ipBlocked ? (
+                    {customer.status?.phoneBlocked || customer.status?.ipBlocked ? (
                       <Badge className="bg-rose-500/10 text-rose-500 border-none rounded-lg text-[9px] font-black uppercase tracking-widest">Flagged</Badge>
                     ) : (
                       <Badge className="bg-emerald-500/10 text-emerald-500 border-none rounded-lg text-[9px] font-black uppercase tracking-widest">Clean</Badge>
@@ -175,7 +186,7 @@ export default function GlobalCustomersPage() {
                   <TableCell className="py-6 px-8">
                     <div className="flex items-center gap-2 text-slate-400 text-sm">
                       <Clock className="w-3.5 h-3.5 opacity-40" />
-                      {customer.lastActive?.toDate().toLocaleDateString()}
+                      {new Date(customer.last_active).toLocaleDateString()}
                     </div>
                   </TableCell>
                   <TableCell className="py-6 px-8 text-right">
@@ -183,10 +194,10 @@ export default function GlobalCustomersPage() {
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className={`rounded-xl font-bold h-9 px-4 ${customer.status.phoneBlocked ? 'text-emerald-500 bg-emerald-500/5' : 'text-rose-500 bg-rose-500/5'}`}
-                            onClick={() => handleToggleBlock(customer.id, 'phoneBlocked', customer.status.phoneBlocked)}
+                            className={`rounded-xl font-bold h-9 px-4 ${customer.status?.phoneBlocked ? 'text-emerald-500 bg-emerald-500/5' : 'text-rose-500 bg-rose-500/5'}`}
+                            onClick={() => handleToggleBlock(customer.id, 'phoneBlocked', !!customer.status?.phoneBlocked)}
                         >
-                            {customer.status.phoneBlocked ? 'Unblock Phone' : 'Block Phone'}
+                            {customer.status?.phoneBlocked ? 'Unblock Phone' : 'Block Phone'}
                         </Button>
                     </div>
                   </TableCell>
