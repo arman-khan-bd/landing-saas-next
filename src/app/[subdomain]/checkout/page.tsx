@@ -2,15 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, limit } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, Smartphone, ShieldAlert, SmartphoneIcon, User } from "lucide-react";
+import { ChevronLeft, CreditCard, Truck, ShieldCheck, Loader2, CheckCircle2, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
@@ -29,6 +27,7 @@ export default function CheckoutPage() {
   const subdomain = typeof rawSubdomain === 'string' ? rawSubdomain.toLowerCase() : '';
   const router = useRouter();
   const { toast } = useToast();
+  const supabase = useSupabaseClient();
 
   const [store, setStore] = useState<any>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -78,10 +77,12 @@ export default function CheckoutPage() {
 
   const fetchStoreData = async () => {
     try {
-      const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQuery);
-      if (!storeSnap.empty) {
-        const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("subdomain", subdomain)
+        .single();
+      if (storeData) {
         setStore(storeData);
         if (storeData.shippingSettings?.enabled && storeData.shippingSettings.methods?.length > 0) {
           setSelectedShipping(storeData.shippingSettings.methods[0]);
@@ -99,8 +100,8 @@ export default function CheckoutPage() {
     if (!data.fullName && !data.phone) return;
 
     const draftData = {
-      storeId: store.id,
-      ownerId: store.ownerId,
+      store_id: store.id,
+      owner_id: store.owner_id || store.ownerId,
       items: cart,
       customer: {
         fullName: data.fullName,
@@ -110,25 +111,26 @@ export default function CheckoutPage() {
         ip: clientIp
       },
       subtotal: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0),
-      shippingCost: selectedShipping?.cost || 0,
+      shipping_cost: selectedShipping?.cost || 0,
       total: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0) + (selectedShipping?.cost || 0),
       shipping: selectedShipping ? {
         id: selectedShipping.id,
         name: selectedShipping.name,
         cost: selectedShipping.cost
       } : null,
-      isRead: false,
-      lastUpdated: serverTimestamp(),
-      subdomain
+      is_read: false,
+      updated_at: new Date().toISOString()
     };
 
     try {
       if (draftId) {
-        await updateDoc(doc(db, "uncompleted_orders", draftId), draftData);
+        await supabase.from("uncompleted_orders").update(draftData).eq("id", draftId);
       } else {
-        const docRef = await addDoc(collection(db, "uncompleted_orders"), draftData);
-        setDraftId(docRef.id);
-        localStorage.setItem(`draftId_${subdomain}`, docRef.id);
+        const { data: inserted, error } = await supabase.from("uncompleted_orders").insert(draftData).select("id").single();
+        if (inserted) {
+          setDraftId(inserted.id);
+          localStorage.setItem(`draftId_${subdomain}`, inserted.id);
+        }
       }
     } catch (e) {
       console.error("Draft Save Error:", e);
@@ -164,14 +166,13 @@ export default function CheckoutPage() {
     try {
       const blockValues = [clientIp, formData.phone].filter(Boolean);
       if (blockValues.length > 0) {
-        const fraudQ = query(
-          collection(db, "fraud_blocks"),
-          where("storeId", "==", store.id),
-          where("value", "in", blockValues),
-          limit(1)
-        );
-        const fraudSnap = await getDocs(fraudQ);
-        if (!fraudSnap.empty) {
+        const { data: fraudData } = await supabase
+          .from("fraud_blocks")
+          .select("id")
+          .eq("store_id", store.id)
+          .in("value", blockValues)
+          .limit(1);
+        if (fraudData && fraudData.length > 0) {
           toast({ variant: "destructive", title: "Transaction Denied", description: "Your details have been restricted by the merchant." });
           setIsPlacingOrder(false);
           return;
@@ -179,8 +180,8 @@ export default function CheckoutPage() {
       }
 
       const orderData = {
-        storeId: store.id,
-        ownerId: store.ownerId,
+        store_id: store.id,
+        owner_id: store.owner_id || store.ownerId,
         items: cart,
         customer: {
           fullName: formData.fullName,
@@ -194,20 +195,19 @@ export default function CheckoutPage() {
           cost: shippingCost
         } : { name: "Free Shipping", cost: 0 },
         subtotal: cartSubtotal,
-        shippingCost: shippingCost,
+        shipping_cost: shippingCost,
         total: cartTotal,
-        paymentMethod: formData.paymentMethod,
-        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
-        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
+        payment_method: formData.paymentMethod,
+        transaction_id: formData.paymentMethod === 'manual' ? formData.transactionId : null,
+        selected_manual_method_id: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
         status: "pending",
-        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
-        isRead: false,
-        createdAt: serverTimestamp(),
+        payment_status: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
+        is_read: false
       };
 
-      await addDoc(collection(db, "orders"), orderData);
+      await supabase.from("orders").insert(orderData);
       if (draftId) {
-        await deleteDoc(doc(db, "uncompleted_orders", draftId));
+        await supabase.from("uncompleted_orders").delete().eq("id", draftId);
         localStorage.removeItem(`draftId_${subdomain}`);
       }
       localStorage.removeItem(`cart_${subdomain}`);
@@ -370,3 +370,21 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+const SmartphoneIcon = ({ className }: { className?: string }) => (
+    <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="24" 
+        height="24" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        className={className}
+    >
+        <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+        <line x1="12" x2="12.01" y1="18" y2="18" />
+    </svg>
+);

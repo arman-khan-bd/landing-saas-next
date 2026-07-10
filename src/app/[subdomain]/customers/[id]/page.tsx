@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,12 +11,11 @@ import {
     ChevronLeft, Mail, Phone, MapPin, Calendar, 
     ShoppingBag, CreditCard, ShieldAlert, Loader2, 
     Globe, Fingerprint, History, DollarSign,
-    Zap, AlertTriangle, ShieldCheck, TrendingUp,
-    ExternalLink, ArrowRight, User, Ban, Lock, ShieldX, Filter
+    Zap, ShieldCheck, TrendingUp,
+    ExternalLink, ArrowRight, ShieldX
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
-import { serverTimestamp, addDoc, deleteDoc } from "firebase/firestore";
 
 interface AggregatedCustomer {
     name: string;
@@ -43,30 +41,26 @@ export default function CustomerDetailsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const confirm = useConfirm();
+  const supabase = useSupabaseClient();
   const [customer, setCustomer] = useState<AggregatedCustomer | null>(null);
   const [loading, setLoading] = useState(true);
   const [blocking, setBlocking] = useState(false);
 
-  useEffect(() => {
-    fetchAggregatedProfile();
-  }, [id, subdomain]);
-
   const fetchAggregatedProfile = async () => {
-    if (!auth.currentUser) return;
     setLoading(true);
     try {
-        // 1. Identify initial doc to get email/phone
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
         let initialData: any = null;
-        const orderRef = doc(db, "orders", id as string);
-        const draftRef = doc(db, "uncompleted_orders", id as string);
         
-        const [orderSnap, draftSnap] = await Promise.all([
-            getDoc(orderRef),
-            getDoc(draftRef)
+        const [orderRes, draftRes] = await Promise.all([
+            supabase.from("orders").select("*").eq("id", id).maybeSingle(),
+            supabase.from("uncompleted_orders").select("*").eq("id", id).maybeSingle()
         ]);
 
-        if (orderSnap.exists()) initialData = orderSnap.data();
-        else if (draftSnap.exists()) initialData = draftSnap.data();
+        if (orderRes.data) initialData = orderRes.data;
+        else if (draftRes.data) initialData = draftRes.data;
 
         if (!initialData) {
             setLoading(false);
@@ -76,36 +70,38 @@ export default function CustomerDetailsPage() {
         const email = initialData.customer?.email;
         const phone = initialData.customer?.phone;
 
-        // 2. Fetch all related documents
-        const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-        const storeSnap = await getDocs(storeQ);
-        if (storeSnap.empty) return;
-        const sId = storeSnap.docs[0].id;
+        const { data: storeData } = await supabase
+          .from("stores")
+          .select("id")
+          .eq("subdomain", subdomain)
+          .single();
+        if (!storeData) return;
+        const sId = storeData.id;
 
-        const findRelated = async (colName: string) => {
+        const findRelated = async (tableName: string) => {
             const matches: any[] = [];
             if (email) {
-                const qEmail = query(
-                    collection(db, colName), 
-                    where("storeId", "==", sId), 
-                    where("ownerId", "==", auth.currentUser?.uid),
-                    where("customer.email", "==", email)
-                );
-                const snap = await getDocs(qEmail);
-                matches.push(...snap.docs.map(d => ({ id: d.id, ...d.data(), colType: colName })));
+                const { data: emailData } = await supabase
+                    .from(tableName)
+                    .select("*")
+                    .eq("store_id", sId)
+                    .eq("owner_id", user.id);
+                
+                const filtered = (emailData || []).filter(item => item.customer?.email?.toLowerCase() === email.toLowerCase());
+                matches.push(...filtered.map(d => ({ ...d, colType: tableName })));
             }
             if (phone) {
-                const qPhone = query(
-                    collection(db, colName), 
-                    where("storeId", "==", sId), 
-                    where("ownerId", "==", auth.currentUser?.uid),
-                    where("customer.phone", "==", phone)
-                );
-                const snap = await getDocs(qPhone);
-                const results = snap.docs.map(d => ({ id: d.id, ...d.data(), colType: colName }));
-                // Avoid duplicates if email search already found it
-                results.forEach(r => {
-                    if (!matches.find(m => m.id === r.id)) matches.push(r);
+                const { data: phoneData } = await supabase
+                    .from(tableName)
+                    .select("*")
+                    .eq("store_id", sId)
+                    .eq("owner_id", user.id);
+                
+                const filtered = (phoneData || []).filter(item => item.customer?.phone === phone);
+                filtered.forEach(r => {
+                    if (!matches.find(m => m.id === r.id)) {
+                        matches.push({ ...r, colType: tableName });
+                    }
                 });
             }
             return matches;
@@ -117,8 +113,8 @@ export default function CustomerDetailsPage() {
         ]);
 
         const allDocs = [...relatedOrders, ...relatedDrafts].sort((a, b) => {
-            const dateA = (a.createdAt || a.lastUpdated)?.seconds || 0;
-            const dateB = (b.createdAt || b.lastUpdated)?.seconds || 0;
+            const dateA = new Date(a.created_at || a.updated_at || 0).getTime();
+            const dateB = new Date(b.created_at || b.updated_at || 0).getTime();
             return dateB - dateA;
         });
 
@@ -131,20 +127,20 @@ export default function CustomerDetailsPage() {
 
             return {
                 id: d.id,
-                date: (d.createdAt || d.lastUpdated)?.toDate?.()?.toLocaleDateString() || "Recent",
+                date: d.created_at ? new Date(d.created_at).toLocaleDateString() : "Recent",
                 type: d.colType === 'orders' ? "Order" : "Draft",
                 total: Number(d.total || 0),
                 status: d.status || "abandoned",
-                rawDate: d.createdAt || d.lastUpdated
+                rawDate: d.created_at || d.updated_at
             };
         });
 
         setCustomer({
-            name: allDocs[0].customer?.fullName || "Guest Customer",
+            name: allDocs[0]?.customer?.fullName || "Guest Customer",
             email: email || "N/A",
             phone: phone || "N/A",
-            address: allDocs[0].customer?.address || "N/A",
-            joined: allDocs[allDocs.length - 1].createdAt?.toDate?.()?.toLocaleDateString() || "Unknown",
+            address: allDocs[0]?.customer?.address || "N/A",
+            joined: allDocs[allDocs.length - 1]?.created_at ? new Date(allDocs[allDocs.length - 1].created_at).toLocaleDateString() : "Unknown",
             status: spent > 500 ? "VIP" : spent > 0 ? "Active" : "Lead",
             totalSpent: spent,
             ips: Array.from(ips),
@@ -159,8 +155,13 @@ export default function CustomerDetailsPage() {
     }
   };
 
+  useEffect(() => {
+    fetchAggregatedProfile();
+  }, [id, subdomain]);
+
   const blockIdentifier = async (type: 'phone' | 'email' | 'ip' | 'address', value: string) => {
-    if (!value || value === "N/A" || !auth.currentUser) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!value || value === "N/A" || !user) {
         toast({ title: "Invalid Action", description: `Cannot block unavailable ${type}.` });
         return;
     }
@@ -176,15 +177,17 @@ export default function CustomerDetailsPage() {
 
     setBlocking(true);
     try {
-        const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-        const storeSnap = await getDocs(storeQ);
-        if (storeSnap.empty) return;
-        const sId = storeSnap.docs[0].id;
+        const { data: storeData } = await supabase
+          .from("stores")
+          .select("id")
+          .eq("subdomain", subdomain)
+          .single();
+        if (!storeData) return;
+        const sId = storeData.id;
 
-        await addDoc(collection(db, "fraud_blocks"), {
-            ownerId: auth.currentUser.uid,
-            storeId: sId,
-            createdAt: serverTimestamp(),
+        await supabase.from("fraud_blocks").insert({
+            owner_id: user.id,
+            store_id: sId,
             type,
             value,
             reason: `Individual ${type} block from profile`,
@@ -201,7 +204,8 @@ export default function CustomerDetailsPage() {
   };
 
   const handleBlockAction = async () => {
-    if (!customer || !auth.currentUser) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!customer || !user) return;
     
     const isConfirmed = await confirm({
       title: "Confirm Security Block",
@@ -214,15 +218,17 @@ export default function CustomerDetailsPage() {
 
     setBlocking(true);
     try {
-        const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-        const storeSnap = await getDocs(storeQ);
-        if (storeSnap.empty) return;
-        const sId = storeSnap.docs[0].id;
+        const { data: storeData } = await supabase
+          .from("stores")
+          .select("id")
+          .eq("subdomain", subdomain)
+          .single();
+        if (!storeData) return;
+        const sId = storeData.id;
 
         const baseBlockData = {
-            ownerId: auth.currentUser.uid,
-            storeId: sId,
-            createdAt: serverTimestamp(),
+            owner_id: user.id,
+            store_id: sId,
             reason: `Manual identity block from Consolidated Profile`,
             customerName: customer.name,
             metadata: { source: 'profile_view' }
@@ -232,7 +238,7 @@ export default function CustomerDetailsPage() {
         if (customer.email !== "N/A") blocks.push({ type: 'email', value: customer.email });
         if (customer.phone !== "N/A") blocks.push({ type: 'phone', value: customer.phone });
         
-        await Promise.all(blocks.map(b => addDoc(collection(db, "fraud_blocks"), { ...baseBlockData, ...b })));
+        await Promise.all(blocks.map(b => supabase.from("fraud_blocks").insert({ ...baseBlockData, ...b })));
 
         toast({ title: "Identity Restricted", description: "All associated identifiers have been flagged." });
     } catch (e) {
@@ -436,7 +442,7 @@ export default function CustomerDetailsPage() {
                             {(() => {
                                 const orders = customer.interactions.filter(i => i.type === 'Order');
                                 if (orders.length === 0) return "0.0";
-                                const firstDate = orders[orders.length - 1].rawDate?.toDate?.() || new Date();
+                                const firstDate = new Date(orders[orders.length - 1].rawDate || 0);
                                 const months = Math.max(1, (new Date().getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44));
                                 return (orders.length / months).toFixed(1);
                             })()}

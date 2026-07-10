@@ -3,13 +3,12 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, MoreHorizontal, User, Mail, Phone, ExternalLink, ShieldAlert, MoreVertical, ShoppingBag, DollarSign, Fingerprint, Globe } from "lucide-react";
+import { Search, MoreHorizontal, Mail, Phone, ExternalLink, ShieldAlert, MoreVertical, ShoppingBag, DollarSign, Globe } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
@@ -29,50 +28,40 @@ interface CustomerAggregated {
 export default function CustomersPage() {
   const { subdomain } = useParams();
   const router = useRouter();
+  const supabase = useSupabaseClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [customers, setCustomers] = useState<CustomerAggregated[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAndAggregateCustomers();
-  }, [subdomain]);
-
   const fetchAndAggregateCustomers = async () => {
-    if (!auth.currentUser) return;
     setLoading(true);
     try {
-      // 1. Get Store ID
-      const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQ);
-      if (storeSnap.empty) return;
-      const sId = storeSnap.docs[0].id;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      // 2. Fetch Orders & Uncompleted Orders
-      const qOrders = query(
-        collection(db, "orders"), 
-        where("storeId", "==", sId),
-        where("ownerId", "==", auth.currentUser.uid)
-      );
-      const qUncompleted = query(
-        collection(db, "uncompleted_orders"), 
-        where("storeId", "==", sId),
-        where("ownerId", "==", auth.currentUser.uid)
-      );
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) return;
+      const sId = storeData.id;
 
-      const [ordersSnap, uncompletedSnap] = await Promise.all([
-        getDocs(qOrders),
-        getDocs(qUncompleted)
+      const [ordersRes, uncompletedRes] = await Promise.all([
+        supabase.from("orders").select("*").eq("store_id", sId).eq("owner_id", user.id),
+        supabase.from("uncompleted_orders").select("*").eq("store_id", sId).eq("owner_id", user.id)
       ]);
+
+      const ordersData = ordersRes.data || [];
+      const uncompletedData = uncompletedRes.data || [];
 
       const customerMap: Record<string, CustomerAggregated> = {};
 
       const processDocs = (docs: any[], isOrder: boolean) => {
         docs.forEach(doc => {
-          const data = doc.data();
-          const cust = data.customer;
+          const cust = doc.customer;
           if (!cust?.email && !cust?.phone) return;
 
-          // Unique Key based on Email and Phone
           const key = `${cust.email?.toLowerCase() || ""}|${cust.phone || ""}`;
           
           if (!customerMap[key]) {
@@ -84,7 +73,7 @@ export default function CustomersPage() {
               orders: 0,
               spent: 0,
               ips: [],
-              lastActivity: data.createdAt || data.lastUpdated,
+              lastActivity: doc.created_at || doc.updated_at,
               status: isOrder ? "Active" : "Lead"
             };
           }
@@ -92,7 +81,7 @@ export default function CustomersPage() {
           const entry = customerMap[key];
           entry.orders += 1;
           if (isOrder) {
-            entry.spent += Number(data.total || 0);
+            entry.spent += Number(doc.total || 0);
             entry.status = "Customer";
           }
           
@@ -102,8 +91,8 @@ export default function CustomersPage() {
         });
       };
 
-      processDocs(ordersSnap.docs, true);
-      processDocs(uncompletedSnap.docs, false);
+      processDocs(ordersData, true);
+      processDocs(uncompletedData, false);
 
       setCustomers(Object.values(customerMap));
     } catch (e) {
@@ -112,6 +101,10 @@ export default function CustomersPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchAndAggregateCustomers();
+  }, [subdomain]);
 
   const filteredCustomers = useMemo(() => {
     return customers.filter(c => 

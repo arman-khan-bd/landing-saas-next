@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { useSupabaseClient } from "@/supabase";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ShoppingBag, DollarSign, Package, TrendingUp, Clock, WifiOff, RefreshCw, Loader2 } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
@@ -12,61 +11,58 @@ import { Button } from "@/components/ui/button";
 
 export default function StoreDashboard() {
   const { subdomain } = useParams();
+  const supabase = useSupabaseClient();
   const [stats, setStats] = useState({ products: 0, orders: 0, revenue: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
 
-  useEffect(() => {
-    fetchStats();
-  }, [subdomain]);
-
   const fetchStats = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
     setLoading(true);
     setIsOffline(false);
     try {
-      const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQuery);
-      if (storeSnap.empty) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) {
         setLoading(false);
         return;
       }
-      const storeId = storeSnap.docs[0].id;
+      const storeId = storeData.id;
 
-      const [prodSnap, orderSnap] = await Promise.all([
-        getDocs(query(collection(db, "products"), where("storeId", "==", storeId))),
-        getDocs(query(
-          collection(db, "orders"),
-          where("storeId", "==", storeId),
-          where("ownerId", "==", user.uid)
-        ))
+      const [prodRes, orderRes] = await Promise.all([
+        supabase.from("products").select("*").eq("store_id", storeId),
+        supabase.from("orders").select("*").eq("store_id", storeId).eq("owner_id", user.id)
       ]);
 
-      const allOrders = orderSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      allOrders.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      const allOrders = orderRes.data || [];
+      allOrders.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
       const totalRevenue = allOrders.reduce((acc, curr) => acc + (curr.total || 0), 0);
 
       setStats({
-        products: prodSnap.size,
-        orders: orderSnap.size,
+        products: prodRes.data?.length || 0,
+        orders: allOrders.length,
         revenue: totalRevenue
       });
 
       setRecentOrders(allOrders.slice(0, 5));
     } catch (error: any) {
       console.error("Dashboard Fetch Error:", error);
-      // Detect offline error specifically
-      if (error.code === 'unavailable' || error.message?.includes('offline')) {
-        setIsOffline(true);
-      }
+      setIsOffline(true);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchStats();
+  }, [subdomain]);
 
   const chartData = [
     { name: "Week 1", total: stats.revenue * 0.2 },
@@ -210,7 +206,7 @@ export default function StoreDashboard() {
                       </div>
                       <div>
                         <p className="font-bold text-sm text-slate-900">{o.customer?.fullName}</p>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{o.createdAt?.toDate()?.toLocaleTimeString()}</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{o.created_at ? new Date(o.created_at).toLocaleTimeString() : ""}</p>
                       </div>
                     </div>
                     <div className="text-right">

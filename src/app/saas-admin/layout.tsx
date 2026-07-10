@@ -3,8 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useUser, useFirestore } from "@/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { useSupabase } from "@/supabase";
 import { 
   SidebarProvider, Sidebar, SidebarContent, SidebarHeader, 
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, 
@@ -18,14 +17,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { Badge } from "@/components/ui/badge";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function SaasAdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
+  const { user, isUserLoading, supabase } = useSupabase();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [pendingTransactions, setPendingTransactions] = useState(0);
   const [pendingDomains, setPendingDomains] = useState(0);
@@ -38,12 +33,16 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
       return;
     }
 
-    if (user && firestore) {
+    if (user) {
       const checkAdmin = async () => {
         try {
-          const userRef = doc(firestore, "users", user.uid);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists() && userSnap.data().role === 'admin') {
+          const { data } = await supabase
+            .from("users")
+            .select("role")
+            .eq("id", user.id)
+            .single();
+
+          if (data?.role === 'admin') {
             setIsAdmin(true);
           } else {
             setIsAdmin(false);
@@ -57,40 +56,31 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
       };
       checkAdmin();
     }
-  }, [user, isUserLoading, firestore, router]);
+  }, [user, isUserLoading, supabase, router]);
 
   useEffect(() => {
-    if (!firestore || isAdmin !== true) return;
+    if (isAdmin !== true) return;
 
-    // Listen for pending transactions
-    const qTx = query(collection(firestore, "saas_transactions"), where("status", "==", "pending"));
-    const unsubTx = onSnapshot(qTx, (snap) => {
-      setPendingTransactions(snap.size);
-    }, async (err) => {
-      const permissionError = new FirestorePermissionError({
-        path: "saas_transactions",
-        operation: "list",
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
-
-    // Listen for pending domains
-    const qDom = query(collection(firestore, "custom_domain_requests"), where("status", "==", "pending"));
-    const unsubDom = onSnapshot(qDom, (snap) => {
-      setPendingDomains(snap.size);
-    }, async (err) => {
-      const permissionError = new FirestorePermissionError({
-        path: "custom_domain_requests",
-        operation: "list",
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
-
-    return () => {
-      unsubTx();
-      unsubDom();
+    // Fetch initial counts
+    const fetchCounts = async () => {
+      const [txRes, domRes] = await Promise.all([
+        supabase.from("saas_transactions").select("id", { count: "exact" }).eq("status", "pending"),
+        supabase.from("custom_domain_requests").select("id", { count: "exact" }).eq("status", "pending"),
+      ]);
+      setPendingTransactions(txRes.count ?? 0);
+      setPendingDomains(domRes.count ?? 0);
     };
-  }, [firestore, isAdmin]);
+    fetchCounts();
+
+    // Real-time subscription for pending counts
+    const channel = supabase
+      .channel("admin-pending-counts")
+      .on("postgres_changes", { event: "*", schema: "public", table: "saas_transactions" }, fetchCounts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "custom_domain_requests" }, fetchCounts)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isAdmin, supabase]);
 
   if (isUserLoading || isAdmin === null) {
     return (
@@ -176,8 +166,8 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
             </div>
             <div className="flex items-center gap-4">
                <div className="hidden sm:flex flex-col text-right">
-                  <span className="text-sm font-bold">{user?.email}</span>
-                  <span className="text-[10px] text-indigo-400 uppercase font-black tracking-widest">Global Administrator</span>
+                 <span className="text-sm font-bold">{user?.email}</span>
+                 <span className="text-[10px] text-indigo-400 uppercase font-black tracking-widest">Global Administrator</span>
                </div>
                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-black">A</div>
             </div>

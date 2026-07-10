@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,34 +15,38 @@ import { useConfirm } from "@/hooks/use-confirm";
 export default function ProductsPage() {
   const { subdomain } = useParams();
   const router = useRouter();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const confirm = useConfirm();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    fetchProducts();
-  }, [subdomain]);
-
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQuery);
-      if (storeSnap.empty) return;
-      const storeId = storeSnap.docs[0].id;
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) return;
 
-      const q = query(collection(db, "products"), where("storeId", "==", storeId));
-      const querySnapshot = await getDocs(q);
-      const items = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setProducts(items);
+      const { data } = await supabase
+        .from("products")
+        .select("*")
+        .eq("store_id", storeData.id);
+      setProducts(data ?? []);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchProducts();
+  }, [subdomain]);
 
   const handleDelete = async (id: string) => {
     const isConfirmed = await confirm({
@@ -56,7 +59,7 @@ export default function ProductsPage() {
     if (!isConfirmed) return;
 
     try {
-      await deleteDoc(doc(db, "products", id));
+      await supabase.from("products").delete().eq("id", id);
       toast({ title: "Product deleted" });
       fetchProducts();
     } catch (error) {
@@ -65,7 +68,7 @@ export default function ProductsPage() {
   };
 
   const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    p.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (

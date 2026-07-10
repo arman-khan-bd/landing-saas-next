@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, useFirestore, useUser } from "@/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, getDoc, limit } from "firebase/firestore";
+import { useUser, useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,15 +24,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { getStoreUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 export default function RedesignedDashboard() {
   const { user, isUserLoading } = useUser();
-  const auth = useAuth();
-  const firestore = useFirestore();
+  const supabase = useSupabaseClient();
   const [stores, setStores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -54,40 +50,45 @@ export default function RedesignedDashboard() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user && firestore) {
-      fetchStores(user.uid);
-      fetchProfile(user.uid);
+    if (user && supabase) {
+      fetchStores(user.id);
+      fetchProfile(user.id);
     }
-  }, [user, firestore]);
+  }, [user, supabase]);
 
   const fetchStores = async (uid: string) => {
-    if (!firestore) return;
     try {
-      const q = query(collection(firestore, "stores"), where("ownerId", "==", uid));
-      const querySnapshot = await getDocs(q);
-      const storeList = await Promise.all(querySnapshot.docs.map(async (docSnapshot) => {
-        const data = docSnapshot.data();
-        // Fetch subscription for each store with mandatory ownerId filter
-        const subQ = query(
-          collection(firestore, "stores", docSnapshot.id, "subscription"),
-          where("ownerId", "==", uid),
-          limit(1)
-        );
-        const subSnap = await getDocs(subQ);
-        let subData = null;
+      const { data: storeRows, error } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("owner_id", uid);
+
+      if (error) throw error;
+
+      const storeList = await Promise.all((storeRows ?? []).map(async (store: any) => {
+        // Fetch subscription for this store
+        const { data: subRows } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("store_id", store.id)
+          .eq("owner_id", uid)
+          .limit(1);
+
+        const subData = subRows?.[0] ?? null;
         let planData = null;
 
-        if (!subSnap.empty) {
-          subData = subSnap.docs[0].data();
-          const planRef = doc(firestore, "subscriptionPlans", subData.planId);
-          const planSnap = await getDoc(planRef);
-          if (planSnap.exists()) {
-            planData = planSnap.data();
-          }
+        if (subData?.plan_id) {
+          const { data: plan } = await supabase
+            .from("subscription_plans")
+            .select("*")
+            .eq("id", subData.plan_id)
+            .single();
+          planData = plan;
         }
 
-        return { id: docSnapshot.id, ...data, subscription: subData, plan: planData };
+        return { ...store, subscription: subData, plan: planData };
       }));
+
       setStores(storeList);
     } catch (error) {
       console.error("Dashboard Fetch Error:", error);
@@ -97,14 +98,16 @@ export default function RedesignedDashboard() {
   };
 
   const fetchProfile = async (uid: string) => {
-    if (!firestore) return;
     try {
-      const userRef = doc(firestore, "users", uid);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const data = userSnap.data();
+      const { data, error } = await supabase
+        .from("users")
+        .select("full_name, phone, role")
+        .eq("id", uid)
+        .single();
+
+      if (!error && data) {
         setProfileData({
-          fullName: data.fullName || "",
+          fullName: data.full_name || "",
           phone: data.phone || "",
           role: data.role || "user"
         });
@@ -115,78 +118,85 @@ export default function RedesignedDashboard() {
   };
 
   const handleUpdateProfile = async () => {
-    if (!user || !firestore) return;
+    if (!user) return;
     setUpdating(true);
-
-    const userRef = doc(firestore, "users", user.uid);
-    const updateData = {
-      fullName: profileData.fullName,
-      phone: profileData.phone,
-      updatedAt: serverTimestamp()
-    };
-
-    updateDoc(userRef, updateData)
-      .then(() => {
-        toast({ title: "Profile Updated", description: "Your changes have been saved successfully." });
+    const { error } = await supabase
+      .from("users")
+      .update({
+        full_name: profileData.fullName,
+        phone: profileData.phone,
+        updated_at: new Date().toISOString()
       })
-      .catch(async (error) => {
-        const permissionError = new FirestorePermissionError({
-          path: userRef.path,
-          operation: 'update',
-          requestResourceData: updateData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => setUpdating(false));
+      .eq("id", user.id);
+
+    if (error) {
+      toast({ variant: "destructive", title: "Update Failed", description: error.message });
+    } else {
+      toast({ title: "Profile Updated", description: "Your changes have been saved successfully." });
+    }
+    setUpdating(false);
   };
 
   const handleCreateStore = async () => {
-    if (!newStore.name || !newStore.subdomain || !firestore || !user) {
+    if (!newStore.name || !newStore.subdomain || !user) {
       toast({ variant: "destructive", title: "Missing fields" });
       return;
     }
     setCreating(true);
 
-    const storeData = {
-      name: newStore.name,
-      subdomain: newStore.subdomain.toLowerCase(),
-      ownerId: user.uid,
-      status: "online",
-      isMaintenance: false,
-      createdAt: serverTimestamp(),
-    };
-
     try {
-      const q = query(collection(firestore, "stores"), where("subdomain", "==", newStore.subdomain.toLowerCase()));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
+      // Check subdomain availability
+      const { data: existing } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", newStore.subdomain.toLowerCase())
+        .maybeSingle();
+
+      if (existing) {
         toast({ variant: "destructive", title: "Subdomain already taken" });
         setCreating(false);
         return;
       }
 
-      const docRef = await addDoc(collection(firestore, "stores"), storeData);
+      const { data: storeRow, error: storeError } = await supabase
+        .from("stores")
+        .insert({
+          name: newStore.name,
+          subdomain: newStore.subdomain.toLowerCase(),
+          owner_id: user.id,
+          status: "online",
+          is_maintenance: false,
+        })
+        .select()
+        .single();
 
-      // Default to Free Plan for secondary stores
-      const freePlanQ = query(collection(firestore, "subscriptionPlans"), where("price", "==", 0), where("isActive", "==", true));
-      const freePlanSnap = await getDocs(freePlanQ);
-      if (!freePlanSnap.empty) {
-        await addDoc(collection(firestore, "stores", docRef.id, "subscription"), {
-          planId: freePlanSnap.docs[0].id,
-          ownerId: user.uid,
-          storeId: docRef.id,
+      if (storeError || !storeRow) {
+        toast({ variant: "destructive", title: "Error creating store" });
+        setCreating(false);
+        return;
+      }
+
+      // Default to Free Plan
+      const { data: freePlan } = await supabase
+        .from("subscription_plans")
+        .select("id")
+        .eq("price", 0)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (freePlan) {
+        await supabase.from("subscriptions").insert({
+          plan_id: freePlan.id,
+          owner_id: user.id,
+          store_id: storeRow.id,
           status: "active",
-          startDate: serverTimestamp(),
-          currentPeriodStart: serverTimestamp(),
-          currentPeriodEnd: serverTimestamp(),
-          createdAt: serverTimestamp(),
         });
       }
 
       toast({ title: "Store Launched!", description: "Your new brand is now live." });
       setNewStore({ name: "", subdomain: "" });
       setIsCreateStoreOpen(false);
-      fetchStores(user.uid);
+      fetchStores(user.id);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error creating store" });
     } finally {
@@ -195,60 +205,61 @@ export default function RedesignedDashboard() {
   };
 
   const handleDeleteStore = async (sId: string, sName: string) => {
-    if (!user || !firestore) return;
-    if (!confirm(`Are you absolutely sure you want to delete "${sName}"? This action is permanent and will destroy all data including orders and products.`)) return;
+    if (!user) return;
+    if (!confirm(`Are you absolutely sure you want to delete "${sName}"? This action is permanent.`)) return;
 
     try {
-      await updateDoc(doc(firestore, "stores", sId), { status: "deleted", deletedAt: serverTimestamp() });
+      await supabase
+        .from("stores")
+        .update({ status: "deleted", deleted_at: new Date().toISOString() })
+        .eq("id", sId);
       toast({ title: "Store Deleted", description: `"${sName}" has been successfully removed.` });
-      fetchStores(user.uid);
+      fetchStores(user.id);
     } catch (error) {
       toast({ variant: "destructive", title: "Deletion Failed" });
     }
   };
 
   const handleToggleMaintenance = async (sId: string, current: boolean) => {
-    if (!firestore) return;
     try {
-      await updateDoc(doc(firestore, "stores", sId), { isMaintenance: !current });
+      await supabase.from("stores").update({ is_maintenance: !current }).eq("id", sId);
       toast({ title: !current ? "Maintenance Enabled" : "Maintenance Disabled" });
-      fetchStores(user?.uid || "");
+      fetchStores(user?.id || "");
     } catch (error) {
       toast({ variant: "destructive", title: "Toggle Failed" });
     }
   };
 
   const handleToggleStatus = async (sId: string, status: string) => {
-    if (!firestore) return;
     const newStatus = status === "online" ? "offline" : "online";
     try {
-      await updateDoc(doc(firestore, "stores", sId), { status: newStatus });
+      await supabase.from("stores").update({ status: newStatus }).eq("id", sId);
       toast({ title: `Store ${newStatus === 'online' ? 'Activated' : 'Deactivated'}` });
-      fetchStores(user?.uid || "");
+      fetchStores(user?.id || "");
     } catch (error) {
       toast({ variant: "destructive", title: "Update Failed" });
     }
   };
 
   const handleSaveVaultPIN = async () => {
-    if (!selectedStoreForVault || !vaultPIN || !firestore) return;
+    if (!selectedStoreForVault || !vaultPIN) return;
 
-    // Verify old password if it exists
-    if (selectedStoreForVault.managePassword && currentVaultPIN !== selectedStoreForVault.managePassword) {
-      toast({ variant: "destructive", title: "Verification Failed", description: "The current Vault PIN you entered is incorrect." });
+    if (selectedStoreForVault.manage_password && currentVaultPIN !== selectedStoreForVault.manage_password) {
+      toast({ variant: "destructive", title: "Verification Failed", description: "The current Vault PIN is incorrect." });
       return;
     }
 
     setSavingVault(true);
     try {
-      await updateDoc(doc(firestore, "stores", selectedStoreForVault.id), {
-        managePassword: vaultPIN
-      });
-      toast({ title: "Vault PIN Updated", description: "Your management password has been set." });
+      await supabase
+        .from("stores")
+        .update({ manage_password: vaultPIN })
+        .eq("id", selectedStoreForVault.id);
+      toast({ title: "Vault PIN Updated" });
       setIsVaultModalOpen(false);
       setVaultPIN("");
       setCurrentVaultPIN("");
-      fetchStores(user?.uid || "");
+      fetchStores(user?.id || "");
     } catch (error) {
       toast({ variant: "destructive", title: "Update Failed" });
     } finally {
@@ -257,10 +268,8 @@ export default function RedesignedDashboard() {
   };
 
   const handleLogout = async () => {
-    if (auth) {
-      await auth.signOut();
-      router.push("/auth");
-    }
+    await supabase.auth.signOut();
+    router.push("/auth");
   };
 
   if (isUserLoading || loading) {
@@ -370,31 +379,29 @@ export default function RedesignedDashboard() {
             </section>
 
             {/* Payment Warning Section */}
-            {stores.some(s => s.subscription?.status === 'active' && s.subscription?.currentPeriodEnd && (
-              (() => {
-                const end = s.subscription.currentPeriodEnd.toDate ? s.subscription.currentPeriodEnd.toDate() : new Date(s.subscription.currentPeriodEnd);
-                const diff = end.getTime() - new Date().getTime();
-                const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                return days <= 10 && days > 0;
-              })()
-            )) && (
-                <Card className="rounded-[32px] border-none bg-rose-50 shadow-sm overflow-hidden mb-6">
-                  <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-600">
-                        <AlertTriangle className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-rose-900">Subscription Expiring Soon</h4>
-                        <p className="text-sm text-rose-700/80">One or more of your stores have subscriptions ending within 10 days. Please renew to avoid service interruption.</p>
-                      </div>
+            {stores.some(s => s.subscription?.status === 'active' && s.subscription?.current_period_end && (() => {
+              const end = new Date(s.subscription.current_period_end);
+              const diff = end.getTime() - new Date().getTime();
+              const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+              return days <= 10 && days > 0;
+            })()) && (
+              <Card className="rounded-[32px] border-none bg-rose-50 shadow-sm overflow-hidden mb-6">
+                <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-600">
+                      <AlertTriangle className="w-6 h-6" />
                     </div>
-                    <Button className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold h-11 px-6 shadow-lg shadow-rose-200" onClick={() => setView("stores")}>
-                      Review Subscriptions
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+                    <div>
+                      <h4 className="font-bold text-rose-900">Subscription Expiring Soon</h4>
+                      <p className="text-sm text-rose-700/80">One or more of your stores have subscriptions ending within 10 days. Please renew to avoid service interruption.</p>
+                    </div>
+                  </div>
+                  <Button className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold h-11 px-6 shadow-lg shadow-rose-200" onClick={() => setView("stores")}>
+                    Review Subscriptions
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             {stores.some(s => s.plan?.price > 0 && s.subscription?.status === 'pending') && (
               <Card className="rounded-[32px] border-none bg-amber-50 shadow-sm overflow-hidden mb-6">
@@ -459,16 +466,16 @@ export default function RedesignedDashboard() {
                                 <span className="font-medium">Store Settings</span>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => handleToggleMaintenance(store.id, store.isMaintenance)}>
-                                <Hammer className={`w-4 h-4 ${store.isMaintenance ? 'text-primary' : ''}`} />
-                                <span className="font-medium">Maintenance Mode: {store.isMaintenance ? 'ON' : 'OFF'}</span>
+                              <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => handleToggleMaintenance(store.id, store.is_maintenance)}>
+                                <Hammer className={`w-4 h-4 ${store.is_maintenance ? 'text-primary' : ''}`} />
+                                <span className="font-medium">Maintenance Mode: {store.is_maintenance ? 'ON' : 'OFF'}</span>
                               </DropdownMenuItem>
                               <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => handleToggleStatus(store.id, store.status)}>
                                 <Power className={`w-4 h-4 ${store.status === 'online' ? 'text-emerald-500' : 'text-slate-400'}`} />
                                 <span className="font-medium">{store.status === 'online' ? 'Deactivate Store' : 'Activate Store'}</span>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              {!store.managePassword ? (
+                              {!store.manage_password ? (
                                 <DropdownMenuItem className="gap-2 rounded-xl py-2.5 cursor-pointer" onClick={() => {
                                   setSelectedStoreForVault(store);
                                   setVaultPIN("");
@@ -512,7 +519,7 @@ export default function RedesignedDashboard() {
                             <Globe className="w-3.5 h-3.5" />
                             {getStoreUrl(store.subdomain).replace("https://", "").replace("http://", "")}
                           </p>
-                          {store.isMaintenance && (
+                          {store.is_maintenance && (
                             <Badge className="bg-amber-100 text-amber-700 border-none text-[8px] font-black uppercase flex items-center gap-1">
                               <Hammer className="w-2.5 h-2.5" /> Maintenance
                             </Badge>
@@ -673,6 +680,7 @@ export default function RedesignedDashboard() {
           </div>
         </div>
       )}
+
       {/* --- VAULT PIN MODAL --- */}
       {isVaultModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -682,14 +690,14 @@ export default function RedesignedDashboard() {
               <Lock className="w-8 h-8" />
             </div>
             <h2 className="text-3xl font-headline font-black tracking-tight text-slate-900">
-              {selectedStoreForVault?.managePassword ? "Update Vault PIN" : "Setup Manager Vault"}
+              {selectedStoreForVault?.manage_password ? "Update Vault PIN" : "Setup Manager Vault"}
             </h2>
             <p className="text-slate-500 text-lg mt-2 leading-relaxed">
-              {selectedStoreForVault?.managePassword ? "Change your existing security PIN for this store." : "Set a secure PIN to protect your store's administrative settings."}
+              {selectedStoreForVault?.manage_password ? "Change your existing security PIN for this store." : "Set a secure PIN to protect your store's administrative settings."}
             </p>
 
             <div className="space-y-6 py-8">
-              {selectedStoreForVault?.managePassword && (
+              {selectedStoreForVault?.manage_password && (
                 <div className="space-y-2">
                   <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Current Security PIN</Label>
                   <Input
@@ -704,7 +712,7 @@ export default function RedesignedDashboard() {
               )}
               <div className="space-y-2">
                 <Label className="text-xs font-black uppercase tracking-widest text-slate-400">
-                  {selectedStoreForVault?.managePassword ? "New Security PIN" : "Security PIN"}
+                  {selectedStoreForVault?.manage_password ? "New Security PIN" : "Security PIN"}
                 </Label>
                 <Input
                   type="password"
@@ -712,7 +720,7 @@ export default function RedesignedDashboard() {
                   value={vaultPIN}
                   onChange={(e) => setVaultPIN(e.target.value)}
                   className="rounded-2xl h-14 bg-slate-50 border-none text-center text-2xl font-bold tracking-[0.5em] px-6 focus:ring-0"
-                  autoFocus={!selectedStoreForVault?.managePassword}
+                  autoFocus={!selectedStoreForVault?.manage_password}
                 />
               </div>
             </div>
@@ -722,10 +730,10 @@ export default function RedesignedDashboard() {
               <Button
                 className="flex-[2] h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20"
                 onClick={handleSaveVaultPIN}
-                disabled={savingVault || !vaultPIN || (selectedStoreForVault?.managePassword && !currentVaultPIN)}
+                disabled={savingVault || !vaultPIN || (selectedStoreForVault?.manage_password && !currentVaultPIN)}
               >
                 {savingVault ? <Loader2 className="animate-spin mr-2" /> : <ShieldCheck className="mr-2" />}
-                {selectedStoreForVault?.managePassword ? "Update Vault PIN" : "Save Vault PIN"}
+                {selectedStoreForVault?.manage_password ? "Update Vault PIN" : "Save Vault PIN"}
               </Button>
             </div>
           </div>

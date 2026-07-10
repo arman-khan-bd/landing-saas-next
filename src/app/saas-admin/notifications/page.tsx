@@ -2,12 +2,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
-import { 
-  collection, query, orderBy, onSnapshot, limit, 
-  doc, updateDoc, writeBatch, where 
-} from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Card, CardContent } from "@/components/ui/card";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -21,64 +18,75 @@ export default function AdminNotificationsPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Listen for Transactions
-    const qTx = query(collection(db, "saas_transactions"), where("status", "==", "pending"));
-    const unsubTx = onSnapshot(qTx, (snap) => {
-      const txNotifs = snap.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          type: "transaction",
-          title: "New Payment Request",
-          description: `Store "${data.storeName}" requested the ${data.planName} plan for $${data.amount}.`,
-          time: data.createdAt?.toDate?.() || new Date(),
-          read: false, 
-          link: "/saas-admin/transactions",
-          createdAt: data.createdAt
-        };
-      });
-      updateCombined(txNotifs, "tx");
-    });
-
-    // Listen for Domain Requests
-    const qDom = query(collection(db, "custom_domain_requests"), where("status", "==", "pending"));
-    const unsubDom = onSnapshot(qDom, (snap) => {
-      const domNotifs = snap.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          type: "domain",
-          title: "New Custom Domain Request",
-          description: `Store "${data.storeName}" requested to connect ${data.domain}.`,
-          time: data.createdAt?.toDate?.() || new Date(),
-          read: false,
-          link: "/saas-admin/domains",
-          createdAt: data.createdAt
-        };
-      });
-      updateCombined(domNotifs, "dom");
-    });
-
-    return () => {
-      unsubTx();
-      unsubDom();
-    };
-  }, []);
-
   const [rawTx, setRawTx] = useState<any[]>([]);
   const [rawDom, setRawDom] = useState<any[]>([]);
+  const supabase = useSupabaseClient();
 
-  const updateCombined = (notifs: any[], key: string) => {
-    if (key === 'tx') setRawTx(notifs);
-    else setRawDom(notifs);
+  const fetchTxNotifications = async () => {
+    const { data } = await supabase
+      .from("saas_transactions")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    const txNotifs = (data ?? []).map(row => ({
+      id: row.id,
+      type: "transaction",
+      title: "New Payment Request",
+      description: `Store "${row.store_name || 'Unknown Store'}" requested plan for $${row.amount}.`,
+      time: row.created_at ? new Date(row.created_at) : new Date(),
+      read: false,
+      link: "/saas-admin/transactions",
+      createdAt: row.created_at
+    }));
+    setRawTx(txNotifs);
+  };
+
+  const fetchDomNotifications = async () => {
+    const { data } = await supabase
+      .from("custom_domain_requests")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    const domNotifs = (data ?? []).map(row => ({
+      id: row.id,
+      type: "domain",
+      title: "New Custom Domain Request",
+      description: `Store "${row.store_name || 'Unknown Store'}" requested to connect ${row.domain}.`,
+      time: row.created_at ? new Date(row.created_at) : new Date(),
+      read: false,
+      link: "/saas-admin/domains",
+      createdAt: row.created_at
+    }));
+    setRawDom(domNotifs);
   };
 
   useEffect(() => {
+    fetchTxNotifications();
+    fetchDomNotifications();
+
+    const txChannel = supabase
+      .channel("tx-notifications-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "saas_transactions" }, fetchTxNotifications)
+      .subscribe();
+
+    const domChannel = supabase
+      .channel("dom-notifications-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "custom_domain_requests" }, fetchDomNotifications)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(txChannel);
+      supabase.removeChannel(domChannel);
+    };
+  }, []);
+
+
+
+  useEffect(() => {
     const combined = [...rawTx, ...rawDom].sort((a, b) => {
-        const tA = a.createdAt?.seconds || 0;
-        const tB = b.createdAt?.seconds || 0;
-        return tB - tA;
+      const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return tB - tA;
     }).slice(0, 30);
     setNotifications(combined);
     setLoading(false);

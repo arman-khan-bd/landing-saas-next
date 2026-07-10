@@ -3,8 +3,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useFirestore } from "@/firebase";
-import { collection, query, where, getDocs, doc, updateDoc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import * as LucideIcons from "lucide-react";
 import { 
   Plus, Save, Trash2, Image as ImageIcon,
@@ -59,8 +58,8 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Badge } from "@/components/ui/badge";
@@ -91,7 +90,7 @@ export default function SectionManager() {
 function SectionEditorInner() {
   const { subdomain, pageId } = useParams();
   const router = useRouter();
-  const firestore = useFirestore();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const { setOpenMobile, isMobile } = useSidebar();
 
@@ -127,37 +126,41 @@ function SectionEditorInner() {
   );
 
   useEffect(() => {
-    if (firestore && subdomain && pageId) {
+    if (subdomain && pageId) {
       fetchPageData();
     }
-  }, [subdomain, pageId, firestore]);
+  }, [subdomain, pageId]);
 
   const fetchPageData = async () => {
-    if (!firestore) return;
+    if (!supabase) return;
     setLoading(true);
     try {
-      const storeQ = query(collection(firestore, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQ);
-      if (storeSnap.empty) {
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) {
         setLoading(false);
         return;
       }
-      const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
       setStore(storeData);
 
-      const pageRef = doc(firestore, "pages", pageId as string);
-      const pageSnap = await getDoc(pageRef);
+      const { data: pageVal } = await supabase
+        .from("sections")
+        .select("*")
+        .eq("id", pageId)
+        .single();
 
-      if (pageSnap.exists()) {
-        const data = pageSnap.data();
-        setPageData(data);
-        setBlocks(data.config || []);
-        if (data.pageStyle) {
+      if (pageVal) {
+        setPageData(pageVal);
+        setBlocks(pageVal.blocks || []);
+        if (pageVal.page_style) {
           setPageStyle({
             backgroundTexture: "none",
             backgroundOpacity: 100,
             backgroundSize: "cover",
-            ...data.pageStyle
+            ...pageVal.page_style
           });
         }
       } else {
@@ -165,9 +168,11 @@ function SectionEditorInner() {
         router.back();
       }
 
-      const prodQ = query(collection(firestore, "products"), where("storeId", "==", storeData.id));
-      const prodSnap = await getDocs(prodQ);
-      setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const { data: prods } = await supabase
+        .from("products")
+        .select("*")
+        .eq("store_id", storeData.id);
+      setProducts(prods ?? []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -175,7 +180,8 @@ function SectionEditorInner() {
     }
   };
 
-  const updateBlock = (id: string, updates: any) => {
+  const updateBlock = (id: string | null, updates: any) => {
+    if (!id) return;
     setBlocks(prev => updateNestedBlock(prev, id, updates));
   };
 
@@ -193,31 +199,29 @@ function SectionEditorInner() {
     });
   };
 
-  const handleSave = () => {
-    if (!pageId || !firestore) return;
+  const handleSave = async () => {
+    if (!pageId) return;
     setSaving(true);
-    const pageRef = doc(firestore, "pages", pageId as string);
-    
-    const sanitizedBlocks = sanitizeForFirestore(blocks);
-    const sanitizedPageStyle = sanitizeForFirestore(pageStyle);
+    try {
+      const sanitizedBlocks = sanitizeForFirestore(blocks);
+      const sanitizedPageStyle = sanitizeForFirestore(pageStyle);
 
-    updateDoc(pageRef, { 
-      config: sanitizedBlocks, 
-      pageStyle: sanitizedPageStyle,
-      updatedAt: serverTimestamp() 
-    })
-      .then(() => {
-        toast({ title: "Design Saved!", description: "High-conversion matrix is updated." });
-      })
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: pageRef.path,
-          operation: 'update',
-          requestResourceData: { config: sanitizedBlocks, pageStyle: sanitizedPageStyle },
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => setSaving(false));
+      const { error } = await supabase
+        .from("sections")
+        .update({
+          blocks: sanitizedBlocks,
+          page_style: sanitizedPageStyle,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", pageId);
+
+      if (error) throw error;
+      toast({ title: "Design Saved!", description: "High-conversion matrix is updated." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Save Failed" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAddBlock = (type: BlockType) => {

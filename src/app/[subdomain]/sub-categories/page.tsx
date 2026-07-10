@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export default function SubCategoriesPage() {
   const { subdomain } = useParams();
+  const supabase = useSupabaseClient();
   const [subCategories, setSubCategories] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,26 +29,24 @@ export default function SubCategoriesPage() {
   const { toast } = useToast();
   const confirm = useConfirm();
 
-  useEffect(() => {
-    fetchData();
-  }, [subdomain]);
-
   const fetchData = async () => {
     setLoading(true);
     try {
-      const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQuery);
-      if (storeSnap.empty) return;
-      const sId = storeSnap.docs[0].id;
-      setStoreId(sId);
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) return;
+      setStoreId(storeData.id);
 
-      const [subSnap, catSnap] = await Promise.all([
-        getDocs(query(collection(db, "sub-categories"), where("storeId", "==", sId))),
-        getDocs(query(collection(db, "categories"), where("storeId", "==", sId)))
+      const [subsRes, catsRes] = await Promise.all([
+        supabase.from("sub_categories").select("*").eq("store_id", storeData.id),
+        supabase.from("categories").select("*").eq("store_id", storeData.id)
       ]);
 
-      setSubCategories(subSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setCategories(catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setSubCategories(subsRes.data ?? []);
+      setCategories(catsRes.data ?? []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -56,18 +54,21 @@ export default function SubCategoriesPage() {
     }
   };
 
+  useEffect(() => {
+    fetchData();
+  }, [subdomain]);
+
   const handleCreate = async () => {
     if (!newSub.name || !newSub.categoryId) return;
     setProcessing(true);
     const slug = newSub.slug || newSub.name.toLowerCase().replace(/ /g, "-");
     
     try {
-      await addDoc(collection(db, "sub-categories"), {
-        ...newSub,
+      await supabase.from("sub_categories").insert({
+        name: newSub.name,
         slug,
-        storeId,
-        ownerId: auth.currentUser?.uid,
-        createdAt: serverTimestamp(),
+        category_id: newSub.categoryId,
+        store_id: storeId
       });
       toast({ title: "Sub-category added" });
       setNewSub({ name: "", slug: "", categoryId: "" });
@@ -85,11 +86,14 @@ export default function SubCategoriesPage() {
     setProcessing(true);
     try {
       const slug = editingSub.slug || editingSub.name.toLowerCase().replace(/ /g, "-");
-      await updateDoc(doc(db, "sub-categories", editingSub.id), {
-        name: editingSub.name,
-        slug: slug,
-        categoryId: editingSub.categoryId,
-      });
+      await supabase
+        .from("sub_categories")
+        .update({
+          name: editingSub.name,
+          slug: slug,
+          category_id: editingSub.categoryId,
+        })
+        .eq("id", editingSub.id);
       toast({ title: "Sub-category updated" });
       setEditingSub(null);
       fetchData();
@@ -111,7 +115,7 @@ export default function SubCategoriesPage() {
     if (!isConfirmed) return;
 
     try {
-      await deleteDoc(doc(db, "sub-categories", id));
+      await supabase.from("sub_categories").delete().eq("id", id);
       toast({ title: "Deleted" });
       fetchData();
     } catch (error) {
@@ -120,7 +124,7 @@ export default function SubCategoriesPage() {
   };
 
   const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || "N/A";
-  const filtered = subCategories.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filtered = subCategories.filter(s => s.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div className="space-y-6">
@@ -193,11 +197,11 @@ export default function SubCategoriesPage() {
                 filtered.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{getCategoryName(item.categoryId)}</TableCell>
+                    <TableCell>{getCategoryName(item.category_id)}</TableCell>
                     <TableCell className="text-right">
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={() => setEditingSub({ ...item })}>
+                          <Button variant="ghost" size="icon" onClick={() => setEditingSub({ ...item, categoryId: item.category_id })}>
                             <Edit className="w-4 h-4 text-primary" />
                           </Button>
                         </DialogTrigger>

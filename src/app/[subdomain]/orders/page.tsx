@@ -1,23 +1,21 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, MoreHorizontal, Eye, Receipt, ShoppingCart, CheckCircle, Clock, XCircle, Calendar, DollarSign, Loader2, PackageCheck } from "lucide-react";
+import { Search, MoreHorizontal, Eye, Receipt, ShoppingCart, Calendar, DollarSign, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 export default function OrdersPage() {
   const { subdomain } = useParams();
   const router = useRouter();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,30 +23,27 @@ export default function OrdersPage() {
   const [stats, setStats] = useState({ revenue: 0, count: 0 });
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [subdomain]);
-
   const fetchOrders = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
     setLoading(true);
     try {
-      const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQ);
-      if (storeSnap.empty) return;
-      const storeId = storeSnap.docs[0].id;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      const q = query(
-        collection(db, "orders"), 
-        where("storeId", "==", storeId),
-        where("ownerId", "==", user.uid)
-      );
-      const snap = await getDocs(q);
-      const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      
-      items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) return;
+
+      const { data } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("store_id", storeData.id)
+        .eq("owner_id", user.id);
+
+      const items = data || [];
+      items.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
       
       setOrders(items);
 
@@ -62,13 +57,21 @@ export default function OrdersPage() {
     }
   };
 
+  useEffect(() => {
+    fetchOrders();
+  }, [subdomain]);
+
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     setUpdatingId(orderId);
     try {
-      await updateDoc(doc(db, "orders", orderId), {
-        status: newStatus,
-        updatedAt: serverTimestamp()
-      });
+      await supabase
+        .from("orders")
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", orderId);
+
       toast({ title: "Status Updated", description: `Order #${orderId.slice(0, 8)} is now ${newStatus}.` });
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     } catch (error) {
@@ -161,7 +164,7 @@ export default function OrdersPage() {
                     <TableCell className="py-3 px-4">
                       <div className="flex flex-col">
                         <span className="font-mono text-xs font-bold text-primary">#{order.id.slice(0, 8)}</span>
-                        <span className="text-[10px] text-muted-foreground">{order.createdAt?.toDate()?.toLocaleDateString()}</span>
+                        <span className="text-[10px] text-muted-foreground">{new Date(order.created_at || 0).toLocaleDateString()}</span>
                       </div>
                     </TableCell>
                     <TableCell className="py-3 px-4">
@@ -173,7 +176,7 @@ export default function OrdersPage() {
                     <TableCell className="py-3 px-4">
                       <div className="flex flex-col">
                         <span className="font-black text-slate-900 text-xs">${order.total?.toFixed(2)}</span>
-                        <span className="text-[9px] uppercase font-bold text-slate-400 tracking-tight">{order.paymentMethod}</span>
+                        <span className="text-[9px] uppercase font-bold text-slate-400 tracking-tight">{order.payment_method || order.paymentMethod}</span>
                       </div>
                     </TableCell>
                     <TableCell className="py-3 px-4">

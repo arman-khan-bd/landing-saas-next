@@ -2,8 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFirestore } from "@/firebase";
-import { collection, getDocs, query, limit } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Users, Store, CreditCard, TrendingUp, Package, Globe, ShieldAlert } from "lucide-react";
 import { 
@@ -12,28 +11,28 @@ import {
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Line, LineChart, CartesianGrid } from "recharts";
 
 export default function AdminOverview() {
-  const firestore = useFirestore();
+  const supabase = useSupabaseClient();
   const [stats, setStats] = useState({
     users: 0,
     stores: 0,
-    mrr: 12500, // Mocked for Saas admin
+    mrr: 12500, // Mocked for SaaS admin
     activeSubs: 42
   });
 
   useEffect(() => {
-    if (firestore) {
-      const fetchData = async () => {
-        const usersSnap = await getDocs(collection(firestore, "users"));
-        const storesSnap = await getDocs(collection(firestore, "stores"));
-        setStats(prev => ({
-          ...prev,
-          users: usersSnap.size,
-          stores: storesSnap.size
-        }));
-      };
-      fetchData();
-    }
-  }, [firestore]);
+    const fetchData = async () => {
+      const [usersRes, storesRes] = await Promise.all([
+        supabase.from("users").select("id", { count: "exact" }),
+        supabase.from("stores").select("id", { count: "exact" }),
+      ]);
+      setStats(prev => ({
+        ...prev,
+        users: usersRes.count ?? 0,
+        stores: storesRes.count ?? 0,
+      }));
+    };
+    fetchData();
+  }, [supabase]);
 
   const growthData = [
     { name: "Week 1", users: 120, shops: 40 },

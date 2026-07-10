@@ -3,8 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +13,7 @@ import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Loader2, Save, Tags, Globe, Layout, DollarSign, Package, Video, Layers, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+
 import "react-quill-new/dist/quill.snow.css";
 
 // Dynamic import for ReactQuill to avoid SSR issues
@@ -27,6 +25,7 @@ const ReactQuill = dynamic(() => import("react-quill-new"), {
 export default function NewProductPage() {
   const { subdomain } = useParams();
   const router = useRouter();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -61,20 +60,23 @@ export default function NewProductPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-        const storeSnap = await getDocs(storeQ);
-        if (storeSnap.empty) return;
-        const storeId = storeSnap.docs[0].id;
+        const { data: storeData } = await supabase
+          .from("stores")
+          .select("id")
+          .eq("subdomain", subdomain)
+          .single();
+        if (!storeData) return;
+        const storeId = storeData.id;
 
-        const [catSnap, subSnap, brandSnap] = await Promise.all([
-          getDocs(query(collection(db, "categories"), where("storeId", "==", storeId))),
-          getDocs(query(collection(db, "sub-categories"), where("storeId", "==", storeId))),
-          getDocs(query(collection(db, "brands"), where("storeId", "==", storeId)))
+        const [catRes, subRes, brandRes] = await Promise.all([
+          supabase.from("categories").select("*").eq("store_id", storeId),
+          supabase.from("sub_categories").select("*").eq("store_id", storeId),
+          supabase.from("brands").select("*").eq("store_id", storeId)
         ]);
 
-        setCategories(catSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setSubCategories(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setBrands(brandSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setCategories(catRes.data ?? []);
+        setSubCategories(subRes.data ?? []);
+        setBrands(brandRes.data ?? []);
       } catch (error) {
         console.error("Meta fetch error:", error);
       } finally {
@@ -97,7 +99,7 @@ export default function NewProductPage() {
 
   const filteredSubCategories = useMemo(() => {
     if (!formData.category) return [];
-    return subCategories.filter(s => s.categoryId === formData.category);
+    return subCategories.filter(s => s.category_id === formData.category || s.categoryId === formData.category);
   }, [formData.category, subCategories]);
 
   const imageHandler = useCallback(() => {
@@ -152,27 +154,28 @@ export default function NewProductPage() {
     setLoading(true);
     
     try {
-      const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQuery);
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
       
-      if (storeSnap.empty) {
+      if (!storeData) {
         toast({ variant: "destructive", title: "Store not found" });
         setLoading(false);
         return;
       }
       
-      const storeId = storeSnap.docs[0].id;
-      const ownerId = auth.currentUser?.uid;
-
-      if (!ownerId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         toast({ variant: "destructive", title: "Authentication required" });
         setLoading(false);
         return;
       }
 
       const productData = {
-        storeId,
-        ownerId,
+        store_id: storeData.id,
+        owner_id: user.id,
         name: formData.name,
         slug: formData.slug,
         shortDescription: formData.shortDescription,
@@ -190,26 +193,17 @@ export default function NewProductPage() {
         totalInStock: Number(formData.totalInStock),
         tax: formData.tax,
         sku: formData.sku,
-        youtubeLink: formData.youtubeLink,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        youtubeLink: formData.youtubeLink
       };
 
-      addDoc(collection(db, "products"), productData)
-        .then(() => {
-          toast({ title: "Product Created Successfully!" });
-          router.push(`/${subdomain}/products`);
-        })
-        .catch(async (error) => {
-          const permissionError = new FirestorePermissionError({
-            path: 'products',
-            operation: 'create',
-            requestResourceData: productData,
-          });
-          errorEmitter.emit('permission-error', permissionError);
-          setLoading(false);
-        });
+      const { error } = await supabase
+        .from("products")
+        .insert(productData);
 
+      if (error) throw error;
+
+      toast({ title: "Product Created Successfully!" });
+      router.push(`/${subdomain}/products`);
     } catch (error) {
       toast({ variant: "destructive", title: "Error processing request" });
       setLoading(false);
@@ -293,10 +287,9 @@ export default function NewProductPage() {
                 <Label>Full Description</Label>
                 <div className="rounded-xl overflow-hidden border border-input">
                   <ReactQuill
-                    ref={quillRef}
                     theme="snow"
                     value={formData.description}
-                    onChange={(val) => setFormData({ ...formData, description: val })}
+                    onChange={(val: string) => setFormData({ ...formData, description: val })}
                     modules={modules}
                     className="min-h-[250px]"
                   />

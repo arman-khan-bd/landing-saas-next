@@ -8,8 +8,7 @@ import {
   CheckCircle2, Loader2, Star, Smartphone, Globe, 
   Sparkles, Rocket, Lock, TrendingUp, MousePointer2 
 } from "lucide-react";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { getSupabaseClient } from "@/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,28 +24,38 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPlans();
-    
-    // Real-time listener for features
-    const featuresQ = query(collection(db, "platformFeatures"), orderBy("order", "asc"));
-    const unsubFeatures = onSnapshot(featuresQ, (snap) => {
-      setFeatures(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    const supabase = getSupabaseClient();
 
-    return () => unsubFeatures();
+    // Fetch plans
+    supabase
+      .from("subscription_plans")
+      .select("*")
+      .eq("is_active", true)
+      .then(({ data }: { data: any }) => {
+        setPlans(data ?? []);
+        setLoading(false);
+      });
+
+    // Fetch features
+    supabase
+      .from("platform_features")
+      .select("*")
+      .order("order", { ascending: true })
+      .then(({ data }: { data: any }) => {
+        setFeatures(data ?? []);
+      });
+
+    // Realtime for features
+    const channel = supabase
+      .channel("landing-features")
+      .on("postgres_changes", { event: "*", schema: "public", table: "platform_features" }, async () => {
+        const { data } = await supabase.from("platform_features").select("*").order("order");
+        setFeatures(data ?? []);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
-
-  const fetchPlans = async () => {
-    try {
-      const q = query(collection(db, "subscriptionPlans"), where("isActive", "==", true));
-      const snap = await getDocs(q);
-      setPlans(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-background overflow-x-hidden">

@@ -1,50 +1,45 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, MoreHorizontal, Eye, ShoppingCart, Clock, Mail, Loader2, ArrowRight } from "lucide-react";
+import { Search, MoreHorizontal, Eye, ShoppingCart, Clock, Mail, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 
 export default function UncompletedOrdersPage() {
   const { subdomain } = useParams();
   const router = useRouter();
+  const supabase = useSupabaseClient();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    fetchUncompleted();
-  }, [subdomain]);
-
   const fetchUncompleted = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
     setLoading(true);
     try {
-      const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQ);
-      if (storeSnap.empty) return;
-      const storeId = storeSnap.docs[0].id;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      const q = query(
-        collection(db, "uncompleted_orders"),
-        where("storeId", "==", storeId),
-        where("ownerId", "==", user.uid)
-      );
-      const snap = await getDocs(q);
-      const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      
-      docs.sort((a, b) => (b.lastUpdated?.seconds || 0) - (a.lastUpdated?.seconds || 0));
-      
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) return;
+
+      const { data } = await supabase
+        .from("uncompleted_orders")
+        .select("*")
+        .eq("store_id", storeData.id)
+        .eq("owner_id", user.id);
+
+      const docs = data || [];
+      docs.sort((a: any, b: any) => new Date(b.updated_at || b.lastUpdated || 0).getTime() - new Date(a.updated_at || a.lastUpdated || 0).getTime());
       setItems(docs);
     } catch (error) {
       console.error("Fetch Uncompleted Error:", error);
@@ -52,6 +47,10 @@ export default function UncompletedOrdersPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchUncompleted();
+  }, [subdomain]);
 
   const filteredItems = items.filter(i => 
     i.id.toLowerCase().includes(searchTerm.toLowerCase()) ||

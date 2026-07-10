@@ -2,9 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { useSupabaseClient } from "@/supabase";
 import { getSubdomain } from "@/lib/subdomain";
-import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, ShoppingCart, Loader2, CheckCircle2, Plus, Minus, X, Trash2, ChevronLeft, ShieldCheck, Truck, CreditCard, Smartphone } from "lucide-react";
 import Link from "next/link";
@@ -16,7 +15,6 @@ import { cn, getTenantPath } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,6 +28,7 @@ interface CartItem {
 
 export default function ProductDetailPage() {
   const { subdomain: paramsSubdomain, slug } = useParams();
+  const supabase = useSupabaseClient();
   const [subdomain, setSubdomain] = useState<string>("");
   const { toast } = useToast();
   const router = useRouter();
@@ -93,24 +92,29 @@ export default function ProductDetailPage() {
   const fetchProductData = async () => {
     setLoading(true);
     try {
-      const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain), limit(1));
-      const storeSnap = await getDocs(storeQ);
-      if (!storeSnap.empty) {
-        const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() } as any;
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("subdomain", subdomain)
+        .single();
+      if (storeData) {
         setStore(storeData);
         if (storeData.shippingSettings?.enabled && storeData.shippingSettings.methods?.length > 0) {
           setSelectedShipping(storeData.shippingSettings.methods[0]);
         }
       }
 
-      const q = query(collection(db, "products"), where("slug", "==", slug), limit(1));
-      const snap = await getDocs(q);
-      if (snap.empty) {
-        setProduct(null);
+      const { data: prodData } = await supabase
+        .from("products")
+        .select("*")
+        .eq("slug", slug)
+        .single();
+
+      if (prodData) {
+        setProduct(prodData);
+        setSelectedImage(prodData.featuredImage || (prodData.gallery && prodData.gallery[0]) || "");
       } else {
-        const data = { id: snap.docs[0].id, ...snap.docs[0].data() };
-        setProduct(data);
-        setSelectedImage(data.featuredImage || (data.gallery && data.gallery[0]) || "");
+        setProduct(null);
       }
     } catch (e) {
       console.error(e);
@@ -156,14 +160,14 @@ export default function ProductDetailPage() {
     try {
       const blockValues = [clientIp, formData.phone].filter(Boolean);
       if (blockValues.length > 0) {
-        const fraudQ = query(
-          collection(db, "fraud_blocks"),
-          where("storeId", "==", store.id),
-          where("value", "in", blockValues),
-          limit(1)
-        );
-        const fraudSnap = await getDocs(fraudQ);
-        if (!fraudSnap.empty) {
+        const { data: fraudData } = await supabase
+          .from("fraud_blocks")
+          .select("id")
+          .eq("store_id", store.id)
+          .in("value", blockValues)
+          .limit(1);
+
+        if (fraudData && fraudData.length > 0) {
           toast({ variant: "destructive", title: "Transaction Denied", description: "Security restriction applied." });
           setIsPlacingOrder(false);
           return;
@@ -175,8 +179,8 @@ export default function ProductDetailPage() {
       const total = subtotal + shippingCost;
 
       const orderData = {
-        storeId: store.id,
-        ownerId: store.ownerId,
+        store_id: store.id,
+        owner_id: store.ownerId || store.owner_id,
         items: [{
           id: product.id,
           name: product.name,
@@ -195,18 +199,17 @@ export default function ProductDetailPage() {
           cost: shippingCost
         } : { name: "Direct Order", cost: 0 },
         subtotal: subtotal,
-        shippingCost: shippingCost,
+        shipping_cost: shippingCost,
         total: total,
-        paymentMethod: formData.paymentMethod,
-        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
-        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
+        payment_method: formData.paymentMethod,
+        transaction_id: formData.paymentMethod === 'manual' ? formData.transactionId : null,
+        selected_manual_method_id: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
         status: "pending",
-        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
-        isRead: false,
-        createdAt: serverTimestamp(),
+        payment_status: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
+        is_read: false
       };
 
-      await addDoc(collection(db, "orders"), orderData);
+      await supabase.from("orders").insert(orderData);
       toast({ title: "অর্ডার সফল হয়েছে!", description: "আপনার অর্ডারটি গ্রহণ করা হয়েছে।" });
       setFormData({ fullName: "", phone: "", address: "", paymentMethod: "cod", selectedManualMethodId: "", transactionId: "" });
     } catch (error) {
@@ -390,7 +393,7 @@ export default function ProductDetailPage() {
                                 <div className="grid grid-cols-2 gap-2">
                                    {store.paymentSettings.manualMethods.map((m: any) => (
                                      <Button key={m.id} type="button" variant="outline" className={cn("h-10 rounded-xl text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white' : '')} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: m.id})); }}>{m.name}</Button>
-                                   ))}
+                                    ))}
                                 </div>
                                 {selectedManualMethod && (
                                    <div className="space-y-4" onClick={(e) => e.stopPropagation()}>

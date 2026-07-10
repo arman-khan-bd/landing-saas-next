@@ -1,10 +1,8 @@
-
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
-import { useFirestore } from "@/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, limit } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import * as LucideIcons from "lucide-react";
 import { Loader2, AlertCircle, CheckCircle, Truck, CreditCard, ShieldCheck, Smartphone, Check, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +10,6 @@ import { Card } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +17,7 @@ import { cn, getTenantPath } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // --- Types ---
-type BlockType = "header" | "paragraph" | "rich-text" | "image" | "accordion" | "button" | "link" | "carousel" | "checked-list" | "product-order-form" | "row" | "card";
+type BlockType = "header" | "paragraph" | "rich-text" | "image" | "accordion" | "button" | "link" | "carousel" | "checked-list" | "product-order-form" | "row" | "card" | "navbar" | "ultra-hero" | "marquee" | "video" | "code" | "footer";
 
 interface Block {
   id: string;
@@ -55,6 +52,14 @@ interface Block {
     columns?: number;
     columnIndex?: number;
     columnSpan?: number;
+    backgroundImage?: string;
+    backgroundSize?: string;
+    backgroundPosition?: string;
+    backgroundRepeat?: string;
+    iconName?: string;
+    iconPosition?: string;
+    iconSize?: number;
+    iconColor?: string;
   };
   children?: Block[];
 }
@@ -71,7 +76,7 @@ interface PageStyle {
 
 export default function RenderDynamicPage() {
   const { subdomain, slug } = useParams();
-  const db = useFirestore();
+  const supabase = useSupabaseClient();
   const [page, setPage] = useState<any>(null);
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
@@ -80,30 +85,41 @@ export default function RenderDynamicPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!subdomain || !slug || !db) return;
+      if (!subdomain || !slug) return;
       setLoading(true);
       setError(null);
       try {
-        const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-        const storeSnap = await getDocs(storeQ);
-        if (storeSnap.empty) {
+        const { data: storeData } = await supabase
+          .from("stores")
+          .select("*")
+          .eq("subdomain", subdomain)
+          .single();
+        
+        if (!storeData) {
           setError("Store not found");
           return;
         }
-        const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
         setStore(storeData);
 
-        const pageQ = query(collection(db, "pages"), where("storeId", "==", storeData.id), where("slug", "==", slug));
-        const pageSnap = await getDocs(pageQ);
-        if (pageSnap.empty) {
+        const { data: pageData } = await supabase
+          .from("pages")
+          .select("*")
+          .eq("store_id", storeData.id)
+          .eq("slug", slug)
+          .single();
+        
+        if (!pageData) {
           setError("Page not found");
           return;
         }
-        setPage(pageSnap.docs[0].data());
+        setPage(pageData);
 
-        const prodQ = query(collection(db, "products"), where("storeId", "==", storeData.id));
-        const prodSnap = await getDocs(prodQ);
-        setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const { data: prodsData } = await supabase
+          .from("products")
+          .select("*")
+          .eq("store_id", storeData.id);
+        
+        setProducts(prodsData || []);
 
       } catch (err) {
         console.error(err);
@@ -114,7 +130,7 @@ export default function RenderDynamicPage() {
     };
 
     fetchData();
-  }, [subdomain, slug, db]);
+  }, [subdomain, slug]);
 
   if (loading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="w-12 h-12 animate-spin text-primary" /></div>;
   
@@ -126,7 +142,7 @@ export default function RenderDynamicPage() {
     </div>
   );
 
-  const pageStyle: PageStyle = page.pageStyle || {};
+  const pageStyle: PageStyle = page.page_style || page.pageStyle || {};
 
   return (
     <div 
@@ -141,7 +157,7 @@ export default function RenderDynamicPage() {
       }}
     >
       <div className="py-0">
-        {page.config?.map((block: Block) => (
+        {(page.blocks || page.config || [])?.map((block: Block) => (
           <BlockRenderer key={block.id} block={block} products={products} store={store} subdomain={subdomain as string} pageStyle={pageStyle} />
         ))}
       </div>
@@ -219,7 +235,6 @@ function BlockRenderer({ block, products, store, subdomain, pageStyle }: { block
     case "navbar":
       const LogoIcon = (LucideIcons as any)[block.content?.logoIcon] || Menu;
       const navItems = block.content?.items || [];
-      const showCta = block.content?.showCta;
       const navPosition = block.content?.position || "normal"; 
       const isTransparent = block.content?.transparent;
       
@@ -272,9 +287,9 @@ function BlockRenderer({ block, products, store, subdomain, pageStyle }: { block
              if (btn.borderSize > 0 && btn.type !== 'outline') { btnStyle.borderWidth = `${btn.borderSize}px`; btnStyle.borderStyle = 'solid'; btnStyle.borderColor = btn.borderColor || '#ffffff'; }
              
              return (
-               <Button key={btn.id} style={btnStyle} className="font-bold whitespace-nowrap transition-transform hover:scale-105" onClick={() => handleButtonClick()}>
+                <Button key={btn.id} style={btnStyle} className="font-bold whitespace-nowrap transition-transform hover:scale-105" onClick={() => handleButtonClick()}>
                   {btn.label}
-               </Button>
+                </Button>
              );
           })}
         </div>
@@ -503,7 +518,7 @@ function BlockRenderer({ block, products, store, subdomain, pageStyle }: { block
 
 function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { products: any[], store: any, isOrganic: boolean, isTraditional: boolean }) {
   const { toast } = useToast();
-  const db = useFirestore();
+  const supabase = useSupabaseClient();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [clientIp, setClientIp] = useState("");
@@ -548,14 +563,13 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
     try {
       const blockValues = [clientIp, formData.phone].filter(Boolean);
       if (blockValues.length > 0) {
-        const fraudQ = query(
-          collection(db, "fraud_blocks"),
-          where("storeId", "==", store.id),
-          where("value", "in", blockValues),
-          limit(1)
-        );
-        const fraudSnap = await getDocs(fraudQ);
-        if (!fraudSnap.empty) {
+        const { data: fraudData } = await supabase
+          .from("fraud_blocks")
+          .select("id")
+          .eq("store_id", store.id)
+          .in("value", blockValues)
+          .limit(1);
+        if (fraudData && fraudData.length > 0) {
           toast({ variant: "destructive", title: "অর্ডার গ্রহণ করা সম্ভব হচ্ছে না" });
           setIsPlacingOrder(false);
           return;
@@ -567,8 +581,8 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
       const total = subtotal + shippingCost;
 
       const orderData = {
-        storeId: store.id,
-        ownerId: store.ownerId,
+        store_id: store.id,
+        owner_id: store.owner_id || store.ownerId,
         items: [{
           id: product.id,
           name: product.name,
@@ -582,18 +596,17 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
           cost: shippingCost
         } : { name: "Direct Order", cost: 0 },
         subtotal: subtotal,
-        shippingCost: shippingCost,
+        shipping_cost: shippingCost,
         total: total,
-        paymentMethod: formData.paymentMethod,
-        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
-        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
+        payment_method: formData.paymentMethod,
+        transaction_id: formData.paymentMethod === 'manual' ? formData.transactionId : null,
+        selected_manual_method_id: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
         status: "pending",
-        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
-        isRead: false,
-        createdAt: serverTimestamp(),
+        payment_status: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
+        is_read: false
       };
 
-      await addDoc(collection(db, "orders"), orderData);
+      await supabase.from("orders").insert(orderData);
       setOrderSuccess(true);
       toast({ title: "অর্ডার সফল হয়েছে!" });
     } catch (error) {
@@ -636,9 +649,9 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {products.map(p => (
                 <div 
-                  key={p.id} 
-                  onClick={() => setSelectedProductId(p.id)} 
-                  className={cn("flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedProductId === p.id ? "border-primary bg-primary/5" : "bg-white border-slate-100")}
+                   key={p.id} 
+                   onClick={() => setSelectedProductId(p.id)} 
+                   className={cn("flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedProductId === p.id ? "border-primary bg-primary/5" : "bg-white border-slate-100")}
                 >
                   <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedProductId === p.id ? 'border-primary' : 'border-slate-300')}>
                     {selectedProductId === p.id && <div className="w-2 h-2 rounded-full bg-primary" />}
@@ -667,9 +680,9 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
                  <div className="grid grid-cols-1 gap-3">
                    {store.shippingSettings.methods.map((method: any) => (
                      <div 
-                       key={method.id} 
-                       className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
-                       onClick={() => setSelectedShipping(method)}
+                        key={method.id} 
+                        className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
+                        onClick={() => setSelectedShipping(method)}
                      >
                         <div className="flex items-center gap-3">
                           <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", selectedShipping?.id === method.id ? 'border-primary' : 'border-slate-300')}>
@@ -689,12 +702,12 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
                <div className="grid grid-cols-1 gap-3">
                   {store?.paymentSettings?.cod && (
                     <div 
-                      className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
-                      onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
+                       className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50')} 
+                       onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
                     >
                        <div className="flex items-center gap-3">
                           <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
-                            {formData.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                            {formData.paymentMethod === 'cod' && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
                           </div>
                           <span className="font-bold">ক্যাশ অন ডেলিভারি</span>
                        </div>
@@ -710,7 +723,7 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'manual' ? 'border-primary' : 'border-slate-300')}>
-                              {formData.paymentMethod === 'manual' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                              {formData.paymentMethod === 'manual' && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
                             </div>
                             <span className="font-bold">বিকাশ/নগদ/রকেট</span>
                           </div>
@@ -771,3 +784,22 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
     </Card>
   );
 }
+
+const Menu = ({ className }: { className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <line x1="4" x2="20" y1="12" y2="12" />
+    <line x1="4" x2="20" y1="6" y2="6" />
+    <line x1="4" x2="20" y1="18" y2="18" />
+  </svg>
+);

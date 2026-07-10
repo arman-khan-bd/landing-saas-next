@@ -1,18 +1,14 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, limit, onSnapshot, orderBy, updateDoc, doc, writeBatch } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, ShoppingCart, User, ShieldAlert, Check, Trash2, Clock, Loader2, AlertCircle, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/hooks/use-confirm";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 interface Notification {
   id: string;
@@ -27,138 +23,68 @@ export default function NotificationsPage() {
   const { subdomain } = useParams();
   const confirm = useConfirm();
   const router = useRouter();
+  const supabase = useSupabaseClient();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let unsub: (() => void) | undefined;
-    
-    const setupListeners = async () => {
-      const cleanup = await fetchRealNotifications();
-      if (typeof cleanup === 'function') unsub = cleanup;
-    };
-
-    setupListeners();
-
-    return () => {
-      if (unsub) unsub();
-    };
-  }, [subdomain]);
-
   const fetchRealNotifications = async () => {
-    if (!auth.currentUser) return;
     setLoading(true);
     try {
-      const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQ);
-      if (storeSnap.empty) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) {
         setLoading(false);
         return;
       }
-      const storeId = storeSnap.docs[0].id;
+      const storeId = storeData.id;
 
-      // 1. Listen for Orders
-      const ordersQ = query(
-        collection(db, "orders"),
-        where("storeId", "==", storeId),
-        where("ownerId", "==", auth.currentUser.uid)
-      );
+      // 1. Fetch Orders
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("store_id", storeId)
+        .eq("owner_id", user.id)
+        .limit(15);
       
-      const unsubOrders = onSnapshot(ordersQ, (snap) => {
-        const orderNotifs: Notification[] = snap.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            type: "order" as const,
-            title: `New Order Received`,
-            description: `${data.customer?.fullName || 'A customer'} placed an order for $${data.total?.toFixed(2)}`,
-            time: data.createdAt?.toDate?.()?.toLocaleString() || "Recent",
-            read: data.isRead || false,
-            createdAt: data.createdAt
-          };
-        });
-        
-        const sortedNotifs = orderNotifs
-          .sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
-          .slice(0, 15);
+      const orderNotifs: Notification[] = (orders || []).map(item => ({
+        id: item.id,
+        type: "order" as const,
+        title: `New Order Received`,
+        description: `${item.customer?.fullName || 'A customer'} placed an order for $${item.total?.toFixed(2)}`,
+        time: item.created_at ? new Date(item.created_at).toLocaleString() : "Recent",
+        read: item.is_read || false
+      }));
 
-        updateCombinedNotifications(sortedNotifs, "orders");
-      }, async (err) => {
-        const permissionError = new FirestorePermissionError({
-          path: "orders",
-          operation: "list",
-        });
-        errorEmitter.emit('permission-error', permissionError);
+      // 2. Fetch Drafts
+      const { data: drafts } = await supabase
+        .from("uncompleted_orders")
+        .select("*")
+        .eq("store_id", storeId)
+        .eq("owner_id", user.id)
+        .limit(15);
+
+      const draftNotifs: Notification[] = (drafts || []).map(item => ({
+        id: item.id,
+        type: "draft" as const,
+        title: `Abandoned Checkout`,
+        description: `${item.customer?.fullName || 'Someone'} started checking out with $${item.total?.toFixed(2)} worth of items.`,
+        time: item.updated_at ? new Date(item.updated_at).toLocaleString() : "Recent",
+        read: item.is_read || false
+      }));
+
+      const combined = [...orderNotifs, ...draftNotifs].sort((a, b) => {
+        const timeA = new Date(a.time).getTime() || 0;
+        const timeB = new Date(b.time).getTime() || 0;
+        return timeB - timeA;
       });
 
-      // 2. Listen for Drafts
-      const draftsQ = query(
-        collection(db, "uncompleted_orders"),
-        where("storeId", "==", storeId),
-        where("ownerId", "==", auth.currentUser.uid)
-      );
-
-      const unsubDrafts = onSnapshot(draftsQ, (snap) => {
-        const draftNotifs: Notification[] = snap.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            type: "draft" as const,
-            title: `Abandoned Checkout`,
-            description: `${data.customer?.fullName || 'Someone'} started checking out with $${data.total?.toFixed(2)} worth of items.`,
-            time: data.lastUpdated?.toDate?.()?.toLocaleString() || "Recent",
-            read: data.isRead || false,
-            lastUpdated: data.lastUpdated
-          };
-        });
-
-        const sortedDrafts = draftNotifs
-          .sort((a: any, b: any) => (b.lastUpdated?.seconds || 0) - (a.lastUpdated?.seconds || 0))
-          .slice(0, 15);
-
-        updateCombinedNotifications(sortedDrafts, "drafts");
-      }, async (err) => {
-        const permissionError = new FirestorePermissionError({
-          path: "uncompleted_orders",
-          operation: "list",
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
-
-      // 3. Listen for System Notifications
-      const systemQ = query(
-        collection(db, "system_notifications"),
-        where("userId", "==", auth.currentUser.uid)
-      );
-
-      const unsubSystem = onSnapshot(systemQ, (snap) => {
-        const systemNotifs: Notification[] = snap.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            type: "system" as const,
-            title: data.title || "System Update",
-            description: data.message || "",
-            time: data.createdAt?.toDate?.()?.toLocaleString() || "Recent",
-            read: data.read || false,
-            createdAt: data.createdAt
-          };
-        });
-        updateCombinedNotifications(systemNotifs, "system");
-      }, async (err) => {
-        const permissionError = new FirestorePermissionError({
-          path: "system_notifications",
-          operation: "list",
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
-
-      return () => {
-        unsubOrders();
-        unsubDrafts();
-        unsubSystem();
-      };
-
+      setNotifications(combined);
     } catch (error) {
       console.error(error);
     } finally {
@@ -166,24 +92,9 @@ export default function NotificationsPage() {
     }
   };
 
-  const [rawOrders, setRawOrders] = useState<Notification[]>([]);
-  const [rawDrafts, setRawDrafts] = useState<Notification[]>([]);
-  const [rawSystem, setRawSystem] = useState<Notification[]>([]);
-
-  const updateCombinedNotifications = (notifs: Notification[], category: "orders" | "drafts" | "system") => {
-    if (category === "orders") setRawOrders(notifs);
-    else if (category === "drafts") setRawDrafts(notifs);
-    else setRawSystem(notifs);
-  };
-
   useEffect(() => {
-    const combined = [...rawOrders, ...rawDrafts, ...rawSystem].sort((a, b) => {
-        const timeA = new Date(a.time).getTime() || 0;
-        const timeB = new Date(b.time).getTime() || 0;
-        return timeB - timeA;
-    });
-    setNotifications(combined);
-  }, [rawOrders, rawDrafts, rawSystem]);
+    fetchRealNotifications();
+  }, [subdomain]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -206,19 +117,17 @@ export default function NotificationsPage() {
     if (!isConfirmed) return;
 
     try {
-      const batch = writeBatch(db);
-      
       setNotifications(notifications.map(n => ({ ...n, read: true })));
 
-      notifications.filter(n => !n.read).forEach(n => {
-        const collectionName = n.type === 'order' ? 'orders' : 
-                             n.type === 'draft' ? 'uncompleted_orders' : 'system_notifications';
-        const docRef = doc(db, collectionName, n.id);
-        const updateData = n.type === 'system' ? { read: true } : { isRead: true };
-        batch.update(docRef, updateData);
-      });
+      const unreadOrders = notifications.filter(n => !n.read && n.type === 'order').map(n => n.id);
+      const unreadDrafts = notifications.filter(n => !n.read && n.type === 'draft').map(n => n.id);
 
-      await batch.commit();
+      if (unreadOrders.length > 0) {
+        await supabase.from("orders").update({ is_read: true }).in("id", unreadOrders);
+      }
+      if (unreadDrafts.length > 0) {
+        await supabase.from("uncompleted_orders").update({ is_read: true }).in("id", unreadDrafts);
+      }
     } catch (error) {
       console.error("Error marking all read:", error);
     }
@@ -232,11 +141,8 @@ export default function NotificationsPage() {
   const handleNotificationClick = async (n: Notification) => {
     try {
       if (!n.read) {
-        const collectionName = n.type === 'order' ? 'orders' : 
-                             n.type === 'draft' ? 'uncompleted_orders' : 'system_notifications';
-        const docRef = doc(db, collectionName, n.id);
-        const updateData = n.type === 'system' ? { read: true } : { isRead: true };
-        await updateDoc(docRef, updateData);
+        const table = n.type === 'order' ? 'orders' : 'uncompleted_orders';
+        await supabase.from(table).update({ is_read: true }).eq("id", n.id);
       }
 
       setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));

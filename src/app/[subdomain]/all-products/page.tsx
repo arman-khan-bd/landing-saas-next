@@ -2,10 +2,9 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ShoppingCart, Search, Menu, X, Plus, Minus, Trash2, Filter, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Search, X, Plus, Minus, Trash2, SlidersHorizontal, ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +27,7 @@ interface CartItem {
 export default function AllProductsPage() {
   const { subdomain: rawSubdomain } = useParams();
   const subdomain = typeof rawSubdomain === 'string' ? rawSubdomain.toLowerCase() : '';
+  const supabase = useSupabaseClient();
   
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
@@ -71,25 +71,27 @@ export default function AllProductsPage() {
   const fetchStoreData = async () => {
     setLoading(true);
     try {
-      const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQuery);
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("subdomain", subdomain)
+        .single();
       
-      if (storeSnap.empty) {
+      if (!storeData) {
         setStore(null);
         setLoading(false);
         return;
       }
 
-      const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
       setStore(storeData);
 
-      const [prodSnap, catSnap] = await Promise.all([
-        getDocs(query(collection(db, "products"), where("storeId", "==", storeData.id))),
-        getDocs(query(collection(db, "categories"), where("storeId", "==", storeData.id)))
+      const [prodRes, catRes] = await Promise.all([
+        supabase.from("products").select("*").eq("store_id", storeData.id),
+        supabase.from("categories").select("*").eq("store_id", storeData.id)
       ]);
 
-      setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setCategories(catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setProducts(prodRes.data || []);
+      setCategories(catRes.data || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -137,13 +139,13 @@ export default function AllProductsPage() {
     let result = products.filter(p => {
       const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
       const matchesPrice = p.currentPrice >= priceRange[0] && p.currentPrice <= priceRange[1];
-      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesCategory && matchesPrice && matchesSearch;
     });
 
     if (sortBy === "price-low") result.sort((a, b) => a.currentPrice - b.currentPrice);
     else if (sortBy === "price-high") result.sort((a, b) => b.currentPrice - a.currentPrice);
-    else if (sortBy === "newest") result.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    else if (sortBy === "newest") result.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
     return result;
   }, [products, selectedCategory, priceRange, sortBy, searchTerm]);

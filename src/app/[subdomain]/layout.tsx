@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
-import { useAuth, useFirestore } from "@/firebase";
+import { useSupabase } from "@/supabase";
 import { getSubdomain } from "@/lib/subdomain";
-import { collection, query, where, getDocs, onSnapshot, doc, getDoc } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { getSupabaseClient } from "@/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
 import { LayoutDashboard, ShoppingBag, Settings, Store, ChevronLeft, ChevronDown, Tags, Layers, Bookmark, Percent, PlusCircle, PenTool, Loader2, Users, Receipt, AlertCircle, Bell, Lock, ShieldCheck, Home, ShoppingCart, WifiOff, Palette } from "lucide-react";
 import Link from "next/link";
@@ -32,8 +32,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     setSubdomain(sub);
   }, [paramsSubdomain]);
 
-  const auth = useAuth();
-  const firestore = useFirestore();
+  const { user, supabase } = useSupabase();
   const { toast } = useToast();
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -53,16 +52,13 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   const adminSegments = ["dashboard", "overview", "products", "orders", "customers", "categories", "sub-categories", "brands", "taxes", "tags", "settings", "notifications", "sections", "home-manager"];
   const isAdminPath = adminSegments.some(segment => normalizedPath.startsWith(`/${segment}`));
-  
-  // EDITOR DETECT: Only hide sidebar when inside the specific page editor /[pageId]
-  // Normalized path examples: "/sections", "/sections/abc123"
+
   const isEditor = normalizedPath.startsWith("/sections/") && normalizedPath.split("/").filter(Boolean).length > 1;
 
   useEffect(() => {
-    if (!auth) return;
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        await verifyStoreAccess(user.uid);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        await verifyStoreAccess(session.user.id);
       } else {
         if (isAdminPath) {
           window.location.href = getAuthUrl();
@@ -71,74 +67,83 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         }
       }
     });
-    return () => unsubscribe();
-  }, [subdomain, router, auth, isAdminPath]);
 
+    // Also check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        verifyStoreAccess(session.user.id);
+      } else if (!isAdminPath) {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subdomain, isAdminPath]);
+
+  // Realtime notification counts
   useEffect(() => {
-    if (!firestore || !store?.id || !auth?.currentUser || !isAdminPath || !isPasswordVerified) {
-      return;
-    }
+    if (!store?.id || !user || !isAdminPath || !isPasswordVerified) return;
 
-    const isStoreOwner = store.ownerId === auth.currentUser.uid;
+    const isStoreOwner = store.owner_id === user.id;
     if (!isStoreOwner && userRole !== 'admin') return;
 
-    const ordersQ = query(
-      collection(firestore, "orders"),
-      where("storeId", "==", store.id),
-      where("ownerId", "==", auth.currentUser.uid),
-      where("isRead", "==", false)
-    );
-
-    const uncompletedQ = query(
-      collection(firestore, "uncompleted_orders"),
-      where("storeId", "==", store.id),
-      where("ownerId", "==", auth.currentUser.uid),
-      where("isRead", "==", false)
-    );
-
-    const systemQ = query(
-      collection(firestore, "system_notifications"),
-      where("userId", "==", auth.currentUser.uid),
-      where("read", "==", false)
-    );
-
-    const unsubOrders = onSnapshot(ordersQ, (snap) => setCounts(prev => ({ ...prev, orders: snap.size })), (err) => {});
-    const unsubUncompleted = onSnapshot(uncompletedQ, (snap) => setCounts(prev => ({ ...prev, uncompleted: snap.size })), (err) => {});
-    const unsubSystem = onSnapshot(systemQ, (snap) => setCounts(prev => ({ ...prev, system: snap.size })), (err) => {});
-
-    return () => {
-      unsubOrders();
-      unsubUncompleted();
-      unsubSystem();
+    const fetchCounts = async () => {
+      const [ordersRes, uncompletedRes, systemRes] = await Promise.all([
+        supabase.from("orders").select("id", { count: "exact" }).eq("store_id", store.id).eq("owner_id", user.id).eq("is_read", false),
+        supabase.from("uncompleted_orders").select("id", { count: "exact" }).eq("store_id", store.id).eq("owner_id", user.id).eq("is_read", false),
+        supabase.from("system_notifications").select("id", { count: "exact" }).eq("user_id", user.id).eq("read", false),
+      ]);
+      setCounts({
+        orders: ordersRes.count ?? 0,
+        uncompleted: uncompletedRes.count ?? 0,
+        system: systemRes.count ?? 0,
+      });
     };
-  }, [firestore, store?.id, auth?.currentUser, userRole, isAdminPath, isPasswordVerified]);
+
+    fetchCounts();
+
+    const channel = supabase
+      .channel(`counts-${store.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, fetchCounts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "uncompleted_orders" }, fetchCounts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "system_notifications" }, fetchCounts)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [store?.id, user, isAdminPath, isPasswordVerified, userRole]);
 
   const verifyStoreAccess = async (uid: string) => {
-    if (!firestore || !subdomain) {
+    if (!subdomain) {
       setLoading(false);
       return;
     }
     try {
       setIsOffline(false);
-      const userRef = doc(firestore, "users", uid);
-      const userSnap = await getDoc(userRef);
-      const role = userSnap.exists() ? (userSnap.data().role || "user") : "user";
+
+      const { data: userRow } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", uid)
+        .single();
+      const role = userRow?.role || "user";
       setUserRole(role);
 
-      const q = query(collection(firestore, "stores"), where("subdomain", "==", subdomain));
-      const querySnapshot = await getDocs(q);
+      const { data: storeRow, error } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("subdomain", subdomain)
+        .single();
 
-      if (querySnapshot.empty) {
+      if (error || !storeRow) {
         setLoading(false);
         return;
       }
 
-      const storeData = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
-
-      if (storeData.ownerId !== uid && role !== 'admin') {
+      if (storeRow.owner_id !== uid && role !== 'admin') {
         if (isAdminPath) setAccessDenied(true);
       } else {
-        setStore(storeData);
+        setStore(storeRow);
         const sessionKey = `vault_session_${subdomain}`;
         const savedSession = localStorage.getItem(sessionKey);
         if (savedSession) {
@@ -147,10 +152,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             if (Date.now() - timestamp < 3600000) setIsPasswordVerified(true);
           } catch (e) {}
         }
-        if (!storeData.managePassword || role === 'admin') setIsPasswordVerified(true);
+        if (!storeRow.manage_password || role === 'admin') setIsPasswordVerified(true);
       }
     } catch (error: any) {
-      if (error.code === 'unavailable') setIsOffline(true);
+      setIsOffline(true);
     } finally {
       setLoading(false);
     }
@@ -158,7 +163,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   const handleVaultAccess = (e: React.FormEvent) => {
     e.preventDefault();
-    if (managerPassword === store?.managePassword) {
+    if (managerPassword === store?.manage_password) {
       setIsPasswordVerified(true);
       localStorage.setItem(`vault_session_${subdomain}`, JSON.stringify({ timestamp: Date.now() }));
       toast({ title: "Vault Unlocked" });
@@ -293,7 +298,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               <div className="flex items-center gap-3"><SidebarTrigger className="md:hidden" /><h2 className="text-lg font-headline font-bold text-foreground capitalize">{normalizedPath === "/" ? "Storefront" : normalizedPath.split("/").pop()?.replace('-', ' ')}</h2></div>
               <div className="flex items-center gap-4">
                 <Link href={getTenantPath(subdomain, "/notifications")} className="relative p-2 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-full"><Bell className="w-5 h-5" />{(counts.orders + counts.uncompleted + counts.system) > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-black text-white flex items-center justify-center rounded-full border-2 border-white">{counts.orders + counts.uncompleted + counts.system}</span>}</Link>
-                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">{auth?.currentUser?.email?.[0].toUpperCase()}</div>
+                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">{user?.email?.[0]?.toUpperCase()}</div>
               </div>
             </header>
             <main className="flex-1 p-6 md:p-10">{children}</main>

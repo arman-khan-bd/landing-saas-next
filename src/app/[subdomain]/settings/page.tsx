@@ -1,10 +1,8 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,12 +17,11 @@ import { Badge } from "@/components/ui/badge";
 import { getStoreUrl, cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function StoreSettingsPage() {
   const { subdomain } = useParams();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -88,90 +85,89 @@ export default function StoreSettingsPage() {
     }
   });
 
-  useEffect(() => {
-    fetchSettings();
-  }, [subdomain]);
-
   const fetchSettings = async () => {
     setLoading(true);
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
     try {
-      const q = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const data = snap.docs[0].data();
-        const sId = snap.docs[0].id;
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("subdomain", subdomain)
+        .single();
+
+      if (storeData) {
+        const sId = storeData.id;
         setStoreId(sId);
 
-        // Fetch subscription to check Pro status
-        const subQ = query(
-          collection(db, "stores", sId, "subscription"),
-          where("ownerId", "==", uid),
-          where("status", "in", ["active", "pending"])
-        );
-        const subSnap = await getDocs(subQ);
-        if (!subSnap.empty) {
-          const subData = subSnap.docs[0].data();
-          const planSnap = await getDoc(doc(db, "subscriptionPlans", subData.planId));
-          if (planSnap.exists()) {
-            const plan = planSnap.data();
-            setCurrentPlan({ id: planSnap.id, ...plan });
+        // Fetch subscription
+        const { data: subData } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("store_id", sId)
+          .eq("owner_id", user.id)
+          .in("status", ["active", "pending"])
+          .maybeSingle();
+
+        if (subData) {
+          const { data: planData } = await supabase
+            .from("subscription_plans")
+            .select("*")
+            .eq("id", subData.plan_id)
+            .maybeSingle();
+
+          if (planData) {
+            setCurrentPlan({ id: planData.id, ...planData });
             setSubscriptionStatus(subData.status);
 
-            if (subData.currentPeriodEnd) {
-              const end = subData.currentPeriodEnd.toDate ? subData.currentPeriodEnd.toDate() : new Date(subData.currentPeriodEnd);
+            if (subData.current_period_end) {
+              const end = new Date(subData.current_period_end);
               setExpiryDate(end);
               const diff = end.getTime() - new Date().getTime();
               const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
               setDaysRemaining(days);
-              setIsPro(plan.price > 0 && days > 0);
+              setIsPro(planData.price > 0 && days > 0);
             } else {
-              setIsPro(plan.price > 0);
+              setIsPro(planData.price > 0);
             }
           }
         }
 
         // Fetch Domain Requests
-        const domQ = query(
-          collection(db, "custom_domain_requests"),
-          where("storeId", "==", sId),
-          where("ownerId", "==", uid)
-        );
-        
-        onSnapshot(domQ, (s) => {
-          setDomainRequests(s.docs.map(d => ({ id: d.id, ...d.data() })));
-        }, async (err) => {
-          const permissionError = new FirestorePermissionError({
-            path: "custom_domain_requests",
-            operation: "list",
-          });
-          errorEmitter.emit('permission-error', permissionError);
-        });
+        const { data: domainReqs } = await supabase
+          .from("custom_domain_requests")
+          .select("*")
+          .eq("store_id", sId)
+          .eq("owner_id", user.id);
+        setDomainRequests(domainReqs ?? []);
 
-        // Fetch all plans
-        const plansQ = query(collection(db, "subscriptionPlans"), where("isActive", "==", true));
-        const plansSnap = await getDocs(plansQ);
-        setAllPlans(plansSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        // Fetch all active subscription plans
+        const { data: plans } = await supabase
+          .from("subscription_plans")
+          .select("*")
+          .eq("is_active", true);
+        setAllPlans(plans ?? []);
 
         // Fetch SaaS payment methods
-        const payQ = query(collection(db, "saasPaymentMethods"), where("isActive", "==", true));
-        const paySnap = await getDocs(payQ);
-        setSaasPaymentMethods(paySnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const { data: payMethods } = await supabase
+          .from("saas_payment_methods")
+          .select("*")
+          .eq("is_active", true);
+        setSaasPaymentMethods(payMethods ?? []);
 
         setSettings((prev: any) => ({
           ...prev,
-          ...data,
-          paymentSettings: { 
-            ...prev.paymentSettings, 
-            ...data.paymentSettings,
-            manualMethods: data.paymentSettings?.manualMethods || []
+          ...storeData,
+          paymentSettings: {
+            ...prev.paymentSettings,
+            ...storeData.paymentSettings,
+            manualMethods: storeData.paymentSettings?.manualMethods || []
           },
-          seo: { ...prev.seo, ...data.seo },
-          shopConfig: { ...prev.shopConfig, ...data.shopConfig },
-          socialLinks: { ...prev.socialLinks, ...data.socialLinks },
-          shippingSettings: data.shippingSettings || prev.shippingSettings
+          seo: { ...prev.seo, ...storeData.seo },
+          shopConfig: { ...prev.shopConfig, ...storeData.shopConfig },
+          socialLinks: { ...prev.socialLinks, ...storeData.socialLinks },
+          shippingSettings: storeData.shippingSettings || prev.shippingSettings
         }));
       }
     } catch (error) {
@@ -181,22 +177,26 @@ export default function StoreSettingsPage() {
     }
   };
 
+  useEffect(() => {
+    fetchSettings();
+  }, [subdomain]);
+
   const handleRequestDomain = async () => {
-    if (!newDomain || !storeId || !auth.currentUser) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!newDomain || !storeId || !user) return;
     setRequestingDomain(true);
     try {
-      await addDoc(collection(db, "custom_domain_requests"), {
-        storeId,
-        storeName: settings.name,
+      await supabase.from("custom_domain_requests").insert({
+        store_id: storeId,
+        store_name: settings.name,
         subdomain,
-        ownerId: auth.currentUser.uid,
+        owner_id: user.id,
         domain: newDomain.toLowerCase().trim(),
-        status: "pending",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        status: "pending"
       });
       toast({ title: "Request Submitted", description: "Admin will review your custom domain request." });
       setNewDomain("");
+      fetchSettings();
     } catch (e) {
       toast({ variant: "destructive", title: "Request Failed" });
     } finally {
@@ -208,7 +208,7 @@ export default function StoreSettingsPage() {
     if (!storeId) return;
     setSaving(true);
     try {
-      await updateDoc(doc(db, "stores", storeId), settings);
+      await supabase.from("stores").update(settings).eq("id", storeId);
       toast({ title: "Settings Updated", description: "Your store configuration has been saved." });
     } catch (error) {
       toast({ variant: "destructive", title: "Update Failed" });
@@ -372,7 +372,7 @@ export default function StoreSettingsPage() {
                 </div>
               </div>
 
-              <div className={`p-6 border-2 border-dashed rounded-[24px] space-y-8 relative overflow-hidden transition-all ${isPro ? 'bg-white border-primary/20' : 'bg-slate-50 opacity-80'}`}>
+              <div className={"p-6 border-2 border-dashed rounded-[24px] space-y-8 relative overflow-hidden transition-all " + (isPro ? "bg-white border-primary/20" : "bg-slate-50 opacity-80")}>
                 {!isPro && (
                   <div className="absolute inset-0 z-10 bg-slate-900/5 backdrop-blur-[1px] flex items-center justify-center">
                     <div className="bg-white p-8 rounded-[32px] shadow-2xl text-center space-y-4 max-w-xs border border-primary/10">
@@ -431,7 +431,7 @@ export default function StoreSettingsPage() {
                               </Badge>
                             </div>
 
-                            {req.status === 'approved' && req.dnsRecords && Array.isArray(req.dnsRecords) && (
+                            {req.status === 'approved' && req.dns_records && Array.isArray(req.dns_records) && (
                               <div className="animate-in slide-in-from-top-2 duration-300">
                                 <div className="p-6 bg-white rounded-2xl border-2 border-primary/10 space-y-6 shadow-sm">
                                   <div className="flex items-center gap-2 text-primary">
@@ -449,7 +449,7 @@ export default function StoreSettingsPage() {
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {req.dnsRecords.map((r: any, idx: number) => (
+                                      {req.dns_records.map((r: any, idx: number) => (
                                         <TableRow key={idx}>
                                           <TableCell><Badge variant="outline" className="font-bold bg-primary/5 text-primary border-primary/10">{r.type}</Badge></TableCell>
                                           <TableCell className="font-mono text-xs">{r.host}</TableCell>
@@ -670,7 +670,7 @@ export default function StoreSettingsPage() {
                         <h4 className="text-2xl font-black">{currentPlan.name}</h4>
                         <Badge className="bg-emerald-500/10 text-emerald-600 border-none px-3 py-1 font-black text-[10px] tracking-widest uppercase">{subscriptionStatus}</Badge>
                       </div>
-                      <p className="text-slate-500 text-sm font-medium">Billed every {currentPlan.billingInterval}</p>
+                      <p className="text-slate-500 text-sm font-medium">Billed every {currentPlan.billing_interval || 'month'}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -694,7 +694,7 @@ export default function StoreSettingsPage() {
                     <CardContent className="p-8 pt-0 space-y-6">
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-4xl font-black text-primary">${plan.price}</span>
-                        <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">/ {plan.billingInterval}</span>
+                        <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">/ {plan.billing_interval || 'month'}</span>
                       </div>
                       <div className="space-y-2">
                         {(plan.features || []).map((feat: string, i: number) => (

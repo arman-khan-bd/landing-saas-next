@@ -2,8 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFirestore } from "@/firebase";
-import { collection, getDocs, query, orderBy, doc, updateDoc } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
@@ -21,22 +20,24 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminUsers() {
-  const firestore = useFirestore();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    if (firestore) fetchUsers();
-  }, [firestore]);
+    fetchUsers();
+  }, [supabase]);
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const q = query(collection(firestore, "users"), orderBy("createdAt", "desc"));
-      const snap = await getDocs(q);
-      setUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const { data } = await supabase
+        .from("users")
+        .select("*")
+        .order("created_at", { ascending: false });
+      setUsers(data ?? []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -45,10 +46,9 @@ export default function AdminUsers() {
   };
 
   const toggleAdmin = async (userId: string, currentRole: string) => {
-    if (!firestore) return;
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
     try {
-      await updateDoc(doc(firestore, "users", userId), { role: newRole });
+      await supabase.from("users").update({ role: newRole }).eq("id", userId);
       toast({ title: "Role Updated", description: `User is now a ${newRole}.` });
       fetchUsers();
     } catch (error) {
@@ -57,7 +57,7 @@ export default function AdminUsers() {
   };
 
   const filteredUsers = users.filter(u => 
-    u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -107,10 +107,10 @@ export default function AdminUsers() {
                   <TableCell className="py-5 px-8">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-black text-indigo-400 border border-white/5">
-                        {user.fullName?.[0] || user.email?.[0]?.toUpperCase()}
+                        {user.full_name?.[0] || user.email?.[0]?.toUpperCase()}
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-bold text-white group-hover:text-indigo-400 transition-colors">{user.fullName || "Unnamed User"}</span>
+                        <span className="font-bold text-white group-hover:text-indigo-400 transition-colors">{user.full_name || "Unnamed User"}</span>
                         <span className="text-xs text-slate-500">{user.email}</span>
                       </div>
                     </div>
@@ -129,7 +129,7 @@ export default function AdminUsers() {
                      </div>
                   </TableCell>
                   <TableCell className="py-5 px-8 text-slate-400 text-sm">
-                    {user.createdAt?.toDate?.()?.toLocaleDateString() || "New"}
+                    {user.created_at ? new Date(user.created_at).toLocaleDateString() : "New"}
                   </TableCell>
                   <TableCell className="py-5 px-8 text-right">
                     <DropdownMenu>

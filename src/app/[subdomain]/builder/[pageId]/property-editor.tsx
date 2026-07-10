@@ -19,9 +19,9 @@ import {
   Trash2, Zap, Shield, Heart, ShoppingCart, Truck, CreditCard, 
   Lightbulb, Check, Info, Columns, LayoutList, ChevronRight, Search,
   CheckCircle, Star, User, Settings, Mail, Phone, MapPin, Globe,
-  Box, Package, Play, Pause, Sun, Moon, Wind, Tree, Trash, Edit, RefreshCw,
+  Box, Package, Play, Pause, Sun, Moon, Wind, Trees, Trash, Edit, RefreshCw,
   Droplets, Activity, BookOpen, Quote, Microscope, Banknote, RotateCcw, CheckSquare, Plus, Menu, Palette, Image as ImageIcon,
-  MousePointer2, PlayCircle, Code, ShieldCheck, List, Layout, Sparkles, Smartphone, ArrowRight
+  MousePointer2, PlayCircle, Code, ShieldCheck, List, Layout, Sparkles, Smartphone, ArrowRight, PlusCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PropertySection } from "./components";

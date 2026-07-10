@@ -1,25 +1,21 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useFirestore, useAuth } from "@/firebase";
-import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   ChevronLeft, ShoppingCart, User, Phone, MapPin, 
   Mail, Loader2, Package, Globe, ShieldAlert,
-  ShieldCheck, AlertTriangle, Fingerprint, Lock,
-  CreditCard, Smartphone, CheckCircle2, MoreVertical
+  ShieldCheck, Fingerprint, Lock,
+  CreditCard, Smartphone, Truck
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { cn } from "@/lib/utils";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function OrderDetailPage() {
@@ -27,28 +23,25 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const { toast } = useToast();
   const confirm = useConfirm();
-  const db = useFirestore();
-  const auth = useAuth();
+  const supabase = useSupabaseClient();
+  
   const [order, setOrder] = useState<any>(null);
   const [ipData, setIpData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [blocking, setBlocking] = useState(false);
   const [updating, setUpdating] = useState(false);
 
-  useEffect(() => {
-    if (id && db) {
-      fetchOrder();
-    }
-  }, [id, db]);
-
   const fetchOrder = async () => {
     setLoading(true);
     try {
-      const docRef = doc(db, "orders", id as string);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setOrder({ id: docSnap.id, ...data });
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (data) {
+        setOrder(data);
         
         // Fetch IP Metadata
         if (data.customer?.ip) {
@@ -68,13 +61,23 @@ export default function OrderDetailPage() {
     }
   };
 
+  useEffect(() => {
+    if (id) {
+      fetchOrder();
+    }
+  }, [id]);
+
   const handleStatusUpdate = async (newStatus: string) => {
     setUpdating(true);
     try {
-      await updateDoc(doc(db, "orders", order.id), {
-        status: newStatus,
-        updatedAt: serverTimestamp()
-      });
+      await supabase
+        .from("orders")
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", order.id);
+
       setOrder({ ...order, status: newStatus });
       toast({ title: "Fulfillment Updated" });
     } catch (e) {
@@ -87,11 +90,15 @@ export default function OrderDetailPage() {
   const handlePaymentStatusUpdate = async (newStatus: string) => {
     setUpdating(true);
     try {
-      await updateDoc(doc(db, "orders", order.id), {
-        paymentStatus: newStatus,
-        updatedAt: serverTimestamp()
-      });
-      setOrder({ ...order, paymentStatus: newStatus });
+      await supabase
+        .from("orders")
+        .update({
+          payment_status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", order.id);
+
+      setOrder({ ...order, payment_status: newStatus, paymentStatus: newStatus });
       toast({ title: "Payment Status Updated" });
     } catch (e) {
       toast({ variant: "destructive", title: "Update Failed" });
@@ -101,7 +108,8 @@ export default function OrderDetailPage() {
   };
 
   const handleBlockAction = async (type: 'ip' | 'phone' | 'customer' | 'address') => {
-    if (!order || !auth.currentUser) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!order || !user) return;
     
     const confirmOptions = type === 'customer' 
       ? {
@@ -122,9 +130,8 @@ export default function OrderDetailPage() {
     setBlocking(true);
     try {
       const baseBlockData = {
-        ownerId: auth.currentUser.uid,
-        storeId: order.storeId,
-        createdAt: serverTimestamp(),
+        owner_id: user.id,
+        store_id: order.store_id || order.storeId,
         reason: `Manual block from order #${order.id}`,
         customerName: order.customer?.fullName || "Anonymous",
         metadata: { orderId: order.id }
@@ -150,9 +157,11 @@ export default function OrderDetailPage() {
         return;
       }
 
-      itemsToBlock.forEach(item => {
-        addDoc(collection(db, "fraud_blocks"), { ...baseBlockData, ...item });
-      });
+      for (const item of itemsToBlock) {
+        await supabase
+          .from("fraud_blocks")
+          .insert({ ...baseBlockData, ...item });
+      }
 
       toast({ title: "Security Updated", description: "Identity markers successfully restricted." });
     } catch (error) {
@@ -192,7 +201,7 @@ export default function OrderDetailPage() {
                  <SelectItem value="cancelled" className="text-rose-500">Cancelled</SelectItem>
               </SelectContent>
            </Select>
-           <Badge variant="outline" className="h-10 rounded-xl px-4 font-bold text-[10px]">{order.paymentMethod?.toUpperCase()}</Badge>
+           <Badge variant="outline" className="h-10 rounded-xl px-4 font-bold text-[10px]">{(order.payment_method || order.paymentMethod)?.toUpperCase()}</Badge>
         </div>
       </div>
 
@@ -234,7 +243,7 @@ export default function OrderDetailPage() {
                   </div>
                   <div className="flex justify-between w-full max-w-[200px] text-sm font-medium text-emerald-600">
                      <span className="truncate pr-2">Shipping ({order.shipping?.name || 'Free'})</span>
-                     <span>{order.shippingCost > 0 ? `$${order.shippingCost.toFixed(2)}` : 'FREE'}</span>
+                     <span>{order.shipping_cost || order.shippingCost > 0 ? `$${(order.shipping_cost || order.shippingCost).toFixed(2)}` : 'FREE'}</span>
                   </div>
                   <Separator className="w-full max-w-[200px] my-2" />
                   <div className="flex justify-between w-full max-w-[240px] text-2xl font-black text-primary">
@@ -260,20 +269,20 @@ export default function OrderDetailPage() {
                         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Payment Strategy</p>
                         <div className="flex items-center gap-3">
                            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center">
-                              {order.paymentMethod === 'cod' ? <Truck className="w-5 h-5 text-slate-400" /> : <Smartphone className="w-5 h-5 text-indigo-600" />}
+                              {order.payment_method === 'cod' || order.paymentMethod === 'cod' ? <Truck className="w-5 h-5 text-slate-400" /> : <Smartphone className="w-5 h-5 text-indigo-600" />}
                            </div>
                            <p className="font-bold text-slate-900 uppercase text-sm">
-                              {order.paymentMethod === 'cod' ? "Cash on Delivery" : "Manual / Mobile Banking"}
+                              {order.payment_method === 'cod' || order.paymentMethod === 'cod' ? "Cash on Delivery" : "Manual / Mobile Banking"}
                            </p>
                         </div>
                      </div>
 
-                     {order.paymentMethod === 'manual' && (
+                     {(order.payment_method === 'manual' || order.paymentMethod === 'manual') && (
                        <div className="space-y-4 animate-in slide-in-from-top-2">
                           <div className="space-y-1">
                              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Verification Transaction ID</p>
                              <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-center justify-between">
-                                <span className="font-mono text-lg font-black text-indigo-700 select-all">{order.transactionId || "NONE_PROVIDED"}</span>
+                                <span className="font-mono text-lg font-black text-indigo-700 select-all">{order.transaction_id || order.transactionId || "NONE_PROVIDED"}</span>
                                 <Badge className="bg-indigo-600 text-white border-none uppercase text-[8px] font-black tracking-widest">TRANXID</Badge>
                              </div>
                           </div>
@@ -284,18 +293,18 @@ export default function OrderDetailPage() {
                   <div className="space-y-6">
                      <div className="space-y-1">
                         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Payment Status</p>
-                        <Select value={order.paymentStatus || "unpaid"} onValueChange={handlePaymentStatusUpdate} disabled={updating}>
-                          <SelectTrigger className={cn(
-                            "h-12 rounded-xl border-none font-bold text-sm px-4",
-                            order.paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                          )}>
-                             <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl border-none shadow-2xl">
-                             <SelectItem value="unpaid">Unpaid / Processing</SelectItem>
-                             <SelectItem value="paid" className="text-emerald-600">Verified & Paid</SelectItem>
-                             <SelectItem value="refunded" className="text-rose-500">Refunded</SelectItem>
-                          </SelectContent>
+                        <Select value={order.payment_status || order.paymentStatus || "unpaid"} onValueChange={handlePaymentStatusUpdate} disabled={updating}>
+                           <SelectTrigger className={cn(
+                             "h-12 rounded-xl border-none font-bold text-sm px-4",
+                             order.payment_status === 'paid' || order.paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                           )}>
+                              <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent className="rounded-xl border-none shadow-2xl">
+                              <SelectItem value="unpaid">Unpaid / Processing</SelectItem>
+                              <SelectItem value="paid" className="text-emerald-600">Verified & Paid</SelectItem>
+                              <SelectItem value="refunded" className="text-rose-500">Refunded</SelectItem>
+                           </SelectContent>
                         </Select>
                      </div>
                      
@@ -316,7 +325,7 @@ export default function OrderDetailPage() {
                  <div className="flex items-center gap-3">
                     <User className="w-5 h-5 text-primary" />
                     <CardTitle className="text-lg font-headline font-bold">Customer Info</CardTitle>
-                 </div>
+                  </div>
               </CardHeader>
               <CardContent className="p-6 sm:p-8 space-y-6">
                   <div className="flex items-center justify-between">
@@ -334,29 +343,29 @@ export default function OrderDetailPage() {
                     </Button>
                   </div>
 
-                 <div className="space-y-4">
-                    <div className="flex items-center gap-3 group">
-                       <Phone className="w-4 h-4 text-primary" />
-                       <div className="min-w-0">
-                          <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Phone</p>
-                          <p className="text-sm font-bold truncate">{order.customer?.phone}</p>
-                       </div>
-                    </div>
-                    <div className="flex items-center gap-3 group">
-                       <Mail className="w-4 h-4 text-primary" />
-                       <div className="min-w-0">
-                          <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Email</p>
-                          <p className="text-sm font-bold truncate">{order.customer?.email || "No email provided"}</p>
-                       </div>
-                    </div>
-                    <div className="flex items-start gap-3 group">
-                       <MapPin className="w-4 h-4 text-primary mt-0.5" />
-                       <div className="min-w-0">
-                          <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Shipping</p>
-                          <p className="text-sm font-medium leading-relaxed">{order.customer?.address}</p>
-                       </div>
-                    </div>
-                 </div>
+                  <div className="space-y-4">
+                     <div className="flex items-center gap-3 group">
+                        <Phone className="w-4 h-4 text-primary" />
+                        <div className="min-w-0">
+                           <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Phone</p>
+                           <p className="text-sm font-bold truncate">{order.customer?.phone}</p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-3 group">
+                        <Mail className="w-4 h-4 text-primary" />
+                        <div className="min-w-0">
+                           <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Email</p>
+                           <p className="text-sm font-bold truncate">{order.customer?.email || "No email provided"}</p>
+                        </div>
+                     </div>
+                     <div className="flex items-start gap-3 group">
+                        <MapPin className="w-4 h-4 text-primary mt-0.5" />
+                        <div className="min-w-0">
+                           <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Shipping</p>
+                           <p className="text-sm font-medium leading-relaxed">{order.customer?.address}</p>
+                        </div>
+                     </div>
+                  </div>
               </CardContent>
            </Card>
 

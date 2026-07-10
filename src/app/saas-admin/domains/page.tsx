@@ -2,11 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
-import { 
-  collection, query, orderBy, onSnapshot, doc, updateDoc, 
-  addDoc, serverTimestamp, getDocs, where, getDoc 
-} from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,25 +34,32 @@ export default function DomainRequestsPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReq, setSelectedReq] = useState<any>(null);
-  
-  // Advanced DNS State
   const [dnsRecords, setDnsRecords] = useState<DNSRecord[]>([
     { id: "1", type: "CNAME", host: "@", value: "host.ihut.shop" }
   ]);
-  
   const [rejectionNote, setRejectionNote] = useState("");
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [processing, setProcessing] = useState(false);
   const { toast } = useToast();
+  const supabase = useSupabaseClient();
+
+  const fetchRequests = async () => {
+    const { data } = await supabase
+      .from("custom_domain_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setRequests(data ?? []);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const q = query(collection(db, "custom_domain_requests"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      setRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
-    });
-    return () => unsub();
+    fetchRequests();
+    const channel = supabase
+      .channel("domain-requests-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "custom_domain_requests" }, fetchRequests)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const addRecord = () => {
@@ -82,36 +85,29 @@ export default function DomainRequestsPage() {
     try {
       const isUpdating = selectedReq.status === 'approved';
       
-      // 1. Update request status and data
-      await updateDoc(doc(db, "custom_domain_requests", selectedReq.id), {
-        status: "approved",
-        dnsRecords: dnsRecords,
-        updatedAt: serverTimestamp()
-      });
+      await supabase
+        .from("custom_domain_requests")
+        .update({ status: "approved", dns_records: dnsRecords, updated_at: new Date().toISOString() })
+        .eq("id", selectedReq.id);
 
-      // 2. Update store record
-      await updateDoc(doc(db, "stores", selectedReq.storeId), {
-        customDomain: selectedReq.domain,
-        customDomainStatus: "active",
-        dnsRecords: dnsRecords,
-        updatedAt: serverTimestamp()
-      });
+      await supabase
+        .from("stores")
+        .update({ custom_domain: selectedReq.domain, custom_domain_status: "active", dns_records: dnsRecords, updated_at: new Date().toISOString() })
+        .eq("id", selectedReq.store_id);
 
-      // 3. Send notification
-      await addDoc(collection(db, "system_notifications"), {
-        userId: selectedReq.ownerId,
-        storeId: selectedReq.storeId,
+      await supabase.from("system_notifications").insert({
+        user_id: selectedReq.owner_id,
         type: isUpdating ? "domain_updated" : "domain_approved",
         title: isUpdating ? "DNS Configuration Updated" : "Custom Domain Approved",
-        message: isUpdating 
-          ? `The DNS settings for ${selectedReq.domain} have been updated. Please verify your records.` 
-          : `Your request for ${selectedReq.domain} has been approved. Please follow the DNS instructions in settings.`,
-        createdAt: serverTimestamp(),
-        read: false
+        message: isUpdating
+          ? `The DNS settings for ${selectedReq.domain} have been updated.`
+          : `Your request for ${selectedReq.domain} has been approved.`,
+        read: false,
       });
 
       toast({ title: isUpdating ? "Configuration Updated" : "Approved Successfully" });
       setShowConfigModal(false);
+      fetchRequests();
     } catch (error) {
       toast({ variant: "destructive", title: "Action Failed" });
     } finally {
@@ -126,25 +122,23 @@ export default function DomainRequestsPage() {
     }
     setProcessing(true);
     try {
-      await updateDoc(doc(db, "custom_domain_requests", selectedReq.id), {
-        status: "rejected",
-        rejectionNote,
-        updatedAt: serverTimestamp()
-      });
+      await supabase
+        .from("custom_domain_requests")
+        .update({ status: "rejected", rejection_note: rejectionNote, updated_at: new Date().toISOString() })
+        .eq("id", selectedReq.id);
 
-      await addDoc(collection(db, "system_notifications"), {
-        userId: selectedReq.ownerId,
-        storeId: selectedReq.storeId,
+      await supabase.from("system_notifications").insert({
+        user_id: selectedReq.owner_id,
         type: "domain_rejected",
         title: "Domain Request Rejected",
         message: `Your request for ${selectedReq.domain} was rejected. Reason: ${rejectionNote}`,
-        createdAt: serverTimestamp(),
-        read: false
+        read: false,
       });
 
       toast({ title: "Request Rejected" });
       setShowRejectModal(false);
       setRejectionNote("");
+      fetchRequests();
     } catch (error) {
       toast({ variant: "destructive", title: "Rejection Failed" });
     } finally {
@@ -193,7 +187,7 @@ export default function DomainRequestsPage() {
                  </Badge>
                  <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
                    <Clock className="w-3 h-3" />
-                   {req.createdAt?.toDate ? format(req.createdAt.toDate(), "MMM dd, yyyy") : "Recent"}
+                  {req.created_at ? format(new Date(req.created_at), "MMM dd, yyyy") : "Recent"}
                  </span>
               </div>
               <CardTitle className="text-2xl font-black text-white flex items-center gap-3">

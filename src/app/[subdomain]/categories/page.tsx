@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 export default function CategoriesPage() {
   const { subdomain } = useParams();
+  const supabase = useSupabaseClient();
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -28,22 +28,23 @@ export default function CategoriesPage() {
   const { toast } = useToast();
   const confirm = useConfirm();
 
-  useEffect(() => {
-    fetchStoreAndCategories();
-  }, [subdomain]);
-
   const fetchStoreAndCategories = async () => {
     setLoading(true);
     try {
-      const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQuery);
-      if (storeSnap.empty) return;
-      const sId = storeSnap.docs[0].id;
-      setStoreId(sId);
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) return;
+      setStoreId(storeData.id);
 
-      const q = query(collection(db, "categories"), where("storeId", "==", sId));
-      const querySnapshot = await getDocs(q);
-      setCategories(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const { data } = await supabase
+        .from("categories")
+        .select("*")
+        .eq("store_id", storeData.id);
+      
+      setCategories(data || []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -51,19 +52,26 @@ export default function CategoriesPage() {
     }
   };
 
+  useEffect(() => {
+    fetchStoreAndCategories();
+  }, [subdomain]);
+
   const handleCreate = async () => {
     if (!newCategory.name) return;
     setProcessing(true);
     const slug = newCategory.slug || newCategory.name.toLowerCase().replace(/ /g, "-");
     
     try {
-      await addDoc(collection(db, "categories"), {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase.from("categories").insert({
         name: newCategory.name,
         slug,
-        storeId,
-        ownerId: auth.currentUser?.uid,
-        createdAt: serverTimestamp(),
+        store_id: storeId,
+        owner_id: user.id
       });
+
       toast({ title: "Category added" });
       setNewCategory({ name: "", slug: "" });
       setIsDialogOpen(false);
@@ -80,10 +88,14 @@ export default function CategoriesPage() {
     setProcessing(true);
     try {
       const slug = editingCategory.slug || editingCategory.name.toLowerCase().replace(/ /g, "-");
-      await updateDoc(doc(db, "categories", editingCategory.id), {
-        name: editingCategory.name,
-        slug: slug,
-      });
+      await supabase
+        .from("categories")
+        .update({
+          name: editingCategory.name,
+          slug: slug
+        })
+        .eq("id", editingCategory.id);
+
       toast({ title: "Category updated" });
       setEditingCategory(null);
       fetchStoreAndCategories();
@@ -105,7 +117,7 @@ export default function CategoriesPage() {
     if (!isConfirmed) return;
 
     try {
-      await deleteDoc(doc(db, "categories", id));
+      await supabase.from("categories").delete().eq("id", id);
       toast({ title: "Category deleted" });
       fetchStoreAndCategories();
     } catch (error) {
@@ -113,7 +125,7 @@ export default function CategoriesPage() {
     }
   };
 
-  const filtered = categories.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filtered = categories.filter(c => c.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div className="space-y-6">

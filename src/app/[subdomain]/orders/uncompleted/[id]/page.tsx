@@ -1,43 +1,38 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { doc, getDoc, addDoc, collection, serverTimestamp, deleteDoc } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   ChevronLeft, ShoppingCart, User, Phone, MapPin, 
-  Calendar, Trash2, Mail, MessageSquare, Loader2,
-  Package, AlertTriangle, ArrowRight, DollarSign, Clock
+  Trash2, Mail, MessageSquare, Loader2,
+  Package, AlertTriangle, DollarSign, Clock
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
 export default function UncompletedOrderDetailPage() {
   const { subdomain, id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const supabase = useSupabaseClient();
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isRecovering, setIsRecovering] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      fetchItem();
-    }
-  }, [id]);
-
   const fetchItem = async () => {
     setLoading(true);
     try {
-      const docRef = doc(db, "uncompleted_orders", id as string);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setItem({ id: docSnap.id, ...docSnap.data() });
+      const { data, error } = await supabase
+        .from("uncompleted_orders")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (data) {
+        setItem(data);
       } else {
         toast({ variant: "destructive", title: "Order not found" });
         router.back();
@@ -49,32 +44,37 @@ export default function UncompletedOrderDetailPage() {
     }
   };
 
+  useEffect(() => {
+    if (id) {
+      fetchItem();
+    }
+  }, [id]);
+
   const handleRecoverOrder = async () => {
     if (!item) return;
     setIsRecovering(true);
     try {
       // 1. Prepare Order Data
       const orderData = {
-        storeId: item.storeId,
-        ownerId: item.ownerId,
+        store_id: item.store_id || item.storeId,
+        owner_id: item.owner_id || item.ownerId,
         items: item.items,
         customer: item.customer,
         subtotal: item.subtotal || item.total,
         shipping: item.shipping || { name: "Free Shipping", cost: 0 },
-        shippingCost: item.shippingCost || 0,
+        shipping_cost: item.shipping_cost || item.shippingCost || 0,
         total: item.total,
-        paymentMethod: "manual",
+        payment_method: "manual",
         status: "pending",
-        paymentStatus: "unpaid",
-        isRead: false,
-        createdAt: serverTimestamp(),
+        payment_status: "unpaid",
+        is_read: false
       };
 
       // 2. Add to orders
-      await addDoc(collection(db, "orders"), orderData);
+      await supabase.from("orders").insert(orderData);
 
       // 3. Delete from uncompleted
-      await deleteDoc(doc(db, "uncompleted_orders", item.id));
+      await supabase.from("uncompleted_orders").delete().eq("id", item.id);
 
       toast({ title: "Order Recovered!", description: "The draft has been moved to your main orders list." });
       router.push(`/${subdomain}/orders`);
@@ -101,7 +101,7 @@ export default function UncompletedOrderDetailPage() {
               <h1 className="text-xl sm:text-2xl font-headline font-black tracking-tight text-slate-900 uppercase truncate">Abandoned Draft</h1>
             </div>
             <p className="text-muted-foreground text-[10px] sm:text-xs font-mono flex items-center gap-1.5 whitespace-nowrap">
-              <Clock className="w-3 h-3" /> Last Active: {item.lastUpdated?.toDate()?.toLocaleString()}
+              <Clock className="w-3 h-3" /> Last Active: {new Date(item.updated_at || item.lastUpdated || 0).toLocaleString()}
             </p>
           </div>
           <Badge className="ml-auto bg-amber-100 text-amber-700 border-none rounded-lg px-2 py-0.5 font-black text-[9px] tracking-widest uppercase shrink-0">DRAFT</Badge>
@@ -209,7 +209,7 @@ export default function UncompletedOrderDetailPage() {
                     </Button>
                   </div>
 
-                 <div className="space-y-4 sm:space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     <div className="flex items-center justify-between group">
                        <div className="flex items-center gap-3 sm:gap-4">
                           <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary/5 rounded-lg sm:rounded-xl flex items-center justify-center text-primary shrink-0 transition-all group-hover:bg-primary group-hover:text-white">
@@ -221,11 +221,11 @@ export default function UncompletedOrderDetailPage() {
                           </div>
                        </div>
                        {item.customer?.phone && (
-                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-primary hover:bg-primary/10" asChild>
-                            <a href={`tel:${item.customer.phone}`}>
-                               <Phone className="w-4 h-4 fill-primary text-primary" />
-                            </a>
-                         </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-primary hover:bg-primary/10" asChild>
+                             <a href={`tel:${item.customer.phone}`}>
+                                <Phone className="w-4 h-4 fill-primary text-primary" />
+                             </a>
+                          </Button>
                        )}
                     </div>
 
@@ -248,12 +248,12 @@ export default function UncompletedOrderDetailPage() {
                           <p className="text-xs sm:text-sm font-bold leading-relaxed line-clamp-2">{item.customer?.address || "Incomplete Address"}</p>
                        </div>
                     </div>
-                 </div>
+                  </div>
 
-                 <Button variant="secondary" className="w-full h-11 sm:h-12 rounded-xl sm:rounded-2xl font-bold text-[10px] sm:text-xs uppercase tracking-widest gap-2 bg-slate-50 hover:bg-slate-100">
-                    <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Contact Directly
-                 </Button>
-              </CardContent>
+                  <Button variant="secondary" className="w-full h-11 sm:h-12 rounded-xl sm:rounded-2xl font-bold text-[10px] sm:text-xs uppercase tracking-widest gap-2 bg-slate-50 hover:bg-slate-100">
+                     <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Contact Directly
+                  </Button>
+               </CardContent>
            </Card>
 
            {/* Quick Stats Card - Dynamic Tiering */}

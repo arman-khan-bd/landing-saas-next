@@ -2,11 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFirestore } from "@/firebase";
-import { 
-  collection, getDocs, query, addDoc, updateDoc, 
-  deleteDoc, doc, serverTimestamp, orderBy 
-} from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -24,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminSubscriptions() {
-  const firestore = useFirestore();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   
   const [plans, setPlans] = useState<any[]>([]);
@@ -44,15 +40,17 @@ export default function AdminSubscriptions() {
   });
 
   useEffect(() => {
-    if (firestore) fetchPlans();
-  }, [firestore]);
+    if (supabase) fetchPlans();
+  }, [supabase]);
 
   const fetchPlans = async () => {
     setLoading(true);
     try {
-      const q = query(collection(firestore!, "subscriptionPlans"), orderBy("createdAt", "desc"));
-      const snap = await getDocs(q);
-      setPlans(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const { data } = await supabase
+        .from("subscription_plans")
+        .select("*")
+        .order("created_at", { ascending: false });
+      setPlans(data ?? []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -65,13 +63,15 @@ export default function AdminSubscriptions() {
     setProcessing(true);
     try {
       const planData = {
-        ...formData,
+        name: formData.name,
+        description: formData.description,
         price: Number(formData.price),
+        currency: formData.currency,
+        billing_interval: formData.billingInterval,
         features: formData.features.split(',').map(f => f.trim()).filter(f => f),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        is_active: formData.isActive,
       };
-      await addDoc(collection(firestore!, "subscriptionPlans"), planData);
+      await supabase.from("subscription_plans").insert(planData);
       toast({ title: "Plan Created", description: "The subscription tier is now available." });
       resetForm();
       setIsCreateOpen(false);
@@ -87,14 +87,16 @@ export default function AdminSubscriptions() {
     if (!editingPlan?.id) return;
     setProcessing(true);
     try {
-      const planRef = doc(firestore!, "subscriptionPlans", editingPlan.id);
       const updateData = {
-        ...formData,
+        name: formData.name,
+        description: formData.description,
         price: Number(formData.price),
+        currency: formData.currency,
+        billing_interval: formData.billingInterval,
         features: formData.features.split(',').map(f => f.trim()).filter(f => f),
-        updatedAt: serverTimestamp(),
+        is_active: formData.isActive,
       };
-      await updateDoc(planRef, updateData);
+      await supabase.from("subscription_plans").update(updateData).eq("id", editingPlan.id);
       toast({ title: "Plan Updated", description: "Changes have been saved." });
       setEditingPlan(null);
       resetForm();
@@ -109,7 +111,7 @@ export default function AdminSubscriptions() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this plan? Existing subscribers might be affected.")) return;
     try {
-      await deleteDoc(doc(firestore!, "subscriptionPlans", id));
+      await supabase.from("subscription_plans").delete().eq("id", id);
       toast({ title: "Plan Removed" });
       fetchPlans();
     } catch (error) {
@@ -144,9 +146,8 @@ export default function AdminSubscriptions() {
 
   const toggleStatus = async (plan: any) => {
     try {
-      const planRef = doc(firestore!, "subscriptionPlans", plan.id);
-      await updateDoc(planRef, { isActive: !plan.isActive, updatedAt: serverTimestamp() });
-      toast({ title: "Status Changed", description: `Plan is now ${!plan.isActive ? 'Active' : 'Inactive'}.` });
+      await supabase.from("subscription_plans").update({ is_active: !plan.is_active }).eq("id", plan.id);
+      toast({ title: "Status Changed", description: `Plan is now ${!plan.is_active ? 'Active' : 'Inactive'}.` });
       fetchPlans();
     } catch (error) {
       toast({ variant: "destructive", title: "Toggle Failed" });
@@ -266,7 +267,7 @@ export default function AdminSubscriptions() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {plans.map((plan) => (
-            <Card key={plan.id} className={`bg-slate-900 border-white/5 rounded-[40px] overflow-hidden transition-all duration-500 shadow-2xl relative ${!plan.isActive ? 'opacity-60 grayscale' : 'hover:scale-[1.03]'}`}>
+            <Card key={plan.id} className={`bg-slate-900 border-white/5 rounded-[40px] overflow-hidden transition-all duration-500 shadow-2xl relative ${!plan.is_active ? 'opacity-60 grayscale' : 'hover:scale-[1.03]'}`}>
               <div className="absolute top-6 right-6 flex gap-2">
                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white/5 text-slate-400 hover:text-white" onClick={() => openEdit(plan)}>
                     <Edit className="w-4 h-4" />
@@ -282,7 +283,7 @@ export default function AdminSubscriptions() {
                 </div>
                 <CardTitle className="text-2xl font-black flex items-center gap-3">
                   {plan.name}
-                  {!plan.isActive && <Badge className="bg-rose-500/20 text-rose-500 border-none text-[8px] font-black tracking-widest">HIDDEN</Badge>}
+                  {!plan.is_active && <Badge className="bg-rose-500/20 text-rose-500 border-none text-[8px] font-black tracking-widest">HIDDEN</Badge>}
                 </CardTitle>
                 <div className="flex items-baseline gap-2 mt-2">
                   <span className="text-4xl font-black text-white">${plan.price}</span>
@@ -307,9 +308,9 @@ export default function AdminSubscriptions() {
                  <div className="pt-6 border-t border-white/5 flex items-center justify-between">
                     <div className="space-y-0.5">
                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Visibility</p>
-                       <p className="text-xs font-bold text-slate-300">{plan.isActive ? 'Active for Users' : 'Archived'}</p>
+                       <p className="text-xs font-bold text-slate-300">{plan.is_active ? 'Active for Users' : 'Archived'}</p>
                     </div>
-                    <Switch checked={plan.isActive} onCheckedChange={() => toggleStatus(plan)} />
+                    <Switch checked={plan.is_active} onCheckedChange={() => toggleStatus(plan)} />
                  </div>
               </CardContent>
             </Card>
@@ -434,7 +435,7 @@ export default function AdminSubscriptions() {
 }
 
 function SaasPaymentMethods() {
-  const firestore = useFirestore();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -443,15 +444,17 @@ function SaasPaymentMethods() {
   const [newMethod, setNewMethod] = useState({ name: "", details: "", isActive: true });
 
   useEffect(() => {
-    if (firestore) fetchMethods();
-  }, [firestore]);
+    if (supabase) fetchMethods();
+  }, [supabase]);
 
   const fetchMethods = async () => {
     setLoading(true);
     try {
-      const q = query(collection(firestore!, "saasPaymentMethods"), orderBy("createdAt", "desc"));
-      const snap = await getDocs(q);
-      setMethods(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const { data } = await supabase
+        .from("saas_payment_methods")
+        .select("*")
+        .order("created_at", { ascending: false });
+      setMethods(data ?? []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -463,9 +466,10 @@ function SaasPaymentMethods() {
     if (!newMethod.name || !newMethod.details) return;
     setSaving(true);
     try {
-      await addDoc(collection(firestore!, "saasPaymentMethods"), {
-        ...newMethod,
-        createdAt: serverTimestamp(),
+      await supabase.from("saas_payment_methods").insert({
+        name: newMethod.name,
+        details: newMethod.details,
+        is_active: newMethod.isActive,
       });
       toast({ title: "Payment Method Added" });
       setNewMethod({ name: "", details: "", isActive: true });
@@ -480,7 +484,7 @@ function SaasPaymentMethods() {
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteDoc(doc(firestore!, "saasPaymentMethods", id));
+      await supabase.from("saas_payment_methods").delete().eq("id", id);
       toast({ title: "Method Removed" });
       fetchMethods();
     } catch (error) {
@@ -490,7 +494,7 @@ function SaasPaymentMethods() {
 
   const toggleMethod = async (id: string, current: boolean) => {
     try {
-      await updateDoc(doc(firestore!, "saasPaymentMethods", id), { isActive: !current });
+      await supabase.from("saas_payment_methods").update({ is_active: !current }).eq("id", id);
       fetchMethods();
     } catch (error) {
       toast({ variant: "destructive", title: "Update Failed" });

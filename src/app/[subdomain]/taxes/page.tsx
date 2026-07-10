@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Loader2, Percent, Edit } from "lucide-react";
+import { Plus, Trash2, Loader2, Bookmark, Search, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -16,32 +15,34 @@ import { Label } from "@/components/ui/label";
 
 export default function TaxesPage() {
   const { subdomain } = useParams();
+  const supabase = useSupabaseClient();
   const [taxes, setTaxes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [storeId, setStoreId] = useState("");
-  const [newTax, setNewTax] = useState({ name: "", percentage: "" });
-  const [editingTax, setEditingTag] = useState<any>(null);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newTax, setNewTax] = useState({ name: "", rate: "" });
+  const [editingTax, setEditingTax] = useState<any>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { toast } = useToast();
   const confirm = useConfirm();
 
-  useEffect(() => {
-    fetchTaxes();
-  }, [subdomain]);
-
-  const fetchTaxes = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQuery);
-      if (storeSnap.empty) return;
-      const sId = storeSnap.docs[0].id;
-      setStoreId(sId);
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) return;
+      setStoreId(storeData.id);
 
-      const q = query(collection(db, "taxes"), where("storeId", "==", sId));
-      const querySnapshot = await getDocs(q);
-      setTaxes(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const { data } = await supabase
+        .from("taxes")
+        .select("*")
+        .eq("store_id", storeData.id);
+      setTaxes(data ?? []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -49,21 +50,23 @@ export default function TaxesPage() {
     }
   };
 
+  useEffect(() => {
+    fetchData();
+  }, [subdomain]);
+
   const handleCreate = async () => {
-    if (!newTax.name || !newTax.percentage) return;
+    if (!newTax.name || !newTax.rate) return;
     setProcessing(true);
     try {
-      await addDoc(collection(db, "taxes"), {
+      await supabase.from("taxes").insert({
         name: newTax.name,
-        percentage: Number(newTax.percentage),
-        storeId,
-        ownerId: auth.currentUser?.uid,
-        createdAt: serverTimestamp(),
+        rate: Number(newTax.rate),
+        store_id: storeId
       });
       toast({ title: "Tax added" });
-      setNewTax({ name: "", percentage: "" });
-      setIsCreateOpen(false);
-      fetchTaxes();
+      setNewTax({ name: "", rate: "" });
+      setIsCreateDialogOpen(false);
+      fetchData();
     } catch (error) {
       toast({ variant: "destructive", title: "Error adding tax" });
     } finally {
@@ -72,18 +75,21 @@ export default function TaxesPage() {
   };
 
   const handleUpdate = async () => {
-    if (!editingTax?.name || !editingTax?.percentage || !editingTax?.id) return;
+    if (!editingTax?.name || !editingTax?.rate || !editingTax?.id) return;
     setProcessing(true);
     try {
-      await updateDoc(doc(db, "taxes", editingTax.id), {
-        name: editingTax.name,
-        percentage: Number(editingTax.percentage),
-      });
+      await supabase
+        .from("taxes")
+        .update({
+          name: editingTax.name,
+          rate: Number(editingTax.rate)
+        })
+        .eq("id", editingTax.id);
       toast({ title: "Tax updated" });
-      setEditingTag(null);
-      fetchTaxes();
+      setEditingTax(null);
+      fetchData();
     } catch (error) {
-      toast({ variant: "destructive", title: "Error updating" });
+      toast({ variant: "destructive", title: "Error updating tax" });
     } finally {
       setProcessing(false);
     }
@@ -91,44 +97,61 @@ export default function TaxesPage() {
 
   const handleDelete = async (id: string) => {
     const isConfirmed = await confirm({
-      title: "Delete Tax Setting",
-      message: "Are you sure you want to delete this tax configuration? This will remove it from all products associated with it.",
-      confirmText: "Delete Permanently",
+      title: "Delete Tax Rule",
+      message: "Are you sure you want to permanently delete this tax rule?",
+      confirmText: "Confirm Delete",
       variant: "danger"
     });
 
     if (!isConfirmed) return;
 
     try {
-      await deleteDoc(doc(db, "taxes", id));
-      toast({ title: "Tax deleted" });
-      fetchTaxes();
+      await supabase.from("taxes").delete().eq("id", id);
+      toast({ title: "Deleted" });
+      fetchData();
     } catch (error) {
       toast({ variant: "destructive", title: "Error deleting" });
     }
   };
 
+  const filtered = taxes.filter(t => t.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-headline font-bold">Tax Management</h3>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild><Button className="rounded-xl"><Plus className="mr-2" /> Add Tax</Button></DialogTrigger>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="relative w-full sm:w-96">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search tax rules..." 
+            className="pl-10 rounded-xl bg-white"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="rounded-xl w-full sm:w-auto">
+              <Plus className="mr-2 w-5 h-5" /> Add Tax Rule
+            </Button>
+          </DialogTrigger>
           <DialogContent className="rounded-3xl">
-            <DialogHeader><DialogTitle>New Tax Setting</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>New Tax Rule</DialogTitle>
+              <DialogDescription>Define tax properties applied at checkout.</DialogDescription>
+            </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Tax Name</Label>
-                <Input placeholder="Standard VAT" value={newTax.name} onChange={(e) => setNewTax({ ...newTax, name: e.target.value })} />
+                <Input value={newTax.name} onChange={(e) => setNewTax({ ...newTax, name: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Percentage (%)</Label>
-                <Input type="number" placeholder="15" value={newTax.percentage} onChange={(e) => setNewTax({ ...newTax, percentage: e.target.value })} />
+                <Label>Rate (%)</Label>
+                <Input type="number" step="0.01" value={newTax.rate} onChange={(e) => setNewTax({ ...newTax, rate: e.target.value })} />
               </div>
             </div>
             <DialogFooter>
               <Button className="w-full rounded-xl" onClick={handleCreate} disabled={processing}>
-                {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Tax"}
+                {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Tax Rule"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -141,47 +164,64 @@ export default function TaxesPage() {
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead>Tax Name</TableHead>
-                <TableHead>Percentage</TableHead>
+                <TableHead>Rate (%)</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow><TableCell colSpan={3} className="text-center py-10">Loading...</TableCell></TableRow>
-              ) : taxes.length === 0 ? (
-                <TableRow><TableCell colSpan={3} className="text-center py-20 opacity-20"><Percent className="mx-auto" /> No taxes defined.</TableCell></TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center py-20 text-muted-foreground">
+                    <Bookmark className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                    No tax rules found.
+                  </TableCell>
+                </TableRow>
               ) : (
-                taxes.map((item) => (
+                filtered.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{item.percentage}%</TableCell>
+                    <TableCell>{item.rate}%</TableCell>
                     <TableCell className="text-right">
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={() => setEditingTag({ ...item })}>
+                          <Button variant="ghost" size="icon" onClick={() => setEditingTax({ ...item })}>
                             <Edit className="w-4 h-4 text-primary" />
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="rounded-3xl">
-                          <DialogHeader><DialogTitle>Edit Tax</DialogTitle></DialogHeader>
+                          <DialogHeader>
+                            <DialogTitle>Edit Tax Rule</DialogTitle>
+                          </DialogHeader>
                           <div className="space-y-4 py-4">
                             <div className="space-y-2">
                               <Label>Tax Name</Label>
-                              <Input value={editingTax?.name || ""} onChange={(e) => setEditingTag({ ...editingTax, name: e.target.value })} />
+                              <Input 
+                                value={editingTax?.name || ""}
+                                onChange={(e) => setEditingTax({ ...editingTax, name: e.target.value })}
+                              />
                             </div>
                             <div className="space-y-2">
-                              <Label>Percentage (%)</Label>
-                              <Input type="number" value={editingTax?.percentage || ""} onChange={(e) => setEditingTag({ ...editingTax, percentage: e.target.value })} />
+                              <Label>Rate (%)</Label>
+                              <Input 
+                                type="number" 
+                                step="0.01"
+                                value={editingTax?.rate || ""}
+                                onChange={(e) => setEditingTax({ ...editingTax, rate: e.target.value })}
+                              />
                             </div>
                           </div>
                           <DialogFooter>
                             <Button className="w-full rounded-xl" onClick={handleUpdate} disabled={processing}>
-                              {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Update Tax"}
+                              {processing ? <Loader2 className="animate-spin w-4 h-4" /> : "Update Tax Rule"}
                             </Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

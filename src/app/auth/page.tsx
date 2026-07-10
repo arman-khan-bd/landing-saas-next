@@ -3,22 +3,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { auth, db } from "@/lib/firebase";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile,
-  onAuthStateChanged
-} from "firebase/auth";
-import { doc, setDoc, collection, query, where, getDocs, serverTimestamp, addDoc } from "firebase/firestore";
+import { getSupabaseClient } from "@/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { ShoppingCart, CheckCircle2, ChevronRight, ChevronLeft, Loader2, Store, Zap } from "lucide-react";
+import { ShoppingCart, CheckCircle2, ChevronRight, ChevronLeft, Loader2, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
-
 import { Suspense } from "react";
 
 function AuthPageContent() {
@@ -29,6 +21,7 @@ function AuthPageContent() {
   const searchParams = useSearchParams();
   const planId = searchParams.get("planId");
   const { toast } = useToast();
+  const supabase = getSupabaseClient();
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -40,12 +33,13 @@ function AuthPageContent() {
     subdomain: "",
   });
 
+  // Redirect if already logged in
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) router.push("/dashboard");
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      if (session?.user) router.push("/dashboard");
     });
-    return () => unsubscribe();
-  }, [router]);
+    return () => subscription.unsubscribe();
+  }, [router, supabase]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -74,9 +68,12 @@ function AuthPageContent() {
 
   const checkSubdomainAvailability = async (subdomain: string) => {
     if (!subdomain) return false;
-    const q = query(collection(db, "stores"), where("subdomain", "==", subdomain.toLowerCase()));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.empty;
+    const { data, error } = await supabase
+      .from("stores")
+      .select("id")
+      .eq("subdomain", subdomain.toLowerCase())
+      .maybeSingle();
+    return !data; // available if no row found
   };
 
   const handleSignup = async () => {
@@ -89,56 +86,75 @@ function AuthPageContent() {
         return;
       }
 
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
+      // 1. Create auth user
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: { data: { full_name: formData.fullName } },
+      });
 
-      await updateProfile(user, { displayName: formData.fullName });
+      if (signUpError || !authData.user) {
+        toast({ variant: "destructive", title: "Signup Error", description: signUpError?.message || "Could not create account." });
+        setLoading(false);
+        return;
+      }
 
-      // Store User Data
-      await setDoc(doc(db, "users", user.uid), {
-        fullName: formData.fullName,
+      const userId = authData.user.id;
+
+      // 2. Upsert user profile
+      await supabase.from("users").upsert({
+        id: userId,
+        full_name: formData.fullName,
         email: formData.email,
         phone: formData.phone,
-        uid: user.uid,
         role: "user",
-        createdAt: serverTimestamp(),
       });
 
-      // Store Store Data
-      const storeId = `store_${formData.subdomain.toLowerCase()}`;
-      await setDoc(doc(db, "stores", storeId), {
-        name: formData.storeName,
-        subdomain: formData.subdomain.toLowerCase(),
-        ownerId: user.uid,
-        createdAt: serverTimestamp(),
-      });
+      // 3. Create store
+      const storeSubdomain = formData.subdomain.toLowerCase();
+      const { data: storeRow, error: storeError } = await supabase
+        .from("stores")
+        .insert({
+          name: formData.storeName,
+          subdomain: storeSubdomain,
+          owner_id: userId,
+          status: "online",
+          is_maintenance: false,
+        })
+        .select()
+        .single();
 
-      // Create Initial Subscription
+      if (storeError || !storeRow) {
+        toast({ variant: "destructive", title: "Store Error", description: storeError?.message || "Could not create store." });
+        setLoading(false);
+        return;
+      }
+
+      const storeId = storeRow.id;
+
+      // 4. Create subscription
       if (planId) {
-        await addDoc(collection(db, "stores", storeId, "subscription"), {
-          planId,
-          ownerId: user.uid,
-          storeId: storeId,
+        await supabase.from("subscriptions").insert({
+          plan_id: planId,
+          owner_id: userId,
+          store_id: storeId,
           status: "pending",
-          startDate: serverTimestamp(),
-          currentPeriodStart: serverTimestamp(),
-          currentPeriodEnd: serverTimestamp(), // Will be updated by billing logic
-          createdAt: serverTimestamp(),
         });
       } else {
-        // Fallback to Free Plan if no planId provided
-        const freePlanQ = query(collection(db, "subscriptionPlans"), where("price", "==", 0), where("isActive", "==", true));
-        const freePlanSnap = await getDocs(freePlanQ);
-        if (!freePlanSnap.empty) {
-          await addDoc(collection(db, "stores", storeId, "subscription"), {
-            planId: freePlanSnap.docs[0].id,
-            ownerId: user.uid,
-            storeId: storeId,
+        // Fallback to Free Plan
+        const { data: freePlan } = await supabase
+          .from("subscription_plans")
+          .select("id")
+          .eq("price", 0)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (freePlan) {
+          await supabase.from("subscriptions").insert({
+            plan_id: freePlan.id,
+            owner_id: userId,
+            store_id: storeId,
             status: "active",
-            startDate: serverTimestamp(),
-            currentPeriodStart: serverTimestamp(),
-            currentPeriodEnd: serverTimestamp(),
-            createdAt: serverTimestamp(),
           });
         }
       }
@@ -156,8 +172,15 @@ function AuthPageContent() {
     e.preventDefault();
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      router.push("/dashboard");
+      const { error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+      if (error) {
+        toast({ variant: "destructive", title: "Login Error", description: error.message });
+      } else {
+        router.push("/dashboard");
+      }
     } catch (error: any) {
       toast({ variant: "destructive", title: "Login Error", description: error.message });
     } finally {

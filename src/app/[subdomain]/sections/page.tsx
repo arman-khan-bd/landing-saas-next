@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useFirestore, useUser } from "@/firebase";
-import { collection, query, where, getDocs, doc, deleteDoc, addDoc, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient, useUser } from "@/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 export default function LandingPagesDashboard() {
   const { subdomain } = useParams();
   const router = useRouter();
-  const firestore = useFirestore();
+  const supabase = useSupabaseClient();
   const { user } = useUser();
   const { toast } = useToast();
   const confirm = useConfirm();
@@ -42,30 +41,34 @@ export default function LandingPagesDashboard() {
 
   const [newPage, setNewPage] = useState({ title: "", slug: "" });
 
-  useEffect(() => {
-    if (firestore && subdomain && user) {
-      fetchPages();
-    }
-  }, [firestore, subdomain, user]);
-
   const fetchPages = async () => {
     setLoading(true);
     try {
-      const storeQ = query(collection(firestore!, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQ);
-      if (storeSnap.empty) return;
-      const sId = storeSnap.docs[0].id;
-      setStoreId(sId);
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) return;
+      setStoreId(storeData.id);
 
-      const q = query(collection(firestore!, "pages"), where("storeId", "==", sId));
-      const snap = await getDocs(q);
-      setPages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const { data } = await supabase
+        .from("sections")
+        .select("*")
+        .eq("store_id", storeData.id);
+      setPages(data ?? []);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (subdomain && user) {
+      fetchPages();
+    }
+  }, [subdomain, user]);
 
   const handleCreate = async () => {
     if (!newPage.title || !newPage.slug) return;
@@ -74,30 +77,25 @@ export default function LandingPagesDashboard() {
       const slug = newPage.slug.toLowerCase().replace(/[^a-z0-9-]/g, "");
       
       // Check if slug exists
-      const q = query(collection(firestore!, "pages"), where("storeId", "==", storeId), where("slug", "==", slug));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
+      const { data: existing } = await supabase
+        .from("sections")
+        .select("id")
+        .eq("store_id", storeId)
+        .eq("slug", slug)
+        .maybeSingle();
+
+      if (existing) {
         toast({ variant: "destructive", title: "Slug already exists", description: "Choose a unique slug for this page." });
         setCreating(false);
         return;
       }
 
-      await addDoc(collection(firestore!, "pages"), {
-        storeId,
-        ownerId: user?.uid,
+      await supabase.from("sections").insert({
+        store_id: storeId,
         title: newPage.title,
         slug,
-        config: [], // Start with empty config
-        pageStyle: {
-          backgroundColor: "#fdf6e3",
-          textColor: "#1a1a1a",
-          primaryColor: "#1a4a1a",
-          themeId: "laam",
-          paddingTop: 40,
-          paddingBottom: 40,
-        },
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        blocks: [], // Start with empty config/blocks
+        is_published: true
       });
 
       toast({ title: "Page Created", description: "You can now start orchestrating sections." });
@@ -119,7 +117,7 @@ export default function LandingPagesDashboard() {
       variant: "danger"
     })) {
       try {
-        await deleteDoc(doc(firestore!, "pages", id));
+        await supabase.from("sections").delete().eq("id", id);
         toast({ title: "Page Deleted" });
         fetchPages();
       } catch (error) {
@@ -245,7 +243,7 @@ export default function LandingPagesDashboard() {
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
                      <div className="space-y-1">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Matrix</p>
-                        <p className="text-sm font-bold text-slate-700">{page.config?.length || 0} Sections</p>
+                        <p className="text-sm font-bold text-slate-700">{page.blocks?.length || 0} Blocks</p>
                      </div>
                      <Badge className="bg-emerald-50 text-emerald-600 border-none rounded-lg text-[9px] font-black px-2">LIVE</Badge>
                   </div>

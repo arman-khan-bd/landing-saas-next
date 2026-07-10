@@ -1,10 +1,8 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,26 +38,27 @@ const THEMES = [
 
 export default function ThemeManagerPage() {
   const { subdomain } = useParams();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [pages, setPages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [applyingId, setApplyingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchPages();
-  }, [subdomain]);
-
   const fetchPages = async () => {
     setLoading(true);
     try {
-      const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQ);
-      if (storeSnap.empty) return;
-      const storeId = storeSnap.docs[0].id;
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) return;
 
-      const q = query(collection(db, "pages"), where("storeId", "==", storeId));
-      const querySnapshot = await getDocs(q);
-      setPages(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const { data } = await supabase
+        .from("sections")
+        .select("*")
+        .eq("store_id", storeData.id);
+      setPages(data ?? []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -67,10 +66,13 @@ export default function ThemeManagerPage() {
     }
   };
 
+  useEffect(() => {
+    fetchPages();
+  }, [subdomain]);
+
   const applyThemeToPage = async (pageId: string, theme: any) => {
     setApplyingId(`${pageId}-${theme.id}`);
     try {
-      const pageRef = doc(db, "pages", pageId);
       const newStyle = {
         themeId: theme.id,
         backgroundColor: theme.style.backgroundColor,
@@ -81,13 +83,17 @@ export default function ThemeManagerPage() {
         paddingBottom: 40
       };
 
-      await updateDoc(pageRef, {
-        pageStyle: newStyle,
-        updatedAt: serverTimestamp()
-      });
+      await supabase
+        .from("sections")
+        .update({
+          blocks: newStyle,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", pageId);
 
       setPages(prev => prev.map(p => p.id === pageId ? { ...p, pageStyle: newStyle } : p));
       toast({ title: "Theme Applied", description: `"${theme.name}" is now active on this page.` });
+      fetchPages();
     } catch (error) {
       toast({ variant: "destructive", title: "Apply Failed" });
     } finally {
@@ -108,7 +114,7 @@ export default function ThemeManagerPage() {
         <Card className="rounded-[40px] border-dashed border-2 py-32 text-center bg-muted/20">
            <Layout className="w-16 h-16 mx-auto mb-4 opacity-10" />
            <p className="font-bold text-slate-400">No landing pages found. Create one first to apply themes.</p>
-        </Card>
+         </Card>
       ) : (
         <div className="space-y-12">
           {pages.map((page) => (

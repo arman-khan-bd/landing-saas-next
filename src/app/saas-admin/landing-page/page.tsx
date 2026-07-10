@@ -1,24 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFirestore } from "@/firebase";
-import { 
-  collection, query, orderBy, onSnapshot, doc, updateDoc, 
-  addDoc, deleteDoc, serverTimestamp 
-} from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Plus, Trash2, Edit, Loader2, Zap, ShieldCheck, Star, 
-  Smartphone, Globe, Sparkles, Rocket, Lock, 
-  CheckCircle2, TrendingUp, Search, MousePointer2
+import {
+  Plus, Trash2, Edit, Loader2, Zap, ShieldCheck, Star,
+  Smartphone, Globe, Sparkles, Rocket, Lock,
+  CheckCircle2, TrendingUp, Search, MousePointer2, Layout
 } from "lucide-react";
-import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, 
-  DialogDescription, DialogFooter, DialogTrigger 
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+  DialogDescription, DialogFooter, DialogTrigger
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -39,7 +35,7 @@ const ICON_OPTIONS = [
 ];
 
 export default function LandingPageManager() {
-  const firestore = useFirestore();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [features, setFeatures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,38 +51,58 @@ export default function LandingPageManager() {
     order: 0
   });
 
+  const fetchFeatures = async () => {
+    const { data } = await supabase
+      .from("platform_features")
+      .select("*")
+      .order("order", { ascending: true });
+    setFeatures(data ?? []);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    if (!firestore) return;
-    const q = query(collection(firestore, "platformFeatures"), orderBy("order", "asc"));
-    const unsub = onSnapshot(q, (snap) => {
-      setFeatures(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
-    });
-    return () => unsub();
-  }, [firestore]);
+    fetchFeatures();
+
+    const channel = supabase
+      .channel("features-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "platform_features" }, fetchFeatures)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const handleSubmit = async () => {
     if (!formData.title || !formData.description) return;
     setProcessing(true);
     try {
       if (editingId) {
-        await updateDoc(doc(firestore!, "platformFeatures", editingId), {
-          ...formData,
-          order: Number(formData.order),
-          updatedAt: serverTimestamp()
-        });
+        await supabase
+          .from("platform_features")
+          .update({
+            title: formData.title,
+            description: formData.description,
+            icon: formData.icon,
+            accent: formData.accent,
+            order: Number(formData.order),
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", editingId);
         toast({ title: "Feature Updated" });
       } else {
-        await addDoc(collection(firestore!, "platformFeatures"), {
-          ...formData,
-          order: Number(formData.order),
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
+        await supabase
+          .from("platform_features")
+          .insert({
+            title: formData.title,
+            description: formData.description,
+            icon: formData.icon,
+            accent: formData.accent,
+            order: Number(formData.order)
+          });
         toast({ title: "Feature Added" });
       }
       setIsDialogOpen(false);
       resetForm();
+      fetchFeatures();
     } catch (error) {
       toast({ variant: "destructive", title: "Action Failed" });
     } finally {
@@ -97,8 +113,9 @@ export default function LandingPageManager() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure? This feature will be removed from the public landing page.")) return;
     try {
-      await deleteDoc(doc(firestore!, "platformFeatures", id));
+      await supabase.from("platform_features").delete().eq("id", id);
       toast({ title: "Feature Removed" });
+      fetchFeatures();
     } catch (error) {
       toast({ variant: "destructive", title: "Delete Failed" });
     }
@@ -243,7 +260,7 @@ export default function LandingPageManager() {
           </div>
           <h4 className="text-2xl font-black text-white uppercase tracking-tight">Live Preview Synced</h4>
           <p className="text-slate-400 max-w-md mx-auto leading-relaxed">
-            Changes made here are applied instantly using Firebase Real-time listeners. Your landing page is always up to date with your platform's latest highlights.
+            Changes made here are applied instantly using Supabase Real-time listeners. Your landing page is always up to date with your platform's latest highlights.
           </p>
       </div>
     </div>

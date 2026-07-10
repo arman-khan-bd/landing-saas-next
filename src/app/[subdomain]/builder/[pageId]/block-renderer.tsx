@@ -4,8 +4,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { cn, getTenantPath } from "@/lib/utils";
 
-import { useFirestore } from "@/firebase";
-import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { useToast } from "@/hooks/use-toast";
 import * as LucideIcons from "lucide-react";
 import { 
@@ -894,7 +893,7 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
 
 function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { products: any[], store: any, isOrganic: boolean, isTraditional: boolean }) {
   const { toast } = useToast();
-  const db = useFirestore();
+  const supabase = useSupabaseClient();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [clientIp, setClientIp] = useState("");
@@ -939,14 +938,13 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
     try {
       const blockValues = [clientIp, formData.phone].filter(Boolean);
       if (blockValues.length > 0) {
-        const fraudQ = query(
-          collection(db, "fraud_blocks"),
-          where("storeId", "==", store.id),
-          where("value", "in", blockValues),
-          limit(1)
-        );
-        const fraudSnap = await getDocs(fraudQ);
-        if (!fraudSnap.empty) {
+        const { data: fraudData } = await supabase
+          .from("fraud_blocks")
+          .select("id")
+          .eq("store_id", store.id)
+          .in("value", blockValues)
+          .limit(1);
+        if (fraudData && fraudData.length > 0) {
           toast({ variant: "destructive", title: "অর্ডার গ্রহণ করা সম্ভব হচ্ছে না" });
           setIsPlacingOrder(false);
           return;
@@ -958,8 +956,8 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
       const total = subtotal + shippingCost;
 
       const orderData = {
-        storeId: store.id,
-        ownerId: store.ownerId,
+        store_id: store.id,
+        owner_id: store.owner_id || store.ownerId,
         items: [{
           id: product.id,
           name: product.name,
@@ -973,18 +971,17 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
           cost: shippingCost
         } : { name: "Direct Order", cost: 0 },
         subtotal: subtotal,
-        shippingCost: shippingCost,
+        shipping_cost: shippingCost,
         total: total,
-        paymentMethod: formData.paymentMethod,
-        transactionId: formData.paymentMethod === 'manual' ? formData.transactionId : null,
-        selectedManualMethodId: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
+        payment_method: formData.paymentMethod,
+        transaction_id: formData.paymentMethod === 'manual' ? formData.transactionId : null,
+        selected_manual_method_id: formData.paymentMethod === 'manual' ? formData.selectedManualMethodId : null,
         status: "pending",
-        paymentStatus: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
-        isRead: false,
-        createdAt: serverTimestamp(),
+        payment_status: formData.paymentMethod === 'cod' ? "unpaid" : "pending_verification",
+        is_read: false
       };
 
-      await addDoc(collection(db, "orders"), orderData);
+      await supabase.from("orders").insert(orderData);
       setOrderSuccess(true);
       toast({ title: "অর্ডার সফল হয়েছে!" });
     } catch (error) {

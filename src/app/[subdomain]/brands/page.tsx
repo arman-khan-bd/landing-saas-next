@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,12 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2, Loader2, Store, Search, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 
 export default function BrandsPage() {
   const { subdomain } = useParams();
+  const supabase = useSupabaseClient();
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -28,22 +28,23 @@ export default function BrandsPage() {
   const { toast } = useToast();
   const confirm = useConfirm();
 
-  useEffect(() => {
-    fetchBrands();
-  }, [subdomain]);
-
   const fetchBrands = async () => {
     setLoading(true);
     try {
-      const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQuery);
-      if (storeSnap.empty) return;
-      const sId = storeSnap.docs[0].id;
-      setStoreId(sId);
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) return;
+      setStoreId(storeData.id);
 
-      const q = query(collection(db, "brands"), where("storeId", "==", sId));
-      const querySnapshot = await getDocs(q);
-      setBrands(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const { data } = await supabase
+        .from("brands")
+        .select("*")
+        .eq("store_id", storeData.id);
+      
+      setBrands(data || []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -51,16 +52,24 @@ export default function BrandsPage() {
     }
   };
 
+  useEffect(() => {
+    fetchBrands();
+  }, [subdomain]);
+
   const handleCreate = async () => {
     if (!newBrand.name) return;
     setProcessing(true);
     try {
-      await addDoc(collection(db, "brands"), {
-        ...newBrand,
-        storeId,
-        ownerId: auth.currentUser?.uid,
-        createdAt: serverTimestamp(),
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase.from("brands").insert({
+        name: newBrand.name,
+        logo: newBrand.logo,
+        store_id: storeId,
+        owner_id: user.id
       });
+
       toast({ title: "Brand added" });
       setNewBrand({ name: "", logo: "" });
       setIsCreateOpen(false);
@@ -76,10 +85,14 @@ export default function BrandsPage() {
     if (!editingBrand?.name || !editingBrand?.id) return;
     setProcessing(true);
     try {
-      await updateDoc(doc(db, "brands", editingBrand.id), {
-        name: editingBrand.name,
-        logo: editingBrand.logo,
-      });
+      await supabase
+        .from("brands")
+        .update({
+          name: editingBrand.name,
+          logo: editingBrand.logo
+        })
+        .eq("id", editingBrand.id);
+
       toast({ title: "Brand updated" });
       setEditingBrand(null);
       fetchBrands();
@@ -101,7 +114,7 @@ export default function BrandsPage() {
     if (!isConfirmed) return;
 
     try {
-      await deleteDoc(doc(db, "brands", id));
+      await supabase.from("brands").delete().eq("id", id);
       toast({ title: "Brand deleted" });
       fetchBrands();
     } catch (error) {
@@ -109,7 +122,7 @@ export default function BrandsPage() {
     }
   };
 
-  const filtered = brands.filter(b => b.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filtered = brands.filter(b => b.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div className="space-y-6">

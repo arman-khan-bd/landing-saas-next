@@ -2,8 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFirestore } from "@/firebase";
-import { collection, getDocs, query, orderBy, doc, deleteDoc } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
@@ -22,22 +21,24 @@ import { useToast } from "@/hooks/use-toast";
 import { getStoreUrl } from "@/lib/utils";
 
 export default function AdminShops() {
-  const firestore = useFirestore();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [shops, setShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    if (firestore) fetchShops();
-  }, [firestore]);
+    if (supabase) fetchShops();
+  }, [supabase]);
 
   const fetchShops = async () => {
     setLoading(true);
     try {
-      const q = query(collection(firestore, "stores"), orderBy("createdAt", "desc"));
-      const snap = await getDocs(q);
-      setShops(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const { data } = await supabase
+        .from("stores")
+        .select("*")
+        .order("created_at", { ascending: false });
+      setShops(data ?? []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -48,7 +49,7 @@ export default function AdminShops() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this shop permanently? All products and pages will be lost.")) return;
     try {
-      await deleteDoc(doc(firestore!, "stores", id));
+      await supabase.from("stores").delete().eq("id", id);
       toast({ title: "Shop Removed", description: "The store has been purged from the system." });
       fetchShops();
     } catch (error) {
@@ -114,7 +115,7 @@ export default function AdminShops() {
                      </div>
                   </TableCell>
                   <TableCell className="py-5 px-8 font-mono text-xs text-slate-500">
-                    {shop.ownerId?.slice(0, 10)}...
+                   {shop.owner_id?.slice(0, 10)}...
                   </TableCell>
                   <TableCell className="py-5 px-8">
                      <Badge className="bg-emerald-600/10 text-emerald-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">

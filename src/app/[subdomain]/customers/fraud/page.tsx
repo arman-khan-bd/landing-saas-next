@@ -1,16 +1,13 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, deleteDoc, doc, orderBy } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, MoreHorizontal, ShieldAlert, AlertTriangle, Trash2, CheckCircle, Fingerprint, MoreVertical, Calendar, Loader2 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Card, CardContent } from "@/components/ui/card";
+import { Search, ShieldAlert, AlertTriangle, Trash2, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -20,44 +17,45 @@ export default function FraudListPage() {
   const router = useRouter();
   const { toast } = useToast();
   const confirm = useConfirm();
+  const supabase = useSupabaseClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [blocks, setBlocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchBlocks();
-  }, [subdomain]);
-
   const fetchBlocks = async () => {
     setLoading(true);
     try {
-      const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const storeSnap = await getDocs(storeQ);
-      if (storeSnap.empty) return;
-      const sId = storeSnap.docs[0].id;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      const q = query(
-        collection(db, "fraud_blocks"), 
-        where("storeId", "==", sId),
-        where("ownerId", "==", auth.currentUser?.uid)
-      );
-      const snap = await getDocs(q);
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // Client-side sort while index builds
-      data.sort((a: any, b: any) => {
-        const dateA = a.createdAt?.toDate?.() || new Date(0);
-        const dateB = b.createdAt?.toDate?.() || new Date(0);
-        return dateB - dateA;
-      });
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) return;
+      const sId = storeData.id;
 
-      setBlocks(data);
+      const { data } = await supabase
+        .from("fraud_blocks")
+        .select("*")
+        .eq("store_id", sId)
+        .eq("owner_id", user.id);
+
+      const items = data || [];
+      items.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+      setBlocks(items);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchBlocks();
+  }, [subdomain]);
 
   const handleUnblock = async (id: string) => {
     const isConfirmed = await confirm({
@@ -69,7 +67,7 @@ export default function FraudListPage() {
 
     if (!isConfirmed) return;
     try {
-      await deleteDoc(doc(db, "fraud_blocks", id));
+      await supabase.from("fraud_blocks").delete().eq("id", id);
       toast({ title: "Entity Unblocked" });
       fetchBlocks();
     } catch (e) {
@@ -162,7 +160,7 @@ export default function FraudListPage() {
                         <TableCell className="py-4 px-6">
                           <div className="flex flex-col">
                             <span className="text-xs font-medium text-rose-900 line-clamp-1">{item.reason}</span>
-                            <span className="text-[10px] text-muted-foreground">{item.createdAt?.toDate()?.toLocaleDateString()}</span>
+                            <span className="text-[10px] text-muted-foreground">{item.created_at ? new Date(item.created_at).toLocaleDateString() : ""}</span>
                           </div>
                         </TableCell>
                         <TableCell className="py-4 px-6 text-right">
@@ -192,7 +190,7 @@ export default function FraudListPage() {
                    {item.reason}
                 </div>
                 <div className="flex items-center justify-between pt-2">
-                   <span className="text-[10px] text-slate-400 font-bold">{item.createdAt?.toDate()?.toLocaleDateString()}</span>
+                   <span className="text-[10px] text-slate-400 font-bold">{item.created_at ? new Date(item.created_at).toLocaleDateString() : ""}</span>
                    <Button variant="outline" size="sm" className="h-8 rounded-lg text-rose-600 border-rose-100" onClick={() => handleUnblock(item.id)}>Unblock</Button>
                 </div>
               </Card>

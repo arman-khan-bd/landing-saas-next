@@ -1,7 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { FirebaseClientProvider } from "@/firebase";
+import { SupabaseClientProvider } from "@/supabase";
 
 export const metadata: Metadata = {
   title: 'iHut | Multi-tenant E-commerce SaaS',
@@ -21,10 +21,10 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@100..800&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased bg-background min-h-screen" suppressHydrationWarning>
-        <FirebaseClientProvider>
+        <SupabaseClientProvider>
           {children}
           <Toaster />
-        </FirebaseClientProvider>
+        </SupabaseClientProvider>
       </body>
     </html>
   );

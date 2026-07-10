@@ -1,31 +1,18 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { useParams } from "next/navigation";
+import { useSupabaseClient } from "@/supabase";
 import { getSubdomain } from "@/lib/subdomain";
-import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ShoppingCart, Loader2, Zap, ArrowRight, ShieldCheck, ChevronLeft, ChevronRight, X, Minus, Plus, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { getTenantPath, getConsoleUrl } from "@/lib/utils";
+import { getTenantPath } from "@/lib/utils";
 import { BlockRenderer } from "./builder/[pageId]/block-renderer";
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  quantity: number;
-}
 
 export default function Storefront() {
   const { subdomain: paramsSubdomain } = useParams();
+  const supabase = useSupabaseClient();
   const [subdomain, setSubdomain] = useState<string>("");
 
   useEffect(() => {
@@ -44,38 +31,39 @@ export default function Storefront() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (subdomain) {
-      fetchStoreAndPage();
-    }
-  }, [subdomain]);
-
   const fetchStoreAndPage = async () => {
     setLoading(true);
     try {
-      const storeQuery = query(collection(db, "stores"), where("subdomain", "==", subdomain), limit(1));
-      const storeSnap = await getDocs(storeQuery);
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("subdomain", subdomain)
+        .single();
 
-      if (storeSnap.empty) {
+      if (!storeData) {
         setStore(null);
         setLoading(false);
         return;
       }
-
-      const storeData = { id: storeSnap.docs[0].id, ...storeSnap.docs[0].data() };
       setStore(storeData);
 
-      // Fetch dynamic landing sections
-      const pageQ = query(collection(db, "pages"), where("storeId", "==", storeData.id), where("slug", "==", "index"), limit(1));
-      const pageSnap = await getDocs(pageQ);
-      if (!pageSnap.empty) {
-        setPage(pageSnap.docs[0].data());
+      // Fetch dynamic landing sections (pages)
+      const { data: pageData } = await supabase
+        .from("sections")
+        .select("*")
+        .eq("store_id", storeData.id)
+        .eq("slug", "index")
+        .maybeSingle();
+      if (pageData) {
+        setPage(pageData);
       }
 
       // Fetch products for order form components
-      const prodQuery = query(collection(db, "products"), where("storeId", "==", storeData.id));
-      const prodSnap = await getDocs(prodQuery);
-      setProducts(prodSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const { data: prods } = await supabase
+        .from("products")
+        .select("*")
+        .eq("store_id", storeData.id);
+      setProducts(prods ?? []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -83,19 +71,25 @@ export default function Storefront() {
     }
   };
 
+  useEffect(() => {
+    if (subdomain) {
+      fetchStoreAndPage();
+    }
+  }, [subdomain]);
+
   if (loading) return <div className="min-h-screen flex flex-col items-center justify-center bg-white"><Loader2 className="w-10 h-10 animate-spin text-primary mb-2" /><p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Waking Up Business Matrix</p></div>;
   if (!store) return <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center"><h1 className="text-2xl font-black">Store Registry Not Found</h1><Link href="/"><Button className="mt-6">Return to Hub</Button></Link></div>;
 
-  const config = page?.config || [];
-  const pageStyle = page?.pageStyle || { backgroundColor: "#FFFFFF", paddingTop: 0, paddingBottom: 40 };
+  const config = page?.blocks || [];
+  const pageStyle = page?.page_style || { backgroundColor: "#FFFFFF", paddingTop: 0, paddingBottom: 40 };
 
   return (
     <div 
       className="min-h-screen" 
       style={{ 
         backgroundColor: pageStyle.backgroundColor, 
-        paddingTop: `${pageStyle.paddingTop}px`, 
-        paddingBottom: `${pageStyle.paddingBottom}px`,
+        paddingTop: pageStyle.paddingTop ? (pageStyle.paddingTop + "px") : "0px", 
+        paddingBottom: pageStyle.paddingBottom ? (pageStyle.paddingBottom + "px") : "0px",
         color: pageStyle.textColor 
       }}
     >

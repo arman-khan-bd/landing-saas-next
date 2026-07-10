@@ -3,16 +3,15 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { db, auth } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Save, Tags, Globe, Layout, DollarSign, Package, Video, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Tags, Layout, DollarSign, Video, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -25,10 +24,10 @@ const ReactQuill = dynamic(() => import("react-quill-new"), {
 export default function EditProductPage() {
   const { subdomain, id } = useParams();
   const router = useRouter();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const quillRef = useRef<any>(null);
 
   const [categories, setCategories] = useState<any[]>([]);
   const [subCategories, setSubCategories] = useState<any[]>([]);
@@ -55,113 +54,73 @@ export default function EditProductPage() {
     youtubeLink: "",
   });
 
-  useEffect(() => {
-    if (id) {
-      fetchProduct();
-    }
-  }, [id]);
-
-  const fetchProduct = async () => {
-    setLoading(true);
+  const fetchData = async () => {
     try {
-      const docRef = doc(db, "products", id as string);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        const data = docSnap.data();
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("subdomain", subdomain)
+        .single();
+      if (!storeData) return;
+      const storeId = storeData.id;
+
+      const [catRes, subRes, brandRes, prodRes] = await Promise.all([
+        supabase.from("categories").select("*").eq("store_id", storeId),
+        supabase.from("sub_categories").select("*").eq("store_id", storeId),
+        supabase.from("brands").select("*").eq("store_id", storeId),
+        supabase.from("products").select("*").eq("id", id).single()
+      ]);
+
+      setCategories(catRes.data ?? []);
+      setSubCategories(subRes.data ?? []);
+      setBrands(brandRes.data ?? []);
+
+      if (prodRes.data) {
+        const prod = prodRes.data;
         setFormData({
-          ...data,
-          currentPrice: data.currentPrice?.toString() || "",
-          prevPrice: data.prevPrice?.toString() || "",
-          totalInStock: data.totalInStock?.toString() || "",
-          tags: Array.isArray(data.tags) ? data.tags.join(", ") : data.tags || "",
+          name: prod.name || "",
+          slug: prod.slug || "",
+          shortDescription: prod.shortDescription || "",
+          description: prod.description || "",
+          featuredImage: prod.featuredImage || "",
+          gallery: prod.gallery || [],
+          tags: Array.isArray(prod.tags) ? prod.tags.join(', ') : "",
+          metaKeywords: prod.metaKeywords || "",
+          metaDescription: prod.metaDescription || "",
+          currentPrice: String(prod.currentPrice || ""),
+          prevPrice: String(prod.prevPrice || ""),
+          category: prod.category || "",
+          subCategory: prod.subCategory || "",
+          brand: prod.brand || "",
+          totalInStock: String(prod.totalInStock || ""),
+          tax: prod.tax || "0",
+          sku: prod.sku || "",
+          youtubeLink: prod.youtubeLink || ""
         });
-
-        // Fetch Metadata for the store
-        const storeQ = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-        const storeSnap = await getDocs(storeQ);
-        if (!storeSnap.empty) {
-          const storeId = storeSnap.docs[0].id;
-          const [catSnap, subSnap, brandSnap] = await Promise.all([
-            getDocs(query(collection(db, "categories"), where("storeId", "==", storeId))),
-            getDocs(query(collection(db, "sub-categories"), where("storeId", "==", storeId))),
-            getDocs(query(collection(db, "brands"), where("storeId", "==", storeId)))
-          ]);
-          setCategories(catSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-          setSubCategories(subSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-          setBrands(brandSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        }
-
-      } else {
-        toast({ variant: "destructive", title: "Product not found" });
-        router.push(`/${subdomain}/products`);
       }
     } catch (error) {
-      console.error(error);
-      toast({ variant: "destructive", title: "Error fetching product" });
+      console.error("Meta fetch error:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (id) {
+      fetchData();
+    }
+  }, [id]);
+
   const filteredSubCategories = useMemo(() => {
     if (!formData.category) return [];
-    return subCategories.filter(s => s.categoryId === formData.category);
+    return subCategories.filter(s => s.category_id === formData.category || s.categoryId === formData.category);
   }, [formData.category, subCategories]);
-
-  const imageHandler = useCallback(() => {
-    const input = document.createElement("input");
-    input.setAttribute("type", "file");
-    input.setAttribute("accept", "image/*");
-    input.click();
-
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-
-      const uploadData = new FormData();
-      uploadData.append("file", file);
-      uploadData.append("upload_preset", "krishi-bazar");
-
-      try {
-        const res = await fetch(`https://api.cloudinary.com/v1_1/dj7pg5slk/image/upload`, {
-          method: "POST",
-          body: uploadData,
-        });
-        const data = await res.json();
-        const quill = quillRef.current?.getEditor();
-        if (quill) {
-          const range = quill.getSelection(true);
-          quill.insertEmbed(range.index, "image", data.secure_url);
-        }
-      } catch (error) {
-        console.error("Editor image upload error:", error);
-        toast({ variant: "destructive", title: "Image upload failed" });
-      }
-    };
-  }, [toast]);
-
-  const modules = useMemo(() => ({
-    toolbar: {
-      container: [
-        [{ header: [1, 2, 3, false] }],
-        ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-        [{ list: 'ordered' }, { list: 'bullet' }],
-        ['link', 'image'],
-        ['clean'],
-      ],
-      handlers: {
-        image: imageHandler,
-      },
-    },
-  }), [imageHandler]);
 
   const handleUpdate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setSaving(true);
     
     try {
-      const docRef = doc(db, "products", id as string);
       const productData = {
         name: formData.name,
         slug: formData.slug,
@@ -180,11 +139,14 @@ export default function EditProductPage() {
         totalInStock: Number(formData.totalInStock),
         tax: formData.tax,
         sku: formData.sku,
-        youtubeLink: formData.youtubeLink,
-        updatedAt: serverTimestamp(),
+        youtubeLink: formData.youtubeLink
       };
 
-      await updateDoc(docRef, productData);
+      await supabase
+        .from("products")
+        .update(productData)
+        .eq("id", id);
+
       toast({ title: "Product Updated Successfully!" });
       router.push(`/${subdomain}/products`);
     } catch (error) {
@@ -269,11 +231,9 @@ export default function EditProductPage() {
                 <Label>Full Description</Label>
                 <div className="rounded-xl overflow-hidden border border-input">
                   <ReactQuill
-                    ref={quillRef}
                     theme="snow"
                     value={formData.description}
                     onChange={(val) => setFormData({ ...formData, description: val })}
-                    modules={modules}
                     className="min-h-[250px]"
                   />
                 </div>

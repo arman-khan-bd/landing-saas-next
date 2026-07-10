@@ -1,10 +1,8 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from "firebase/firestore";
+import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,14 +11,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
-import { Loader2, Save, Home, Image as ImageIcon, Zap, Layout, ShoppingBag, Search } from "lucide-react";
+import { Loader2, Save, Layout, ShoppingBag, Search, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function HomeManagerPage() {
+export default function HomePageManager() {
   const { subdomain } = useParams();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,18 +37,28 @@ export default function HomeManagerPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [productSearch, setProductSearch] = useState("");
 
-  useEffect(() => {
-    fetchHomeData();
-  }, [subdomain]);
+  const fetchProducts = async (sId: string) => {
+    try {
+      const { data } = await supabase
+        .from("products")
+        .select("*")
+        .eq("store_id", sId);
+      setProducts(data ?? []);
+    } catch (error) {
+      console.error("Products Fetch Error:", error);
+    }
+  };
 
   const fetchHomeData = async () => {
     setLoading(true);
     try {
-      const q = query(collection(db, "stores"), where("subdomain", "==", subdomain));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const data = snap.docs[0].data();
-        setStoreId(snap.docs[0].id);
+      const { data, error } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("subdomain", subdomain)
+        .single();
+      if (data) {
+        setStoreId(data.id);
         setHomeData({
           homePageTitle: data.homePageTitle || "",
           description: data.description || "",
@@ -60,7 +69,7 @@ export default function HomeManagerPage() {
           productDisplayType: data.productDisplayType || "new_to_old",
           selectedProducts: data.selectedProducts || []
         });
-        fetchProducts(snap.docs[0].id);
+        await fetchProducts(data.id);
       }
     } catch (error) {
       console.error(error);
@@ -69,24 +78,28 @@ export default function HomeManagerPage() {
     }
   };
 
-  const fetchProducts = async (sId: string) => {
-    try {
-      const q = query(collection(db, "products"), where("storeId", "==", sId));
-      const snap = await getDocs(q);
-      setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    } catch (error) {
-      console.error("Products Fetch Error:", error);
-    }
-  };
+  useEffect(() => {
+    fetchHomeData();
+  }, [subdomain]);
 
   const handleSave = async () => {
     if (!storeId) return;
     setSaving(true);
     try {
-      await updateDoc(doc(db, "stores", storeId), {
-        ...homeData,
-        updatedAt: serverTimestamp()
-      });
+      await supabase
+        .from("stores")
+        .update({
+          homePageTitle: homeData.homePageTitle,
+          description: homeData.description,
+          homeBanner: homeData.homeBanner,
+          offerBanner: homeData.offerBanner,
+          offerText: homeData.offerText,
+          offerLink: homeData.offerLink,
+          productDisplayType: homeData.productDisplayType,
+          selectedProducts: homeData.selectedProducts,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", storeId);
       toast({ title: "Home Page Updated", description: "Your branding changes are live." });
     } catch (error) {
       toast({ variant: "destructive", title: "Update Failed" });
@@ -188,7 +201,7 @@ export default function HomeManagerPage() {
                       className="h-12 rounded-xl"
                     />
                   </div>
-               </div>
+                </div>
             </CardContent>
           </Card>
 
@@ -238,7 +251,7 @@ export default function HomeManagerPage() {
 
                     <ScrollArea className="h-[400px] rounded-3xl border border-slate-100 p-4">
                        <div className="space-y-2">
-                          {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map((product) => (
+                          {products.filter(p => p.name?.toLowerCase().includes(productSearch.toLowerCase())).map((product) => (
                             <div 
                               key={product.id} 
                               className={`flex items-center gap-4 p-3 rounded-2xl transition-all border ${
@@ -266,7 +279,7 @@ export default function HomeManagerPage() {
                                      <p className="font-bold text-sm leading-none">{product.name}</p>
                                      <p className="text-[10px] text-muted-foreground mt-1">${Number(product.currentPrice).toFixed(2)}</p>
                                   </div>
-                               </div>
+                                </div>
                                <Badge variant="outline" className="text-[8px] font-black uppercase rounded-lg">
                                   {product.totalInStock > 0 ? "In Stock" : "Out"}
                                </Badge>
