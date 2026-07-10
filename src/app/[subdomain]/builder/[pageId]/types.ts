@@ -18,6 +18,8 @@ export type BlockType =
   | "navbar"
   | "video"
   | "code"
+  | "selector"
+  | "score-cards"
   | "footer";
 
 export interface Block {
@@ -44,10 +46,14 @@ export interface Block {
     lineHeight?: number;
     borderStyle?: "none" | "solid" | "dashed" | "dotted";
     borderWidth?: number;
+    borderTopWidth?: number;
+    borderBottomWidth?: number;
+    borderLeftWidth?: number;
+    borderRightWidth?: number;
     borderColor?: string;
     borderRadius?: number;
     boxShadow?: "none" | "sm" | "md" | "lg" | "xl";
-    animation?: "none" | "fadeIn" | "slideUp" | "zoomIn" | "bounce";
+    animation?: "none" | "fadeIn" | "slideUp" | "zoomIn" | "bounce" | "joy" | "celebrate" | "scroll-down" | "cross-sign" | "check-mark";
     hideDesktop?: boolean;
     hideMobile?: boolean;
     desktopColumns?: number;
@@ -66,6 +72,9 @@ export interface Block {
     iconColor?: string;
     iconSize?: number;
     iconPosition?: "left" | "right" | "top" | "bottom";
+    display?: string;
+    maxWidth?: string;
+    alignment?: "left" | "center" | "right";
   };
   children?: Block[];
 }
@@ -73,13 +82,37 @@ export interface Block {
 export interface PageStyle {
   backgroundColor?: string;
   backgroundImage?: string;
+  backgroundTexture?: string;
   textColor?: string;
   primaryColor?: string;
   paddingTop?: number;
   paddingBottom?: number;
   themeId?: string;
   accentColor?: string;
+<<<<<<< HEAD
   backgroundTexture?: string;
   backgroundOpacity?: number;
   backgroundSize?: string;
+=======
+  showNavbar?: boolean;
+  showFooter?: boolean;
+  navbarSettings?: {
+    logoText?: string;
+    logoUrl?: string;
+    items?: { id: string, label: string, link: string }[];
+    ctaText?: string;
+    ctaLink?: string;
+  };
+  footerSettings?: {
+    text?: string;
+    showSocials?: boolean;
+    copyright?: string;
+  };
+  seoSettings?: {
+    title?: string;
+    description?: string;
+    keywords?: string;
+    ogImage?: string;
+  };
+>>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
 }

@@ -1,0 +1,142 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/adminRoles/$(request.auth.uid)) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isDocumentOwner() {
+      return isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // --- Collection Rules ---
+
+    match /userProfiles/{userId} {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if true;
+      allow update: if isOwner(userId) || isAdmin();
+    }
+
+    match /adminRoles/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /stores/{storeId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (resource.data.ownerId == request.auth.uid);
+      allow delete: if isAdmin();
+
+      match /subscription/{id} { 
+        allow read: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()); 
+        allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+        allow update, delete: if isAdmin(); 
+      }
+    }
+
+    // Root Collections for Catalog (Public Read, Owner/Admin Write)
+    match /products/{id} { allow read: if true; allow write: if isDocumentOwner() || (isSignedIn() && !exists(/databases/$(database)/documents/products/$(id))); }
+    match /categories/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
+    match /sub-categories/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
+    match /brands/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
+    match /tags/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
+    match /taxes/{id} { allow read: if true; allow write: if isDocumentOwner() || isSignedIn(); }
+
+    // Page Sections (Public Read, Owner/Admin Write)
+    match /pages/{id} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid || 
+        isAdmin() ||
+        (exists(/databases/$(database)/documents/stores/$(resource.data.storeId)) && get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data.ownerId == request.auth.uid)
+      );
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.ownerId == request.auth.uid);
+    }
+
+    // Orders & Tracking
+    match /orders/{orderId} {
+      allow create: if true;
+      allow get, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow update, delete: if isDocumentOwner();
+    }
+
+    match /uncompleted_orders/{orderId} {
+      allow create, get, update, delete: if true;
+      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /fraud_blocks/{blockId} {
+      allow read, list: if true;
+      allow create: if isSignedIn();
+      allow delete: if isDocumentOwner();
+    }
+
+    match /verification_codes/{id} {
+      allow create: if true;
+      // Tighten read rules - only allow specific phone/code queries from storefront
+      allow read, list: if true; 
+      allow update, delete: if isAdmin();
+    }
+
+    // Customer Manager Rules
+    match /customers/{customerId} {
+      allow create, get, list: if true;
+      allow update: if (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin())) || 
+                     (!isSignedIn() && request.resource.data.storeId == resource.data.storeId);
+      allow delete: if isAdmin();
+    }
+
+    match /uncompleted_orders/{orderId} {
+      allow create: if true;
+      allow get, update: if true; 
+      allow list, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /subscriptionPlans/{planId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /system_notifications/{id} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+    
+    match /saas_transactions/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
+    match /custom_domain_requests/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
+    match /platformFeatures/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /saasPaymentMethods/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /platformSettings/{id} { allow read: if true; allow write: if isAdmin(); }
+    
+    // Platform Level Dashboard Rules
+    match /subscriptions/{id} { allow read: if isAdmin(); allow write: if isAdmin(); }
+    match /transactions/{id} { allow read: if isAdmin(); allow write: if isAdmin(); }
+  }
+}

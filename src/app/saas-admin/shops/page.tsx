@@ -1,8 +1,12 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
+<<<<<<< HEAD
 import { useSupabaseClient } from "@/supabase";
+=======
+import { useFirestore } from "@/firebase/provider";
+import { collection, getDocs, query, orderBy, doc, deleteDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+>>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
@@ -43,6 +47,26 @@ export default function AdminShops() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleSuspend = async (shop: any) => {
+    const newStatus = !shop.isSuspended;
+    const actionText = newStatus ? "Suspended" : "Reactivated";
+    if (!confirm(`Are you sure you want to ${newStatus ? 'suspend' : 'reactivate'} this shop?`)) return;
+    
+    try {
+      await updateDoc(doc(firestore!, "stores", shop.id), {
+        isSuspended: newStatus,
+        suspendedAt: newStatus ? serverTimestamp() : null
+      });
+      toast({ 
+        title: `Shop ${actionText}`, 
+        description: `The store access has been ${actionText.toLowerCase()}.` 
+      });
+      fetchShops();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Action Failed" });
     }
   };
 
@@ -118,9 +142,15 @@ export default function AdminShops() {
                    {shop.owner_id?.slice(0, 10)}...
                   </TableCell>
                   <TableCell className="py-5 px-8">
-                     <Badge className="bg-emerald-600/10 text-emerald-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
-                       Active
-                     </Badge>
+                     {shop.isSuspended ? (
+                        <Badge className="bg-rose-600/10 text-rose-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
+                          Suspended
+                        </Badge>
+                     ) : (
+                        <Badge className="bg-emerald-600/10 text-emerald-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
+                          Active
+                        </Badge>
+                     )}
                   </TableCell>
                   <TableCell className="py-5 px-8 text-right">
                     <DropdownMenu>
@@ -135,8 +165,12 @@ export default function AdminShops() {
                              <ExternalLink className="w-4 h-4 text-indigo-400" /> View Live Site
                           </a>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer">
-                          <AlertTriangle className="w-4 h-4 text-amber-500" /> Suspend Shop
+                        <DropdownMenuItem 
+                          className="gap-3 py-3 rounded-xl cursor-pointer"
+                          onClick={() => handleToggleSuspend(shop)}
+                        >
+                          <AlertTriangle className={shop.isSuspended ? "w-4 h-4 text-emerald-500" : "w-4 h-4 text-amber-500"} /> 
+                          {shop.isSuspended ? "Reactivate Shop" : "Suspend Shop"}
                         </DropdownMenuItem>
                         <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer text-rose-500" onClick={() => handleDelete(shop.id)}>
                           <Trash2 className="w-4 h-4" /> Purge Store
