@@ -12,8 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Save, Tags, Globe, Layout, DollarSign, Package, Video, Layers, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Tags, Globe, Layout, DollarSign, Package, Video, Layers, CheckCircle2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { generateProductDetails } from "@/lib/ai";
 
 import "react-quill-new/dist/quill.snow.css";
 
