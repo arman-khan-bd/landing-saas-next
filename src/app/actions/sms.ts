@@ -1,31 +1,29 @@
 "use server";
 
-import { db } from "@/lib/firebase-server";
-import { collection, query, where, getDocs, Timestamp, addDoc, serverTimestamp, doc, getDoc, updateDoc, increment } from "firebase/firestore";
+import { getSupabaseServerClient } from "@/supabase/server";
 
 export async function sendSMS(phone: string, storeName: string, storeId: string) {
   // Check if phone is blocked
   try {
-    const customerQ = query(
-      collection(db, "customers"),
-      where("storeId", "==", storeId),
-      where("phones", "array-contains", phone),
-      where("status.phoneBlocked", "==", true)
-    );
-    const customerSnap = await getDocs(customerQ);
-    
-    if (!customerSnap.empty) {
-      // Send warning SMS even if blocked? User said: "get a warning sms you are blocked from admin"
-      // But we should probably only do this once or handle it carefully.
-      // For now, let's return the error and send the warning if they try to verify.
-      
-      const apiKey = (process.env.SMS_API_KEY || process.env.NEXT_PUBLIC_SMS_API_KEY || "").trim();
-      const warningMsg = encodeURIComponent("You are blocked from admin.");
-      const warningUrl = `https://xlahr.pro.bd/api.php?type=sms&key=${apiKey}&number=${phone}&msg=${warningMsg}&message=${warningMsg}`;
-      
-      await fetch(warningUrl, { cache: 'no-store' }); // Send warning
-      
-      return { success: false, error: "You are blocked from this store. Please contact support." };
+    const supabase = await getSupabaseServerClient();
+    const { data: customerData } = await supabase
+      .from("customers")
+      .select("status")
+      .eq("store_id", storeId)
+      .contains("phones", [phone])
+      .limit(1);
+
+    if (customerData && customerData.length > 0) {
+      const status = customerData[0].status || {};
+      if (status.phoneBlocked === true) {
+        const apiKey = (process.env.SMS_API_KEY || process.env.NEXT_PUBLIC_SMS_API_KEY || "").trim();
+        const warningMsg = encodeURIComponent("You are blocked from admin.");
+        const warningUrl = `https://xlahr.pro.bd/api.php?type=sms&key=${apiKey}&number=${phone}&msg=${warningMsg}&message=${warningMsg}`;
+        
+        await fetch(warningUrl, { cache: 'no-store' }); // Send warning
+        
+        return { success: false, error: "You are blocked from this store. Please contact support." };
+      }
     }
   } catch (error) {
     console.error("Block check error:", error);
@@ -33,32 +31,42 @@ export async function sendSMS(phone: string, storeName: string, storeId: string)
 
   // Package-based SMS Limit Check
   try {
-    const storeRef = doc(db, "stores", storeId);
-    const storeSnap = await getDoc(storeRef);
+    const supabase = await getSupabaseServerClient();
+    const { data: storeData } = await supabase
+      .from("stores")
+      .select("*")
+      .eq("id", storeId)
+      .single();
     
-    if (storeSnap.exists()) {
-      const storeData = storeSnap.data();
-      const smsCount = storeData.smsCount || 0;
+    if (storeData) {
+      const smsCount = storeData.sms_count || storeData.smsCount || 0;
       
       // Fetch current active/pending subscription plan
-      const subQ = query(
-        collection(db, "stores", storeId, "subscription"),
-        where("status", "in", ["active", "pending"])
-      );
-      const subSnap = await getDocs(subQ);
+      const { data: subData } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("store_id", storeId)
+        .in("status", ["active", "pending"])
+        .limit(1);
       
-      if (!subSnap.empty) {
-        const subData = subSnap.docs[0].data();
-        const planId = subData.planId;
-        const planSnap = await getDoc(doc(db, "subscriptionPlans", planId));
+      if (subData && subData.length > 0) {
+        const planId = subData[0].plan_id || subData[0].planId;
+        const { data: planData } = await supabase
+          .from("subscription_plans")
+          .select("*")
+          .eq("id", planId)
+          .single();
         
-        if (planSnap.exists()) {
-          const planData = planSnap.data();
-          const smsLimit = planData.smsLimit || 0;
+        if (planData) {
+          const smsLimit = planData.sms_limit || planData.smsLimit || 0;
           
           if (smsCount >= smsLimit) {
             // Auto deactivate OTP verification
-            await updateDoc(storeRef, { otpVerification: false });
+            await supabase
+              .from("stores")
+              .update({ otp_verification: false })
+              .eq("id", storeId);
+
             return { 
               success: false, 
               error: "SMS limit reached for your current plan. OTP verification has been disabled." 
@@ -66,8 +74,6 @@ export async function sendSMS(phone: string, storeName: string, storeId: string)
           }
         }
       } else {
-        // No active subscription? Maybe allow a small default or block.
-        // For now, let's assume no subscription means 0 limit or they shouldn't send SMS.
         return { success: false, error: "No active subscription found. Please upgrade to send SMS." };
       }
     }
@@ -77,27 +83,27 @@ export async function sendSMS(phone: string, storeName: string, storeId: string)
 
   // Rate limiting check
   const now = new Date();
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
   try {
-    const q = query(
-      collection(db, "verification_codes"),
-      where("phone", "==", phone),
-      where("createdAt", ">=", Timestamp.fromDate(twentyFourHoursAgo))
-    );
+    const supabase = await getSupabaseServerClient();
+    const { data: codes } = await supabase
+      .from("verification_codes")
+      .select("*")
+      .eq("phone", phone)
+      .gte("created_at", twentyFourHoursAgo);
     
-    const snap = await getDocs(q);
-    const codes = snap.docs.map(d => d.data());
-    
-    const count24h = codes.length;
-    const count1h = codes.filter(c => c.createdAt.toDate() >= oneHourAgo).length;
+    if (codes) {
+      const count24h = codes.length;
+      const count1h = codes.filter(c => new Date(c.created_at || c.createdAt).getTime() >= new Date(oneHourAgo).getTime()).length;
 
-    if (count1h >= 2) {
-      return { success: false, error: "Too many requests. Please try again after an hour." };
-    }
-    if (count24h >= 5) {
-      return { success: false, error: "Daily limit reached for this phone number." };
+      if (count1h >= 2) {
+        return { success: false, error: "Too many requests. Please try again after an hour." };
+      }
+      if (count24h >= 5) {
+        return { success: false, error: "Daily limit reached for this phone number." };
+      }
     }
   } catch (error) {
     console.error("Rate limit check error:", error);
@@ -125,20 +131,32 @@ export async function sendSMS(phone: string, storeName: string, storeId: string)
     const isSuccess = responseText.includes("success") || responseText.includes("sent") || responseText.includes("1000");
     
     if (isSuccess) {
+      const supabase = await getSupabaseServerClient();
+      
       // Store in database on success
-      await addDoc(collection(db, "verification_codes"), {
+      await supabase.from("verification_codes").insert({
         phone,
         code,
-        storeId,
-        createdAt: serverTimestamp(),
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 mins
+        store_id: storeId,
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
       });
 
       // Increment SMS count for store
       try {
-        await updateDoc(doc(db, "stores", storeId), {
-          smsCount: increment(1)
-        });
+        const { data: storeRecord } = await supabase
+          .from("stores")
+          .select("sms_count")
+          .eq("id", storeId)
+          .single();
+
+        const currentSMSCount = storeRecord?.sms_count || 0;
+
+        await supabase
+          .from("stores")
+          .update({
+            sms_count: currentSMSCount + 1
+          })
+          .eq("id", storeId);
       } catch (e) {
         console.error("Increment SMS count error:", e);
       }

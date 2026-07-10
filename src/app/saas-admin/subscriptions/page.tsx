@@ -2,15 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-<<<<<<< HEAD
 import { useSupabaseClient } from "@/supabase";
-=======
-import { useFirestore } from "@/firebase/provider";
-import {
-  collection, getDocs, query, addDoc, updateDoc,
-  deleteDoc, doc, serverTimestamp, orderBy
-} from "firebase/firestore";
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,12 +68,8 @@ export default function AdminSubscriptions() {
         name: formData.name,
         description: formData.description,
         price: Number(formData.price),
-<<<<<<< HEAD
         currency: formData.currency,
         billing_interval: formData.billingInterval,
-=======
-        smsLimit: Number(formData.smsLimit || 0),
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
         features: formData.features.split(',').map(f => f.trim()).filter(f => f),
         is_active: formData.isActive,
       };
@@ -105,12 +93,8 @@ export default function AdminSubscriptions() {
         name: formData.name,
         description: formData.description,
         price: Number(formData.price),
-<<<<<<< HEAD
         currency: formData.currency,
         billing_interval: formData.billingInterval,
-=======
-        smsLimit: Number(formData.smsLimit || 0),
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
         features: formData.features.split(',').map(f => f.trim()).filter(f => f),
         is_active: formData.isActive,
       };
@@ -325,7 +309,6 @@ export default function AdminSubscriptions() {
               <CardContent className="p-8 space-y-8">
                 <p className="text-sm text-slate-400 leading-relaxed min-h-[40px]">{plan.description || "No description provided."}</p>
 
-<<<<<<< HEAD
                  <div className="pt-6 border-t border-white/5 flex items-center justify-between">
                     <div className="space-y-0.5">
                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Visibility</p>
@@ -333,31 +316,6 @@ export default function AdminSubscriptions() {
                     </div>
                     <Switch checked={plan.is_active} onCheckedChange={() => toggleStatus(plan)} />
                  </div>
-=======
-                <div className="space-y-3">
-                  <p className="text-[10px] font-black uppercase text-indigo-400 tracking-[0.2em]">Tier Privileges</p>
-                  <div className="grid gap-2">
-                    <div className="flex items-center gap-2 text-xs font-black text-white">
-                      <Smartphone className="w-3.5 h-3.5 text-indigo-400" />
-                      {plan.smsLimit || 0} SMS Verifications
-                    </div>
-                    {(plan.features || []).map((feature: string, i: number) => (
-                      <div key={i} className="flex items-center gap-2 text-xs font-medium text-slate-300">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                        {feature}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-6 border-t border-white/5 flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Visibility</p>
-                    <p className="text-xs font-bold text-slate-300">{plan.isActive ? 'Active for Users' : 'Archived'}</p>
-                  </div>
-                  <Switch checked={plan.isActive} onCheckedChange={() => toggleStatus(plan)} />
-                </div>
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
               </CardContent>
             </Card>
           ))}

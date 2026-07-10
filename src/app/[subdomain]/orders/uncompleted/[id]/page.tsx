@@ -1,12 +1,7 @@
-<<<<<<< HEAD
-=======
-
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-<<<<<<< HEAD
 import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,51 +9,23 @@ import {
   ChevronLeft, ShoppingCart, User, Phone, MapPin, 
   Trash2, Mail, MessageSquare, Loader2,
   Package, AlertTriangle, DollarSign, Clock
-=======
-import { db, auth } from "@/lib/firebase";
-import { doc, getDoc, addDoc, collection, serverTimestamp, deleteDoc } from "firebase/firestore";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { 
-  ChevronLeft, ShoppingCart, User, Phone, MapPin, 
-  Calendar, Trash2, Mail, MessageSquare, Loader2,
-  Package, AlertTriangle, ArrowRight, Wallet, Clock
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-<<<<<<< HEAD
-=======
-import { cn, getCurrencySymbol } from "@/lib/utils";
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
 
 export default function UncompletedOrderDetailPage() {
   const { subdomain, id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
-<<<<<<< HEAD
   const supabase = useSupabaseClient();
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isRecovering, setIsRecovering] = useState(false);
-=======
-  const [item, setItem] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [isRecovering, setIsRecovering] = useState(false);
-  const [currency, setCurrency] = useState("BDT");
-
-  useEffect(() => {
-    if (id) {
-      fetchItem();
-    }
-  }, [id]);
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
 
   const fetchItem = async () => {
     setLoading(true);
     try {
-<<<<<<< HEAD
       const { data, error } = await supabase
         .from("uncompleted_orders")
         .select("*")
@@ -66,21 +33,6 @@ export default function UncompletedOrderDetailPage() {
         .single();
       if (data) {
         setItem(data);
-=======
-      const docRef = doc(db, "uncompleted_orders", id as string);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setItem({ id: docSnap.id, ...data });
-
-        // Fetch Store Currency
-        if (data.storeId) {
-          const storeSnap = await getDoc(doc(db, "stores", data.storeId));
-          if (storeSnap.exists()) {
-            setCurrency(storeSnap.data().currency || "BDT");
-          }
-        }
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
       } else {
         toast({ variant: "destructive", title: "Order not found" });
         router.back();
@@ -92,33 +44,24 @@ export default function UncompletedOrderDetailPage() {
     }
   };
 
-<<<<<<< HEAD
   useEffect(() => {
     if (id) {
       fetchItem();
     }
   }, [id]);
 
-=======
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
   const handleRecoverOrder = async () => {
     if (!item) return;
     setIsRecovering(true);
     try {
       // 1. Prepare Order Data
       const orderData = {
-<<<<<<< HEAD
         store_id: item.store_id || item.storeId,
         owner_id: item.owner_id || item.ownerId,
-=======
-        storeId: item.storeId,
-        ownerId: item.ownerId,
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
         items: item.items,
         customer: item.customer,
         subtotal: item.subtotal || item.total,
         shipping: item.shipping || { name: "Free Shipping", cost: 0 },
-<<<<<<< HEAD
         shipping_cost: item.shipping_cost || item.shippingCost || 0,
         total: item.total,
         payment_method: "manual",
@@ -132,22 +75,6 @@ export default function UncompletedOrderDetailPage() {
 
       // 3. Delete from uncompleted
       await supabase.from("uncompleted_orders").delete().eq("id", item.id);
-=======
-        shippingCost: item.shippingCost || 0,
-        total: item.total,
-        paymentMethod: "manual",
-        status: "pending",
-        paymentStatus: "unpaid",
-        isRead: false,
-        createdAt: serverTimestamp(),
-      };
-
-      // 2. Add to orders
-      await addDoc(collection(db, "orders"), orderData);
-
-      // 3. Delete from uncompleted
-      await deleteDoc(doc(db, "uncompleted_orders", item.id));
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
 
       toast({ title: "Order Recovered!", description: "The draft has been moved to your main orders list." });
       router.push(`/${subdomain}/orders`);
@@ -174,11 +101,7 @@ export default function UncompletedOrderDetailPage() {
               <h1 className="text-xl sm:text-2xl font-headline font-black tracking-tight text-slate-900 uppercase truncate">Abandoned Draft</h1>
             </div>
             <p className="text-muted-foreground text-[10px] sm:text-xs font-mono flex items-center gap-1.5 whitespace-nowrap">
-<<<<<<< HEAD
               <Clock className="w-3 h-3" /> Last Active: {new Date(item.updated_at || item.lastUpdated || 0).toLocaleString()}
-=======
-              <Clock className="w-3 h-3" /> Last Active: {item.lastUpdated?.toDate()?.toLocaleString()}
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
             </p>
           </div>
           <Badge className="ml-auto bg-amber-100 text-amber-700 border-none rounded-lg px-2 py-0.5 font-black text-[9px] tracking-widest uppercase shrink-0">DRAFT</Badge>
@@ -188,15 +111,8 @@ export default function UncompletedOrderDetailPage() {
           <Button variant="outline" className="rounded-xl h-10 text-[10px] sm:text-xs font-bold border-rose-100 text-rose-500 hover:bg-rose-50">
             <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Discard
           </Button>
-<<<<<<< HEAD
           <Button className="rounded-xl h-10 text-[10px] sm:text-xs font-black shadow-lg shadow-primary/20">
             <Mail className="w-3.5 h-3.5 mr-1.5" /> Send Reminder
-=======
-          <Button className="rounded-xl h-10 text-[10px] sm:text-xs font-black shadow-lg shadow-primary/20 bg-indigo-600 hover:bg-indigo-700 text-white" asChild>
-            <a href={`tel:${item.customer?.phone || ''}`}>
-              <Phone className="w-3.5 h-3.5 mr-1.5" /> Call Customer
-            </a>
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
           </Button>
         </div>
       </div>
@@ -224,19 +140,11 @@ export default function UncompletedOrderDetailPage() {
                           </div>
                           <div className="min-w-0">
                              <h4 className="font-bold text-slate-900 text-xs sm:text-base truncate">{prod.name}</h4>
-<<<<<<< HEAD
                              <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Qty: {prod.quantity} × ${prod.price}</p>
                           </div>
                        </div>
                        <div className="text-right shrink-0 ml-4">
                           <p className="font-black text-slate-900 text-sm sm:text-lg">${(prod.price * prod.quantity).toFixed(2)}</p>
-=======
-                             <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Qty: {prod.quantity} × {getCurrencySymbol(currency)}{prod.price}</p>
-                          </div>
-                       </div>
-                       <div className="text-right shrink-0 ml-4">
-                          <p className="font-black text-slate-900 text-sm sm:text-lg">{getCurrencySymbol(currency)}{(prod.price * prod.quantity).toFixed(2)}</p>
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
                        </div>
                     </div>
                   ))}
@@ -245,28 +153,16 @@ export default function UncompletedOrderDetailPage() {
                <div className="p-4 sm:p-8 bg-slate-50/30 border-t flex flex-col items-end gap-1.5 sm:gap-2">
                   <div className="flex justify-between w-full max-w-[200px] text-[10px] sm:text-sm font-medium text-slate-400">
                      <span>Subtotal</span>
-<<<<<<< HEAD
                      <span>${item.total?.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between w-full max-w-[200px] text-[10px] sm:text-sm font-medium text-emerald-600">
                      <span className="truncate pr-2">Est. Shipping ({item.shipping?.name || 'Free'})</span>
                      <span>{item.shipping?.cost > 0 ? `$${item.shipping.cost.toFixed(2)}` : 'FREE'}</span>
-=======
-                     <span>{getCurrencySymbol(currency)}{item.total?.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between w-full max-w-[200px] text-[10px] sm:text-sm font-medium text-emerald-600">
-                     <span className="truncate pr-2">Est. Shipping ({item.shipping?.name || 'Free'})</span>
-                     <span>{item.shipping?.cost > 0 ? `${getCurrencySymbol(currency)}${item.shipping.cost.toFixed(2)}` : 'FREE'}</span>
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
                   </div>
                   <Separator className="w-full max-w-[200px] my-1 sm:my-2 bg-border/40" />
                   <div className="flex justify-between w-full max-w-[240px] text-lg sm:text-2xl font-black text-primary">
                      <span className="text-[10px] sm:text-sm pt-1.5 sm:pt-2 text-slate-900">EST. TOTAL</span>
-<<<<<<< HEAD
                      <span>${item.total?.toFixed(2)}</span>
-=======
-                     <span>{getCurrencySymbol(currency)}{item.total?.toFixed(2)}</span>
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
                   </div>
                </div>
             </CardContent>
@@ -313,11 +209,7 @@ export default function UncompletedOrderDetailPage() {
                     </Button>
                   </div>
 
-<<<<<<< HEAD
                   <div className="space-y-4 sm:space-y-6">
-=======
-                 <div className="space-y-4 sm:space-y-6">
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
                     <div className="flex items-center justify-between group">
                        <div className="flex items-center gap-3 sm:gap-4">
                           <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary/5 rounded-lg sm:rounded-xl flex items-center justify-center text-primary shrink-0 transition-all group-hover:bg-primary group-hover:text-white">
@@ -329,19 +221,11 @@ export default function UncompletedOrderDetailPage() {
                           </div>
                        </div>
                        {item.customer?.phone && (
-<<<<<<< HEAD
                           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-primary hover:bg-primary/10" asChild>
                              <a href={`tel:${item.customer.phone}`}>
                                 <Phone className="w-4 h-4 fill-primary text-primary" />
                              </a>
                           </Button>
-=======
-                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-primary hover:bg-primary/10" asChild>
-                            <a href={`tel:${item.customer.phone}`}>
-                               <Phone className="w-4 h-4 fill-primary text-primary" />
-                            </a>
-                         </Button>
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
                        )}
                     </div>
 
@@ -364,41 +248,22 @@ export default function UncompletedOrderDetailPage() {
                           <p className="text-xs sm:text-sm font-bold leading-relaxed line-clamp-2">{item.customer?.address || "Incomplete Address"}</p>
                        </div>
                     </div>
-<<<<<<< HEAD
                   </div>
 
                   <Button variant="secondary" className="w-full h-11 sm:h-12 rounded-xl sm:rounded-2xl font-bold text-[10px] sm:text-xs uppercase tracking-widest gap-2 bg-slate-50 hover:bg-slate-100">
                      <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Contact Directly
                   </Button>
                </CardContent>
-=======
-                 </div>
-
-                 <Button variant="secondary" className="w-full h-11 sm:h-12 rounded-xl sm:rounded-2xl font-bold text-[10px] sm:text-xs uppercase tracking-widest gap-2 bg-slate-50 hover:bg-slate-100" asChild>
-                    <a href={`mailto:${item.customer?.email || ''}`}>
-                       <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Send Email
-                    </a>
-                 </Button>
-              </CardContent>
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
            </Card>
 
            {/* Quick Stats Card - Dynamic Tiering */}
            <Card className="rounded-[24px] sm:rounded-[40px] border-none bg-slate-900 text-white p-6 sm:p-8 space-y-4 sm:space-y-6 shadow-2xl shadow-slate-900/20">
               <div className="flex items-center gap-3">
-<<<<<<< HEAD
                  <div className="p-1.5 sm:p-2 bg-indigo-500 rounded-lg sm:rounded-xl"><DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white" /></div>
                  <h4 className="font-bold text-sm sm:text-lg uppercase tracking-tight">Recovery Value</h4>
               </div>
               <div className="space-y-0.5 sm:space-y-1">
                  <h2 className="text-3xl sm:text-5xl font-black text-indigo-400 tracking-tighter">${item.total?.toFixed(2)}</h2>
-=======
-                 <div className="p-1.5 sm:p-2 bg-indigo-500 rounded-lg sm:rounded-xl"><Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-white" /></div>
-                 <h4 className="font-bold text-sm sm:text-lg uppercase tracking-tight">Recovery Value</h4>
-              </div>
-              <div className="space-y-0.5 sm:space-y-1">
-                 <h2 className="text-3xl sm:text-5xl font-black text-indigo-400 tracking-tighter">{getCurrencySymbol(currency)}{item.total?.toFixed(2)}</h2>
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
                  <p className="text-slate-400 text-[10px] sm:text-xs font-medium">Potential revenue currently on hold.</p>
               </div>
               <Button 

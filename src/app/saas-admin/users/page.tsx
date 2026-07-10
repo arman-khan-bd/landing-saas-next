@@ -2,12 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-<<<<<<< HEAD
 import { useSupabaseClient } from "@/supabase";
-=======
-import { useFirestore } from "@/firebase/provider";
-import { collection, getDocs, query, orderBy, doc, updateDoc } from "firebase/firestore";
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";

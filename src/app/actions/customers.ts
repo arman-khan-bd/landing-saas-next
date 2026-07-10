@@ -1,7 +1,6 @@
 "use server";
 
-import { db } from "@/lib/firebase-server";
-import { collection, query, where, getDocs, doc, updateDoc, addDoc, serverTimestamp, arrayUnion, setDoc } from "firebase/firestore";
+import { getSupabaseServerClient } from "@/supabase/server";
 
 export async function syncCustomerData(orderData: any) {
   const { storeId, ownerId, customer } = orderData;
@@ -9,7 +8,7 @@ export async function syncCustomerData(orderData: any) {
 
   if (!phone) return;
 
-  // Standardize phone number to match checkout logic
+  // Standardize phone number
   let normalizedPhone = phone.replace(/\D/g, '');
   if (normalizedPhone.length === 11 && normalizedPhone.startsWith('0')) {
     normalizedPhone = '88' + normalizedPhone;
@@ -20,50 +19,73 @@ export async function syncCustomerData(orderData: any) {
   }
 
   try {
-    // Search for customer by phone number or email in this store
-    const customersRef = collection(db, "customers");
-    const phoneQ = query(customersRef, where("storeId", "==", storeId), where("phones", "array-contains", normalizedPhone));
-    const phoneSnap = await getDocs(phoneQ);
+    const supabase = await getSupabaseServerClient();
     
-    let existingDoc = null;
-    if (!phoneSnap.empty) {
-      existingDoc = phoneSnap.docs[0];
+    // Find customer by store_id and matching phone or email
+    let existingCustomer = null;
+    
+    const { data: phoneMatch } = await supabase
+      .from("customers")
+      .select("*")
+      .eq("store_id", storeId)
+      .contains("phones", [normalizedPhone])
+      .limit(1);
+
+    if (phoneMatch && phoneMatch.length > 0) {
+      existingCustomer = phoneMatch[0];
     } else if (email) {
-      const emailQ = query(customersRef, where("storeId", "==", storeId), where("emails", "array-contains", email));
-      const emailSnap = await getDocs(emailQ);
-      if (!emailSnap.empty) existingDoc = emailSnap.docs[0];
+      const { data: emailMatch } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("store_id", storeId)
+        .contains("emails", [email])
+        .limit(1);
+      if (emailMatch && emailMatch.length > 0) {
+        existingCustomer = emailMatch[0];
+      }
     }
 
-    if (existingDoc) {
-      // Update existing customer with latest data
-      const updatePayload: any = {
-        fullName: customer.fullName || existingDoc.data().fullName || "Anonymous",
-        primaryPhone: normalizedPhone,
-        primaryEmail: email || existingDoc.data().primaryEmail,
-        primaryAddress: address || existingDoc.data().primaryAddress,
-        phones: arrayUnion(normalizedPhone),
-        lastActive: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+    if (existingCustomer) {
+      // Update existing customer
+      const phones = Array.from(new Set([...(existingCustomer.phones || []), normalizedPhone]));
+      const emails = email ? Array.from(new Set([...(existingCustomer.emails || []), email])) : (existingCustomer.emails || []);
+      const addresses = address ? Array.from(new Set([...(existingCustomer.addresses || []), address])) : (existingCustomer.addresses || []);
+      const ips = ip ? Array.from(new Set([...(existingCustomer.ips || []), ip])) : (existingCustomer.ips || []);
+      const names = customer.fullName ? Array.from(new Set([...(existingCustomer.names || []), customer.fullName])) : (existingCustomer.names || []);
+
+      const updatePayload = {
+        full_name: customer.fullName || existingCustomer.full_name || "Anonymous",
+        primary_phone: normalizedPhone,
+        primary_email: email || existingCustomer.primary_email,
+        primary_address: address || existingCustomer.primary_address,
+        phones,
+        emails,
+        addresses,
+        ips,
+        names,
+        last_active: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
-      if (customer.fullName) updatePayload.names = arrayUnion(customer.fullName);
-      
-      if (email) updatePayload.emails = arrayUnion(email);
-      if (address) updatePayload.addresses = arrayUnion(address);
-      if (ip) updatePayload.ips = arrayUnion(ip);
+      const { data: updatedRecord, error } = await supabase
+        .from("customers")
+        .update(updatePayload)
+        .eq("id", existingCustomer.id)
+        .select()
+        .single();
 
-      await updateDoc(doc(db, "customers", existingDoc.id), updatePayload);
-      return existingDoc.id;
+      if (error) throw error;
+      return updatedRecord.id;
     } else {
       // Create new customer
       const newCustomer = {
-        storeId,
-        ownerId,
-        fullName: customer.fullName || "Anonymous",
+        store_id: storeId,
+        owner_id: ownerId,
+        full_name: customer.fullName || "Anonymous",
         names: customer.fullName ? [customer.fullName] : ["Anonymous"],
-        primaryPhone: normalizedPhone,
-        primaryEmail: email || "",
-        primaryAddress: address || "",
+        primary_phone: normalizedPhone,
+        primary_email: email || "",
+        primary_address: address || "",
         phones: [normalizedPhone],
         emails: email ? [email] : [],
         addresses: address ? [address] : [],
@@ -73,13 +95,20 @@ export async function syncCustomerData(orderData: any) {
           emailBlocked: false,
           ipBlocked: false
         },
-        createdAt: serverTimestamp(),
-        lastActive: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        notes: ""
+        notes: "",
+        last_active: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created_at: new Date().toISOString()
       };
-      const docRef = await addDoc(collection(db, "customers"), newCustomer);
-      return docRef.id;
+
+      const { data: insertedRecord, error } = await supabase
+        .from("customers")
+        .insert(newCustomer)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return insertedRecord.id;
     }
   } catch (error) {
     console.error("Error syncing customer data:", error);
@@ -88,9 +117,13 @@ export async function syncCustomerData(orderData: any) {
 
 export async function getCustomerStats(storeId: string) {
   try {
-    const q = query(collection(db, "customers"), where("storeId", "==", storeId));
-    const snap = await getDocs(q);
-    return snap.docs.length;
+    const supabase = await getSupabaseServerClient();
+    const { count, error } = await supabase
+      .from("customers")
+      .select("*", { count: 'exact', head: true })
+      .eq("store_id", storeId);
+    if (error) throw error;
+    return count || 0;
   } catch (error) {
     return 0;
   }
@@ -98,11 +131,29 @@ export async function getCustomerStats(storeId: string) {
 
 export async function updateCustomerStatus(customerId: string, statusType: 'phoneBlocked' | 'emailBlocked' | 'ipBlocked', value: boolean) {
   try {
-    const customerRef = doc(db, "customers", customerId);
-    await updateDoc(customerRef, {
-      [`status.${statusType}`]: value,
-      updatedAt: serverTimestamp()
-    });
+    const supabase = await getSupabaseServerClient();
+    
+    // Fetch existing status first
+    const { data: customer, error: fetchError } = await supabase
+      .from("customers")
+      .select("status")
+      .eq("id", customerId)
+      .single();
+    
+    if (fetchError) throw fetchError;
+    
+    const currentStatus = customer?.status || {};
+    const updatedStatus = { ...currentStatus, [statusType]: value };
+
+    const { error } = await supabase
+      .from("customers")
+      .update({
+        status: updatedStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", customerId);
+
+    if (error) throw error;
     return { success: true };
   } catch (error) {
     return { success: false, error: "Failed to update status" };

@@ -89,30 +89,7 @@ export interface PageStyle {
   paddingBottom?: number;
   themeId?: string;
   accentColor?: string;
-<<<<<<< HEAD
   backgroundTexture?: string;
   backgroundOpacity?: number;
   backgroundSize?: string;
-=======
-  showNavbar?: boolean;
-  showFooter?: boolean;
-  navbarSettings?: {
-    logoText?: string;
-    logoUrl?: string;
-    items?: { id: string, label: string, link: string }[];
-    ctaText?: string;
-    ctaLink?: string;
-  };
-  footerSettings?: {
-    text?: string;
-    showSocials?: boolean;
-    copyright?: string;
-  };
-  seoSettings?: {
-    title?: string;
-    description?: string;
-    keywords?: string;
-    ogImage?: string;
-  };
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
 }

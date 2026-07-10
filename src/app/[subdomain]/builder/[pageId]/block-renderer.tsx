@@ -4,12 +4,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { cn, getTenantPath, getCurrencySymbol } from "@/lib/utils";
 
-<<<<<<< HEAD
 import { useSupabaseClient } from "@/supabase";
-=======
-import { useFirestore } from "@/firebase/provider";
-import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "firebase/firestore";
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
 import { useToast } from "@/hooks/use-toast";
 import * as LucideIcons from "lucide-react";
 import { 
@@ -559,7 +554,6 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
   );
 }
 
-<<<<<<< HEAD
 function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { products: any[], store: any, isOrganic: boolean, isTraditional: boolean }) {
   const { toast } = useToast();
   const supabase = useSupabaseClient();
@@ -829,5 +823,3 @@ function LandingPageOrderForm({ products, store, isOrganic, isTraditional }: { p
     </Card>
   );
 }
-=======
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58

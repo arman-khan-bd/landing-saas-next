@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 "use client";
 
 import { useEffect, useState } from "react";
@@ -122,67 +121,3 @@ export default function Storefront() {
 const Layers = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m2.6 12.14 8.58 3.9a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83l-8.58 3.9a2 2 0 0 1-1.66 0l-8.58-3.9a1 1 0 0 0 0 1.83Z"/><path d="m2.6 16.14 8.58 3.9a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83l-8.58 3.9a2 2 0 0 1-1.66 0l-8.58-3.9a1 1 0 0 0 0 1.83Z"/></svg>
 );
-=======
-import { Metadata, ResolvingMetadata } from "next";
-import { getStoreBySubdomain, getPageBySlug, getProductsByStore, getCategoriesByStore } from "@/lib/store-server";
-import StorefrontClient from "./StorefrontClient";
-
-type Props = {
-  params: Promise<{ subdomain: string }>;
-};
-
-export async function generateMetadata(
-  { params }: Props,
-  parent: ResolvingMetadata
-): Promise<Metadata> {
-  const { subdomain } = await params;
-  const store = await getStoreBySubdomain(subdomain);
-
-  if (!store) return { title: "Store Not Found" };
-
-  const title = store.homePageTitle || store.name || subdomain;
-  const description = store.description || `Welcome to ${title}. Discover our curated collection of premium products.`;
-  const logo = store.logo || store.homeBanner || "";
-
-  return {
-    title: title,
-    description: description,
-    openGraph: {
-      title: title,
-      description: description,
-      images: logo ? [logo] : [],
-      type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: title,
-      description: description,
-      images: logo ? [logo] : [],
-    },
-  };
-}
-
-export default async function StorefrontPage({ params }: Props) {
-  const { subdomain } = await params;
-  const store = await getStoreBySubdomain(subdomain);
-
-  if (!store) return null;
-
-  // Pre-fetch page, products, and categories in parallel on the server
-  const [indexPage, products, categories] = await Promise.all([
-    getPageBySlug(store.id, "index"),
-    getProductsByStore(store.id),
-    getCategoriesByStore(store.id)
-  ]);
-
-  return (
-    <StorefrontClient
-      initialStore={store}
-      initialSubdomain={subdomain}
-      initialPage={indexPage}
-      initialProducts={products}
-      initialCategories={categories}
-    />
-  );
-}
->>>>>>> bfa58f5699b72caf9444a186786e1692d2b46c58
