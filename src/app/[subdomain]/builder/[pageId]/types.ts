@@ -8,6 +8,7 @@ export type BlockType =
   | "link"
   | "carousel"
   | "checked-list"
+  | "package-card"
   | "product-order-form"
   | "row"
   | "card"
@@ -67,6 +68,7 @@ export interface Block {
     backgroundPosition?: string;
     backgroundTexture?: string;
     backgroundOpacity?: number;
+    opacity?: number;
     iconName?: string;
     iconColor?: string;
     iconSize?: number;

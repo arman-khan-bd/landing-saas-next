@@ -297,7 +297,6 @@ export function BlockRenderer({ block, products, store, isPreview = false, viewM
     borderColor: block.style?.borderColor,
     borderRadius: block.style?.borderRadius ? `${block.style.borderRadius}px` : undefined,
     ...(block.style?.columnSpan !== undefined && { gridColumn: `span ${block.style.columnSpan}` }),
-    opacity: block.style?.opacity ?? 1,
     display: block.style?.display || undefined,
     ...(block.style?.maxWidth && { maxWidth: block.style.maxWidth }),
     ...(block.style?.alignment === 'center' && { marginLeft: 'auto', marginRight: 'auto' }),
