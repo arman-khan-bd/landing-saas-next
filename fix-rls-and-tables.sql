@@ -150,7 +150,7 @@ ON products FOR DELETE
 TO authenticated 
 USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = products.store_id AND (stores.owner_id::text = auth.uid()::text OR stores.owner_id = auth.uid())));
 
--- 11. Add home branding and promotion columns to stores table if they don't exist
+-- 11. Add home branding, promotion, and settings columns to stores table if they don't exist
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS home_page_title TEXT;
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS "homePageTitle" TEXT;
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS home_banner TEXT;
@@ -165,4 +165,33 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS product_display_type TEXT DEFAULT 'n
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS "productDisplayType" TEXT DEFAULT 'new_to_old';
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS selected_products JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS "selectedProducts" JSONB DEFAULT '[]'::jsonb;
+
+-- 12. Add store identity and configuration settings columns
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS logo TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS favicon TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS selected_theme TEXT DEFAULT 'modern';
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS "selectedTheme" TEXT DEFAULT 'modern';
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS google_analytics_id TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS "googleAnalyticsId" TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS facebook_pixel_id TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS "facebookPixelId" TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS google_map_embed TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS "googleMapEmbed" TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS working_days TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS "workingDays" TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS payment_settings JSONB DEFAULT '{"cod": true, "manualEnabled": false, "manualMethods": []}'::jsonb;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS "paymentSettings" JSONB DEFAULT '{"cod": true, "manualEnabled": false, "manualMethods": []}'::jsonb;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS seo JSONB DEFAULT '{"metaImage": "", "keywords": "", "description": ""}'::jsonb;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS shop_config JSONB DEFAULT '{"showHeader": true, "stickyHeader": true}'::jsonb;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS "shopConfig" JSONB DEFAULT '{"showHeader": true, "stickyHeader": true}'::jsonb;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{"facebook": "", "twitter": "", "instagram": "", "youtube": ""}'::jsonb;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS "socialLinks" JSONB DEFAULT '{"facebook": "", "twitter": "", "instagram": "", "youtube": ""}'::jsonb;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS manage_password TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS "managePassword" TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS shipping_settings JSONB DEFAULT '{"enabled": false, "methods": [{"id": "1", "name": "Standard Shipping", "cost": 0}]}'::jsonb;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS "shippingSettings" JSONB DEFAULT '{"enabled": false, "methods": [{"id": "1", "name": "Standard Shipping", "cost": 0}]}'::jsonb;
+
 
