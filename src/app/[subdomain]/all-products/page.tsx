@@ -166,6 +166,10 @@ export default function AllProductsPage() {
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
         
+        [data-radix-portal] {
+          z-index: 99999 !important;
+          position: relative;
+        }
         .store-body {
           font-family: 'Poppins', 'Hind Siliguri', sans-serif;
           max-width: 1440px;

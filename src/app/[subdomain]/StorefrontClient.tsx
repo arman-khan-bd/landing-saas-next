@@ -294,6 +294,10 @@ export default function Storefront({
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
         
+        [data-radix-portal] {
+          z-index: 99999 !important;
+          position: relative;
+        }
         .store-body {
           font-family: 'Poppins', 'Hind Siliguri', sans-serif;
           max-width: 1440px;
@@ -473,13 +477,15 @@ export default function Storefront({
         .cat-nav {
           display: flex;
           align-items: center;
-          gap: 6px;
+          flex-wrap: wrap;
+          gap: 8px;
           padding: 8px 0 10px;
-          overflow-x: auto;
           border-top: 1px solid var(--gray-100);
-          scrollbar-width: none;
+          position: relative;
         }
-        .cat-nav::-webkit-scrollbar { display: none; }
+        .cat-nav-item {
+          position: relative;
+        }
         .cat-pill {
           display: flex; align-items: center; gap: 6px;
           flex-shrink: 0;
@@ -499,6 +505,39 @@ export default function Storefront({
           border-color: var(--green);
         }
         .cat-pill:hover i { color: var(--white); }
+        
+        .cat-dropdown {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          z-index: 100;
+          background: var(--white);
+          min-width: 180px;
+          border-radius: var(--radius-md);
+          box-shadow: var(--shadow-md);
+          border: 1.5px solid var(--gray-100);
+          padding: 6px 0;
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(8px);
+          transition: opacity .22s ease, transform .22s ease, visibility .22s ease;
+        }
+        .cat-nav-item:hover .cat-dropdown {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(2px);
+        }
+        .cat-dropdown-item {
+          display: block;
+          padding: 8px 16px;
+          font-size: 12px;
+          color: var(--gray-600);
+          transition: background var(--transition), color var(--transition);
+        }
+        .cat-dropdown-item:hover {
+          background: var(--green-pale);
+          color: var(--green);
+        }
         .hero-section { padding: 16px 0; }
         .hero-grid {
           display: grid;
@@ -1080,13 +1119,32 @@ export default function Storefront({
 
             case "category_nav":
               return (
-                <div key={section.id} className="container">
+                <div key={section.id} className="container" style={{ position: "relative", zIndex: 40 }}>
                   <nav className="cat-nav">
-                    {categories.filter(c => !c.parentId && !c.categoryId).map((cat) => (
-                      <Link key={cat.id} href={`${getTenantPath(subdomain, "/all-products")}?category=${cat.id}`} className="cat-pill">
-                        <i className="fa-solid fa-seedling"></i> {cat.name}
-                      </Link>
-                    ))}
+                    {categories.filter(c => !c.isSub).map((cat) => {
+                      const subs = categories.filter(sub => sub.isSub && sub.category_id === cat.id);
+                      return (
+                        <div key={cat.id} className="cat-nav-item">
+                          <Link href={`${getTenantPath(subdomain, "/all-products")}?category=${cat.id}`} className="cat-pill">
+                            <i className="fa-solid fa-seedling"></i> {cat.name}
+                            {subs.length > 0 && <i className="fa-solid fa-chevron-down text-[9px] ml-1 opacity-70"></i>}
+                          </Link>
+                          {subs.length > 0 && (
+                            <div className="cat-dropdown">
+                              {subs.map((sub) => (
+                                <Link 
+                                  key={sub.id} 
+                                  href={`${getTenantPath(subdomain, "/all-products")}?category=${cat.id}&subCategory=${sub.id}`} 
+                                  className="cat-dropdown-item"
+                                >
+                                  {sub.name}
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </nav>
                 </div>
               );
@@ -1188,7 +1246,7 @@ export default function Storefront({
                       </Link>
                     </div>
                     <div className="cat-grid">
-                      {categories.filter(c => !c.parentId && !c.categoryId).map((cat, idx) => {
+                      {categories.filter(c => !c.isSub).map((cat, idx) => {
                         const bgClasses = ["c-green", "c-orange", "c-red", "c-blue", "c-yellow", "c-amber", "c-purple", "c-teal", "c-pink", "c-lime"];
                         const bgClass = bgClasses[idx % bgClasses.length];
                         return (
