@@ -2,10 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-"use client";
-
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import { useSupabaseClient } from "@/supabase";
 import { getSubdomain } from "@/lib/subdomain";
 import { Button } from "@/components/ui/button";
