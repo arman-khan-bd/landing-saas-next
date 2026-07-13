@@ -18,9 +18,7 @@ const nextConfig: NextConfig = {
     ],
   },
   // Required for @cloudflare/next-on-pages compatibility
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js', '@supabase/ssr'],
-  },
+  serverExternalPackages: ['@supabase/supabase-js', '@supabase/ssr'],
 };
 
 export default nextConfig;
