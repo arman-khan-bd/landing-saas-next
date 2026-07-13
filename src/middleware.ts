@@ -11,12 +11,10 @@ export default async function middleware(req: NextRequest) {
 
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
 
-  // 1. Root domain handling (accept either ihut.shop or the configured rootDomain)
+  // 1. Root domain handling
   const isRootDomain = 
     currentHost === rootDomain || 
     currentHost === `www.${rootDomain}` ||
-    currentHost === "ihut.shop" ||
-    currentHost === "www.ihut.shop" ||
     currentHost === "localhost" ||
     currentHost === "127.0.0.1";
 
@@ -31,11 +29,9 @@ export default async function middleware(req: NextRequest) {
   if (currentHost.endsWith(`.${rootDomain}`)) {
     // e.g. mystore.ihut.shop → subdomain = "mystore"
     subdomain = currentHost.replace(`.${rootDomain}`, "");
-  } else if (currentHost.endsWith(".ihut.shop")) {
-    subdomain = currentHost.replace(".ihut.shop", "");
   } else if (currentHost.includes(".localhost")) {
     subdomain = currentHost.replace(".localhost", "");
-  } else if (!currentHost.includes(rootDomain) && !currentHost.includes("ihut.shop") && !currentHost.includes("vercel.app")) {
+  } else if (!currentHost.includes(rootDomain) && !currentHost.includes("vercel.app")) {
     // Custom domain (e.g. dokanbd.shop) — use the full hostname as the tenant key
     subdomain = currentHost;
     isCustomDomain = true;
