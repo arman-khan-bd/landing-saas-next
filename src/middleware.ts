@@ -24,13 +24,17 @@ export default async function middleware(req: NextRequest) {
 
   // 2. Subdomain extraction
   let subdomain = "";
+  let isCustomDomain = false;
+
   if (currentHost.endsWith(`.${rootDomain}`)) {
+    // e.g. mystore.ihut.shop → subdomain = "mystore"
     subdomain = currentHost.replace(`.${rootDomain}`, "");
   } else if (currentHost.includes(".localhost")) {
     subdomain = currentHost.replace(".localhost", "");
   } else if (!currentHost.includes(rootDomain) && !currentHost.includes("vercel.app")) {
-    // Handling for custom domains (e.g., myshop.com)
-    subdomain = currentHost.split(".")[0];
+    // Custom domain (e.g. dokanbd.shop) — use the full hostname as the tenant key
+    subdomain = currentHost;
+    isCustomDomain = true;
   }
 
   if (!subdomain || subdomain === "www") {
@@ -40,7 +44,6 @@ export default async function middleware(req: NextRequest) {
   // 3. Auth Redirection: If user is on a subdomain and requests /auth, send them to the root domain auth
   if (url.pathname === "/auth") {
     const authUrl = new URL("/auth", `https://${rootDomain}`);
-    // Maintain query params like planId
     authUrl.search = url.search;
     return NextResponse.redirect(authUrl);
   }
@@ -59,8 +62,11 @@ export default async function middleware(req: NextRequest) {
   
   const response = NextResponse.rewrite(new URL(rewritePath, req.url));
   
-  // Add a debug header for development
+  // Pass tenant info via headers for server components
   response.headers.set("x-subdomain-tenant", subdomain);
+  if (isCustomDomain) {
+    response.headers.set("x-custom-domain", currentHost);
+  }
   
   return response;
 }

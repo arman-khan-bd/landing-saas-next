@@ -35,11 +35,30 @@ export default function Storefront() {
   const fetchStoreAndPage = async () => {
     setLoading(true);
     try {
-      const { data: storeData } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("subdomain", subdomain)
-        .single();
+      // Determine if this is a custom domain (e.g., dokanbd.shop) or a subdomain (e.g., mystore)
+      const isCustomDomain = subdomain.includes(".");
+      
+      let storeQuery = supabase.from("stores").select("*");
+      if (isCustomDomain) {
+        // Custom domain: try custom_domain field first, then fall back to subdomain match
+        const { data: byCustomDomain } = await supabase
+          .from("stores")
+          .select("*")
+          .eq("custom_domain", subdomain)
+          .maybeSingle();
+        
+        if (byCustomDomain) {
+          storeQuery = supabase.from("stores").select("*").eq("custom_domain", subdomain);
+        } else {
+          // Fallback: try the first part before the dot as subdomain
+          const subPart = subdomain.split(".")[0];
+          storeQuery = supabase.from("stores").select("*").eq("subdomain", subPart);
+        }
+      } else {
+        storeQuery = supabase.from("stores").select("*").eq("subdomain", subdomain);
+      }
+
+      const { data: storeData } = await storeQuery.single();
 
       if (!storeData) {
         setStore(null);

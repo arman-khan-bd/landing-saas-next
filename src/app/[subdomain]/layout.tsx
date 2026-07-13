@@ -129,11 +129,39 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       const role = userRow?.role || "user";
       setUserRole(role);
 
-      const { data: storeRow, error } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("subdomain", subdomain)
-        .single();
+      // Handle custom domain vs subdomain lookup
+      const isCustomDomain = subdomain.includes(".");
+      let storeRow: any = null;
+      let error: any = null;
+
+      if (isCustomDomain) {
+        const res = await supabase
+          .from("stores")
+          .select("*")
+          .eq("custom_domain", subdomain)
+          .maybeSingle();
+        if (res.data) {
+          storeRow = res.data;
+        } else {
+          // Fallback to first part as subdomain
+          const subPart = subdomain.split(".")[0];
+          const res2 = await supabase
+            .from("stores")
+            .select("*")
+            .eq("subdomain", subPart)
+            .single();
+          storeRow = res2.data;
+          error = res2.error;
+        }
+      } else {
+        const res = await supabase
+          .from("stores")
+          .select("*")
+          .eq("subdomain", subdomain)
+          .single();
+        storeRow = res.data;
+        error = res.error;
+      }
 
       if (error || !storeRow) {
         setLoading(false);

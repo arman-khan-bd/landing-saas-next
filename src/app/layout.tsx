@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { SupabaseClientProvider } from "@/supabase";
+import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'edge';
 
@@ -14,7 +15,6 @@ export async function generateMetadata(): Promise<Metadata> {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (supabaseUrl && supabaseKey) {
-      const { createClient } = await import('@supabase/supabase-js');
       const supabase = createClient(supabaseUrl, supabaseKey);
       const { data } = await supabase
         .from('platform_settings')
@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
       }
     }
   } catch (e) {
-    console.error("Error loading layout metadata:", e);
+    // Graceful fallback — metadata fetch failed (expected in some edge/SSG contexts)
   }
   
   return {
