@@ -11,11 +11,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { CloudinaryUpload } from "@/components/cloudinary-upload";
-import { Loader2, Save, Layout, ShoppingBag, Search, Zap } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Save, Layout, ArrowUp, ArrowDown, Settings, Eye, HelpCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+const DEFAULT_SECTIONS = [
+  { id: "announcement_bar", title: "Announcement Bar", enabled: true, config: { text: "নিত্যপ্রয়োজনীয় পণ্য নিয়ে আমরা আছি আপনার পাশে। দেশজুড়ে ক্যাশ অন ডেলিভারি!" } },
+  { id: "header", title: "Sticky Header", enabled: true, config: { logoTextBn: "ঘরোয়া বাজার", logoTextEn: "PURE & TRUSTED" } },
+  { id: "category_nav", title: "Category Navigation Pills", enabled: true, config: {} },
+  { id: "hero", title: "Hero Grid Banners", enabled: true, config: { badgeText: "100% PURE & NATURAL", title: "খাটি ও নিরাপদ পন্যের সমাহার", subtitle: "সুস্বাস্থ্যই আমাদের মূল লক্ষ্য। সরাসরি খামার থেকে আপনাদের হাতে পৌঁছে দিচ্ছি বিশুদ্ধ খাবার।", buttonText: "পণ্যসমূহ দেখুন", buttonLink: "#products", image: "", sideBanner1Label: "SPECIAL OFFER", sideBanner1Title: "মধু ও অর্গানিক তেল সংগ্রহ করুন", sideBanner1ButtonText: "অর্ডার করুন", sideBanner1Link: "#", sideBanner1Image: "", sideBanner2Label: "POPULAR CATEGORY", sideBanner2Title: "প্রাকৃতিক উপাদানে তৈরি হেলথ পাউডার", sideBanner2ButtonText: "অর্ডার করুন", sideBanner2Link: "#", sideBanner2Image: "" } },
+  { id: "trust_strip", title: "Trust Benefits Strip", enabled: true, config: {} },
+  { id: "category_grid", title: "Category Icons Grid", enabled: true, config: {} },
+  { id: "flash_sale", title: "Flash Sale Countdown", enabled: true, config: { title: "ধামাকা ফ্ল্যাশ সেল!", subtitle: "সীমিত সময়ের অফার, দ্রুত সংগ্রহ করুন!", countdownDate: "2026-07-20T23:59:59", buttonText: "অফার দেখুন" } },
+  { id: "products_grid", title: "Featured Products Grid", enabled: true, config: { title: "আমাদের জনপ্রিয় পণ্যসমূহ", subtitle: "গ্রাহকদের পছন্দের তালিকার শীর্ষে থাকা সেরা পণ্যসমূহ সংগ্রহ করুন।" } },
+  { id: "promo_banners", title: "Promo Banners Grid (3 Cols)", enabled: true, config: { banner1Title: "খাটি ঘি ও মধু কিনুন", banner1Subtitle: "স্পেশাল ডিসকাউন্ট", banner1Image: "", banner2Title: "ঘরোয়া মশলা সামগ্রী", banner2Subtitle: "শতভাগ নিরাপদ", banner2Image: "", banner3Title: "অর্গানিক স্কিন কেয়ার", banner3Subtitle: "প্রাকৃতিক সৌন্দর্য", banner3Image: "" } },
+  { id: "app_download", title: "App Download Banner", enabled: true, config: { title: "ঘরোয়া বাজার অ্যাপ ডাউনলোড করুন", subtitle: "সহজে অর্ডার করতে এবং নিয়মিত আপডেট পেতে আমাদের মোবাইল অ্যাপটি ডাউনলোড করুন।", image: "" } },
+  { id: "testimonials", title: "Customer Testimonials", enabled: true, config: {} },
+  { id: "footer", title: "Footer & Newsletter", enabled: true, config: { description: "ঘরোয়া বাজার আপনাদের জন্য নিয়ে এসেছে সম্পূর্ণ খাটি ও রাসায়নিক মুক্ত নিত্যপ্রয়োজনীয় খাদ্যপণ্য। আমাদের লক্ষ্য সবার কাছে ভেজালহীন খাদ্য পৌঁছে দেওয়া।" } }
+];
 
 export default function HomePageManager() {
   const { subdomain } = useParams();
@@ -24,52 +36,34 @@ export default function HomePageManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [storeId, setStoreId] = useState("");
-  const [homeData, setHomeData] = useState<any>({
-    homePageTitle: "",
-    description: "",
-    homeBanner: "",
-    offerBanner: false,
-    offerText: "",
-    offerLink: "",
-    productDisplayType: "new_to_old",
-    selectedProducts: []
-  });
-  const [products, setProducts] = useState<any[]>([]);
-  const [productSearch, setProductSearch] = useState("");
-
-  const fetchProducts = async (sId: string) => {
-    try {
-      const { data } = await supabase
-        .from("products")
-        .select("*")
-        .eq("store_id", sId);
-      setProducts(data ?? []);
-    } catch (error) {
-      console.error("Products Fetch Error:", error);
-    }
-  };
+  const [sections, setSections] = useState<any[]>(DEFAULT_SECTIONS);
+  const [activeSectionId, setActiveSectionId] = useState<string>("announcement_bar");
 
   const fetchHomeData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("stores")
-        .select("*")
+        .select("id, home_sections")
         .eq("subdomain", subdomain)
         .single();
       if (data) {
         setStoreId(data.id);
-        setHomeData({
-          homePageTitle: data.home_page_title || data.homePageTitle || "",
-          description: data.description || "",
-          homeBanner: data.home_banner || data.homeBanner || "",
-          offerBanner: data.offer_banner ?? data.offerBanner ?? false,
-          offerText: data.offer_text || data.offerText || "",
-          offerLink: data.offer_link || data.offerLink || "",
-          productDisplayType: data.product_display_type || data.productDisplayType || "new_to_old",
-          selectedProducts: data.selected_products || data.selectedProducts || []
-        });
-        await fetchProducts(data.id);
+        if (data.home_sections && Array.isArray(data.home_sections) && data.home_sections.length > 0) {
+          // Merge fetched config to match DEFAULT_SECTIONS format in case new sections were added
+          const merged = DEFAULT_SECTIONS.map(def => {
+            const fetched = data.home_sections.find((s: any) => s.id === def.id);
+            return fetched ? { ...def, ...fetched, config: { ...def.config, ...fetched.config } } : def;
+          });
+          
+          // Re-sort to match fetched order
+          const ordered = [...merged].sort((a, b) => {
+            const indexA = data.home_sections.findIndex((s: any) => s.id === a.id);
+            const indexB = data.home_sections.findIndex((s: any) => s.id === b.id);
+            return (indexA === -1 ? 99 : indexA) - (indexB === -1 ? 99 : indexB);
+          });
+          setSections(ordered);
+        }
       }
     } catch (error) {
       console.error(error);
@@ -89,25 +83,11 @@ export default function HomePageManager() {
       await supabase
         .from("stores")
         .update({
-          homePageTitle: homeData.homePageTitle,
-          home_page_title: homeData.homePageTitle,
-          description: homeData.description,
-          homeBanner: homeData.homeBanner,
-          home_banner: homeData.homeBanner,
-          offerBanner: homeData.offerBanner,
-          offer_banner: homeData.offerBanner,
-          offerText: homeData.offerText,
-          offer_text: homeData.offerText,
-          offerLink: homeData.offerLink,
-          offer_link: homeData.offerLink,
-          productDisplayType: homeData.productDisplayType,
-          product_display_type: homeData.productDisplayType,
-          selectedProducts: homeData.selectedProducts,
-          selected_products: homeData.selectedProducts,
+          home_sections: sections,
           updated_at: new Date().toISOString()
         })
         .eq("id", storeId);
-      toast({ title: "Home Page Updated", description: "Your branding changes are live." });
+      toast({ title: "Branding Grid Live!", description: "Home section configurations have been saved successfully." });
     } catch (error) {
       toast({ variant: "destructive", title: "Update Failed" });
     } finally {
@@ -115,221 +95,361 @@ export default function HomePageManager() {
     }
   };
 
+  const handleToggleSection = (id: string, checked: boolean) => {
+    setSections(prev => prev.map(s => s.id === id ? { ...s, enabled: checked } : s));
+  };
+
+  const moveSection = (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= sections.length) return;
+    
+    const newSections = [...sections];
+    const temp = newSections[index];
+    newSections[index] = newSections[targetIndex];
+    newSections[targetIndex] = temp;
+    setSections(newSections);
+  };
+
+  const updateActiveConfig = (key: string, value: any) => {
+    setSections(prev => prev.map(s => s.id === activeSectionId ? {
+      ...s,
+      config: { ...s.config, [key]: value }
+    } : s));
+  };
+
+  const activeSection = sections.find(s => s.id === activeSectionId);
+
   if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-20">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="max-w-6xl mx-auto space-y-8 pb-20">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-6">
         <div>
-          <h1 className="text-3xl font-headline font-bold">Home Page Manager</h1>
-          <p className="text-muted-foreground text-sm">Customize the first impression your customers see.</p>
+          <h1 className="text-3xl font-headline font-bold">Home Page Builder</h1>
+          <p className="text-muted-foreground text-sm">Design, order, and toggle layouts similar to Ghorerbazar storefronts.</p>
         </div>
         <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto rounded-xl h-12 px-8 shadow-lg shadow-primary/20 shrink-0">
           {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4" />}
-          Save Changes
+          Publish Storefront Layout
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          {/* Hero Section */}
-          <Card className="rounded-3xl border-border/50 shadow-sm overflow-hidden bg-white">
-            <CardHeader className="bg-muted/30 border-b p-8">
-               <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg"><Layout className="w-5 h-5 text-primary" /></div>
-                  <CardTitle className="text-xl">Hero Branding</CardTitle>
-               </div>
-               <CardDescription>Main title and welcome banner.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-8 space-y-6">
-               <div className="space-y-2">
-                 <Label>Welcome Title</Label>
-                 <Input 
-                   placeholder="e.g. Premium Gear for Pro Athletes" 
-                   value={homeData.homePageTitle} 
-                   onChange={(e) => setHomeData({...homeData, homePageTitle: e.target.value})}
-                   className="h-12 rounded-xl"
-                 />
-               </div>
-               <div className="space-y-2">
-                 <Label>Store Description / Subtitle</Label>
-                 <Textarea 
-                   placeholder="Briefly explain what makes your store special..." 
-                   className="rounded-xl min-h-[100px]"
-                   value={homeData.description}
-                   onChange={(e) => setHomeData({...homeData, description: e.target.value})}
-                 />
-               </div>
-               <div className="space-y-2">
-                 <Label>Hero Banner Image</Label>
-                 <CloudinaryUpload 
-                   value={homeData.homeBanner} 
-                   onUpload={(url) => setHomeData({...homeData, homeBanner: url})} 
-                   onRemove={() => setHomeData({...homeData, homeBanner: ""})} 
-                 />
-               </div>
-            </CardContent>
-          </Card>
-
-          {/* Offer Banner Section */}
-          <Card className="rounded-3xl border-border/50 shadow-sm overflow-hidden bg-white">
-            <CardHeader className="bg-muted/30 border-b p-8">
-               <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-accent/10 rounded-lg"><Zap className="w-5 h-5 text-accent" /></div>
-                    <CardTitle className="text-xl">Promo Banner</CardTitle>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Sidebar Layout Selector */}
+        <Card className="lg:col-span-4 rounded-3xl border-border/50 shadow-sm overflow-hidden bg-white">
+          <CardHeader className="bg-muted/30 border-b p-6">
+            <CardTitle className="text-lg font-headline font-bold flex items-center gap-2">
+              <Layout className="w-5 h-5 text-primary" /> Layout Matrix
+            </CardTitle>
+            <CardDescription className="text-xs">Toggle and order home components.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-4">
+            <ScrollArea className="h-[600px] pr-2">
+              <div className="space-y-2">
+                {sections.map((item, idx) => (
+                  <div 
+                    key={item.id} 
+                    className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
+                      activeSectionId === item.id 
+                        ? "bg-primary/5 border-primary/20" 
+                        : "hover:bg-slate-50 border-transparent"
+                    }`}
+                    onClick={() => setActiveSectionId(item.id)}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Switch 
+                        checked={item.enabled} 
+                        onCheckedChange={(val) => handleToggleSection(item.id, val)}
+                        onClick={(e) => e.stopPropagation()} // Prevent setting active item
+                      />
+                      <span className={`text-sm font-bold truncate ${item.enabled ? "text-slate-900" : "text-slate-400 line-through"}`}>
+                        {item.title}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-lg" 
+                        disabled={idx === 0}
+                        onClick={() => moveSection(idx, "up")}
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-lg" 
+                        disabled={idx === sections.length - 1}
+                        onClick={() => moveSection(idx, "down")}
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                  <Switch 
-                    checked={homeData.offerBanner} 
-                    onCheckedChange={(val) => setHomeData({...homeData, offerBanner: val})} 
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        {/* Right Configuration Panel */}
+        <Card className="lg:col-span-8 rounded-3xl border-border/50 shadow-sm overflow-hidden bg-white min-h-[600px]">
+          <CardHeader className="bg-muted/30 border-b p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg"><Settings className="w-5 h-5 text-primary" /></div>
+              <div>
+                <CardTitle className="text-xl font-bold">{activeSection?.title} Settings</CardTitle>
+                <CardDescription className="text-xs">Customize texts and parameters for this layout segment.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-8 space-y-6">
+            {activeSection && activeSection.enabled === false && (
+              <div className="bg-amber-50 text-amber-800 border border-amber-200/50 rounded-2xl p-4 flex gap-3 items-start text-sm">
+                <HelpCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Section Disabled</p>
+                  <p className="text-xs text-amber-700/80">This section is currently hidden. Turn on the switch in the sidebar to display it on the live storefront.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Custom fields per active section type */}
+            {activeSection?.id === "announcement_bar" && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Banner Announcement Text</Label>
+                  <Input 
+                    value={activeSection.config.text || ""} 
+                    onChange={(e) => updateActiveConfig("text", e.target.value)} 
+                    className="h-12 rounded-xl"
                   />
-               </div>
-               <CardDescription>A secondary strip to highlight flash sales or codes.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-8 space-y-6">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                </div>
+              </div>
+            )}
+
+            {activeSection?.id === "header" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Promo Text</Label>
+                    <Label>Logo Name (Bangla)</Label>
                     <Input 
-                      placeholder="e.g. Use code SPRING20 for 20% off!" 
-                      value={homeData.offerText} 
-                      onChange={(e) => setHomeData({...homeData, offerText: e.target.value})}
-                      disabled={!homeData.offerBanner}
+                      value={activeSection.config.logoTextBn || ""} 
+                      onChange={(e) => updateActiveConfig("logoTextBn", e.target.value)} 
                       className="h-12 rounded-xl"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Promo Link (Optional)</Label>
+                    <Label>Subtitle Logo (English)</Label>
                     <Input 
-                      placeholder="e.g. /all-products" 
-                      value={homeData.offerLink} 
-                      onChange={(e) => setHomeData({...homeData, offerLink: e.target.value})}
-                      disabled={!homeData.offerBanner}
+                      value={activeSection.config.logoTextEn || ""} 
+                      onChange={(e) => updateActiveConfig("logoTextEn", e.target.value)} 
                       className="h-12 rounded-xl"
                     />
                   </div>
                 </div>
-            </CardContent>
-          </Card>
-
-          {/* Product Manager Section */}
-          <Card className="rounded-3xl border-border/50 shadow-sm overflow-hidden bg-white">
-            <CardHeader className="bg-muted/30 border-b p-8">
-               <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-50 rounded-lg"><ShoppingBag className="w-5 h-5 text-emerald-600" /></div>
-                  <CardTitle className="text-xl">Home Page Products</CardTitle>
-               </div>
-               <CardDescription>Select how products are curated on your storefront.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-8 space-y-8">
-               <div className="space-y-4">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Display Strategy</Label>
-                  <Select 
-                    value={homeData.productDisplayType} 
-                    onValueChange={(val) => setHomeData({...homeData, productDisplayType: val})}
-                  >
-                    <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-none px-6">
-                      <SelectValue placeholder="Select strategy" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl border-none shadow-2xl p-2">
-                      <SelectItem value="popular_orders" className="rounded-xl py-3">Popular (Highest Sales)</SelectItem>
-                      <SelectItem value="popular_views" className="rounded-xl py-3">Popular (Most Viewed)</SelectItem>
-                      <SelectItem value="new_to_old" className="rounded-xl py-3">New Arrivals (Latest First)</SelectItem>
-                      <SelectItem value="old_to_new" className="rounded-xl py-3">Legacy (Oldest First)</SelectItem>
-                      <SelectItem value="manual" className="rounded-xl py-3">Handpicked (Manual Selection)</SelectItem>
-                    </SelectContent>
-                  </Select>
-               </div>
-
-               {homeData.productDisplayType === "manual" && (
-                 <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Selected Products ({homeData.selectedProducts.length})</Label>
-                      <div className="relative w-full sm:w-64">
-                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                         <Input 
-                            placeholder="Find products..." 
-                            className="pl-10 h-10 rounded-xl bg-slate-50 border-none text-xs"
-                            value={productSearch}
-                            onChange={(e) => setProductSearch(e.target.value)}
-                         />
-                      </div>
-                    </div>
-
-                    <ScrollArea className="h-[400px] rounded-3xl border border-slate-100 p-4">
-                       <div className="space-y-2">
-                          {products.filter(p => p.name?.toLowerCase().includes(productSearch.toLowerCase())).map((product) => (
-                            <div 
-                              key={product.id} 
-                              className={`flex items-center gap-4 p-3 rounded-2xl transition-all border ${
-                                homeData.selectedProducts.includes(product.id) 
-                                ? 'bg-primary/5 border-primary/20' 
-                                : 'hover:bg-slate-50 border-transparent'
-                              }`}
-                            >
-                               <Checkbox 
-                                  checked={homeData.selectedProducts.includes(product.id)}
-                                  onCheckedChange={(checked) => {
-                                    const newSelected = checked 
-                                      ? [...homeData.selectedProducts, product.id]
-                                      : homeData.selectedProducts.filter((id: string) => id !== product.id);
-                                    setHomeData({...homeData, selectedProducts: newSelected});
-                                  }}
-                                  id={`prod-${product.id}`}
-                                  className="rounded-lg h-6 w-6"
-                               />
-                               <div className="flex items-center gap-3 flex-1">
-                                  <div className="w-12 h-12 rounded-xl bg-white border overflow-hidden shrink-0">
-                                     <img src={product.featuredImage || product.gallery?.[0]} className="w-full h-full object-cover" />
-                                  </div>
-                                  <div>
-                                     <p className="font-bold text-sm leading-none">{product.name}</p>
-                                     <p className="text-[10px] text-muted-foreground mt-1">${Number(product.currentPrice).toFixed(2)}</p>
-                                  </div>
-                                </div>
-                               <Badge variant="outline" className="text-[8px] font-black uppercase rounded-lg">
-                                  {product.totalInStock > 0 ? "In Stock" : "Out"}
-                               </Badge>
-                            </div>
-                          ))}
-                       </div>
-                    </ScrollArea>
-                 </div>
-               )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-           <Card className="rounded-3xl border-border/50 shadow-md bg-slate-900 text-white p-6">
-              <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
-                 <Layout className="w-4 h-4 text-primary" /> Visual Preview
-              </h4>
-              <div className="space-y-4">
-                 <div className="aspect-video bg-slate-800 rounded-xl overflow-hidden relative">
-                    {homeData.homeBanner && <img src={homeData.homeBanner} className="w-full h-full object-cover opacity-50" />}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                       <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Preview</p>
-                       <h5 className="font-bold text-sm truncate w-full">{homeData.homePageTitle || "Your Title"}</h5>
-                    </div>
-                 </div>
-                 {homeData.offerBanner && (
-                   <div className="bg-accent h-6 rounded-lg flex items-center justify-center text-[8px] font-black uppercase tracking-widest px-2">
-                      {homeData.offerText || "Promo Text Preview"}
-                   </div>
-                 )}
               </div>
-           </Card>
+            )}
 
-           <div className="p-6 bg-primary/5 rounded-3xl border border-primary/10 space-y-3">
-              <h4 className="font-bold text-slate-900 flex items-center gap-2">
-                 <Zap className="w-4 h-4 text-primary" /> Pro Tip
-              </h4>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                 Use high-contrast images for your banner. Text is rendered in white, so darker backgrounds work best for readability.
-              </p>
-           </div>
-        </div>
+            {activeSection?.id === "hero" && (
+              <div className="space-y-6">
+                <div className="p-4 bg-slate-50 rounded-2xl border space-y-4">
+                  <h4 className="font-bold text-sm text-slate-800 border-b pb-2">Main Hero Slide</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Badge Text</Label>
+                      <Input value={activeSection.config.badgeText || ""} onChange={(e) => updateActiveConfig("badgeText", e.target.value)} className="h-12 rounded-xl" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Title</Label>
+                      <Input value={activeSection.config.title || ""} onChange={(e) => updateActiveConfig("title", e.target.value)} className="h-12 rounded-xl" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Subtitle</Label>
+                    <Textarea value={activeSection.config.subtitle || ""} onChange={(e) => updateActiveConfig("subtitle", e.target.value)} className="rounded-xl" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Button Text</Label>
+                      <Input value={activeSection.config.buttonText || ""} onChange={(e) => updateActiveConfig("buttonText", e.target.value)} className="h-12 rounded-xl" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Button Redirect Link</Label>
+                      <Input value={activeSection.config.buttonLink || ""} onChange={(e) => updateActiveConfig("buttonLink", e.target.value)} className="h-12 rounded-xl" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Hero Background Image</Label>
+                    <CloudinaryUpload value={activeSection.config.image || ""} onUpload={(url) => updateActiveConfig("image", url)} onRemove={() => updateActiveConfig("image", "")} />
+                  </div>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-2xl border space-y-4">
+                  <h4 className="font-bold text-sm text-slate-800 border-b pb-2">Right Sidebar Banner 1</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Label</Label>
+                      <Input value={activeSection.config.sideBanner1Label || ""} onChange={(e) => updateActiveConfig("sideBanner1Label", e.target.value)} className="h-12 rounded-xl" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Title</Label>
+                      <Input value={activeSection.config.sideBanner1Title || ""} onChange={(e) => updateActiveConfig("sideBanner1Title", e.target.value)} className="h-12 rounded-xl" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Button Text</Label>
+                      <Input value={activeSection.config.sideBanner1ButtonText || ""} onChange={(e) => updateActiveConfig("sideBanner1ButtonText", e.target.value)} className="h-12 rounded-xl" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Redirect Link</Label>
+                      <Input value={activeSection.config.sideBanner1Link || ""} onChange={(e) => updateActiveConfig("sideBanner1Link", e.target.value)} className="h-12 rounded-xl" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Banner 1 Background Image</Label>
+                    <CloudinaryUpload value={activeSection.config.sideBanner1Image || ""} onUpload={(url) => updateActiveConfig("sideBanner1Image", url)} onRemove={() => updateActiveConfig("sideBanner1Image", "")} />
+                  </div>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-2xl border space-y-4">
+                  <h4 className="font-bold text-sm text-slate-800 border-b pb-2">Right Sidebar Banner 2</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Label</Label>
+                      <Input value={activeSection.config.sideBanner2Label || ""} onChange={(e) => updateActiveConfig("sideBanner2Label", e.target.value)} className="h-12 rounded-xl" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Title</Label>
+                      <Input value={activeSection.config.sideBanner2Title || ""} onChange={(e) => updateActiveConfig("sideBanner2Title", e.target.value)} className="h-12 rounded-xl" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Button Text</Label>
+                      <Input value={activeSection.config.sideBanner2ButtonText || ""} onChange={(e) => updateActiveConfig("sideBanner2ButtonText", e.target.value)} className="h-12 rounded-xl" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Redirect Link</Label>
+                      <Input value={activeSection.config.sideBanner2Link || ""} onChange={(e) => updateActiveConfig("sideBanner2Link", e.target.value)} className="h-12 rounded-xl" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Banner 2 Background Image</Label>
+                    <CloudinaryUpload value={activeSection.config.sideBanner2Image || ""} onUpload={(url) => updateActiveConfig("sideBanner2Image", url)} onRemove={() => updateActiveConfig("sideBanner2Image", "")} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSection?.id === "flash_sale" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Banner Title</Label>
+                    <Input value={activeSection.config.title || ""} onChange={(e) => updateActiveConfig("title", e.target.value)} className="h-12 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Banner Subtitle</Label>
+                    <Input value={activeSection.config.subtitle || ""} onChange={(e) => updateActiveConfig("subtitle", e.target.value)} className="h-12 rounded-xl" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Countdown Target Date/Time</Label>
+                    <Input placeholder="YYYY-MM-DDTHH:MM:SS" value={activeSection.config.countdownDate || ""} onChange={(e) => updateActiveConfig("countdownDate", e.target.value)} className="h-12 rounded-xl" />
+                    <p className="text-[10px] text-muted-foreground">Format: 2026-07-20T23:59:59</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Button Text</Label>
+                    <Input value={activeSection.config.buttonText || ""} onChange={(e) => updateActiveConfig("buttonText", e.target.value)} className="h-12 rounded-xl" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSection?.id === "products_grid" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Section Title</Label>
+                    <Input value={activeSection.config.title || ""} onChange={(e) => updateActiveConfig("title", e.target.value)} className="h-12 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Section Subtitle</Label>
+                    <Input value={activeSection.config.subtitle || ""} onChange={(e) => updateActiveConfig("subtitle", e.target.value)} className="h-12 rounded-xl" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSection?.id === "promo_banners" && (
+              <div className="space-y-6">
+                <div className="p-4 bg-slate-50 rounded-2xl border space-y-4">
+                  <h4 className="font-bold text-sm">Promo Card 1</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input placeholder="Title" value={activeSection.config.banner1Title || ""} onChange={(e) => updateActiveConfig("banner1Title", e.target.value)} className="h-12 rounded-xl" />
+                    <Input placeholder="Subtitle" value={activeSection.config.banner1Subtitle || ""} onChange={(e) => updateActiveConfig("banner1Subtitle", e.target.value)} className="h-12 rounded-xl" />
+                  </div>
+                  <CloudinaryUpload value={activeSection.config.banner1Image || ""} onUpload={(url) => updateActiveConfig("banner1Image", url)} onRemove={() => updateActiveConfig("banner1Image", "")} />
+                </div>
+                <div className="p-4 bg-slate-50 rounded-2xl border space-y-4">
+                  <h4 className="font-bold text-sm">Promo Card 2</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input placeholder="Title" value={activeSection.config.banner2Title || ""} onChange={(e) => updateActiveConfig("banner2Title", e.target.value)} className="h-12 rounded-xl" />
+                    <Input placeholder="Subtitle" value={activeSection.config.banner2Subtitle || ""} onChange={(e) => updateActiveConfig("banner2Subtitle", e.target.value)} className="h-12 rounded-xl" />
+                  </div>
+                  <CloudinaryUpload value={activeSection.config.banner2Image || ""} onUpload={(url) => updateActiveConfig("banner2Image", url)} onRemove={() => updateActiveConfig("banner2Image", "")} />
+                </div>
+                <div className="p-4 bg-slate-50 rounded-2xl border space-y-4">
+                  <h4 className="font-bold text-sm">Promo Card 3</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input placeholder="Title" value={activeSection.config.banner3Title || ""} onChange={(e) => updateActiveConfig("banner3Title", e.target.value)} className="h-12 rounded-xl" />
+                    <Input placeholder="Subtitle" value={activeSection.config.banner3Subtitle || ""} onChange={(e) => updateActiveConfig("banner3Subtitle", e.target.value)} className="h-12 rounded-xl" />
+                  </div>
+                  <CloudinaryUpload value={activeSection.config.banner3Image || ""} onUpload={(url) => updateActiveConfig("banner3Image", url)} onRemove={() => updateActiveConfig("banner3Image", "")} />
+                </div>
+              </div>
+            )}
+
+            {activeSection?.id === "app_download" && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Download Title</Label>
+                  <Input value={activeSection.config.title || ""} onChange={(e) => updateActiveConfig("title", e.target.value)} className="h-12 rounded-xl" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subtitle Description</Label>
+                  <Textarea value={activeSection.config.subtitle || ""} onChange={(e) => updateActiveConfig("subtitle", e.target.value)} className="rounded-xl" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Side Mockup Image</Label>
+                  <CloudinaryUpload value={activeSection.config.image || ""} onUpload={(url) => updateActiveConfig("image", url)} onRemove={() => updateActiveConfig("image", "")} />
+                </div>
+              </div>
+            )}
+
+            {activeSection?.id === "footer" && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Footer Short Description</Label>
+                  <Textarea value={activeSection.config.description || ""} onChange={(e) => updateActiveConfig("description", e.target.value)} className="rounded-xl" />
+                </div>
+              </div>
+            )}
+
+            {/* Default information for static components without fields */}
+            {(activeSection?.id === "category_nav" || activeSection?.id === "trust_strip" || activeSection?.id === "category_grid" || activeSection?.id === "testimonials") && (
+              <div className="text-center py-12 border border-dashed rounded-3xl bg-slate-50 text-slate-400">
+                <Eye className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p className="font-bold text-sm">Dynamic Render Component</p>
+                <p className="text-xs max-w-sm mx-auto mt-1">This section is dynamically generated using your store database entities (products, categories, customer feedback) and has no manual configuration fields.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

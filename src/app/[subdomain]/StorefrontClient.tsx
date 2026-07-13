@@ -26,6 +26,40 @@ interface CartItem {
   quantity: number;
 }
 
+function CountdownTimer({ targetDate }: { targetDate: string }) {
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const calculateTime = () => {
+      const difference = +new Date(targetDate) - +new Date();
+      if (difference <= 0) {
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+        return;
+      }
+      const hours = Math.floor(difference / (1000 * 60 * 60));
+      const minutes = Math.floor((difference / 1000 / 60) % 60);
+      const seconds = Math.floor((difference / 1000) % 60);
+      setTimeLeft({ hours, minutes, seconds });
+    };
+
+    calculateTime();
+    const interval = setInterval(calculateTime, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  const pad = (num: number) => String(num).padStart(2, '0');
+
+  return (
+    <div className="countdown">
+      <div className="cd-block"><span className="cd-num">{pad(timeLeft.hours)}</span><div className="cd-label">Hours</div></div>
+      <div className="cd-sep">:</div>
+      <div className="cd-block"><span className="cd-num">{pad(timeLeft.minutes)}</span><div className="cd-label">Mins</div></div>
+      <div className="cd-sep">:</div>
+      <div className="cd-block"><span className="cd-num">{pad(timeLeft.seconds)}</span><div className="cd-label">Secs</div></div>
+    </div>
+  );
+}
+
 export default function Storefront({
   initialStore,
   initialSubdomain,
@@ -229,168 +263,33 @@ export default function Storefront({
   if (loading) return <PageSkeleton />;
   if (!store) return <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center"><h1 className="text-2xl font-black">Store Registry Not Found</h1><Link href="/"><Button className="mt-6">Return to Hub</Button></Link></div>;
 
-  const config = Array.isArray(page?.blocks || page?.config) ? (page.blocks || page.config) : [];
-  const pageStyle = page?.page_style || page?.pageStyle || { backgroundColor: "#FFFFFF", paddingTop: 0, paddingBottom: 40 };
+  const activeSections = Array.isArray(store?.home_sections) 
+    ? store.home_sections 
+    : [
+        { id: "announcement_bar", enabled: true, config: { text: "নিত্যপ্রয়োজনীয় পণ্য নিয়ে আমরা আছি আপনার পাশে। দেশজুড়ে ক্যাশ অন ডেলিভারি!" } },
+        { id: "header", enabled: true, config: { logoTextBn: "ঘরোয়া বাজার", logoTextEn: "PURE & TRUSTED" } },
+        { id: "category_nav", enabled: true, config: {} },
+        { id: "hero", enabled: true, config: { badgeText: "100% PURE & NATURAL", title: "খাটি ও নিরাপদ পন্যের সমাহার", subtitle: "সুস্বাস্থ্যই আমাদের মূল লক্ষ্য। সরাসরি খামার থেকে আপনাদের হাতে পৌঁছে দিচ্ছি বিশুদ্ধ খাবার।", buttonText: "পণ্যসমূহ দেখুন", buttonLink: "#products", sideBanner1Label: "SPECIAL OFFER", sideBanner1Title: "মধু ও অর্গানিক তেল সংগ্রহ করুন", sideBanner1ButtonText: "অর্ডার করুন", sideBanner1Link: "#", sideBanner2Label: "POPULAR CATEGORY", sideBanner2Title: "প্রাকৃতিক উপাদানে তৈরি হেলথ পাউডার", sideBanner2ButtonText: "অর্ডার করুন", sideBanner2Link: "#" } },
+        { id: "trust_strip", enabled: true, config: {} },
+        { id: "category_grid", enabled: true, config: {} },
+        { id: "flash_sale", enabled: true, config: { title: "ধামাকা ফ্ল্যাশ সেল!", subtitle: "সীমিত সময়ের অফার, দ্রুত সংগ্রহ করুন!", countdownDate: "2026-07-20T23:59:59", buttonText: "অফার দেখুন" } },
+        { id: "products_grid", enabled: true, config: { title: "আমাদের জনপ্রিয় পণ্যসমূহ", subtitle: "গ্রাহকদের পছন্দের তালিকার শীর্ষে থাকা সেরা পণ্যসমূহ সংগ্রহ করুন。" } },
+        { id: "promo_banners", enabled: true, config: { banner1Title: "খাটি ঘি ও মধু কিনুন", banner1Subtitle: "স্পেশাল ডিসকাউন্ট", banner2Title: "ঘরোয়া মশলা সামগ্রী", banner2Subtitle: "শতভাগ নিরাপদ", banner3Title: "অর্গানিক স্কিন কেয়ার", banner3Subtitle: "প্রাকৃতিক সৌন্দর্য" } },
+        { id: "app_download", enabled: true, config: { title: "ঘরোয়া বাজার অ্যাপ ডাউনলোড করুন", subtitle: "সহজে অর্ডার করতে এবং নিয়মিত আপডেট পেতে আমাদের মোবাইল অ্যাপটি ডাউনলোড করুন।" } },
+        { id: "testimonials", enabled: true, config: {} },
+        { id: "footer", enabled: true, config: { description: "ঘরোয়া বাজার আপনাদের জন্য নিয়ে এসেছে সম্পূর্ণ খাটি ও রাসায়নিক মুক্ত নিত্যপ্রয়োজনীয় খাদ্যপণ্য। আমাদের লক্ষ্য সবার কাছে ভেজালহীন খাদ্য পৌঁছে দেওয়া।" } }
+      ];
+
+  const pageStyle = page?.page_style || page?.pageStyle || { backgroundColor: "#f4f7f4", paddingTop: 0, paddingBottom: 40 };
 
   return (
     <div
       className="min-h-screen"
       style={{
         backgroundColor: pageStyle.backgroundColor,
-        paddingTop: `${pageStyle.paddingTop}px`,
-        paddingBottom: `${pageStyle.paddingBottom}px`,
-        color: pageStyle.textColor
+        color: pageStyle.textColor || "#1a2e1a"
       }}
     >
-      <div className="animate-in fade-in duration-700">
-          {/* Hero Main Content - Full Width */}
-          <div className="max-w-7xl mx-auto px-4 md:px-6 pt-6">
-            <div className="w-full min-h-[350px] sm:min-h-[450px] md:min-h-[550px] rounded-[32px] sm:rounded-[48px] relative overflow-hidden bg-slate-900 group shadow-2xl">
-              {(store.homeBanner || store.home_banner) ? (
-                <>
-                  <img
-                    src={optimizeCloudinaryUrl(store.homeBanner || store.home_banner, 1200)}
-                    alt={store.name}
-                    className="absolute inset-0 w-full h-full object-cover opacity-60 transition-transform duration-1000 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
-                </>
-              ) : (
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/30 via-slate-950 to-slate-950" />
-              )}
-
-              <div className="relative z-10 h-full flex flex-col items-center justify-center text-center p-8 sm:p-12 md:p-20 space-y-6 sm:space-y-10">
-                <div className="space-y-4 sm:space-y-6 max-w-4xl">
-                  <Badge className="bg-primary text-white border-none rounded-full px-4 sm:px-6 py-1 sm:py-1.5 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in zoom-in duration-1000">
-                    Welcome to {store.name}
-                  </Badge>
-                  <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-headline font-black text-white uppercase tracking-tighter leading-[0.9] sm:leading-[0.85] animate-in slide-in-from-bottom-8 duration-1000 delay-100">
-                    {store.homePageTitle || store.home_page_title || "Premium Collection"}
-                  </h1>
-                  <p className="text-slate-300 text-sm sm:text-lg md:text-xl max-w-2xl mx-auto font-medium leading-relaxed animate-in slide-in-from-bottom-10 duration-1000 delay-200 px-4 opacity-80">
-                    {store.description || "Experience the perfect blend of quality, innovation, and style in every product we create."}
-                  </p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in slide-in-from-bottom-12 duration-1000 delay-300 w-full max-w-md mx-auto">
-                  <Link href={getTenantPath(subdomain, "/all-products")} className="w-full">
-                    <Button size="lg" className="w-full h-14 sm:h-16 px-8 sm:px-12 rounded-2xl sm:rounded-3xl font-black uppercase text-sm sm:text-base tracking-widest shadow-[0_20px_50px_rgba(0,0,0,0.3)] bg-primary text-white hover:bg-primary/90 transition-all hover:scale-105 active:scale-95 border-b-4 border-primary-dark">
-                      Shop Collection <ArrowRight className="ml-2 w-5 h-5" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Categories Horizontal */}
-          <div className="max-w-7xl mx-auto px-4 md:px-6 pt-12 md:pt-20">
-             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {categories.filter(c => !c.parentId && !c.categoryId).slice(0, 6).map((cat: any) => (
-                   <Link 
-                      key={cat.id} 
-                      href={`${getTenantPath(subdomain, "/all-products")}?category=${cat.id}`}
-                      className="group flex flex-col items-center gap-4 p-6 rounded-[32px] bg-white border border-slate-100 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500"
-                   >
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-50 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform duration-500">
-                         {cat.image ? (
-                            <img src={optimizeCloudinaryUrl(cat.image, 200)} className="w-full h-full object-cover" alt="" />
-                         ) : (
-                            <Package className="w-8 h-8 text-slate-300 group-hover:text-primary transition-colors" />
-                         )}
-                      </div>
-                      <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-slate-600 group-hover:text-primary transition-colors text-center">{cat.name}</span>
-                   </Link>
-                ))}
-             </div>
-          </div>
-
-          {/* Featured Products Section */}
-          <section className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-32">
-            <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-8 mb-12 md:mb-20">
-              <div className="space-y-4">
-                <Badge variant="outline" className="border-primary/30 text-primary rounded-full px-4 py-1 text-[9px] font-black uppercase tracking-widest">
-                   Our Store
-                </Badge>
-                <h2 className="text-4xl md:text-6xl font-headline font-black uppercase tracking-tighter leading-none">Fresh Arrivals</h2>
-                <p className="text-slate-400 font-medium text-sm sm:text-base max-w-lg">Explore our latest additions, carefully selected to provide you with the best quality and value.</p>
-              </div>
-              <Link href={getTenantPath(subdomain, "/all-products")}>
-                <Button size="lg" className="h-14 px-10 rounded-2xl font-black uppercase text-xs tracking-widest bg-white text-slate-900 border border-slate-200 hover:bg-slate-900 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-xl shadow-slate-200/50">
-                  Browse All Products <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
-              {products.length === 0 ? (
-                [1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                  <div key={i} className="space-y-6 bg-white p-4 md:p-8 rounded-[40px] border border-slate-100 shadow-sm">
-                    <Skeleton className="aspect-square w-full rounded-[32px]" />
-                    <div className="space-y-3">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-8 w-1/2" />
-                    </div>
-                    <div className="space-y-2 pt-4">
-                      <Skeleton className="h-12 w-full rounded-2xl" />
-                      <Skeleton className="h-12 w-full rounded-2xl" />
-                    </div>
-                  </div>
-                ))
-              ) : (
-                (((store.productDisplayType || store.product_display_type) === "manual") && (store.selectedProducts || store.selected_products)?.length > 0
-                  ? products.filter(p => (store.selectedProducts || store.selected_products).includes(p.id))
-                  : products.slice(0, 12)
-                ).map((p) => (
-                  <Card key={p.id} className="group bg-white rounded-[40px] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col h-full">
-                    <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block aspect-square relative overflow-hidden bg-slate-50">
-                      {p.featuredImage ? (
-                        <img src={optimizeCloudinaryUrl(p.featuredImage, 400)} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={p.name} />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-200">
-                           <ImageIcon className="w-16 h-16 opacity-10" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                      {p.prevPrice && (
-                         <div className="absolute top-6 left-6 bg-rose-500 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-xl">
-                            Special Sale
-                         </div>
-                      )}
-                    </Link>
-                    <div className="p-6 md:p-8 space-y-4 md:space-y-6 flex-1 flex flex-col">
-                      <div className="space-y-1 md:space-y-2">
-                        <h4 className="font-bold text-sm md:text-lg text-slate-800 line-clamp-2 min-h-[40px] md:min-h-[56px] group-hover:text-primary transition-colors leading-tight">{p.name}</h4>
-                        <div className="flex items-baseline gap-2">
-                           <p className="text-xl md:text-3xl font-black text-slate-900">{getCurrencySymbol(store?.currency)}{Number(p.currentPrice).toFixed(0)}</p>
-                           {p.prevPrice && <p className="text-sm md:text-base text-slate-400 line-through font-medium">{getCurrencySymbol(store?.currency)}{Number(p.prevPrice).toFixed(0)}</p>}
-                        </div>
-                      </div>
-  
-                      <div className="pt-2 space-y-2 mt-auto">
-                        <Button
-                          className="w-full h-12 md:h-14 rounded-2xl md:rounded-2xl font-black uppercase text-[10px] md:text-xs tracking-widest bg-slate-900 hover:bg-primary text-white transition-all shadow-lg hover:shadow-primary/30"
-                          onClick={() => addToCart(p)}
-                        >
-                          <ShoppingCart className="mr-2 w-4 h-4 md:w-5 md:h-5" /> কার্টে যোগ করুন
-                        </Button>
-                        <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block">
-                          <Button variant="outline" className="w-full h-10 md:h-12 rounded-xl md:rounded-xl font-black uppercase text-[9px] md:text-[10px] tracking-widest border-slate-200 hover:bg-slate-50 transition-all text-slate-500 hover:text-slate-900">
-                            More Details
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
-            
-            <div className="mt-16 md:mt-24 text-center">
-               <Link href={getTenantPath(subdomain, "/all-products")}>
-                  <Button variant="link" className="group text-slate-400 hover:text-primary font-black uppercase tracking-[0.3em] text-[10px] transition-all">
-                     View Complete Collection <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform" />
-                  </Button>
                </Link>
             </div>
           </section>
