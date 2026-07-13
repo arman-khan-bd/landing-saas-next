@@ -3,6 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { SupabaseClientProvider } from "@/supabase";
 
+export const runtime = 'edge';
+
 export const metadata: Metadata = {
   title: 'iHut | Multi-tenant E-commerce SaaS',
   description: 'The ultimate platform for launching your online store in minutes.',
