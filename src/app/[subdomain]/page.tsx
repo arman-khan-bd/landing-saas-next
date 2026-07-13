@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { useSupabaseClient } from "@/supabase";
 import { getSubdomain } from "@/lib/subdomain";
 import { Button } from "@/components/ui/button";
@@ -9,6 +13,7 @@ import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { getTenantPath } from "@/lib/utils";
 import { BlockRenderer } from "./builder/[pageId]/block-renderer";
+import StorefrontClientPage from "./StorefrontClient";
 
 export default function Storefront() {
   const { subdomain: paramsSubdomain } = useParams();
@@ -83,18 +88,18 @@ export default function Storefront() {
   const config = page?.blocks || [];
   const pageStyle = page?.page_style || { backgroundColor: "#FFFFFF", paddingTop: 0, paddingBottom: 40 };
 
-  return (
-    <div 
-      className="min-h-screen" 
-      style={{ 
-        backgroundColor: pageStyle.backgroundColor, 
-        paddingTop: pageStyle.paddingTop ? (pageStyle.paddingTop + "px") : "0px", 
-        paddingBottom: pageStyle.paddingBottom ? (pageStyle.paddingBottom + "px") : "0px",
-        color: pageStyle.textColor 
-      }}
-    >
-      {config.length > 0 ? (
-        config.map((block: any) => (
+  if (config.length > 0) {
+    return (
+      <div 
+        className="min-h-screen" 
+        style={{ 
+          backgroundColor: pageStyle.backgroundColor, 
+          paddingTop: pageStyle.paddingTop ? (pageStyle.paddingTop + "px") : "0px", 
+          paddingBottom: pageStyle.paddingBottom ? (pageStyle.paddingBottom + "px") : "0px",
+          color: pageStyle.textColor 
+        }}
+      >
+        {config.map((block: any) => (
           <BlockRenderer 
             key={block.id} 
             block={block} 
@@ -103,18 +108,19 @@ export default function Storefront() {
             isPreview 
             pageStyle={pageStyle} 
           />
-        ))
-      ) : (
-        <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6 text-center px-6">
-           <Layers className="w-20 h-20 text-slate-100" />
-           <div>
-              <h1 className="text-3xl font-headline font-black text-slate-900 uppercase">Storefront Under Orchestration</h1>
-              <p className="text-muted-foreground mt-2 max-w-sm mx-auto">This merchant has not yet published their high-conversion section matrix.</p>
-           </div>
-           <Link href={getTenantPath(subdomain, "/sections")}><Button className="rounded-xl h-12 px-8 font-bold">Open Manager</Button></Link>
-        </div>
-      )}
-    </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Fallback to default Storefront client layout if no dynamic section matrix has been published yet
+  return (
+    <StorefrontClientPage 
+      initialStore={store} 
+      initialSubdomain={subdomain} 
+      initialPage={page} 
+      initialProducts={products} 
+    />
   );
 }
 
