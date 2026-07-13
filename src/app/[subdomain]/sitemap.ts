@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
-import { getStoreBySubdomain } from '@/lib/store-server';
-import { getSupabaseServerClient } from '@/supabase/server';
+import { createClient } from '@supabase/supabase-js';
+
+export const runtime = 'edge';
 
 export default async function sitemap({
   params,
@@ -8,14 +9,24 @@ export default async function sitemap({
   params: Promise<{ subdomain: string }>;
 }): Promise<MetadataRoute.Sitemap> {
   const { subdomain } = await params;
-  const store = await getStoreBySubdomain(subdomain);
-
-  if (!store) return [];
-
   const baseUrl = `https://${subdomain}.ihut.shop`;
 
   try {
-    const supabase = await getSupabaseServerClient();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    // Get store by subdomain
+    const { data: store } = await supabase
+      .from("stores")
+      .select("id")
+      .eq("subdomain", subdomain)
+      .limit(1)
+      .maybeSingle();
+
+    if (!store) return [{ url: baseUrl, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 1 }];
+
     // Fetch all products for this store
     const { data: products } = await supabase
       .from("products")
@@ -33,7 +44,7 @@ export default async function sitemap({
       {
         url: baseUrl,
         lastModified: new Date(),
-        changeFrequency: 'daily',
+        changeFrequency: 'daily' as const,
         priority: 1,
       },
       ...productUrls,
@@ -44,7 +55,7 @@ export default async function sitemap({
       {
         url: baseUrl,
         lastModified: new Date(),
-        changeFrequency: 'daily',
+        changeFrequency: 'daily' as const,
         priority: 1,
       }
     ];
