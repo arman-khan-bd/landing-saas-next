@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useSupabaseClient } from "@/supabase";
@@ -89,11 +91,27 @@ export default function RenderDynamicPage() {
       setLoading(true);
       setError(null);
       try {
-        const { data: storeData } = await supabase
-          .from("stores")
-          .select("*")
-          .eq("subdomain", subdomain)
-          .single();
+        const isCustomDomain = (subdomain as string).includes(".");
+        let storeQuery = supabase.from("stores").select("*");
+        
+        if (isCustomDomain) {
+          const { data: byCustomDomain } = await supabase
+            .from("stores")
+            .select("*")
+            .eq("custom_domain", subdomain)
+            .maybeSingle();
+            
+          if (byCustomDomain) {
+            storeQuery = supabase.from("stores").select("*").eq("custom_domain", subdomain);
+          } else {
+            const subPart = (subdomain as string).split(".")[0];
+            storeQuery = supabase.from("stores").select("*").eq("subdomain", subPart);
+          }
+        } else {
+          storeQuery = supabase.from("stores").select("*").eq("subdomain", subdomain);
+        }
+
+        const { data: storeData } = await storeQuery.single();
         
         if (!storeData) {
           setError("Store not found");
