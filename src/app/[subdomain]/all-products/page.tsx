@@ -32,12 +32,14 @@ export default function AllProductsPage() {
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [subCategories, setSubCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   
   // Filters & Sorting
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [sortBy, setSortBy] = useState<string>("newest");
   const [searchTerm, setSearchTerm] = useState("");
@@ -94,13 +96,15 @@ export default function AllProductsPage() {
 
       setStore(storeData);
 
-      const [prodRes, catRes] = await Promise.all([
+      const [prodRes, catRes, subCatRes] = await Promise.all([
         supabase.from("products").select("*").eq("store_id", storeData.id),
-        supabase.from("categories").select("*").eq("store_id", storeData.id)
+        supabase.from("categories").select("*").eq("store_id", storeData.id),
+        supabase.from("sub_categories").select("*").eq("store_id", storeData.id)
       ]);
 
       setProducts(prodRes.data || []);
       setCategories(catRes.data || []);
+      setSubCategories(subCatRes.data || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -146,10 +150,19 @@ export default function AllProductsPage() {
   // Filter & Sort Logic
   const filteredProducts = useMemo(() => {
     let result = products.filter(p => {
-      const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
+      const matchesCategory = selectedCategory === "all" || 
+        p.category === selectedCategory || 
+        (categories.find(c => c.slug === selectedCategory)?.id === p.category);
+        
+      const matchesSubCategory = selectedSubCategory === "all" || 
+        p.sub_category === selectedSubCategory || 
+        p.subCategory === selectedSubCategory ||
+        (subCategories.find(s => s.slug === selectedSubCategory)?.id === p.sub_category) ||
+        (subCategories.find(s => s.slug === selectedSubCategory)?.id === p.subCategory);
+
       const matchesPrice = p.currentPrice >= priceRange[0] && p.currentPrice <= priceRange[1];
       const matchesSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesCategory && matchesPrice && matchesSearch;
+      return matchesCategory && matchesSubCategory && matchesPrice && matchesSearch;
     });
 
     if (sortBy === "price-low") result.sort((a, b) => a.currentPrice - b.currentPrice);
@@ -157,7 +170,7 @@ export default function AllProductsPage() {
     else if (sortBy === "newest") result.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
     return result;
-  }, [products, selectedCategory, priceRange, sortBy, searchTerm]);
+  }, [products, selectedCategory, selectedSubCategory, priceRange, sortBy, searchTerm, categories, subCategories]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
@@ -506,48 +519,80 @@ export default function AllProductsPage() {
                   <SelectItem value="price-high">Price: High to Low</SelectItem>
                 </SelectContent>
               </Select>
-              
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl bg-white shadow-sm border-slate-200">
+                  <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl bg-white shadow-sm border-slate-200 hover:text-[var(--green)] hover:bg-emerald-50/50">
                     <SlidersHorizontal className="w-4 h-4" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent className="w-full sm:max-w-sm rounded-l-3xl p-0 border-none shadow-2xl">
-                  <SheetHeader className="p-8 bg-slate-900 text-white flex flex-row items-center justify-between">
-                    <SheetTitle className="text-xl font-headline font-black text-white uppercase tracking-tight">Filter Products</SheetTitle>
-                    <SheetClose className="text-white/60 hover:text-white shrink-0">
-                      <X className="w-7 h-7" />
+                <SheetContent className="w-full sm:max-w-sm rounded-l-3xl p-0 border-none shadow-2xl flex flex-col h-full bg-white font-sans">
+                  <SheetHeader className="p-6 bg-[var(--green)] text-white flex flex-row items-center justify-between shrink-0">
+                    <SheetTitle className="text-lg font-headline font-bold text-white uppercase tracking-tight">পণ্য ফিল্টার করুন</SheetTitle>
+                    <SheetClose className="text-white/80 hover:text-white shrink-0">
+                      <i className="fa-solid fa-xmark text-lg"></i>
                     </SheetClose>
                   </SheetHeader>
-                  <div className="p-8 space-y-10">
-                    <div className="space-y-4">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Categories</Label>
+                  <ScrollArea className="flex-1 p-6 space-y-8 bg-[#f4f7f4]">
+                    <div className="space-y-4 bg-white p-5 rounded-2xl border border-slate-150 shadow-sm">
+                      <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">ক্যাটাগরি</Label>
                       <div className="grid gap-2">
                         <button 
-                          onClick={() => setSelectedCategory("all")}
-                          className={`flex items-center justify-between p-3 rounded-xl transition-all ${selectedCategory === "all" ? 'bg-primary text-white' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
+                          onClick={() => {
+                            setSelectedCategory("all");
+                            setSelectedSubCategory("all");
+                          }}
+                          className={`flex items-center justify-between p-3 rounded-xl transition-all ${selectedCategory === "all" ? 'bg-[var(--green)] text-white' : 'bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
                         >
                           <span className="font-bold text-sm">All Categories</span>
                           {selectedCategory === "all" && <Check className="w-4 h-4" />}
                         </button>
-                        {categories.map((cat) => (
-                          <button 
-                            key={cat.id}
-                            onClick={() => setSelectedCategory(cat.slug)}
-                            className={`flex items-center justify-between p-3 rounded-xl transition-all ${selectedCategory === cat.slug ? 'bg-primary text-white' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
-                          >
-                            <span className="font-bold text-sm">{cat.name}</span>
-                            {selectedCategory === cat.slug && <Check className="w-4 h-4" />}
-                          </button>
-                        ))}
+                        {categories.map((cat) => {
+                          const isCatSelected = selectedCategory === cat.slug || selectedCategory === cat.id;
+                          const subs = subCategories.filter(s => s.category_id === cat.id);
+                          return (
+                            <div key={cat.id} className="space-y-2">
+                              <button 
+                                onClick={() => {
+                                  setSelectedCategory(cat.slug);
+                                  setSelectedSubCategory("all");
+                                }}
+                                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${isCatSelected ? 'bg-[var(--green)] text-white' : 'bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
+                              >
+                                <span className="font-bold text-sm">{cat.name}</span>
+                                {isCatSelected && <Check className="w-4 h-4" />}
+                              </button>
+                              {isCatSelected && subs.length > 0 && (
+                                <div className="pl-4 py-1.5 space-y-1 border-l-2 border-emerald-250 ml-4 flex flex-col items-start">
+                                  <button
+                                    onClick={() => setSelectedSubCategory("all")}
+                                    className={`text-left py-1.5 px-3 rounded-lg text-xs font-bold transition-all w-full ${selectedSubCategory === "all" ? 'bg-emerald-50 text-[var(--green)]' : 'text-slate-500 hover:text-slate-800'}`}
+                                  >
+                                    All Subcategories
+                                  </button>
+                                  {subs.map((sub) => {
+                                    const isSubSelected = selectedSubCategory === sub.slug || selectedSubCategory === sub.id;
+                                    return (
+                                      <button
+                                        key={sub.id}
+                                        onClick={() => setSelectedSubCategory(sub.slug)}
+                                        className={`text-left py-1.5 px-3 rounded-lg text-xs font-bold transition-all w-full ${isSubSelected ? 'bg-emerald-50 text-[var(--green)]' : 'text-slate-500 hover:text-slate-800'}`}
+                                      >
+                                        {sub.name}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="space-y-6 bg-white p-5 rounded-2xl border border-slate-150 shadow-sm mt-4">
                       <div className="flex justify-between items-end">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Price Range</Label>
-                        <span className="text-sm font-black text-primary">${priceRange[0]} - ${priceRange[1]}</span>
+                        <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">সর্বোচ্চ মূল্য</Label>
+                        <span className="text-sm font-extrabold text-[var(--green)]">{getCurrencySymbol(store?.currency)}{priceRange[0]} - {getCurrencySymbol(store?.currency)}{priceRange[1]}</span>
                       </div>
                       <Slider 
                         defaultValue={[0, 10000]} 
@@ -557,10 +602,16 @@ export default function AllProductsPage() {
                         onValueChange={(val: any) => setPriceRange(val as [number, number])}
                       />
                     </div>
-                  </div>
-                  <SheetFooter className="p-8 border-t flex flex-col gap-3">
+                  </ScrollArea>
+                  <SheetFooter className="p-6 bg-white border-t flex flex-col gap-3 shrink-0">
+                    <Button variant="outline" className="w-full h-12 rounded-xl text-xs font-bold border-slate-200 text-slate-500" onClick={() => {
+                      setSelectedCategory("all");
+                      setSelectedSubCategory("all");
+                      setPriceRange([0, 10000]);
+                      setSearchTerm("");
+                    }}>ফিল্টার মুছুন</Button>
                     <SheetClose asChild>
-                      <Button className="w-full h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/20">Apply Filters</Button>
+                      <Button className="w-full h-12 rounded-xl text-xs font-bold bg-[var(--green)] hover:bg-[var(--green-dark)] text-white shadow-md">ফিল্টার প্রয়োগ করুন</Button>
                     </SheetClose>
                   </SheetFooter>
                 </SheetContent>

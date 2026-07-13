@@ -238,7 +238,8 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#f4f7f4] pb-20">
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
         
@@ -281,6 +282,7 @@ export default function CheckoutPage() {
         .header-top {
           display: flex;
           align-items: center;
+          justify-content: space-between;
           gap: 16px;
           padding: 12px 0;
         }
@@ -339,7 +341,7 @@ export default function CheckoutPage() {
                   <i className="fa-solid fa-circle-info text-emerald-600 text-base"></i>
                   <span>অর্ডারটি সফল করতে দয়া করে নিচের ফর্মে আপনার সঠিক নাম, মোবাইল নম্বর এবং সম্পূর্ণ ঠিকানা প্রদান করুন।</span>
                 </div>
-                <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white"><CardContent className="p-6 sm:p-8 space-y-6"><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name *</Label><Input placeholder="John Doe" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.fullName} onChange={(e) => setFormData(prev => ({...prev, fullName: e.target.value}))} /></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contact Number *</Label><Input placeholder="01XXXXXXXXX" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.phone} onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} /></div></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address (Optional)</Label><Input placeholder="john@example.com" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.email} onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))} /></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Delivery Address *</Label><Textarea placeholder="Flat, House, Street, Area, City" className="min-h-[100px] rounded-2xl bg-slate-50 border-none p-4" value={formData.address} onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))} /></div></CardContent></Card>
+                <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white"><CardContent className="p-6 sm:p-8 space-y-6"><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name *</Label><Input placeholder="John Doe" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.fullName} onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))} /></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contact Number *</Label><Input placeholder="01XXXXXXXXX" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.phone} onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))} /></div></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address (Optional)</Label><Input placeholder="john@example.com" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.email} onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} /></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Delivery Address *</Label><Textarea placeholder="Flat, House, Street, Area, City" className="min-h-[100px] rounded-2xl bg-slate-50 border-none p-4" value={formData.address} onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))} /></div></CardContent></Card>
               </section>
 
               {store?.shippingSettings?.enabled && store.shippingSettings.methods?.length > 0 && (
@@ -349,9 +351,9 @@ export default function CheckoutPage() {
                     <CardContent className="p-6 sm:p-8">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {store.shippingSettings.methods.map((method: any) => (
-                          <div 
-                            key={method.id} 
-                            className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} 
+                          <div
+                            key={method.id}
+                            className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')}
                             onClick={() => setSelectedShipping(method)}
                           >
                             <div className="flex items-center gap-4">
@@ -376,8 +378,8 @@ export default function CheckoutPage() {
                 <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
                   <CardContent className="p-6 sm:p-8 space-y-4">
                     {store?.paymentSettings?.cod && (
-                      <div 
-                        className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} 
+                      <div
+                        className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')}
                         onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
                       >
                         <div className="flex items-center gap-4">
@@ -390,9 +392,9 @@ export default function CheckoutPage() {
                       </div>
                     )}
                     {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
-                      <div 
-                        className={cn("flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')} 
-                        onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
+                      <div
+                        className={cn("flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'border-slate-50 bg-slate-50/50')}
+                        onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'manual' }))}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
@@ -409,7 +411,7 @@ export default function CheckoutPage() {
                               <Label className="text-[10px] font-black uppercase text-slate-400">Select Provider</Label>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {store.paymentSettings.manualMethods.map((method: any) => (
-                                  <div key={method.id} onClick={() => setFormData(prev => ({...prev, selectedManualMethodId: method.id}))} className={cn("p-4 rounded-xl border-2 transition-all text-center cursor-pointer", formData.selectedManualMethodId === method.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-50 bg-slate-50 hover:bg-slate-100')}><p className="text-xs font-black uppercase tracking-tight">{method.name}</p></div>
+                                  <div key={method.id} onClick={() => setFormData(prev => ({ ...prev, selectedManualMethodId: method.id }))} className={cn("p-4 rounded-xl border-2 transition-all text-center cursor-pointer", formData.selectedManualMethodId === method.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-50 bg-slate-50 hover:bg-slate-100')}><p className="text-xs font-black uppercase tracking-tight">{method.name}</p></div>
                                 ))}
                               </div>
                             </div>
@@ -421,7 +423,7 @@ export default function CheckoutPage() {
                                 </div>
                                 <div className="space-y-2">
                                   <Label className="text-[10px] font-black uppercase text-slate-400">Transaction ID *</Label>
-                                  <Input placeholder="Enter the ID from your SMS" className="h-12 rounded-xl bg-white border-primary/20 font-mono text-center text-lg" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
+                                  <Input placeholder="Enter the ID from your SMS" className="h-12 rounded-xl bg-white border-primary/20 font-mono text-center text-lg" value={formData.transactionId} onChange={(e) => setFormData(prev => ({ ...prev, transactionId: e.target.value.toUpperCase() }))} />
                                 </div>
                               </div>
                             )}
@@ -461,19 +463,19 @@ export default function CheckoutPage() {
 }
 
 const SmartphoneIcon = ({ className }: { className?: string }) => (
-    <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width="24" 
-        height="24" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        className={className}
-    >
-        <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
-        <line x1="12" x2="12.01" y1="18" y2="18" />
-    </svg>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+    <line x1="12" x2="12.01" y1="18" y2="18" />
+  </svg>
 );
