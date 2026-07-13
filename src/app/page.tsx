@@ -21,6 +21,7 @@ const ICON_MAP: Record<string, any> = {
 export default function Home() {
   const [plans, setPlans] = useState<any[]>([]);
   const [features, setFeatures] = useState<any[]>([]);
+  const [seo, setSeo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,6 +46,18 @@ export default function Home() {
         setFeatures(data ?? []);
       });
 
+    // Fetch platform settings (seo)
+    supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "seo")
+      .maybeSingle()
+      .then(({ data }: { data: any }) => {
+        if (data && data.value) {
+          setSeo(data.value);
+        }
+      });
+
     // Realtime for features
     const channel = supabase
       .channel("landing-features")
@@ -57,6 +70,10 @@ export default function Home() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || "iHut";
+  const displayBrand = seo?.metaTitle?.split('|')[0].trim() || appName;
+
   return (
     <div className="flex flex-col items-center min-h-screen bg-background overflow-x-hidden">
       {/* Header - Compact App-Style */}
@@ -65,7 +82,7 @@ export default function Home() {
           <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
             <ShoppingCart className="text-white w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <span className="text-lg sm:text-xl font-headline font-black text-primary tracking-tight">IHut.Shop</span>
+          <span className="text-lg sm:text-xl font-headline font-black text-primary tracking-tight">{displayBrand}</span>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3">
           <Link href="/auth">
@@ -90,7 +107,7 @@ export default function Home() {
             Build Your <span className="text-primary italic underline decoration-accent/30 decoration-4 sm:decoration-8 underline-offset-4 sm:underline-offset-8">Empire</span> Effortlessly
           </h1>
           <p className="text-sm sm:text-xl text-muted-foreground max-w-2xl mx-auto font-medium leading-relaxed px-2">
-            The multi-tenant engine designed for scale. Launch professional storefronts with landing pages and analytics in minutes.
+            {seo?.metaDescription || process.env.NEXT_PUBLIC_APP_SUBTITLE || "The multi-tenant engine designed for scale. Launch professional storefronts with landing pages and analytics in minutes."}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 justify-center items-center pt-4 px-2">
             <Link href="/auth" className="w-full sm:w-auto">
@@ -123,7 +140,7 @@ export default function Home() {
               <FeatureCard
                 icon={Zap}
                 title="Instant Subdomains"
-                desc="Every store gets a unique [brand].ihut.shop address automatically. Zero config."
+                desc={`Every store gets a unique [brand].${rootDomain} address automatically. Zero config.`}
                 accent="accent"
               />
               <FeatureCard
@@ -135,7 +152,7 @@ export default function Home() {
               <FeatureCard
                 icon={Star}
                 title="AI Content Engine"
-                desc="Generate product data and store names using built-in Google Gemini integration."
+                desc="Generate product data and store names using built-in AI model integration."
                 accent="accent"
               />
             </>
@@ -207,10 +224,10 @@ export default function Home() {
           <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white">
             <ShoppingCart className="w-4 h-4" />
           </div>
-          <span className="text-lg font-headline font-black tracking-tight text-slate-900 uppercase">IHut.Shop</span>
+          <span className="text-lg font-headline font-black tracking-tight text-slate-900 uppercase">{displayBrand}</span>
         </div>
         <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.4em]">
-          &copy; {new Date().getFullYear()} IHut.Shop CLOUD ENGINE.
+          &copy; {new Date().getFullYear()} {displayBrand} CLOUD ENGINE.
         </p>
       </footer>
     </div>

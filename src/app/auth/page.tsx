@@ -33,11 +33,23 @@ function AuthPageContent() {
     subdomain: "",
   });
 
+  const [seo, setSeo] = useState<any>(null);
+
   // Redirect if already logged in
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       if (session?.user) router.push("/dashboard");
     });
+
+    supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "seo")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data && data.value) setSeo(data.value);
+      });
+
     return () => subscription.unsubscribe();
   }, [router, supabase]);
 
@@ -159,7 +171,9 @@ function AuthPageContent() {
         }
       }
 
-      toast({ title: "Welcome to IHut.Shop!", description: "Your account and store have been created." });
+      const appName = process.env.NEXT_PUBLIC_APP_NAME || "iHut";
+      const displayBrand = seo?.metaTitle?.split('|')[0].trim() || appName;
+      toast({ title: `Welcome to ${displayBrand}!`, description: "Your account and store have been created." });
       router.push("/dashboard");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Signup Error", description: error.message });
@@ -196,7 +210,7 @@ function AuthPageContent() {
             <div className="mx-auto w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
               <ShoppingCart className="text-white w-7 h-7" />
             </div>
-            <CardTitle className="text-3xl font-headline font-bold">IHut.Shop</CardTitle>
+            <CardTitle className="text-3xl font-headline font-bold">{seo?.metaTitle?.split('|')[0].trim() || process.env.NEXT_PUBLIC_APP_NAME || "IHut.Shop"}</CardTitle>
             <CardDescription className="text-white/80">Login to manage your empire.</CardDescription>
           </CardHeader>
           <CardContent className="p-8">
@@ -216,7 +230,7 @@ function AuthPageContent() {
           </CardContent>
           <CardFooter className="flex justify-center p-6 bg-muted/30 border-t">
             <button onClick={() => setIsLogin(false)} className="text-sm font-medium text-primary hover:underline">
-              New to IHut.Shop? Create an account
+              New to {seo?.metaTitle?.split('|')[0].trim() || process.env.NEXT_PUBLIC_APP_NAME || "IHut.Shop"}? Create an account
             </button>
           </CardFooter>
         </Card>
@@ -231,7 +245,7 @@ function AuthPageContent() {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-6 h-6" />
-              <span className="font-headline font-bold text-xl">IHut.Shop</span>
+              <span className="font-headline font-bold text-xl">{seo?.metaTitle?.split('|')[0].trim() || process.env.NEXT_PUBLIC_APP_NAME || "IHut.Shop"}</span>
             </div>
             <div className="text-xs font-medium bg-white/20 px-3 py-1 rounded-full">
               Step {step} of 3
