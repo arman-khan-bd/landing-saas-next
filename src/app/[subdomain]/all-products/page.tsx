@@ -14,7 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { getTenantPath } from "@/lib/utils";
+import { getTenantPath, getCurrencySymbol } from "@/lib/utils";
 
 interface CartItem {
   id: string;
