@@ -510,7 +510,7 @@ export default function AllProductsPage() {
               <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Browsing {filteredProducts.length} Results</p>
             </div>
 
-            <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center justify-between gap-3 w-full md:w-auto">
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-40 h-11 rounded-xl bg-white border-slate-200">
                   <SelectValue placeholder="Sort By" />

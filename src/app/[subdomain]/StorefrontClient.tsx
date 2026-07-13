@@ -693,11 +693,21 @@ export default function Storefront({
         .section-title i { color: var(--green); font-size: 16px; }
         .section-sub  { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
         .see-all {
-          font-size: 12.5px; font-weight: 600; color: var(--green);
-          display: flex; align-items: center; gap: 4px;
-          transition: gap var(--transition);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: var(--green-pale);
+          color: var(--green);
+          transition: background var(--transition), transform var(--transition), color var(--transition);
         }
-        .see-all:hover { gap: 8px; }
+        .see-all:hover {
+          background: var(--green);
+          color: var(--white);
+          transform: scale(1.05);
+        }
         .section { margin-bottom: 36px; }
         .cat-grid {
           display: grid;
@@ -1300,7 +1310,7 @@ export default function Storefront({
                         <div className="section-title"><i className="fa-solid fa-grid-2"></i> Shop by Category</div>
                       </div>
                       <Link href={getTenantPath(subdomain, "/all-products")} className="see-all">
-                        View All <i className="fa-solid fa-arrow-right"></i>
+                        <i className="fa-solid fa-arrow-right"></i>
                       </Link>
                     </div>
                     <div className="cat-grid">
@@ -1329,7 +1339,7 @@ export default function Storefront({
                         <div className="section-sub">{section.config.subtitle || "Top selected catalog"}</div>
                       </div>
                       <Link href={getTenantPath(subdomain, "/all-products")} className="see-all">
-                        See All <i className="fa-solid fa-arrow-right"></i>
+                        <i className="fa-solid fa-arrow-right"></i>
                       </Link>
                     </div>
                     <div className="product-grid">
