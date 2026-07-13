@@ -1477,40 +1477,40 @@ export default function Storefront({
 
       {/* Cart Drawer */}
       <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
-        <SheetContent className="w-full sm:max-w-md flex flex-col p-0 border-none rounded-l-[40px] shadow-2xl">
-          <SheetHeader className="p-5 md:p-8 bg-slate-900 text-white shrink-0">
+        <SheetContent className="w-full sm:max-w-md flex flex-col p-0 border-none rounded-l-3xl shadow-2xl bg-white font-sans">
+          <SheetHeader className="p-6 bg-[var(--green)] text-white shrink-0">
             <div className="flex items-center justify-between">
-              <SheetTitle className="text-xl md:text-2xl font-headline font-black text-white flex items-center gap-2 uppercase tracking-tight">
-                <ShoppingCart className="w-5 h-5 text-primary" />
-                Cart
+              <SheetTitle className="text-xl font-headline font-bold text-white flex items-center gap-2 uppercase tracking-tight">
+                <i className="fa-solid fa-basket-shopping text-white"></i>
+                আপনার শপিং ব্যাগ
               </SheetTitle>
-              <SheetClose className="text-white/60 hover:text-white"><X className="w-6 h-6" /></SheetClose>
+              <SheetClose className="text-white/80 hover:text-white transition-opacity"><i className="fa-solid fa-xmark text-lg"></i></SheetClose>
             </div>
           </SheetHeader>
-          <ScrollArea className="flex-1 px-5 md:px-8 py-4">
+          <ScrollArea className="flex-1 px-6 py-4 bg-[#f4f7f4]">
             {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center py-20 text-center opacity-20">
-                <ShoppingBag className="w-16 h-16 mb-4" />
-                <p className="text-sm font-bold uppercase tracking-widest">Cart is empty</p>
+              <div className="h-full flex flex-col items-center justify-center py-20 text-center opacity-30">
+                <i className="fa-solid fa-basket-shopping text-5xl mb-4 text-[var(--green)]"></i>
+                <p className="text-sm font-bold uppercase tracking-widest">ব্যাগটি সম্পূর্ণ খালি</p>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {cart.map((item) => (
-                  <div key={item.id} className="flex gap-3 p-2 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="w-14 h-14 rounded-lg bg-white overflow-hidden border shrink-0">
+                  <div key={item.id} className="flex gap-4 p-3 bg-white rounded-xl border border-slate-150 shadow-sm transition-all hover:border-[var(--green)]">
+                    <div className="w-16 h-16 rounded-lg bg-slate-50 overflow-hidden border shrink-0">
                       <img src={optimizeCloudinaryUrl(item.image, 100)} alt={item.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div className="flex justify-between items-start">
-                        <h4 className="font-bold text-[10px] truncate pr-4">{item.name}</h4>
-                        <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <h4 className="font-bold text-xs text-slate-800 truncate pr-4">{item.name}</h4>
+                        <button onClick={() => removeFromCart(item.id)} className="text-slate-400 hover:text-rose-600 transition-colors"><i className="fa-regular fa-trash-can"></i></button>
                       </div>
                       <div className="flex items-center justify-between">
-                        <p className="text-primary font-black text-xs">{getCurrencySymbol(store?.currency)}{item.price.toFixed(2)}</p>
-                        <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5">
-                          <button onClick={() => updateQuantity(item.id, -1)} className="p-0.5 hover:bg-slate-50 rounded"><Minus className="w-3 h-3" /></button>
-                          <span className="w-6 text-center text-[10px] font-bold">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.id, 1)} className="p-0.5 hover:bg-slate-50 rounded"><Plus className="w-3 h-3" /></button>
+                        <p className="text-[var(--green)] font-extrabold text-sm">{getCurrencySymbol(store?.currency)}{item.price.toFixed(0)}</p>
+                        <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-0.5">
+                          <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-white rounded transition-colors text-slate-500"><i className="fa-solid fa-minus text-[9px]"></i></button>
+                          <span className="w-7 text-center text-xs font-bold text-slate-700">{item.quantity}</span>
+                          <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:bg-white rounded transition-colors text-slate-500"><i className="fa-solid fa-plus text-[9px]"></i></button>
                         </div>
                       </div>
                     </div>
@@ -1519,15 +1519,20 @@ export default function Storefront({
               </div>
             )}
           </ScrollArea>
-          <SheetFooter className="p-3 md:p-4 bg-white border-t shrink-0">
-            <div className="w-full space-y-2">
-              <div className="flex justify-between items-center px-1"><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">মোট</span><span className="text-lg font-black text-primary">{getCurrencySymbol(store?.currency)}{cartTotal.toFixed(2)}</span></div>
-              <div className="flex gap-2">
+          <SheetFooter className="p-6 bg-white border-t shrink-0">
+            <div className="w-full space-y-4">
+              <div className="flex justify-between items-center px-1">
+                <span className="text-xs font-bold uppercase text-slate-400">মোট মূল্য</span>
+                <span className="text-2xl font-black text-[var(--green)]">{getCurrencySymbol(store?.currency)}{cartTotal.toFixed(0)}</span>
+              </div>
+              <div className="flex gap-3">
                 <SheetClose asChild>
-                  <Button variant="outline" className="flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-200 text-slate-500 hover:bg-slate-50">ফিরুন</Button>
+                  <Button variant="outline" className="flex-1 h-12 rounded-xl text-xs font-bold border-slate-200 text-slate-500 hover:bg-slate-50">ফিরুন</Button>
                 </SheetClose>
                 <Link href={getTenantPath(subdomain, "/checkout")} className="flex-[2]">
-                  <Button className="w-full h-10 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20" disabled={cart.length === 0}>অর্ডার করুন</Button>
+                  <Button className="w-full h-12 rounded-xl text-xs font-bold shadow-md bg-[var(--green)] hover:bg-[var(--green-dark)] text-white" disabled={cart.length === 0}>
+                    <i className="fa-solid fa-cart-shopping mr-2"></i> অর্ডার করুন
+                  </Button>
                 </Link>
               </div>
             </div>
