@@ -228,7 +228,7 @@ export default function ProductDetailPage() {
   };
 
   const removeFromCart = (id: string) => setCart(prev => prev.filter(item => item.id !== id));
-  
+
   const cartTotal = useMemo(() => {
     return cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   }, [cart]);
@@ -306,7 +306,7 @@ export default function ProductDetailPage() {
                     <span className="w-10 text-center font-black text-base">{quantity}</span>
                     <button onClick={() => setItemQuantity(q => q + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-white rounded-xl transition-all"><Plus className="w-4 h-4" /></button>
                   </div>
-                  <Button size="lg" className="flex-1 h-12 rounded-2xl text-base font-black shadow-xl shadow-primary/20" onClick={addToCart}>কার্টে যোগ করুন</Button>
+                  <Button size="lg" className="flex-1 h-auto rounded-2xl text-base font-black shadow-xl shadow-primary/20" onClick={addToCart}>কার্টে যোগ করুন</Button>
                 </div>
               </div>
 
@@ -330,9 +330,9 @@ export default function ProductDetailPage() {
                       <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">ডেলিভারি এরিয়া নির্বাচন করুন</Label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {store.shippingSettings.methods.map((method: any) => (
-                          <div 
-                            key={method.id} 
-                            className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} 
+                          <div
+                            key={method.id}
+                            className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", selectedShipping?.id === method.id ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')}
                             onClick={() => setSelectedShipping(method)}
                           >
                             <div className="flex items-center gap-3">
@@ -351,9 +351,9 @@ export default function ProductDetailPage() {
                   <div className="space-y-4 pt-4 border-t border-slate-50">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">আপনার তথ্য প্রদান করুন</Label>
                     <div className="space-y-4">
-                      <Input placeholder="আপনার পুরো নাম" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.fullName} onChange={(e) => setFormData(prev => ({...prev, fullName: e.target.value}))} />
-                      <Input placeholder="মোবাইল নাম্বার" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.phone} onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))} />
-                      <Textarea placeholder="পুরো ঠিকানা (বাসা/রোড, জেলা)" className="min-h-[100px] rounded-2xl bg-slate-50 border-none p-4" value={formData.address} onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))} />
+                      <Input placeholder="আপনার পুরো নাম" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.fullName} onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))} />
+                      <Input placeholder="মোবাইল নাম্বার" className="h-12 rounded-xl bg-slate-50 border-none px-4" value={formData.phone} onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))} />
+                      <Textarea placeholder="পুরো ঠিকানা (বাসা/রোড, জেলা)" className="min-h-[100px] rounded-2xl bg-slate-50 border-none p-4" value={formData.address} onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))} />
                     </div>
                   </div>
 
@@ -361,50 +361,50 @@ export default function ProductDetailPage() {
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">পেমেন্ট মেথড</Label>
                     <div className="grid gap-3">
                       {store?.paymentSettings?.cod && (
-                        <div 
-                          className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} 
+                        <div
+                          className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')}
                           onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod', selectedManualMethodId: "", transactionId: "" }))}
                         >
                           <div className="flex items-center gap-3">
-                             <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
-                               {formData.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
-                             </div>
-                             <span className="font-bold cursor-pointer">ক্যাশ অন ডেলিভারি</span>
+                            <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'cod' ? 'border-primary' : 'border-slate-300')}>
+                              {formData.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                            </div>
+                            <span className="font-bold cursor-pointer">ক্যাশ অন ডেলিভারি</span>
                           </div>
                           <Truck className="w-5 h-5 text-slate-300" />
                         </div>
                       )}
                       {store?.paymentSettings?.manualEnabled && store.paymentSettings.manualMethods?.length > 0 && (
-                        <div 
-                          className={cn("flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')} 
-                          onClick={() => setFormData(prev => ({...prev, paymentMethod: 'manual'}))}
+                        <div
+                          className={cn("flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all", formData.paymentMethod === 'manual' ? 'border-primary bg-primary/5' : 'bg-slate-50 border-transparent')}
+                          onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'manual' }))}
                         >
                           <div className="flex items-center justify-between">
-                             <div className="flex items-center gap-3">
-                                <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'manual' ? 'border-primary' : 'border-slate-300')}>
-                                  {formData.paymentMethod === 'manual' && <div className="w-2 h-2 rounded-full bg-primary" />}
-                                </div>
-                                <span className="font-bold cursor-pointer">বিকাশ/নগদ/রকেট</span>
-                             </div>
-                             <Smartphone className="w-5 h-5 text-slate-300" />
+                            <div className="flex items-center gap-3">
+                              <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formData.paymentMethod === 'manual' ? 'border-primary' : 'border-slate-300')}>
+                                {formData.paymentMethod === 'manual' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                              </div>
+                              <span className="font-bold cursor-pointer">বিকাশ/নগদ/রকেট</span>
+                            </div>
+                            <Smartphone className="w-5 h-5 text-slate-300" />
                           </div>
                           {formData.paymentMethod === 'manual' && (
-                             <div className="mt-4 pt-4 border-t border-primary/10 space-y-4 animate-in slide-in-from-top-2">
-                                <div className="grid grid-cols-2 gap-2">
-                                   {store.paymentSettings.manualMethods.map((m: any) => (
-                                     <Button key={m.id} type="button" variant="outline" className={cn("h-10 rounded-xl text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white' : '')} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({...prev, selectedManualMethodId: m.id})); }}>{m.name}</Button>
-                                    ))}
+                            <div className="mt-4 pt-4 border-t border-primary/10 space-y-4 animate-in slide-in-from-top-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                {store.paymentSettings.manualMethods.map((m: any) => (
+                                  <Button key={m.id} type="button" variant="outline" className={cn("h-10 rounded-xl text-[10px] font-black uppercase", formData.selectedManualMethodId === m.id ? 'bg-primary text-white' : '')} onClick={(e) => { e.stopPropagation(); setFormData(prev => ({ ...prev, selectedManualMethodId: m.id })); }}>{m.name}</Button>
+                                ))}
+                              </div>
+                              {selectedManualMethod && (
+                                <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
+                                  <div className="p-4 bg-white rounded-2xl border border-primary/10">
+                                    <p className="text-[10px] font-black text-primary uppercase">নাম্বার: {selectedManualMethod.number}</p>
+                                    <p className="text-[10px] text-slate-500 mt-1 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</p>
+                                  </div>
+                                  <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData(prev => ({ ...prev, transactionId: e.target.value.toUpperCase() }))} />
                                 </div>
-                                {selectedManualMethod && (
-                                   <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
-                                      <div className="p-4 bg-white rounded-2xl border border-primary/10">
-                                         <p className="text-[10px] font-black text-primary uppercase">নাম্বার: {selectedManualMethod.number}</p>
-                                         <p className="text-[10px] text-slate-500 mt-1 italic whitespace-pre-wrap">{selectedManualMethod.instructions}</p>
-                                      </div>
-                                      <Input placeholder="ট্রানজাকশন আইডি লিখুন" className="h-12 rounded-xl bg-white border-primary/20" value={formData.transactionId} onChange={(e) => setFormData(prev => ({...prev, transactionId: e.target.value.toUpperCase()}))} />
-                                   </div>
-                                )}
-                             </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
@@ -434,7 +434,7 @@ export default function ProductDetailPage() {
             <div className="flex items-center justify-between"><SheetTitle className="text-2xl font-headline font-black text-white flex items-center gap-3 uppercase tracking-tight"><ShoppingCart className="w-6 h-6 text-primary" />আপনার ব্যাগ</SheetTitle><SheetClose className="text-white/60 hover:text-white transition-colors"><X className="w-7 h-7" /></SheetClose></div>
           </SheetHeader>
           <ScrollArea className="flex-1 px-8 py-6">
-            {cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center py-20 text-center space-y-6 opacity-20"><ShoppingBag className="w-20 h-20" /><h3 className="text-lg font-bold uppercase tracking-widest">Bag is empty</h3></div> : 
+            {cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center py-20 text-center space-y-6 opacity-20"><ShoppingBag className="w-20 h-20" /><h3 className="text-lg font-bold uppercase tracking-widest">Bag is empty</h3></div> :
               <div className="space-y-6">
                 {cart.map((item) => (
                   <div key={item.id} className="flex gap-4 group bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
