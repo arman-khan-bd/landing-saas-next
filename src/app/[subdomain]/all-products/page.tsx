@@ -28,7 +28,7 @@ export default function AllProductsPage() {
   const { subdomain: rawSubdomain } = useParams();
   const subdomain = typeof rawSubdomain === 'string' ? rawSubdomain.toLowerCase() : '';
   const supabase = useSupabaseClient();
-  
+
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -36,7 +36,7 @@ export default function AllProductsPage() {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  
+
   // Filters & Sorting
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
@@ -87,7 +87,7 @@ export default function AllProductsPage() {
         .select("*")
         .eq("subdomain", subdomain)
         .single();
-      
+
       if (!storeData) {
         setStore(null);
         setLoading(false);
@@ -116,7 +116,7 @@ export default function AllProductsPage() {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
-        return prev.map(item => 
+        return prev.map(item =>
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
@@ -150,12 +150,12 @@ export default function AllProductsPage() {
   // Filter & Sort Logic
   const filteredProducts = useMemo(() => {
     let result = products.filter(p => {
-      const matchesCategory = selectedCategory === "all" || 
-        p.category === selectedCategory || 
+      const matchesCategory = selectedCategory === "all" ||
+        p.category === selectedCategory ||
         (categories.find(c => c.slug === selectedCategory)?.id === p.category);
-        
-      const matchesSubCategory = selectedSubCategory === "all" || 
-        p.sub_category === selectedSubCategory || 
+
+      const matchesSubCategory = selectedSubCategory === "all" ||
+        p.sub_category === selectedSubCategory ||
         p.subCategory === selectedSubCategory ||
         (subCategories.find(s => s.slug === selectedSubCategory)?.id === p.sub_category) ||
         (subCategories.find(s => s.slug === selectedSubCategory)?.id === p.subCategory);
@@ -184,7 +184,8 @@ export default function AllProductsPage() {
 
   return (
     <div className="min-h-screen bg-[#f4f7f4] pb-20">
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
         
@@ -240,6 +241,7 @@ export default function AllProductsPage() {
         .header-top {
           display: flex;
           align-items: center;
+          justify-content: space-between;
           gap: 16px;
           padding: 12px 0;
         }
@@ -457,9 +459,9 @@ export default function AllProductsPage() {
                 </div>
               </Link>
               <div className="search-wrap hidden md:block">
-                <input 
-                  type="text" 
-                  placeholder="Search for groceries, vegetables, fruits…" 
+                <input
+                  type="text"
+                  placeholder="Search for groceries, vegetables, fruits…"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -484,9 +486,9 @@ export default function AllProductsPage() {
             {mobileSearchOpen && (
               <div className="mobile-search-dropdown md:hidden pb-3 pt-1 flex gap-2">
                 <div className="search-wrap flex-1 relative">
-                  <input 
-                    type="text" 
-                    placeholder="Search for groceries, vegetables, fruits…" 
+                  <input
+                    type="text"
+                    placeholder="Search for groceries, vegetables, fruits…"
                     className="w-full border rounded-xl px-4 py-2 text-sm"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -536,7 +538,7 @@ export default function AllProductsPage() {
                     <div className="space-y-4 bg-white p-5 rounded-2xl border border-slate-150 shadow-sm">
                       <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">ক্যাটাগরি</Label>
                       <div className="grid gap-2">
-                        <button 
+                        <button
                           onClick={() => {
                             setSelectedCategory("all");
                             setSelectedSubCategory("all");
@@ -551,7 +553,7 @@ export default function AllProductsPage() {
                           const subs = subCategories.filter(s => s.category_id === cat.id);
                           return (
                             <div key={cat.id} className="space-y-2">
-                              <button 
+                              <button
                                 onClick={() => {
                                   setSelectedCategory(cat.slug);
                                   setSelectedSubCategory("all");
@@ -594,10 +596,10 @@ export default function AllProductsPage() {
                         <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">সর্বোচ্চ মূল্য</Label>
                         <span className="text-sm font-extrabold text-[var(--green)]">{getCurrencySymbol(store?.currency)}{priceRange[0]} - {getCurrencySymbol(store?.currency)}{priceRange[1]}</span>
                       </div>
-                      <Slider 
-                        defaultValue={[0, 10000]} 
-                        max={10000} 
-                        step={50} 
+                      <Slider
+                        defaultValue={[0, 10000]}
+                        max={10000}
+                        step={50}
                         value={priceRange}
                         onValueChange={(val: any) => setPriceRange(val as [number, number])}
                       />
@@ -669,18 +671,18 @@ export default function AllProductsPage() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-2 pt-12 border-t border-slate-100">
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="rounded-xl h-10 w-10" 
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-xl h-10 w-10"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
                   {Array.from({ length: totalPages }).map((_, i) => (
-                    <Button 
-                      key={i} 
+                    <Button
+                      key={i}
                       variant={currentPage === i + 1 ? "default" : "ghost"}
                       className={`h-10 w-10 rounded-xl font-bold ${currentPage === i + 1 ? 'shadow-lg shadow-primary/20' : ''}`}
                       onClick={() => setCurrentPage(i + 1)}
@@ -688,10 +690,10 @@ export default function AllProductsPage() {
                       {i + 1}
                     </Button>
                   ))}
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="rounded-xl h-10 w-10" 
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-xl h-10 w-10"
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   >
@@ -710,7 +712,7 @@ export default function AllProductsPage() {
             <div className="flex items-center justify-between"><SheetTitle className="text-2xl font-headline font-black text-white flex items-center gap-3 uppercase tracking-tight"><ShoppingCart className="w-6 h-6 text-primary" />আপনার ব্যাগ</SheetTitle><SheetClose className="text-white/60 hover:text-white transition-colors"><X className="w-7 h-7" /></SheetClose></div>
           </SheetHeader>
           <ScrollArea className="flex-1 px-8 py-6">
-            {cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center py-20 text-center space-y-6 opacity-20"><ShoppingBag className="w-20 h-20" /><h3 className="text-lg font-bold uppercase tracking-widest">Bag is empty</h3></div> : 
+            {cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center py-20 text-center space-y-6 opacity-20"><ShoppingBag className="w-20 h-20" /><h3 className="text-lg font-bold uppercase tracking-widest">Bag is empty</h3></div> :
               <div className="space-y-6">
                 {cart.map((item) => (
                   <div key={item.id} className="flex gap-4 group bg-slate-50/50 p-3 rounded-2xl border border-slate-100">

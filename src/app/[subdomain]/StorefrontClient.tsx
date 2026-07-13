@@ -182,7 +182,7 @@ export default function Storefront({
         .select("*")
         .eq("store_id", storeId)
         .order("created_at", { ascending: false });
-      
+
       setProducts(prodsData || []);
 
       const [catRes, subCatRes] = await Promise.all([
@@ -203,8 +203,8 @@ export default function Storefront({
 
   const fetchStoreAndPage = async () => {
     if (initialPage && initialStore) {
-       fetchProducts(initialStore.id);
-       return;
+      fetchProducts(initialStore.id);
+      return;
     }
     setLoading(true);
     setCatsLoading(true);
@@ -234,7 +234,7 @@ export default function Storefront({
       if (pagesRes.data && pagesRes.data.length > 0) {
         const pages = pagesRes.data;
         matchedPage = pages.find(p => p.slug === "index") || pages.find(p => p.slug?.toLowerCase() === "index");
-        
+
         if (!matchedPage && pages.length > 0) {
           matchedPage = pages.sort((a: any, b: any) => {
             const timeA = new Date(a.updated_at || a.updatedAt || 0).getTime();
@@ -243,7 +243,7 @@ export default function Storefront({
           })[0];
         }
       }
-      
+
       if (matchedPage) {
         setPage(matchedPage);
       }
@@ -266,22 +266,22 @@ export default function Storefront({
   if (loading) return <PageSkeleton />;
   if (!store) return <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center"><h1 className="text-2xl font-black">Store Registry Not Found</h1><Link href="/"><Button className="mt-6">Return to Hub</Button></Link></div>;
 
-  const activeSections = Array.isArray(store?.home_sections) 
-    ? store.home_sections 
+  const activeSections = Array.isArray(store?.home_sections)
+    ? store.home_sections
     : [
-        { id: "announcement_bar", enabled: true, config: { text: "নিত্যপ্রয়োজনীয় পণ্য নিয়ে আমরা আছি আপনার পাশে। দেশজুড়ে ক্যাশ অন ডেলিভারি!" } },
-        { id: "header", enabled: true, config: { logoTextBn: "ঘরোয়া বাজার", logoTextEn: "PURE & TRUSTED" } },
-        { id: "category_nav", enabled: true, config: {} },
-        { id: "hero", enabled: true, config: { badgeText: "100% PURE & NATURAL", title: "খাটি ও নিরাপদ পন্যের সমাহার", subtitle: "সুস্বাস্থ্যই আমাদের মূল লক্ষ্য। সরাসরি খামার থেকে আপনাদের হাতে পৌঁছে দিচ্ছি বিশুদ্ধ খাবার।", buttonText: "পণ্যসমূহ দেখুন", buttonLink: "#products", sideBanner1Label: "SPECIAL OFFER", sideBanner1Title: "মধু ও অর্গানিক তেল সংগ্রহ করুন", sideBanner1ButtonText: "অর্ডার করুন", sideBanner1Link: "#", sideBanner2Label: "POPULAR CATEGORY", sideBanner2Title: "প্রাকৃতিক উপাদানে তৈরি হেলথ পাউডার", sideBanner2ButtonText: "অর্ডার করুন", sideBanner2Link: "#" } },
-        { id: "trust_strip", enabled: true, config: {} },
-        { id: "category_grid", enabled: true, config: {} },
-        { id: "flash_sale", enabled: true, config: { title: "ধামাকা ফ্ল্যাশ সেল!", subtitle: "সীমিত সময়ের অফার, দ্রুত সংগ্রহ করুন!", countdownDate: "2026-07-20T23:59:59", buttonText: "অফার দেখুন" } },
-        { id: "products_grid", enabled: true, config: { title: "আমাদের জনপ্রিয় পণ্যসমূহ", subtitle: "গ্রাহকদের পছন্দের তালিকার শীর্ষে থাকা সেরা পণ্যসমূহ সংগ্রহ করুন。" } },
-        { id: "promo_banners", enabled: true, config: { banner1Title: "খাটি ঘি ও মধু কিনুন", banner1Subtitle: "স্পেশাল ডিসকাউন্ট", banner2Title: "ঘরোয়া মশলা সামগ্রী", banner2Subtitle: "শতভাগ নিরাপদ", banner3Title: "অর্গানিক স্কিন কেয়ার", banner3Subtitle: "প্রাকৃতিক সৌন্দর্য" } },
-        { id: "app_download", enabled: true, config: { title: "ঘরোয়া বাজার অ্যাপ ডাউনলোড করুন", subtitle: "সহজে অর্ডার করতে এবং নিয়মিত আপডেট পেতে আমাদের মোবাইল অ্যাপটি ডাউনলোড করুন।" } },
-        { id: "testimonials", enabled: true, config: {} },
-        { id: "footer", enabled: true, config: { description: "ঘরোয়া বাজার আপনাদের জন্য নিয়ে এসেছে সম্পূর্ণ খাটি ও রাসায়নিক মুক্ত নিত্যপ্রয়োজনীয় খাদ্যপণ্য। আমাদের লক্ষ্য সবার কাছে ভেজালহীন খাদ্য পৌঁছে দেওয়া।" } }
-      ];
+      { id: "announcement_bar", enabled: true, config: { text: "নিত্যপ্রয়োজনীয় পণ্য নিয়ে আমরা আছি আপনার পাশে। দেশজুড়ে ক্যাশ অন ডেলিভারি!" } },
+      { id: "header", enabled: true, config: { logoTextBn: "ঘরোয়া বাজার", logoTextEn: "PURE & TRUSTED" } },
+      { id: "category_nav", enabled: true, config: {} },
+      { id: "hero", enabled: true, config: { badgeText: "100% PURE & NATURAL", title: "খাটি ও নিরাপদ পন্যের সমাহার", subtitle: "সুস্বাস্থ্যই আমাদের মূল লক্ষ্য। সরাসরি খামার থেকে আপনাদের হাতে পৌঁছে দিচ্ছি বিশুদ্ধ খাবার।", buttonText: "পণ্যসমূহ দেখুন", buttonLink: "#products", sideBanner1Label: "SPECIAL OFFER", sideBanner1Title: "মধু ও অর্গানিক তেল সংগ্রহ করুন", sideBanner1ButtonText: "অর্ডার করুন", sideBanner1Link: "#", sideBanner2Label: "POPULAR CATEGORY", sideBanner2Title: "প্রাকৃতিক উপাদানে তৈরি হেলথ পাউডার", sideBanner2ButtonText: "অর্ডার করুন", sideBanner2Link: "#" } },
+      { id: "trust_strip", enabled: true, config: {} },
+      { id: "category_grid", enabled: true, config: {} },
+      { id: "flash_sale", enabled: true, config: { title: "ধামাকা ফ্ল্যাশ সেল!", subtitle: "সীমিত সময়ের অফার, দ্রুত সংগ্রহ করুন!", countdownDate: "2026-07-20T23:59:59", buttonText: "অফার দেখুন" } },
+      { id: "products_grid", enabled: true, config: { title: "আমাদের জনপ্রিয় পণ্যসমূহ", subtitle: "গ্রাহকদের পছন্দের তালিকার শীর্ষে থাকা সেরা পণ্যসমূহ সংগ্রহ করুন。" } },
+      { id: "promo_banners", enabled: true, config: { banner1Title: "খাটি ঘি ও মধু কিনুন", banner1Subtitle: "স্পেশাল ডিসকাউন্ট", banner2Title: "ঘরোয়া মশলা সামগ্রী", banner2Subtitle: "শতভাগ নিরাপদ", banner3Title: "অর্গানিক স্কিন কেয়ার", banner3Subtitle: "প্রাকৃতিক সৌন্দর্য" } },
+      { id: "app_download", enabled: true, config: { title: "ঘরোয়া বাজার অ্যাপ ডাউনলোড করুন", subtitle: "সহজে অর্ডার করতে এবং নিয়মিত আপডেট পেতে আমাদের মোবাইল অ্যাপটি ডাউনলোড করুন।" } },
+      { id: "testimonials", enabled: true, config: {} },
+      { id: "footer", enabled: true, config: { description: "ঘরোয়া বাজার আপনাদের জন্য নিয়ে এসেছে সম্পূর্ণ খাটি ও রাসায়নিক মুক্ত নিত্যপ্রয়োজনীয় খাদ্যপণ্য। আমাদের লক্ষ্য সবার কাছে ভেজালহীন খাদ্য পৌঁছে দেওয়া।" } }
+    ];
 
   const pageStyle = page?.page_style || page?.pageStyle || { backgroundColor: "#f4f7f4", paddingTop: 0, paddingBottom: 40 };
 
@@ -293,7 +293,8 @@ export default function Storefront({
         color: pageStyle.textColor || "#1a2e1a"
       }}
     >
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
         
@@ -382,6 +383,7 @@ export default function Storefront({
         .header-top {
           display: flex;
           align-items: center;
+          justify-content: space-between;
           gap: 16px;
           padding: 12px 0;
         }
@@ -1113,9 +1115,9 @@ export default function Storefront({
                         </div>
                       </a>
                       <div className="search-wrap hidden md:block">
-                        <input 
-                          type="text" 
-                          placeholder="Search for groceries, vegetables, fruits…" 
+                        <input
+                          type="text"
+                          placeholder="Search for groceries, vegetables, fruits…"
                           value={searchVal}
                           onChange={(e) => setSearchVal(e.target.value)}
                           onKeyDown={(e) => {
@@ -1124,7 +1126,7 @@ export default function Storefront({
                             }
                           }}
                         />
-                        <button 
+                        <button
                           className="search-btn"
                           onClick={() => router.push(getTenantPath(subdomain, `/all-products?search=${encodeURIComponent(searchVal)}`))}
                         >
@@ -1148,9 +1150,9 @@ export default function Storefront({
                     {mobileSearchOpen && (
                       <div className="mobile-search-dropdown md:hidden pb-3 pt-1 flex gap-2">
                         <div className="search-wrap flex-1 relative">
-                          <input 
-                            type="text" 
-                            placeholder="Search for groceries, vegetables, fruits…" 
+                          <input
+                            type="text"
+                            placeholder="Search for groceries, vegetables, fruits…"
                             className="w-full border rounded-xl px-4 py-2 text-sm"
                             value={searchVal}
                             onChange={(e) => setSearchVal(e.target.value)}
@@ -1160,7 +1162,7 @@ export default function Storefront({
                               }
                             }}
                           />
-                          <button 
+                          <button
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 p-1 hover:text-[var(--green)]"
                             onClick={() => router.push(getTenantPath(subdomain, `/all-products?search=${encodeURIComponent(searchVal)}`))}
                           >
@@ -1188,9 +1190,9 @@ export default function Storefront({
                           {subs.length > 0 && (
                             <div className="cat-dropdown">
                               {subs.map((sub) => (
-                                <Link 
-                                  key={sub.id} 
-                                  href={`${getTenantPath(subdomain, "/all-products")}?category=${cat.id}&subCategory=${sub.id}`} 
+                                <Link
+                                  key={sub.id}
+                                  href={`${getTenantPath(subdomain, "/all-products")}?category=${cat.id}&subCategory=${sub.id}`}
                                   className="cat-dropdown-item"
                                 >
                                   {sub.name}
@@ -1210,7 +1212,7 @@ export default function Storefront({
                 <section key={section.id} className="hero-section">
                   <div className="container">
                     <div className="hero-grid">
-                      <div 
+                      <div
                         className="hero-main"
                         style={section.config.image ? { backgroundImage: `url(${section.config.image})` } : {}}
                       >
@@ -1229,7 +1231,7 @@ export default function Storefront({
                         </div>
                       </div>
                       <div className="hero-side">
-                        <div 
+                        <div
                           className="side-banner amber"
                           style={section.config.sideBanner1Image ? { backgroundImage: `url(${section.config.sideBanner1Image})` } : {}}
                         >
@@ -1244,7 +1246,7 @@ export default function Storefront({
                             <i className="fa-solid fa-lemon sb-icon amber"></i>
                           </div>
                         </div>
-                        <div 
+                        <div
                           className="side-banner blue"
                           style={section.config.sideBanner2Image ? { backgroundImage: `url(${section.config.sideBanner2Image})` } : {}}
                         >
@@ -1372,7 +1374,7 @@ export default function Storefront({
               return (
                 <div key={section.id} className="container">
                   <div className="promo-grid">
-                    <div 
+                    <div
                       className="promo-card g1"
                       style={section.config.banner1Image ? { backgroundImage: `url(${section.config.banner1Image})` } : {}}
                     >
@@ -1385,7 +1387,7 @@ export default function Storefront({
                       </div>
                       <i className="fa-solid fa-seedling promo-icon"></i>
                     </div>
-                    <div 
+                    <div
                       className="promo-card g2"
                       style={section.config.banner2Image ? { backgroundImage: `url(${section.config.banner2Image})` } : {}}
                     >
@@ -1398,7 +1400,7 @@ export default function Storefront({
                       </div>
                       <i className="fa-solid fa-apple-whole promo-icon"></i>
                     </div>
-                    <div 
+                    <div
                       className="promo-card g3"
                       style={section.config.banner3Image ? { backgroundImage: `url(${section.config.banner3Image})` } : {}}
                     >
