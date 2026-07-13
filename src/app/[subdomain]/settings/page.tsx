@@ -159,6 +159,7 @@ export default function StoreSettingsPage() {
         setSettings((prev: any) => ({
           ...prev,
           ...storeData,
+          homePageTitle: storeData.home_page_title || storeData.homePageTitle || "",
           paymentSettings: {
             ...prev.paymentSettings,
             ...storeData.paymentSettings,
@@ -208,7 +209,12 @@ export default function StoreSettingsPage() {
     if (!storeId) return;
     setSaving(true);
     try {
-      await supabase.from("stores").update(settings).eq("id", storeId);
+      const updatePayload = {
+        ...settings,
+        home_page_title: settings.homePageTitle,
+        updated_at: new Date().toISOString()
+      };
+      await supabase.from("stores").update(updatePayload).eq("id", storeId);
       toast({ title: "Settings Updated", description: "Your store configuration has been saved." });
     } catch (error) {
       toast({ variant: "destructive", title: "Update Failed" });

@@ -246,10 +246,10 @@ export default function Storefront({
           {/* Hero Main Content - Full Width */}
           <div className="max-w-7xl mx-auto px-4 md:px-6 pt-6">
             <div className="w-full min-h-[350px] sm:min-h-[450px] md:min-h-[550px] rounded-[32px] sm:rounded-[48px] relative overflow-hidden bg-slate-900 group shadow-2xl">
-              {store.homeBanner ? (
+              {(store.homeBanner || store.home_banner) ? (
                 <>
                   <img
-                    src={optimizeCloudinaryUrl(store.homeBanner, 1200)}
+                    src={optimizeCloudinaryUrl(store.homeBanner || store.home_banner, 1200)}
                     alt={store.name}
                     className="absolute inset-0 w-full h-full object-cover opacity-60 transition-transform duration-1000 group-hover:scale-105"
                   />
@@ -338,8 +338,8 @@ export default function Storefront({
                   </div>
                 ))
               ) : (
-                (store.productDisplayType === "manual" && store.selectedProducts?.length > 0
-                  ? products.filter(p => store.selectedProducts.includes(p.id))
+                (((store.productDisplayType || store.product_display_type) === "manual") && (store.selectedProducts || store.selected_products)?.length > 0
+                  ? products.filter(p => (store.selectedProducts || store.selected_products).includes(p.id))
                   : products.slice(0, 12)
                 ).map((p) => (
                   <Card key={p.id} className="group bg-white rounded-[40px] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col h-full">

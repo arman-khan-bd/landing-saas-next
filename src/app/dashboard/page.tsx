@@ -193,6 +193,24 @@ export default function RedesignedDashboard() {
         });
       }
 
+      // Create a default home section layout so storefront is not empty
+      await supabase.from("sections").insert({
+        store_id: storeRow.id,
+        title: "Home Page",
+        slug: "index",
+        blocks: [
+          {
+            id: "hero-1",
+            type: "hero",
+            title: newStore.name,
+            subtitle: "Explore our collection of hand-crafted products.",
+            buttonText: "Shop Now",
+            buttonLink: "#products"
+          }
+        ],
+        is_published: true
+      });
+
       toast({ title: "Store Launched!", description: "Your new brand is now live." });
       setNewStore({ name: "", subdomain: "" });
       setIsCreateStoreOpen(false);

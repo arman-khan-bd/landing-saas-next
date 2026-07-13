@@ -60,14 +60,14 @@ export default function HomePageManager() {
       if (data) {
         setStoreId(data.id);
         setHomeData({
-          homePageTitle: data.homePageTitle || "",
+          homePageTitle: data.home_page_title || data.homePageTitle || "",
           description: data.description || "",
-          homeBanner: data.homeBanner || "",
-          offerBanner: data.offerBanner || false,
-          offerText: data.offerText || "",
-          offerLink: data.offerLink || "",
-          productDisplayType: data.productDisplayType || "new_to_old",
-          selectedProducts: data.selectedProducts || []
+          homeBanner: data.home_banner || data.homeBanner || "",
+          offerBanner: data.offer_banner ?? data.offerBanner ?? false,
+          offerText: data.offer_text || data.offerText || "",
+          offerLink: data.offer_link || data.offerLink || "",
+          productDisplayType: data.product_display_type || data.productDisplayType || "new_to_old",
+          selectedProducts: data.selected_products || data.selectedProducts || []
         });
         await fetchProducts(data.id);
       }
@@ -90,13 +90,20 @@ export default function HomePageManager() {
         .from("stores")
         .update({
           homePageTitle: homeData.homePageTitle,
+          home_page_title: homeData.homePageTitle,
           description: homeData.description,
           homeBanner: homeData.homeBanner,
+          home_banner: homeData.homeBanner,
           offerBanner: homeData.offerBanner,
+          offer_banner: homeData.offerBanner,
           offerText: homeData.offerText,
+          offer_text: homeData.offerText,
           offerLink: homeData.offerLink,
+          offer_link: homeData.offerLink,
           productDisplayType: homeData.productDisplayType,
+          product_display_type: homeData.productDisplayType,
           selectedProducts: homeData.selectedProducts,
+          selected_products: homeData.selectedProducts,
           updated_at: new Date().toISOString()
         })
         .eq("id", storeId);
