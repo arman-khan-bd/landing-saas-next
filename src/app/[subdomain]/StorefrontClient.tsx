@@ -296,6 +296,17 @@ export default function Storefront({
         
         .store-body {
           font-family: 'Poppins', 'Hind Siliguri', sans-serif;
+          max-width: 1440px;
+          margin: 0 auto;
+          background: #f4f7f4;
+          box-shadow: 0 0 50px rgba(0,0,0,0.05);
+          min-height: 100vh;
+        }
+        .container {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 0 20px;
+          width: 100%;
         }
         :root {
           --green:       #2e7d32;

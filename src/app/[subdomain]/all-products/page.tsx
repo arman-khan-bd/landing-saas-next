@@ -154,6 +154,162 @@ export default function AllProductsPage() {
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * productsPerPage, currentPage * productsPerPage);
 
+"use client";
+
+import { useEffect, useState, useMemo } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useSupabaseClient } from "@/supabase";
+import { Button } from "@/components/ui/button";
+import { ShoppingBag, ShoppingCart, Search, X, Plus, Minus, Trash2, SlidersHorizontal, ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+import { getTenantPath } from "@/lib/utils";
+
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  quantity: number;
+}
+
+export default function AllProductsPage() {
+  const { subdomain: rawSubdomain } = useParams();
+  const subdomain = typeof rawSubdomain === 'string' ? rawSubdomain.toLowerCase() : '';
+  const supabase = useSupabaseClient();
+  
+  const [store, setStore] = useState<any>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  
+  // Filters & Sorting
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const [sortBy, setSortBy] = useState<string>("newest");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 12;
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (subdomain) {
+      fetchStoreData();
+      const savedCart = localStorage.getItem(`cart_${subdomain}`);
+      if (savedCart) {
+        try {
+          setCart(JSON.parse(savedCart));
+        } catch (e) {
+          console.error("Cart parse error", e);
+        }
+      }
+    }
+  }, [subdomain]);
+
+  useEffect(() => {
+    if (subdomain && cart.length >= 0) {
+      localStorage.setItem(`cart_${subdomain}`, JSON.stringify(cart));
+    }
+  }, [cart, subdomain]);
+
+  const fetchStoreData = async () => {
+    setLoading(true);
+    try {
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("subdomain", subdomain)
+        .single();
+      
+      if (!storeData) {
+        setStore(null);
+        setLoading(false);
+        return;
+      }
+
+      setStore(storeData);
+
+      const [prodRes, catRes] = await Promise.all([
+        supabase.from("products").select("*").eq("store_id", storeData.id),
+        supabase.from("categories").select("*").eq("store_id", storeData.id)
+      ]);
+
+      setProducts(prodRes.data || []);
+      setCategories(catRes.data || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addToCart = (product: any) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      if (existing) {
+        return prev.map(item => 
+          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [...prev, {
+        id: product.id,
+        name: product.name,
+        price: Number(product.currentPrice),
+        image: product.featuredImage || (product.gallery && product.gallery[0]),
+        quantity: 1
+      }];
+    });
+    setIsCartOpen(true);
+  };
+
+  const updateQuantity = (id: string, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQty = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }));
+  };
+
+  const removeFromCart = (id: string) => {
+    setCart(prev => prev.filter(item => item.id !== id));
+  };
+
+  const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+  // Filter & Sort Logic
+  const filteredProducts = useMemo(() => {
+    let result = products.filter(p => {
+      const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
+      const matchesPrice = p.currentPrice >= priceRange[0] && p.currentPrice <= priceRange[1];
+      const matchesSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesCategory && matchesPrice && matchesSearch;
+    });
+
+    if (sortBy === "price-low") result.sort((a, b) => a.currentPrice - b.currentPrice);
+    else if (sortBy === "price-high") result.sort((a, b) => b.currentPrice - a.currentPrice);
+    else if (sortBy === "newest") result.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+    return result;
+  }, [products, selectedCategory, priceRange, sortBy, searchTerm]);
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * productsPerPage, currentPage * productsPerPage);
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <Loader2 className="w-10 h-10 animate-spin text-primary" />
@@ -161,264 +317,491 @@ export default function AllProductsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50/30 pb-20">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href={getTenantPath(subdomain, "/")} className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-md">
-              <ShoppingBag className="w-4 h-4" />
-            </div>
-            <h1 className="text-lg font-headline font-black tracking-tighter text-slate-900 uppercase">
-              {store?.name}
-            </h1>
-          </Link>
-          
-          <div className="flex items-center gap-2">
-            <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl bg-white border border-slate-100 shadow-sm">
-                  <ShoppingCart className="w-4 h-4 text-slate-700" />
-                  {cart.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-[9px] font-black text-white flex items-center justify-center rounded-full border-2 border-white">
-                      {cart.reduce((acc, i) => acc + i.quantity, 0)}
-                    </span>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-full sm:max-w-md flex flex-col p-0 border-none rounded-l-3xl shadow-2xl">
-                <SheetHeader className="p-8 bg-slate-900 text-white shrink-0">
-                  <div className="flex items-center justify-between">
-                    <SheetTitle className="text-2xl font-headline font-black text-white flex items-center gap-3 uppercase tracking-tight">
-                      <ShoppingCart className="w-6 h-6 text-primary" />
-                      Your Cart
-                    </SheetTitle>
-                    <SheetClose className="text-white/60 hover:text-white"><X className="w-7 h-7" /></SheetClose>
-                  </div>
-                </SheetHeader>
-                <ScrollArea className="flex-1 px-8 py-6">
-                  {cart.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center py-20 text-center opacity-20">
-                      <ShoppingBag className="w-16 h-16 mb-4" />
-                      <p className="text-sm font-bold uppercase tracking-widest">Cart is empty</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {cart.map((item) => (
-                        <div key={item.id} className="flex gap-4 p-2 bg-slate-50 rounded-2xl border border-slate-100">
-                          <div className="w-16 h-16 rounded-xl bg-white overflow-hidden border shrink-0">
-                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                          </div>
-                          <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                            <div className="flex justify-between items-start">
-                              <h4 className="font-bold text-xs truncate pr-4">{item.name}</h4>
-                              <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <p className="text-primary font-black text-sm">${(item.price).toFixed(2)}</p>
-                              <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5">
-                                <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-slate-50 rounded"><Minus className="w-3 h-3" /></button>
-                                <span className="w-6 text-center text-[10px] font-bold">{item.quantity}</span>
-                                <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:bg-slate-50 rounded"><Plus className="w-3 h-3" /></button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
-                <SheetFooter className="p-8 bg-white border-t shrink-0">
-                  <div className="w-full space-y-4">
-                    <div className="flex justify-between items-end">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Subtotal</span>
-                      <span className="text-2xl font-black text-primary">${cartTotal.toFixed(2)}</span>
-                    </div>
-                    <Link href={getTenantPath(subdomain, "/checkout")} className="w-full">
-                      <Button className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={cart.length === 0}>
-                        Checkout Now
-                      </Button>
-                    </Link>
-                    <SheetClose asChild>
-                      <Button variant="ghost" className="w-full h-12 text-slate-400 font-bold uppercase text-[10px]">Continue Shopping</Button>
-                    </SheetClose>
-                  </div>
-                </SheetFooter>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[#f4f7f4] pb-20">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+        
+        .store-body {
+          font-family: 'Poppins', 'Hind Siliguri', sans-serif;
+          max-width: 1440px;
+          margin: 0 auto;
+          background: #f4f7f4;
+          box-shadow: 0 0 50px rgba(0,0,0,0.05);
+          min-height: 100vh;
+        }
+        :root {
+          --green:       #2e7d32;
+          --green-dark:  #1b5e20;
+          --green-light: #4caf50;
+          --green-pale:  #e8f5e9;
+          --yellow:      #f9a825;
+          --yellow-dark: #e65100;
+          --red:         #d32f2f;
+          --red-light:   #ffebee;
+          --gray-50:     #f9fafb;
+          --gray-100:    #f1f5f0;
+          --gray-200:    #e2e8df;
+          --gray-400:    #9aab97;
+          --gray-500:    #6b7d68;
+          --gray-600:    #4a5c47;
+          --gray-800:    #1e2d1c;
+          --gray-900:    #111b10;
+          --white:       #ffffff;
+          --shadow-sm:   0 1px 4px rgba(0,0,0,.07);
+          --shadow-md:   0 4px 16px rgba(0,0,0,.09);
+          --shadow-lg:   0 8px 32px rgba(46,125,50,.14);
+          --radius-sm:   8px;
+          --radius-md:   12px;
+          --radius-lg:   18px;
+          --radius-xl:   24px;
+          --transition:  .2s ease;
+        }
+        .site-header {
+          background: var(--white);
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          box-shadow: 0 2px 16px rgba(0,0,0,.07);
+        }
+        .header-top {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 12px 0;
+        }
+        .logo-link { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .logo-icon {
+          width: 42px; height: 42px;
+          background: var(--green);
+          border-radius: var(--radius-md);
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: var(--shadow-sm);
+        }
+        .logo-icon i { color: var(--white); font-size: 18px; }
+        .logo-text-bn {
+          display: block;
+          font-family: 'Hind Siliguri', sans-serif;
+          font-size: 17px; font-weight: 700;
+          color: var(--green);
+          line-height: 1.2;
+        }
+        .logo-text-en {
+          display: block;
+          font-size: 9px; font-weight: 500;
+          letter-spacing: .14em;
+          text-transform: uppercase;
+          color: var(--gray-400);
+        }
+        .location-btn {
+          display: flex; align-items: center; gap: 6px;
+          border: 1.5px solid var(--gray-200);
+          border-radius: var(--radius-sm);
+          padding: 8px 12px;
+          font-size: 12.5px;
+          color: var(--gray-600);
+          transition: border-color var(--transition);
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .location-btn:hover { border-color: var(--green); }
+        .location-btn i.fa-location-dot { color: var(--green); font-size: 13px; }
+        .location-btn .city { font-weight: 600; color: var(--green); }
+        .location-btn i.fa-chevron-down { font-size: 10px; color: var(--gray-400); }
+        .search-wrap {
+          flex: 1;
+          position: relative;
+        }
+        .search-wrap input {
+          width: 100%;
+          border: 1.5px solid var(--gray-200);
+          border-radius: var(--radius-md);
+          padding: 10px 100px 10px 16px;
+          font-size: 13px;
+          color: var(--gray-800);
+          outline: none;
+          transition: border-color var(--transition), box-shadow var(--transition);
+          background: var(--white);
+        }
+        .search-wrap input::placeholder { color: var(--gray-400); }
+        .search-wrap input:focus {
+          border-color: var(--green);
+          box-shadow: 0 0 0 3px rgba(46,125,50,.1);
+        }
+        .search-btn {
+          position: absolute;
+          right: 5px; top: 50%;
+          transform: translateY(-50%);
+          background: var(--green);
+          color: var(--white);
+          border-radius: var(--radius-sm);
+          padding: 7px 14px;
+          font-size: 13px;
+          transition: background var(--transition);
+          display: flex; align-items: center; gap: 6px;
+        }
+        .search-btn:hover { background: var(--green-dark); }
+        .header-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .hdr-btn {
+          display: flex; flex-direction: column; align-items: center;
+          gap: 2px; padding: 6px 10px;
+          color: var(--gray-600);
+          border-radius: var(--radius-sm);
+          transition: color var(--transition), background var(--transition);
+          font-size: 11px; font-weight: 500;
+          position: relative;
+        }
+        .hdr-btn:hover { color: var(--green); background: var(--green-pale); }
+        .hdr-btn i { font-size: 18px; }
+        .cart-badge {
+          position: absolute;
+          top: 2px; right: 4px;
+          background: var(--red);
+          color: var(--white);
+          font-size: 9px; font-weight: 700;
+          width: 16px; height: 16px;
+          border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          animation: pulse-badge 1.6s infinite;
+        }
+        @keyframes pulse-badge { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+        
+        .product-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 14px;
+        }
+        .product-card {
+          background: var(--white);
+          border-radius: var(--radius-lg);
+          border: 1.5px solid var(--gray-100);
+          overflow: hidden;
+          cursor: pointer;
+          position: relative;
+          transition: box-shadow var(--transition), transform var(--transition);
+        }
+        .product-card:hover {
+          box-shadow: var(--shadow-lg);
+          transform: translateY(-2px);
+        }
+        .product-card:hover .add-btn {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .pc-badge {
+          position: absolute;
+          top: 10px; left: 10px;
+          z-index: 2;
+          font-size: 10px; font-weight: 700;
+          padding: 3px 9px;
+          border-radius: 50px;
+          letter-spacing: .03em;
+        }
+        .pc-badge.red    { background: var(--red);    color: var(--white); }
+        .pc-badge.yellow { background: var(--yellow);  color: #5d4000; }
+        .pc-badge.green  { background: var(--green);   color: var(--white); }
+        .pc-badge.right  { left: auto; right: 10px; }
+        
+        .pc-img {
+          height: 140px;
+          display: flex; align-items: center; justify-content: center;
+          position: relative;
+        }
+        .pc-img i { font-size: 62px; }
+        
+        .bg-green-pale  { background: #e8f5e9; }
+        .bg-orange-pale { background: #fff3e0; }
+        .bg-red-pale    { background: #ffebee; }
+        .bg-yellow-pale { background: #fffde7; }
+        .bg-purple-pale { background: #f3e5f5; }
+        .bg-blue-pale   { background: #e3f2fd; }
+        .bg-amber-pale  { background: #fff8e1; }
+        .bg-pink-pale   { background: #fce4ec; }
+        .bg-teal-pale   { background: #e0f2f1; }
+        .bg-lime-pale   { background: #f9fbe7; }
+        
+        .pc-body { padding: 12px; }
+        .pc-origin { font-size: 10.5px; color: var(--gray-400); margin-bottom: 2px; }
+        .pc-name   { font-size: 13px; font-weight: 600; color: var(--gray-800); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pc-qty    { font-size: 11px; color: var(--gray-400); margin-bottom: 8px; }
+        .pc-pricing { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .pc-price  { font-size: 14px; font-weight: 700; color: var(--green); }
+        .pc-old    { font-size: 11.5px; color: var(--gray-400); text-decoration: line-through; }
+        .add-btn {
+          width: 100%;
+          background: var(--green);
+          color: var(--white);
+          font-size: 11.5px; font-weight: 600;
+          padding: 8px 0;
+          border-radius: var(--radius-sm);
+          opacity: 0;
+          transform: translateY(6px);
+          transition: opacity .22s ease, transform .22s ease, background var(--transition);
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .add-btn:hover { background: var(--green-dark); }
 
-      {/* Main Catalog View */}
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:py-12">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-          <div className="space-y-1">
-            <h2 className="text-3xl sm:text-5xl font-headline font-black tracking-tighter uppercase">All Products</h2>
-            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Browsing {filteredProducts.length} Results</p>
-          </div>
+        .container {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 0 20px;
+          width: 100%;
+        }
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input 
-                placeholder="Find something..." 
-                className="pl-9 rounded-xl h-11 bg-white border-slate-200" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-40 h-11 rounded-xl bg-white border-slate-200">
-                <SelectValue placeholder="Sort By" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="price-low">Price: Low to High</SelectItem>
-                <SelectItem value="price-high">Price: High to Low</SelectItem>
-              </SelectContent>
-            </Select>
+        @media (max-width: 1100px) {
+          .product-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+        @media (max-width: 900px) {
+          .product-grid { grid-template-columns: repeat(3, 1fr); }
+          .location-btn { display: none; }
+        }
+        @media (max-width: 600px) {
+          .product-grid { grid-template-columns: repeat(2, 1fr); }
+          .hdr-btn span { display: none; }
+        }
+      ` }} />
 
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl bg-white shadow-sm border-slate-200">
-                  <SlidersHorizontal className="w-4 h-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-full sm:max-w-sm rounded-l-3xl p-0 border-none shadow-2xl">
-                <SheetHeader className="p-8 bg-slate-900 text-white flex flex-row items-center justify-between">
-                  <SheetTitle className="text-xl font-headline font-black text-white uppercase tracking-tight">Filter Products</SheetTitle>
-                  <SheetClose className="text-white/60 hover:text-white shrink-0">
-                    <X className="w-7 h-7" />
-                  </SheetClose>
-                </SheetHeader>
-                <div className="p-8 space-y-10">
-                  <div className="space-y-4">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Categories</Label>
-                    <div className="grid gap-2">
-                       <button 
-                         onClick={() => setSelectedCategory("all")}
-                         className={`flex items-center justify-between p-3 rounded-xl transition-all ${selectedCategory === "all" ? 'bg-primary text-white' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
-                       >
-                         <span className="font-bold text-sm">All Categories</span>
-                         {selectedCategory === "all" && <Check className="w-4 h-4" />}
-                       </button>
-                       {categories.map((cat) => (
-                         <button 
-                           key={cat.id}
-                           onClick={() => setSelectedCategory(cat.slug)}
-                           className={`flex items-center justify-between p-3 rounded-xl transition-all ${selectedCategory === cat.slug ? 'bg-primary text-white' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
-                         >
-                           <span className="font-bold text-sm">{cat.name}</span>
-                           {selectedCategory === cat.slug && <Check className="w-4 h-4" />}
-                         </button>
-                       ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-end">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Price Range</Label>
-                      <span className="text-sm font-black text-primary">${priceRange[0]} - ${priceRange[1]}</span>
-                    </div>
-                    <Slider 
-                      defaultValue={[0, 10000]} 
-                      max={10000} 
-                      step={50} 
-                      value={priceRange}
-                      onValueChange={(val: any) => setPriceRange(val as [number, number])}
-                    />
-                  </div>
+      <div className="store-body">
+        {/* Navigation */}
+        <header className="site-header">
+          <div className="container">
+            <div className="header-top">
+              <Link href={getTenantPath(subdomain, "/")} className="logo-link">
+                <div className="logo-icon">
+                  <i className="fa-solid fa-basket-shopping"></i>
                 </div>
-                <SheetFooter className="p-8 border-t flex flex-col gap-3">
-                  <SheetClose asChild>
-                    <Button className="w-full h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/20">Apply Filters</Button>
-                  </SheetClose>
-                  <SheetClose asChild>
-                    <Button variant="ghost" className="w-full h-12 rounded-xl text-slate-400 font-bold uppercase tracking-widest text-[10px]">Cancel & Close</Button>
-                  </SheetClose>
-                </SheetFooter>
-              </SheetContent>
-            </Sheet>
+                <div>
+                  <span className="logo-text-bn">{store?.name}</span>
+                  <span className="logo-text-en">Catalog Matrix</span>
+                </div>
+              </Link>
+              <button className="location-btn">
+                <i className="fa-solid fa-location-dot"></i>
+                <span className="city">Dhaka</span>
+                <i className="fa-solid fa-chevron-down"></i>
+              </button>
+              <div className="search-wrap">
+                <input 
+                  type="text" 
+                  placeholder="Search for groceries, vegetables, fruits…" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <button className="search-btn">
+                  <i className="fa-solid fa-magnifying-glass"></i> Search
+                </button>
+              </div>
+              <div className="header-actions">
+                <button className="hdr-btn">
+                  <i className="fa-regular fa-user"></i>
+                  <span>Login</span>
+                </button>
+                <button className="hdr-btn" onClick={() => setIsCartOpen(true)}>
+                  <i className="fa-solid fa-basket-shopping"></i>
+                  <span>Cart</span>
+                  {cart.length > 0 && (
+                    <span className="cart-badge">{cart.reduce((acc, i) => acc + i.quantity, 0)}</span>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </header>
 
-        {/* Product Grid */}
-        {paginatedProducts.length === 0 ? (
-          <div className="text-center py-32 bg-white rounded-[40px] border-2 border-dashed border-slate-100">
-             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 opacity-20">
-                <ShoppingBag className="w-10 h-10" />
-             </div>
-             <h3 className="text-xl font-bold text-slate-900">No products match your criteria</h3>
-             <p className="text-slate-400 mt-2">Try adjusting your filters or search term.</p>
-             <Button variant="link" className="mt-4 font-black" onClick={() => { setSelectedCategory("all"); setPriceRange([0, 10000]); setSearchTerm(""); }}>Clear All Filters</Button>
-          </div>
-        ) : (
-          <div className="space-y-12">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-              {paginatedProducts.map((p) => (
-                <Card key={p.id} className="group bg-white rounded-2xl overflow-hidden border-none shadow-sm hover:shadow-md transition-all active:scale-95">
-                  <CardContent className="p-0">
-                    <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block aspect-square relative overflow-hidden bg-slate-50 border-b">
-                      {p.featuredImage && <img src={p.featuredImage} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={p.name} />}
-                      {p.prevPrice && <div className="absolute top-2 left-2 bg-rose-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Sale</div>}
-                    </Link>
-                    <div className="p-4 space-y-2">
-                      <Link href={getTenantPath(subdomain, `/product/${p.slug}`)} className="block min-h-[40px]">
-                        <h4 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-2 group-hover:text-primary transition-colors">{p.name}</h4>
-                      </Link>
-                      <div className="flex items-center justify-between pt-1">
-                        <div className="flex flex-col">
-                          <p className="text-primary font-black text-base">${Number(p.currentPrice).toFixed(2)}</p>
-                          {p.prevPrice && <p className="text-slate-300 text-[9px] line-through">${p.prevPrice}</p>}
-                        </div>
-                        <Button size="icon" variant="secondary" className="h-9 w-9 rounded-xl shadow-sm hover:bg-primary hover:text-white" onClick={(e) => { e.preventDefault(); addToCart(p); }}>
-                          <Plus className="w-4 h-4" />
-                        </Button>
+        {/* Main Catalog View */}
+        <main className="container py-8 sm:py-12">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+            <div className="space-y-1">
+              <h2 className="text-3xl sm:text-5xl font-headline font-black tracking-tighter uppercase text-slate-800">All Products</h2>
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Browsing {filteredProducts.length} Results</p>
+            </div>
+
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-40 h-11 rounded-xl bg-white border-slate-200">
+                  <SelectValue placeholder="Sort By" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="price-low">Price: Low to High</SelectItem>
+                  <SelectItem value="price-high">Price: High to Low</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl bg-white shadow-sm border-slate-200">
+                    <SlidersHorizontal className="w-4 h-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="w-full sm:max-w-sm rounded-l-3xl p-0 border-none shadow-2xl">
+                  <SheetHeader className="p-8 bg-slate-900 text-white flex flex-row items-center justify-between">
+                    <SheetTitle className="text-xl font-headline font-black text-white uppercase tracking-tight">Filter Products</SheetTitle>
+                    <SheetClose className="text-white/60 hover:text-white shrink-0">
+                      <X className="w-7 h-7" />
+                    </SheetClose>
+                  </SheetHeader>
+                  <div className="p-8 space-y-10">
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Categories</Label>
+                      <div className="grid gap-2">
+                        <button 
+                          onClick={() => setSelectedCategory("all")}
+                          className={`flex items-center justify-between p-3 rounded-xl transition-all ${selectedCategory === "all" ? 'bg-primary text-white' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
+                        >
+                          <span className="font-bold text-sm">All Categories</span>
+                          {selectedCategory === "all" && <Check className="w-4 h-4" />}
+                        </button>
+                        {categories.map((cat) => (
+                          <button 
+                            key={cat.id}
+                            onClick={() => setSelectedCategory(cat.slug)}
+                            className={`flex items-center justify-between p-3 rounded-xl transition-all ${selectedCategory === cat.slug ? 'bg-primary text-white' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
+                          >
+                            <span className="font-bold text-sm">{cat.name}</span>
+                            {selectedCategory === cat.slug && <Check className="w-4 h-4" />}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 pt-12 border-t border-slate-100">
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="rounded-xl h-10 w-10" 
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                {Array.from({ length: totalPages }).map((_, i) => (
-                  <Button 
-                    key={i} 
-                    variant={currentPage === i + 1 ? "default" : "ghost"}
-                    className={`h-10 w-10 rounded-xl font-bold ${currentPage === i + 1 ? 'shadow-lg shadow-primary/20' : ''}`}
-                    onClick={() => setCurrentPage(i + 1)}
-                  >
-                    {i + 1}
-                  </Button>
-                ))}
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="rounded-xl h-10 w-10" 
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-end">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Price Range</Label>
+                        <span className="text-sm font-black text-primary">${priceRange[0]} - ${priceRange[1]}</span>
+                      </div>
+                      <Slider 
+                        defaultValue={[0, 10000]} 
+                        max={10000} 
+                        step={50} 
+                        value={priceRange}
+                        onValueChange={(val: any) => setPriceRange(val as [number, number])}
+                      />
+                    </div>
+                  </div>
+                  <SheetFooter className="p-8 border-t flex flex-col gap-3">
+                    <SheetClose asChild>
+                      <Button className="w-full h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/20">Apply Filters</Button>
+                    </SheetClose>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
-        )}
-      </main>
+
+          {/* Product Grid */}
+          {paginatedProducts.length === 0 ? (
+            <div className="text-center py-32 bg-white rounded-[40px] border-2 border-dashed border-slate-100">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 opacity-20">
+                <ShoppingBag className="w-10 h-10" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900">No products match your criteria</h3>
+              <p className="text-slate-400 mt-2">Try adjusting your filters or search term.</p>
+              <Button variant="link" className="mt-4 font-black" onClick={() => { setSelectedCategory("all"); setPriceRange([0, 10000]); setSearchTerm(""); }}>Clear All Filters</Button>
+            </div>
+          ) : (
+            <div className="space-y-12">
+              <div className="product-grid">
+                {paginatedProducts.map((p, idx) => {
+                  const bgClasses = ["bg-green-pale", "bg-orange-pale", "bg-red-pale", "bg-yellow-pale", "bg-purple-pale", "bg-blue-pale"];
+                  const bgClass = bgClasses[idx % bgClasses.length];
+                  return (
+                    <div key={p.id} className="product-card">
+                      {p.prevPrice && (
+                        <span className="pc-badge red">-{Math.round(((Number(p.prevPrice) - Number(p.currentPrice)) / Number(p.prevPrice)) * 100)}%</span>
+                      )}
+                      <Link href={getTenantPath(subdomain, `/product/${p.slug}`)}>
+                        <div className={`pc-img ${bgClass}`}>
+                          {p.featuredImage ? (
+                            <img src={p.featuredImage} className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <i className="fa-solid fa-carrot" style={{ color: "#e65100" }}></i>
+                          )}
+                        </div>
+                      </Link>
+                      <div className="pc-body">
+                        <div className="pc-origin">Fresh Product</div>
+                        <h4 className="pc-name">{p.name}</h4>
+                        <div className="pc-qty">{p.totalInStock > 0 ? "In Stock" : "Out of Stock"}</div>
+                        <div className="pc-pricing">
+                          <span className="pc-price">${Number(p.currentPrice).toFixed(0)}</span>
+                          {p.prevPrice && <span className="pc-old">${Number(p.prevPrice).toFixed(0)}</span>}
+                        </div>
+                        <button className="add-btn" onClick={() => addToCart(p)}>
+                          <i className="fa-solid fa-cart-plus"></i> Add to Cart
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 pt-12 border-t border-slate-100">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="rounded-xl h-10 w-10" 
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <Button 
+                      key={i} 
+                      variant={currentPage === i + 1 ? "default" : "ghost"}
+                      className={`h-10 w-10 rounded-xl font-bold ${currentPage === i + 1 ? 'shadow-lg shadow-primary/20' : ''}`}
+                      onClick={() => setCurrentPage(i + 1)}
+                    >
+                      {i + 1}
+                    </Button>
+                  ))}
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="rounded-xl h-10 w-10" 
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </main>
+      </div>
+
+      <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
+        <SheetContent className="w-full sm:max-w-md flex flex-col p-0 border-none rounded-l-[40px] overflow-hidden shadow-2xl">
+          <SheetHeader className="p-8 bg-slate-900 text-white shrink-0">
+            <div className="flex items-center justify-between"><SheetTitle className="text-2xl font-headline font-black text-white flex items-center gap-3 uppercase tracking-tight"><ShoppingCart className="w-6 h-6 text-primary" />আপনার ব্যাগ</SheetTitle><SheetClose className="text-white/60 hover:text-white transition-colors"><X className="w-7 h-7" /></SheetClose></div>
+          </SheetHeader>
+          <ScrollArea className="flex-1 px-8 py-6">
+            {cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center py-20 text-center space-y-6 opacity-20"><ShoppingBag className="w-20 h-20" /><h3 className="text-lg font-bold uppercase tracking-widest">Bag is empty</h3></div> : 
+              <div className="space-y-6">
+                {cart.map((item) => (
+                  <div key={item.id} className="flex gap-4 group bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
+                    <div className="w-16 h-16 rounded-xl bg-white overflow-hidden border shrink-0"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                      <div className="flex justify-between items-start"><h4 className="font-bold text-xs leading-tight truncate pr-4">{item.name}</h4><button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-rose-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button></div>
+                      <div className="flex items-center justify-between"><p className="text-primary font-black text-sm">${(item.price).toFixed(2)}</p><div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5"><button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-slate-50 rounded transition-all"><Minus className="w-3 h-3" /></button><span className="w-6 text-center text-[10px] font-bold">{item.quantity}</span><button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:bg-slate-50 rounded transition-all"><Plus className="w-3 h-3" /></button></div></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            }
+          </ScrollArea>
+          <SheetFooter className="p-8 bg-white border-t shrink-0">
+            <div className="w-full space-y-4">
+              <div className="flex justify-between items-end mb-2"><span className="text-xs font-bold uppercase tracking-widest text-slate-400">মোট মূল্য</span><span className="text-2xl font-black text-primary">${cartTotal.toFixed(2)}</span></div>
+              <Link href={getTenantPath(subdomain, "/checkout")} className="w-full"><Button className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={cart.length === 0}>Checkout Now</Button></Link>
+            </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
