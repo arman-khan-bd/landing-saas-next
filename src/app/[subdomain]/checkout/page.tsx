@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
+import { cn, getTenantPath } from "@/lib/utils";
 
 interface CartItem {
   id: string;
@@ -73,7 +73,7 @@ export default function CheckoutPage() {
         router.push(`/${subdomain}`);
       }
     }
-  }, [subdomain, router]);
+  }, [subdomain]);
 
   const fetchStoreData = async () => {
     try {
@@ -126,7 +126,7 @@ export default function CheckoutPage() {
       if (draftId) {
         await supabase.from("uncompleted_orders").update(draftData).eq("id", draftId);
       } else {
-        const { data: inserted, error } = await supabase.from("uncompleted_orders").insert(draftData).select("id").single();
+        const { data: inserted } = await supabase.from("uncompleted_orders").insert(draftData).select("id").single();
         if (inserted) {
           setDraftId(inserted.id);
           localStorage.setItem(`draftId_${subdomain}`, inserted.id);
@@ -227,7 +227,7 @@ export default function CheckoutPage() {
 
   if (orderSuccess) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center animate-in fade-in duration-700">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f7f4] p-6 text-center animate-in fade-in duration-700">
         <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-6"><CheckCircle2 className="w-12 h-12" /></div>
         <h1 className="text-3xl font-headline font-black text-slate-900 tracking-tight">THANK YOU!</h1>
         <p className="text-slate-500 mt-2 max-w-sm mx-auto">Your order has been placed successfully. We'll contact you soon for confirmation.</p>
@@ -452,6 +452,7 @@ export default function CheckoutPage() {
           </div>
         </main>
       </div>
+    </div>
   );
 }
 
