@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useSupabaseClient } from "@/supabase";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, ShoppingCart, X, Plus, Minus, Trash2, SlidersHorizontal, ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
@@ -47,6 +47,14 @@ export default function AllProductsPage() {
   const productsPerPage = 12;
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const q = searchParams.get("search") || "";
+    if (q) setSearchTerm(q);
+    const cat = searchParams.get("category") || "all";
+    if (cat) setSelectedCategory(cat);
+  }, [searchParams]);
 
   useEffect(() => {
     if (subdomain) {
@@ -167,8 +175,11 @@ export default function AllProductsPage() {
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
         
         [data-radix-portal] {
-          z-index: 99999 !important;
+          z-index: 999999 !important;
           position: relative;
+        }
+        .fixed.z-50, [role="dialog"], [data-state="open"] {
+          z-index: 999999 !important;
         }
         .store-body {
           font-family: 'Poppins', 'Hind Siliguri', sans-serif;

@@ -97,7 +97,10 @@ export default function Storefront({
   const [loading, setLoading] = useState(!initialStore);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [searchVal, setSearchVal] = useState("");
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -295,8 +298,11 @@ export default function Storefront({
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
         
         [data-radix-portal] {
-          z-index: 99999 !important;
+          z-index: 999999 !important;
           position: relative;
+        }
+        .fixed.z-50, [role="dialog"], [data-state="open"] {
+          z-index: 999999 !important;
         }
         .store-body {
           font-family: 'Poppins', 'Hind Siliguri', sans-serif;
@@ -1051,6 +1057,7 @@ export default function Storefront({
           .nl-input { width: 100%; }
         }
         @media (max-width: 600px) {
+          .hero-side    { flex-direction: column !important; }
           .product-grid { grid-template-columns: repeat(2, 1fr); }
           .cat-grid     { grid-template-columns: repeat(4, 1fr); }
           .hero-main    { padding: 32px 24px; }
@@ -1097,13 +1104,30 @@ export default function Storefront({
                           <span className="logo-text-en">{section.config.logoTextEn || "Pure & Trusted"}</span>
                         </div>
                       </a>
-                      <div className="search-wrap">
-                        <input type="text" placeholder="Search for groceries, vegetables, fruits…" />
-                        <button className="search-btn">
+                      <div className="search-wrap hidden md:block">
+                        <input 
+                          type="text" 
+                          placeholder="Search for groceries, vegetables, fruits…" 
+                          value={searchVal}
+                          onChange={(e) => setSearchVal(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              router.push(getTenantPath(subdomain, `/all-products?search=${encodeURIComponent(searchVal)}`));
+                            }
+                          }}
+                        />
+                        <button 
+                          className="search-btn"
+                          onClick={() => router.push(getTenantPath(subdomain, `/all-products?search=${encodeURIComponent(searchVal)}`))}
+                        >
                           <i className="fa-solid fa-magnifying-glass"></i> Search
                         </button>
                       </div>
                       <div className="header-actions">
+                        <button className="hdr-btn md:hidden" onClick={() => setMobileSearchOpen(!mobileSearchOpen)}>
+                          <i className="fa-solid fa-magnifying-glass"></i>
+                          <span>Search</span>
+                        </button>
                         <button className="hdr-btn" onClick={() => setIsCartOpen(true)}>
                           <i className="fa-solid fa-basket-shopping"></i>
                           <span>Cart</span>
@@ -1113,6 +1137,30 @@ export default function Storefront({
                         </button>
                       </div>
                     </div>
+                    {mobileSearchOpen && (
+                      <div className="mobile-search-dropdown md:hidden pb-3 pt-1 flex gap-2">
+                        <div className="search-wrap flex-1 relative">
+                          <input 
+                            type="text" 
+                            placeholder="Search for groceries, vegetables, fruits…" 
+                            className="w-full border rounded-xl px-4 py-2 text-sm"
+                            value={searchVal}
+                            onChange={(e) => setSearchVal(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                router.push(getTenantPath(subdomain, `/all-products?search=${encodeURIComponent(searchVal)}`));
+                              }
+                            }}
+                          />
+                          <button 
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 p-1 hover:text-[var(--green)]"
+                            onClick={() => router.push(getTenantPath(subdomain, `/all-products?search=${encodeURIComponent(searchVal)}`))}
+                          >
+                            <i className="fa-solid fa-magnifying-glass"></i>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </header>
               );
