@@ -1058,11 +1058,6 @@ export default function Storefront({
                           <span className="logo-text-en">{section.config.logoTextEn || "Pure & Trusted"}</span>
                         </div>
                       </a>
-                      <button className="location-btn">
-                        <i className="fa-solid fa-location-dot"></i>
-                        <span className="city">Dhaka</span>
-                        <i className="fa-solid fa-chevron-down"></i>
-                      </button>
                       <div className="search-wrap">
                         <input type="text" placeholder="Search for groceries, vegetables, fruits…" />
                         <button className="search-btn">
@@ -1070,10 +1065,6 @@ export default function Storefront({
                         </button>
                       </div>
                       <div className="header-actions">
-                        <button className="hdr-btn">
-                          <i className="fa-regular fa-user"></i>
-                          <span>Login</span>
-                        </button>
                         <button className="hdr-btn" onClick={() => setIsCartOpen(true)}>
                           <i className="fa-solid fa-basket-shopping"></i>
                           <span>Cart</span>
@@ -1212,22 +1203,6 @@ export default function Storefront({
                 </div>
               );
 
-            case "flash_sale":
-              return (
-                <div key={section.id} className="container">
-                  <div className="flash-banner">
-                    <div className="flash-left">
-                      <i className="fa-solid fa-bolt flash-bolt"></i>
-                      <div>
-                        <div className="flash-title">{section.config.title || "Flash Sale"}</div>
-                        <div className="flash-sub">{section.config.subtitle || "Today's special offers"}</div>
-                      </div>
-                    </div>
-                    <CountdownTimer targetDate={section.config.countdownDate || "2026-07-20T23:59:59"} />
-                  </div>
-                </div>
-              );
-
             case "products_grid":
               return (
                 <div key={section.id} className="container">
@@ -1330,33 +1305,51 @@ export default function Storefront({
               return (
                 <div key={section.id} className="container">
                   <div className="app-banner">
-                    <div className="app-banner-bg"><i className="fa-solid fa-basket-shopping"></i></div>
+                    <div className="app-banner-bg"><i className="fa-solid fa-share-nodes"></i></div>
                     <div className="app-banner-content">
-                      <div className="app-eyebrow">Store Application</div>
-                      <h2 className="app-title">{section.config.title || "অ্যাপ ডাউনলোড করুন"}</h2>
-                      <p className="app-sub">{section.config.subtitle || "সহজে অর্ডার করতে এবং নিয়মিত আপডেট পেতে আমাদের মোবাইল অ্যাপটি ডাউনলোড করুন।"}</p>
+                      <div className="app-eyebrow">Connect With Us</div>
+                      <h2 className="app-title">{section.config.title || "আমাদের সামাজিক যোগাযোগ মাধ্যম"}</h2>
+                      <p className="app-sub">{section.config.subtitle || "ফেসবুক, ইউটিউব ও অন্যান্য মাধ্যমে আমাদের সাথে যুক্ত থাকুন।"}</p>
                       <div className="app-btns">
-                        <button className="app-store-btn">
-                          <i className="fa-brands fa-google-play"></i>
-                          <div className="text-left">
-                            <div className="asb-label">GET IT ON</div>
-                            <div className="asb-name">Google Play</div>
-                          </div>
-                        </button>
-                        <button className="app-store-btn">
-                          <i className="fa-brands fa-apple"></i>
-                          <div className="text-left">
-                            <div className="asb-label">Download on the</div>
-                            <div className="asb-name">App Store</div>
-                          </div>
-                        </button>
+                        {section.config.facebookUrl && (
+                          <a href={section.config.facebookUrl} target="_blank" rel="noopener noreferrer" className="app-store-btn" style={{ background: '#3b5998', borderColor: 'rgba(255,255,255,0.2)' }}>
+                            <i className="fa-brands fa-facebook-f"></i>
+                            <div className="text-left">
+                              <div className="asb-label">FOLLOW US ON</div>
+                              <div className="asb-name">Facebook</div>
+                            </div>
+                          </a>
+                        )}
+                        {section.config.youtubeUrl && (
+                          <a href={section.config.youtubeUrl} target="_blank" rel="noopener noreferrer" className="app-store-btn" style={{ background: '#ff0000', borderColor: 'rgba(255,255,255,0.2)' }}>
+                            <i className="fa-brands fa-youtube"></i>
+                            <div className="text-left">
+                              <div className="asb-label">SUBSCRIBE ON</div>
+                              <div className="asb-name">YouTube</div>
+                            </div>
+                          </a>
+                        )}
+                        {section.config.instagramUrl && (
+                          <a href={section.config.instagramUrl} target="_blank" rel="noopener noreferrer" className="app-store-btn" style={{ background: '#e1306c', borderColor: 'rgba(255,255,255,0.2)' }}>
+                            <i className="fa-brands fa-instagram"></i>
+                            <div className="text-left">
+                              <div className="asb-label">FOLLOW US ON</div>
+                              <div className="asb-name">Instagram</div>
+                            </div>
+                          </a>
+                        )}
+                        {section.config.whatsappUrl && (
+                          <a href={section.config.whatsappUrl} target="_blank" rel="noopener noreferrer" className="app-store-btn" style={{ background: '#25d366', borderColor: 'rgba(255,255,255,0.2)' }}>
+                            <i className="fa-brands fa-whatsapp"></i>
+                            <div className="text-left">
+                              <div className="asb-label">CHAT WITH US</div>
+                              <div className="asb-name">WhatsApp</div>
+                            </div>
+                          </a>
+                        )}
                       </div>
                     </div>
-                    {section.config.image ? (
-                      <img src={section.config.image} className="w-[180px] h-auto object-contain shrink-0 relative z-10" alt="mockup" />
-                    ) : (
-                      <i className="fa-solid fa-mobile-screen-button app-phone"></i>
-                    )}
+                    <i className="fa-solid fa-hashtag app-phone" style={{ opacity: 0.1, fontSize: '150px' }}></i>
                   </div>
                 </div>
               );

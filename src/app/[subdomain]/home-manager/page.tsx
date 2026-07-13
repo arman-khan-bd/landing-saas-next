@@ -21,10 +21,9 @@ const DEFAULT_SECTIONS = [
   { id: "hero", title: "Hero Grid Banners", enabled: true, config: { badgeText: "100% PURE & NATURAL", title: "খাটি ও নিরাপদ পন্যের সমাহার", subtitle: "সুস্বাস্থ্যই আমাদের মূল লক্ষ্য। সরাসরি খামার থেকে আপনাদের হাতে পৌঁছে দিচ্ছি বিশুদ্ধ খাবার।", buttonText: "পণ্যসমূহ দেখুন", buttonLink: "#products", image: "", sideBanner1Label: "SPECIAL OFFER", sideBanner1Title: "মধু ও অর্গানিক তেল সংগ্রহ করুন", sideBanner1ButtonText: "অর্ডার করুন", sideBanner1Link: "#", sideBanner1Image: "", sideBanner2Label: "POPULAR CATEGORY", sideBanner2Title: "প্রাকৃতিক উপাদানে তৈরি হেলথ পাউডার", sideBanner2ButtonText: "অর্ডার করুন", sideBanner2Link: "#", sideBanner2Image: "" } },
   { id: "trust_strip", title: "Trust Benefits Strip", enabled: true, config: {} },
   { id: "category_grid", title: "Category Icons Grid", enabled: true, config: {} },
-  { id: "flash_sale", title: "Flash Sale Countdown", enabled: true, config: { title: "ধামাকা ফ্ল্যাশ সেল!", subtitle: "সীমিত সময়ের অফার, দ্রুত সংগ্রহ করুন!", countdownDate: "2026-07-20T23:59:59", buttonText: "অফার দেখুন" } },
   { id: "products_grid", title: "Featured Products Grid", enabled: true, config: { title: "আমাদের জনপ্রিয় পণ্যসমূহ", subtitle: "গ্রাহকদের পছন্দের তালিকার শীর্ষে থাকা সেরা পণ্যসমূহ সংগ্রহ করুন।" } },
   { id: "promo_banners", title: "Promo Banners Grid (3 Cols)", enabled: true, config: { banner1Title: "খাটি ঘি ও মধু কিনুন", banner1Subtitle: "স্পেশাল ডিসকাউন্ট", banner1Image: "", banner2Title: "ঘরোয়া মশলা সামগ্রী", banner2Subtitle: "শতভাগ নিরাপদ", banner2Image: "", banner3Title: "অর্গানিক স্কিন কেয়ার", banner3Subtitle: "প্রাকৃতিক সৌন্দর্য", banner3Image: "" } },
-  { id: "app_download", title: "App Download Banner", enabled: true, config: { title: "ঘরোয়া বাজার অ্যাপ ডাউনলোড করুন", subtitle: "সহজে অর্ডার করতে এবং নিয়মিত আপডেট পেতে আমাদের মোবাইল অ্যাপটি ডাউনলোড করুন।", image: "" } },
+  { id: "app_download", title: "Social Media Links", enabled: true, config: { title: "আমাদের সামাজিক যোগাযোগ মাধ্যম", subtitle: "ফেসবুক, ইউটিউব ও অন্যান্য মাধ্যমে আমাদের সাথে যুক্ত থাকুন।", facebookUrl: "", youtubeUrl: "", instagramUrl: "", whatsappUrl: "" } },
   { id: "testimonials", title: "Customer Testimonials", enabled: true, config: {} },
   { id: "footer", title: "Footer & Newsletter", enabled: true, config: { description: "ঘরোয়া বাজার আপনাদের জন্য নিয়ে এসেছে সম্পূর্ণ খাটি ও রাসায়নিক মুক্ত নিত্যপ্রয়োজনীয় খাদ্যপণ্য। আমাদের লক্ষ্য সবার কাছে ভেজালহীন খাদ্য পৌঁছে দেওয়া।" } }
 ];
@@ -417,16 +416,30 @@ export default function HomePageManager() {
             {activeSection?.id === "app_download" && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Download Title</Label>
+                  <Label>Section Title</Label>
                   <Input value={activeSection.config.title || ""} onChange={(e) => updateActiveConfig("title", e.target.value)} className="h-12 rounded-xl" />
                 </div>
                 <div className="space-y-2">
                   <Label>Subtitle Description</Label>
                   <Textarea value={activeSection.config.subtitle || ""} onChange={(e) => updateActiveConfig("subtitle", e.target.value)} className="rounded-xl" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Side Mockup Image</Label>
-                  <CloudinaryUpload value={activeSection.config.image || ""} onUpload={(url) => updateActiveConfig("image", url)} onRemove={() => updateActiveConfig("image", "")} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Facebook Page URL</Label>
+                    <Input value={activeSection.config.facebookUrl || ""} onChange={(e) => updateActiveConfig("facebookUrl", e.target.value)} placeholder="https://facebook.com/yourpage" className="h-12 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>YouTube Channel URL</Label>
+                    <Input value={activeSection.config.youtubeUrl || ""} onChange={(e) => updateActiveConfig("youtubeUrl", e.target.value)} placeholder="https://youtube.com/yourchannel" className="h-12 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instagram Profile URL</Label>
+                    <Input value={activeSection.config.instagramUrl || ""} onChange={(e) => updateActiveConfig("instagramUrl", e.target.value)} placeholder="https://instagram.com/yourprofile" className="h-12 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>WhatsApp Number / API Link</Label>
+                    <Input value={activeSection.config.whatsappUrl || ""} onChange={(e) => updateActiveConfig("whatsappUrl", e.target.value)} placeholder="https://wa.me/8801XXXXXXXXX" className="h-12 rounded-xl" />
+                  </div>
                 </div>
               </div>
             )}

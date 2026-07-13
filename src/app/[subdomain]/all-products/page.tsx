@@ -419,11 +419,6 @@ export default function AllProductsPage() {
                   <span className="logo-text-en">Catalog Matrix</span>
                 </div>
               </Link>
-              <button className="location-btn">
-                <i className="fa-solid fa-location-dot"></i>
-                <span className="city">Dhaka</span>
-                <i className="fa-solid fa-chevron-down"></i>
-              </button>
               <div className="search-wrap">
                 <input 
                   type="text" 
@@ -436,10 +431,6 @@ export default function AllProductsPage() {
                 </button>
               </div>
               <div className="header-actions">
-                <button className="hdr-btn">
-                  <i className="fa-regular fa-user"></i>
-                  <span>Login</span>
-                </button>
                 <button className="hdr-btn" onClick={() => setIsCartOpen(true)}>
                   <i className="fa-solid fa-basket-shopping"></i>
                   <span>Cart</span>
