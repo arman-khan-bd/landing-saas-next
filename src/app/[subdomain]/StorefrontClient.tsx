@@ -427,6 +427,14 @@ export default function Storefront({
           flex: 1;
           position: relative;
         }
+        @media (max-width: 768px) {
+          .site-header .search-wrap {
+            display: none !important;
+          }
+          .mobile-search-dropdown .search-wrap {
+            display: block !important;
+          }
+        }
         .search-wrap input {
           width: 100%;
           border: 1.5px solid var(--gray-200);

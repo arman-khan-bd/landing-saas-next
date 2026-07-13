@@ -41,6 +41,7 @@ export default function AllProductsPage() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [sortBy, setSortBy] = useState<string>("newest");
   const [searchTerm, setSearchTerm] = useState("");
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -271,6 +272,14 @@ export default function AllProductsPage() {
           flex: 1;
           position: relative;
         }
+        @media (max-width: 768px) {
+          .site-header .search-wrap {
+            display: none !important;
+          }
+          .mobile-search-dropdown .search-wrap {
+            display: block !important;
+          }
+        }
         .search-wrap input {
           width: 100%;
           border: 1.5px solid var(--gray-200);
@@ -434,7 +443,7 @@ export default function AllProductsPage() {
                   <span className="logo-text-en">Catalog Matrix</span>
                 </div>
               </Link>
-              <div className="search-wrap">
+              <div className="search-wrap hidden md:block">
                 <input 
                   type="text" 
                   placeholder="Search for groceries, vegetables, fruits…" 
@@ -446,6 +455,10 @@ export default function AllProductsPage() {
                 </button>
               </div>
               <div className="header-actions">
+                <button className="hdr-btn md:hidden" onClick={() => setMobileSearchOpen(!mobileSearchOpen)}>
+                  <i className="fa-solid fa-magnifying-glass"></i>
+                  <span>Search</span>
+                </button>
                 <button className="hdr-btn" onClick={() => setIsCartOpen(true)}>
                   <i className="fa-solid fa-basket-shopping"></i>
                   <span>Cart</span>
@@ -455,6 +468,22 @@ export default function AllProductsPage() {
                 </button>
               </div>
             </div>
+            {mobileSearchOpen && (
+              <div className="mobile-search-dropdown md:hidden pb-3 pt-1 flex gap-2">
+                <div className="search-wrap flex-1 relative">
+                  <input 
+                    type="text" 
+                    placeholder="Search for groceries, vegetables, fruits…" 
+                    className="w-full border rounded-xl px-4 py-2 text-sm"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <button className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 p-1 hover:text-[var(--green)]">
+                    <i className="fa-solid fa-magnifying-glass"></i>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
