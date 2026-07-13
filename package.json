@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
-    "build": "node -e \"process.env.CF_PAGES ? require('child_process').execSync('npx @cloudflare/next-on-pages', {stdio: 'inherit'}) : require('child_process').execSync('next build', {stdio: 'inherit'})\"",
+    "build": "node -e \"process.platform === 'win32' ? require('child_process').execSync('next build', {stdio: 'inherit'}) : require('child_process').execSync('npx @cloudflare/next-on-pages', {stdio: 'inherit'})\"",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",

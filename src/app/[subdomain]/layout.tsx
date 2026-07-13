@@ -216,7 +216,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     { title: "Sub Categories", icon: Bookmark, href: "/sub-categories" },
     { title: "Brands", icon: Store, href: "/brands" },
     { title: "Taxes", icon: Percent, href: "/taxes" },
-    { title: "Tags", icon: Tags, href: "/tags" },
+    { title: "Attributes", icon: Palette, href: "/attributes" },
   ];
 
   const salesItems = [
