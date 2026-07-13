@@ -43,11 +43,34 @@ CREATE TABLE IF NOT EXISTS sections (
 CREATE TABLE IF NOT EXISTS products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+    owner_id UUID NOT NULL,
     name TEXT NOT NULL,
+    slug TEXT NOT NULL,
     description TEXT,
-    price NUMERIC NOT NULL DEFAULT 0,
-    stock INTEGER NOT NULL DEFAULT 0,
-    image_urls TEXT[] DEFAULT '{}',
+    "shortDescription" TEXT,
+    short_description TEXT,
+    "featuredImage" TEXT,
+    featured_image TEXT,
+    gallery TEXT[] DEFAULT '{}',
+    tags TEXT[] DEFAULT '{}',
+    "metaKeywords" TEXT,
+    meta_keywords TEXT,
+    "metaDescription" TEXT,
+    meta_description TEXT,
+    "currentPrice" NUMERIC NOT NULL DEFAULT 0,
+    current_price NUMERIC NOT NULL DEFAULT 0,
+    "prevPrice" NUMERIC,
+    prev_price NUMERIC,
+    category UUID, -- or TEXT depending on categories table primary key
+    "subCategory" UUID,
+    sub_category UUID,
+    brand UUID,
+    "totalInStock" INTEGER NOT NULL DEFAULT 0,
+    total_in_stock INTEGER NOT NULL DEFAULT 0,
+    tax TEXT DEFAULT '0',
+    sku TEXT,
+    "youtubeLink" TEXT,
+    youtube_link TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -194,4 +217,30 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS "managePassword" TEXT;
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS shipping_settings JSONB DEFAULT '{"enabled": false, "methods": [{"id": "1", "name": "Standard Shipping", "cost": 0}]}'::jsonb;
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS "shippingSettings" JSONB DEFAULT '{"enabled": false, "methods": [{"id": "1", "name": "Standard Shipping", "cost": 0}]}'::jsonb;
 
-
+-- 13. Add product catalog columns to products table if they don't exist
+ALTER TABLE products ADD COLUMN IF NOT EXISTS owner_id UUID;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS "shortDescription" TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS short_description TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS "featuredImage" TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS featured_image TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS gallery TEXT[] DEFAULT '{}';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS "metaKeywords" TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS meta_keywords TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS "metaDescription" TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS meta_description TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS "currentPrice" NUMERIC DEFAULT 0;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS current_price NUMERIC DEFAULT 0;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS "prevPrice" NUMERIC;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS prev_price NUMERIC;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS category UUID;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS "subCategory" UUID;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS sub_category UUID;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS brand UUID;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS "totalInStock" INTEGER DEFAULT 0;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS total_in_stock INTEGER DEFAULT 0;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS tax TEXT DEFAULT '0';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS sku TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS "youtubeLink" TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS youtube_link TEXT;
