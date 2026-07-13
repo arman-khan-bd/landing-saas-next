@@ -685,7 +685,7 @@ export default function RedesignedDashboard() {
                     className="rounded-l-2xl rounded-r-none h-14 bg-slate-50 border-none text-lg px-6 flex-1"
                   />
                   <div className="h-14 bg-slate-200/50 flex items-center px-6 rounded-r-2xl text-sm font-black text-slate-400">
-                    .ihut.shop
+                    .{process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}
                   </div>
                 </div>
               </div>

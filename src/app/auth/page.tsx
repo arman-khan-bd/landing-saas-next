@@ -285,7 +285,7 @@ function AuthPageContent() {
                 <div className="flex">
                   <Input id="subdomain" placeholder="myshop" value={formData.subdomain} onChange={handleInputChange} className="rounded-l-xl rounded-r-none h-12" />
                   <div className="h-12 bg-muted flex items-center px-4 rounded-r-xl border border-l-0 text-sm font-medium text-muted-foreground">
-                    .ihut.shop
+                    .{process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">This will be your store's web address.</p>

@@ -207,7 +207,7 @@ export default function TransactionsPage() {
                     {tx.store_name || "Unknown Store"}
                   </CardTitle>
                   <CardDescription className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">
-                    {tx.subdomain}.ihut.shop
+                    {tx.subdomain}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 pt-0 space-y-6">

@@ -9,7 +9,8 @@ export default async function sitemap({
   params: Promise<{ subdomain: string }>;
 }): Promise<MetadataRoute.Sitemap> {
   const { subdomain } = await params;
-  const baseUrl = `https://${subdomain}.ihut.shop`;
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop';
+  const baseUrl = `https://${subdomain}.${rootDomain}`;
 
   try {
     const supabase = createClient(

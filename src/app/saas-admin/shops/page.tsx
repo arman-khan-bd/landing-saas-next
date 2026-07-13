@@ -145,7 +145,7 @@ export default function AdminShops() {
                   <TableCell className="py-5 px-8">
                      <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm">
                         <Globe className="w-3.5 h-3.5" />
-                        {shop.subdomain}.ihut.shop
+                        {shop.subdomain}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}
                      </div>
                   </TableCell>
                   <TableCell className="py-5 px-8 font-mono text-xs text-slate-500">

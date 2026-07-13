@@ -374,7 +374,7 @@ export default function StoreSettingsPage() {
                   <Badge className="bg-emerald-50 text-emerald-600 border-none px-3 py-1 font-black text-[8px] tracking-widest uppercase">Live</Badge>
                 </div>
                 <div className="flex items-center gap-2 bg-white border px-4 rounded-xl h-12 text-sm font-bold text-primary">
-                  {settings.subdomain}.ihut.shop
+                  {settings.subdomain}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}
                 </div>
               </div>
 

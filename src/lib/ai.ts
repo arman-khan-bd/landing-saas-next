@@ -20,7 +20,7 @@ Only output the raw JSON object, without any markdown formatting blocks or extra
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://ihut.shop",
+      "HTTP-Referer": `https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}`,
       "X-Title": "iHut Shop AI Generator"
     },
     body: JSON.stringify({

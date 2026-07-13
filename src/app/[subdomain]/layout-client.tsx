@@ -409,7 +409,7 @@ export default function StoreLayoutClient({
             <SidebarHeader className="p-6 border-b border-border/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shrink-0"><Store className="w-6 h-6" /></div>
-                <div className="overflow-hidden"><h3 className="font-headline font-bold text-lg truncate leading-none">{store?.name}</h3><p className="text-xs text-muted-foreground truncate">{store?.subdomain}.ihut.shop</p></div>
+                <div className="overflow-hidden"><h3 className="font-headline font-bold text-lg truncate leading-none">{store?.name}</h3><p className="text-xs text-muted-foreground truncate">{store?.subdomain}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}</p></div>
               </div>
             </SidebarHeader>
             <SidebarContent className="p-4 space-y-4">
