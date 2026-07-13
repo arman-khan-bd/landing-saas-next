@@ -247,7 +247,42 @@ export default function ProductDetailPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20">
+    <div className="product-body-wrap pb-20">
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+        
+        .product-body-wrap {
+          font-family: 'Poppins', 'Hind Siliguri', sans-serif;
+          background: #f4f7f4;
+          min-height: 100vh;
+        }
+        .bg-primary {
+          background-color: #2e7d32 !important;
+        }
+        .text-primary {
+          color: #2e7d32 !important;
+        }
+        .border-primary {
+          border-color: #2e7d32 !important;
+        }
+        .hover\\:bg-primary\\/90:hover {
+          background-color: #1b5e20 !important;
+        }
+        .shadow-primary\\/20 {
+          box-shadow: 0 10px 15px -3px rgba(46, 125, 50, 0.2), 0 4px 6px -4px rgba(46, 125, 50, 0.2) !important;
+        }
+        .ring-primary\\/5 {
+          --tw-ring-color: rgba(46, 125, 50, 0.05) !important;
+        }
+        /* Style fixes for drawer overlays */
+        [data-radix-portal] > div,
+        .fixed.z-50,
+        [role="dialog"] {
+          z-index: 999999 !important;
+        }
+      ` }} />
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <Button variant="ghost" size="sm" className="rounded-xl font-bold gap-1 text-slate-500 h-9" onClick={() => router.back()}>
