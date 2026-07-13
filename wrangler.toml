@@ -2,8 +2,11 @@ name = "ihut-shop"
 compatibility_date = "2024-05-02"
 compatibility_flags = ["nodejs_compat"]
 
+main = ".vercel/output/static/_worker.js/index.js"
+
 [assets]
 directory = ".vercel/output/static"
+binding = "ASSETS"
 
 [vars]
 # You can define your environment variables here if required.
