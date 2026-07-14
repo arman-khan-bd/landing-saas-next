@@ -2,18 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useSupabaseClient } from "@/supabase";
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { 
-  Search, ExternalLink, Store, Trash2, 
-  Globe, AlertTriangle, MoreHorizontal, Loader2
+import {
+  Search, ExternalLink, Store, Trash2,
+  Globe, AlertTriangle, MoreHorizontal, Loader2,
+  ShieldCheck
 } from "lucide-react";
-import { 
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger 
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -49,7 +50,7 @@ export default function AdminShops() {
     const newStatus = !shop.is_suspended && !shop.isSuspended;
     const actionText = newStatus ? "Suspended" : "Reactivated";
     if (!confirm(`Are you sure you want to ${newStatus ? 'suspend' : 'reactivate'} this shop?`)) return;
-    
+
     try {
       const { error } = await supabase
         .from("stores")
@@ -60,12 +61,12 @@ export default function AdminShops() {
           suspendedAt: newStatus ? new Date().toISOString() : null
         })
         .eq("id", shop.id);
-      
+
       if (error) throw error;
 
-      toast({ 
-        title: `Shop ${actionText}`, 
-        description: `The store access has been ${actionText.toLowerCase()}.` 
+      toast({
+        title: `Shop ${actionText}`,
+        description: `The store access has been ${actionText.toLowerCase()}.`
       });
       fetchShops();
     } catch (error) {
@@ -85,7 +86,7 @@ export default function AdminShops() {
     }
   };
 
-  const filteredShops = shops.filter(s => 
+  const filteredShops = shops.filter(s =>
     s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.subdomain?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -95,8 +96,8 @@ export default function AdminShops() {
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <Input 
-            placeholder="Search stores and domains..." 
+          <Input
+            placeholder="Search stores and domains..."
             className="pl-12 rounded-2xl bg-slate-900 border-white/5 h-12 text-slate-100"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -143,24 +144,24 @@ export default function AdminShops() {
                     </div>
                   </TableCell>
                   <TableCell className="py-5 px-8">
-                     <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm">
-                        <Globe className="w-3.5 h-3.5" />
-                        {shop.subdomain}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}
-                     </div>
+                    <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm">
+                      <Globe className="w-3.5 h-3.5" />
+                      {shop.subdomain}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}
+                    </div>
                   </TableCell>
                   <TableCell className="py-5 px-8 font-mono text-xs text-slate-500">
                     {(shop.owner_id || shop.ownerId)?.slice(0, 10)}...
                   </TableCell>
                   <TableCell className="py-5 px-8">
-                     {shop.is_suspended || shop.isSuspended ? (
-                        <Badge className="bg-rose-600/10 text-rose-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
-                           Suspended
-                        </Badge>
-                     ) : (
-                        <Badge className="bg-emerald-600/10 text-emerald-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
-                           Active
-                        </Badge>
-                     )}
+                    {shop.is_suspended || shop.isSuspended ? (
+                      <Badge className="bg-rose-600/10 text-rose-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
+                        Suspended
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-emerald-600/10 text-emerald-500 border-none rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
+                        Active
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="py-5 px-8 text-right">
                     <DropdownMenu>
@@ -171,15 +172,15 @@ export default function AdminShops() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[200px] bg-slate-900 border-white/10 shadow-2xl text-slate-200">
                         <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer" asChild>
-                          <a href={getStoreUrl(shop.subdomain)} target="_blank">
-                             <ExternalLink className="w-4 h-4 text-indigo-400" /> View Live Site
+                          <a href={`/${shop.subdomain}/dashboard`} target="_blank" rel="noreferrer">
+                            <ShieldCheck className="w-4 h-4 text-indigo-400" /> Manage Store Dashboard
                           </a>
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="gap-3 py-3 rounded-xl cursor-pointer"
                           onClick={() => handleToggleSuspend(shop)}
                         >
-                          <AlertTriangle className={shop.is_suspended || shop.isSuspended ? "w-4 h-4 text-emerald-500" : "w-4 h-4 text-amber-500"} /> 
+                          <AlertTriangle className={shop.is_suspended || shop.isSuspended ? "w-4 h-4 text-emerald-500" : "w-4 h-4 text-amber-500"} />
                           {shop.is_suspended || shop.isSuspended ? "Reactivate Shop" : "Suspend Shop"}
                         </DropdownMenuItem>
                         <DropdownMenuItem className="gap-3 py-3 rounded-xl cursor-pointer text-rose-500" onClick={() => handleDelete(shop.id)}>

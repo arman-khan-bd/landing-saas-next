@@ -183,3 +183,119 @@ ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS pages_limit INTEGER DEFA
 ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS orders_limit INTEGER DEFAULT -1;
 ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS custom_domain_enabled BOOLEAN DEFAULT false;
 
+-- ─────────────────────────────────────────────────────────────
+-- 16. Grant admin full access to all store/tenant tables (Bypass RLS for Admin role)
+-- ─────────────────────────────────────────────────────────────
+DROP POLICY IF EXISTS "Store owners can manage pages" ON pages;
+CREATE POLICY "Store owners can manage pages" ON pages FOR ALL TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = pages.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Store owners can manage sections" ON sections;
+CREATE POLICY "Store owners can manage sections" ON sections FOR ALL TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = sections.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to insert products" ON products;
+CREATE POLICY "Allow owners to insert products" ON products FOR INSERT TO authenticated
+    WITH CHECK (EXISTS (SELECT 1 FROM stores WHERE stores.id = products.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to update products" ON products;
+CREATE POLICY "Allow owners to update products" ON products FOR UPDATE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = products.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to delete products" ON products;
+CREATE POLICY "Allow owners to delete products" ON products FOR DELETE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = products.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Store owners can read their orders" ON orders;
+CREATE POLICY "Store owners can read their orders" ON orders FOR SELECT TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = orders.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Store owners can update their orders" ON orders;
+CREATE POLICY "Store owners can update their orders" ON orders FOR UPDATE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = orders.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Store owners can delete their orders" ON orders;
+CREATE POLICY "Store owners can delete their orders" ON orders FOR DELETE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = orders.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Store owners can manage uncompleted orders" ON uncompleted_orders;
+CREATE POLICY "Store owners can manage uncompleted orders" ON uncompleted_orders FOR ALL TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = uncompleted_orders.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Store owners can manage customers" ON customers;
+CREATE POLICY "Store owners can manage customers" ON customers FOR ALL TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = customers.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Store owners can manage fraud blocks" ON fraud_blocks;
+CREATE POLICY "Store owners can manage fraud blocks" ON fraud_blocks FOR ALL TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = fraud_blocks.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to insert categories" ON categories;
+CREATE POLICY "Allow owners to insert categories" ON categories FOR INSERT TO authenticated
+    WITH CHECK (EXISTS (SELECT 1 FROM stores WHERE stores.id = categories.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to update categories" ON categories;
+CREATE POLICY "Allow owners to update categories" ON categories FOR UPDATE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = categories.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to delete categories" ON categories;
+CREATE POLICY "Allow owners to delete categories" ON categories FOR DELETE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = categories.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to insert sub_categories" ON sub_categories;
+CREATE POLICY "Allow owners to insert sub_categories" ON sub_categories FOR INSERT TO authenticated
+    WITH CHECK (EXISTS (SELECT 1 FROM stores WHERE stores.id = sub_categories.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to update sub_categories" ON sub_categories;
+CREATE POLICY "Allow owners to update sub_categories" ON sub_categories FOR UPDATE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = sub_categories.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to delete sub_categories" ON sub_categories;
+CREATE POLICY "Allow owners to delete sub_categories" ON sub_categories FOR DELETE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = sub_categories.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to insert brands" ON brands;
+CREATE POLICY "Allow owners to insert brands" ON brands FOR INSERT TO authenticated
+    WITH CHECK (EXISTS (SELECT 1 FROM stores WHERE stores.id = brands.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to update brands" ON brands;
+CREATE POLICY "Allow owners to update brands" ON brands FOR UPDATE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = brands.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to delete brands" ON brands;
+CREATE POLICY "Allow owners to delete brands" ON brands FOR DELETE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = brands.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to insert taxes" ON taxes;
+CREATE POLICY "Allow owners to insert taxes" ON taxes FOR INSERT TO authenticated
+    WITH CHECK (EXISTS (SELECT 1 FROM stores WHERE stores.id = taxes.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to update taxes" ON taxes;
+CREATE POLICY "Allow owners to update taxes" ON taxes FOR UPDATE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = taxes.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to delete taxes" ON taxes;
+CREATE POLICY "Allow owners to delete taxes" ON taxes FOR DELETE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = taxes.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to insert attributes" ON attributes;
+CREATE POLICY "Allow owners to insert attributes" ON attributes FOR INSERT TO authenticated
+    WITH CHECK (EXISTS (SELECT 1 FROM stores WHERE stores.id = attributes.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to update attributes" ON attributes;
+CREATE POLICY "Allow owners to update attributes" ON attributes FOR UPDATE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = attributes.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Allow owners to delete attributes" ON attributes;
+CREATE POLICY "Allow owners to delete attributes" ON attributes FOR DELETE TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = attributes.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Store owners can manage tags" ON tags;
+CREATE POLICY "Store owners can manage tags" ON tags FOR ALL TO authenticated
+    USING (EXISTS (SELECT 1 FROM stores WHERE stores.id = tags.store_id AND stores.owner_id = auth.uid()) OR public.is_admin());
+
+-- ─────────────────────────────────────────────────────────────
+-- 17. Add details column to saas_payment_methods
+-- ─────────────────────────────────────────────────────────────
+ALTER TABLE saas_payment_methods ADD COLUMN IF NOT EXISTS details TEXT;
+

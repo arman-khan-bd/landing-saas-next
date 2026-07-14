@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -104,6 +103,7 @@ export default function SaasAdminLayout({ children }: { children: React.ReactNod
     { title: "Transactions", icon: ArrowLeftRight, href: "/saas-admin/transactions", badge: pendingTransactions },
     { title: "Domain Requests", icon: Globe, href: "/saas-admin/domains", badge: pendingDomains },
     { title: "Notifications", icon: Bell, href: "/saas-admin/notifications", badge: pendingTransactions + pendingDomains },
+    { title: "Settings", icon: Settings, href: "/saas-admin/settings" },
   ];
 
   return (

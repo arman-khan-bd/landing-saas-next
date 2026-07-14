@@ -6,6 +6,8 @@ import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'edge';
 
+import { headers } from 'next/headers';
+
 export async function generateMetadata(): Promise<Metadata> {
   const appName = process.env.NEXT_PUBLIC_APP_NAME || 'iHut';
   const defaultTitle = process.env.NEXT_PUBLIC_APP_TITLE || `${appName} | Multi-tenant E-commerce SaaS`;
@@ -19,28 +21,56 @@ export async function generateMetadata(): Promise<Metadata> {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Race the Supabase call against a 3-second timeout so a slow DB
-    // never causes the edge function to crash or hang.
-    const result = await Promise.race([
-      supabase
-        .from('platform_settings')
-        .select('value')
-        .eq('key', 'seo')
-        .maybeSingle(),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
-    ]);
+    const headersList = await headers();
+    const host = headersList.get("host") || "";
+    const tenant = headersList.get("x-subdomain-tenant") || "";
+    const customDomain = headersList.get("x-custom-domain") || "";
 
-    if (result && typeof result === 'object' && 'data' in result && result.data?.value) {
-      const seo = result.data.value as any;
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
+    const currentHost = host.toLowerCase().split(":")[0];
+    const isRoot = currentHost === rootDomain || currentHost === `www.${rootDomain}` || currentHost === "localhost" || currentHost === "127.0.0.1";
+
+    if (!isRoot && (tenant || customDomain)) {
+      const lookupVal = tenant || customDomain;
+      const { data: store } = await supabase
+        .from('stores')
+        .select('name, home_page_title, seo, favicon')
+        .or(`subdomain.eq.${lookupVal},custom_domain.eq.${lookupVal}`)
+        .maybeSingle();
+
+      if (store) {
+        const seoData = store.seo || {};
+        return {
+          title: store.home_page_title || store.name || defaultTitle,
+          description: seoData.description || defaultDesc,
+          keywords: seoData.keywords || undefined,
+          icons: {
+            icon: store.favicon || "/favicon.ico",
+          }
+        };
+      }
+    }
+
+    const { data: settings } = await supabase
+      .from('platform_settings')
+      .select('key, value');
+
+    if (settings && settings.length > 0) {
+      const general = settings.find(s => s.key === 'general')?.value || {};
+      const seo = settings.find(s => s.key === 'seo')?.value || {};
+
+      const favicon = general.favicon || seo.favicon || "/favicon.ico";
       return {
-        title: seo.metaTitle || defaultTitle,
-        description: seo.metaDescription || defaultDesc,
+        title: seo.metaTitle || general.platformName || defaultTitle,
+        description: seo.metaDescription || general.platformSubtitle || defaultDesc,
         keywords: seo.keywords || undefined,
-        icons: seo.favicon ? { icon: seo.favicon } : undefined,
+        icons: {
+          icon: favicon,
+        }
       };
     }
-  } catch {
-    // Graceful fallback — metadata fetch failed (expected in some edge/SSG contexts)
+  } catch (error) {
+    console.error("Error fetching metadata:", error);
   }
 
   return fallback;

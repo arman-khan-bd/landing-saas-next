@@ -363,6 +363,7 @@ CREATE TABLE IF NOT EXISTS saas_payment_methods (
     name TEXT NOT NULL,
     number TEXT,
     instructions TEXT,
+    details TEXT,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );

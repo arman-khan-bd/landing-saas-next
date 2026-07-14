@@ -758,6 +758,7 @@ function SaasPaymentMethods() {
   const [methods, setMethods] = useState<any[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newMethod, setNewMethod] = useState({ name: "", details: "", isActive: true });
+  const [editingMethod, setEditingMethod] = useState<any>(null);
 
   useEffect(() => {
     if (supabase) fetchMethods();
@@ -793,6 +794,27 @@ function SaasPaymentMethods() {
       fetchMethods();
     } catch (error) {
       toast({ variant: "destructive", title: "Failed to add method" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEdit = async () => {
+    if (!editingMethod || !editingMethod.name || !editingMethod.details) return;
+    setSaving(true);
+    try {
+      await supabase
+        .from("saas_payment_methods")
+        .update({
+          name: editingMethod.name,
+          details: editingMethod.details
+        })
+        .eq("id", editingMethod.id);
+      toast({ title: "Payment Method Updated" });
+      setEditingMethod(null);
+      fetchMethods();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Failed to update method" });
     } finally {
       setSaving(false);
     }
@@ -879,6 +901,9 @@ function SaasPaymentMethods() {
                   <h4 className="font-bold text-lg text-white">{method.name}</h4>
                   <div className="flex items-center gap-2">
                     <Switch checked={method.is_active} onCheckedChange={() => toggleMethod(method.id, method.is_active)} />
+                    <Button variant="ghost" size="icon" className="text-indigo-400 hover:bg-indigo-500/10" onClick={() => setEditingMethod({ id: method.id, name: method.name, details: method.details })}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" className="text-rose-500 hover:bg-rose-500/10" onClick={() => handleDelete(method.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -892,6 +917,43 @@ function SaasPaymentMethods() {
           </div>
         )}
       </CardContent>
+
+      {/* Edit Payment Method Dialog */}
+      {editingMethod && (
+        <Dialog open={!!editingMethod} onOpenChange={(open) => { if (!open) setEditingMethod(null); }}>
+          <DialogContent className="bg-slate-900 border-white/5 text-white rounded-[32px]">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black">Edit Payment Method</DialogTitle>
+              <DialogDescription className="text-slate-400">Update payment option details.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Method Name</Label>
+                <Input
+                  placeholder="e.g. Bank Transfer"
+                  className="h-12 rounded-xl bg-slate-800 border-none text-white"
+                  value={editingMethod.name}
+                  onChange={e => setEditingMethod({ ...editingMethod, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Payment Details / Instructions</Label>
+                <Textarea
+                  placeholder="Enter account numbers, contact details, or instructions..."
+                  className="rounded-xl bg-slate-800 border-none min-h-[120px] text-white"
+                  value={editingMethod.details}
+                  onChange={e => setEditingMethod({ ...editingMethod, details: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold text-white" onClick={handleEdit} disabled={saving}>
+                {saving ? <Loader2 className="animate-spin" /> : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }
