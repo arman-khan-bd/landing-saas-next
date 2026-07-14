@@ -101,8 +101,8 @@ export default function AdminInstallPage() {
 
       const userId = authData.user.id;
 
-      // 3. Store the user in public.users table as admin
-      const { error: profileError } = await supabase.from("users").insert({
+      // 3. Store the user in public.users table as admin using upsert (as DB trigger handles initial auth mapping)
+      const { error: profileError } = await supabase.from("users").upsert({
         id: userId,
         email: formData.email,
         full_name: formData.fullName,
