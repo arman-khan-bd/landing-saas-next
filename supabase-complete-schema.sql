@@ -314,6 +314,10 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
     features TEXT[] DEFAULT '{}',
     is_active BOOLEAN NOT NULL DEFAULT true,
     sms_limit INTEGER DEFAULT 100,
+    products_limit INTEGER DEFAULT -1,
+    pages_limit INTEGER DEFAULT -1,
+    orders_limit INTEGER DEFAULT -1,
+    custom_domain_enabled BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
@@ -434,17 +438,30 @@ ALTER TABLE custom_domain_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE platform_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE platform_features ENABLE ROW LEVEL SECURITY;
 
+-- ─────────────────────────────────────────────────────────────
+-- Helper function to bypass RLS recursion (SECURITY DEFINER)
+-- ─────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN SECURITY DEFINER AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql;
+
 -- ─── USERS ───
 DROP POLICY IF EXISTS "Users can read own row" ON users;
 CREATE POLICY "Users can read own row" ON users FOR SELECT TO authenticated USING (auth.uid() = id);
 
 DROP POLICY IF EXISTS "Admins can read all users" ON users;
 CREATE POLICY "Admins can read all users" ON users FOR SELECT TO authenticated
-    USING (EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role = 'admin'));
+    USING (auth.uid() = id OR public.is_admin());
 
 DROP POLICY IF EXISTS "Admins can update user roles" ON users;
 CREATE POLICY "Admins can update user roles" ON users FOR UPDATE TO authenticated
-    USING (EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role = 'admin'));
+    USING (public.is_admin());
 
 DROP POLICY IF EXISTS "Allow users to insert their own profile" ON users;
 CREATE POLICY "Allow users to insert their own profile" ON users FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);

@@ -35,10 +35,26 @@ function AuthPageContent() {
 
   const [seo, setSeo] = useState<any>(null);
 
-  // Redirect if already logged in
+  // Redirect if already logged in based on user role
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      if (session?.user) router.push("/dashboard");
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
+      if (session?.user) {
+        try {
+          const { data } = await supabase
+            .from("users")
+            .select("role")
+            .eq("id", session.user.id)
+            .single();
+
+          if (data?.role === "admin") {
+            router.push("/saas-admin/overview");
+          } else {
+            router.push("/dashboard");
+          }
+        } catch (e) {
+          router.push("/dashboard");
+        }
+      }
     });
 
     supabase

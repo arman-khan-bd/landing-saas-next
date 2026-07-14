@@ -51,16 +51,27 @@ CREATE POLICY "Allow public/anon users to insert profile during signup" ON users
 
 
 -- ─────────────────────────────────────────────────────────────
+-- 5.2 Helper function to bypass RLS recursion (SECURITY DEFINER)
+-- ─────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN SECURITY DEFINER AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+-- ─────────────────────────────────────────────────────────────
 -- 6. Fix RLS: admins can read ALL users (needed for saas-admin overview)
 -- ─────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Admins can read all users" ON users;
 CREATE POLICY "Admins can read all users" ON users
   FOR SELECT TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM users self WHERE self.id = auth.uid() AND self.role = 'admin'
-    )
-    OR auth.uid() = id
+    auth.uid() = id
+    OR public.is_admin()
   );
 
 -- ─────────────────────────────────────────────────────────────
@@ -71,9 +82,7 @@ CREATE POLICY "Admins can update any store" ON stores
   FOR UPDATE TO authenticated
   USING (
     auth.uid() = owner_id
-    OR EXISTS (
-      SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin'
-    )
+    OR public.is_admin()
   );
 
 DROP POLICY IF EXISTS "Admins can delete any store" ON stores;
@@ -81,9 +90,7 @@ CREATE POLICY "Admins can delete any store" ON stores
   FOR DELETE TO authenticated
   USING (
     auth.uid() = owner_id
-    OR EXISTS (
-      SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin'
-    )
+    OR public.is_admin()
   );
 
 -- ─────────────────────────────────────────────────────────────
@@ -94,9 +101,7 @@ CREATE POLICY "Admins can manage all transactions" ON saas_transactions
   FOR ALL TO authenticated
   USING (
     auth.uid() = owner_id
-    OR EXISTS (
-      SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin'
-    )
+    OR public.is_admin()
   );
 
 -- ─────────────────────────────────────────────────────────────
@@ -107,9 +112,7 @@ CREATE POLICY "Admins can manage all subscriptions" ON subscriptions
   FOR ALL TO authenticated
   USING (
     auth.uid() = owner_id
-    OR EXISTS (
-      SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin'
-    )
+    OR public.is_admin()
   );
 
 -- ─────────────────────────────────────────────────────────────
@@ -120,9 +123,7 @@ CREATE POLICY "Admins can manage all domain requests" ON custom_domain_requests
   FOR ALL TO authenticated
   USING (
     auth.uid() = owner_id
-    OR EXISTS (
-      SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin'
-    )
+    OR public.is_admin()
   );
 
 -- ─────────────────────────────────────────────────────────────
@@ -173,3 +174,12 @@ BEGIN
       FOREIGN KEY (plan_id) REFERENCES subscription_plans(id) ON DELETE SET NULL;
   END IF;
 END $$;
+
+-- ─────────────────────────────────────────────────────────────
+-- 15. Add limitation columns to subscription_plans
+-- ─────────────────────────────────────────────────────────────
+ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS products_limit INTEGER DEFAULT -1;
+ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS pages_limit INTEGER DEFAULT -1;
+ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS orders_limit INTEGER DEFAULT -1;
+ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS custom_domain_enabled BOOLEAN DEFAULT false;
+
