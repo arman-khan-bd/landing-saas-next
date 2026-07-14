@@ -10,36 +10,40 @@ export async function generateMetadata(): Promise<Metadata> {
   const appName = process.env.NEXT_PUBLIC_APP_NAME || 'iHut';
   const defaultTitle = process.env.NEXT_PUBLIC_APP_TITLE || `${appName} | Multi-tenant E-commerce SaaS`;
   const defaultDesc = process.env.NEXT_PUBLIC_APP_DESC || 'The ultimate platform for launching your online store in minutes.';
-  
+  const fallback: Metadata = { title: defaultTitle, description: defaultDesc };
+
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const { data } = await supabase
+    if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('placeholder')) return fallback;
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Race the Supabase call against a 3-second timeout so a slow DB
+    // never causes the edge function to crash or hang.
+    const result = await Promise.race([
+      supabase
         .from('platform_settings')
         .select('value')
         .eq('key', 'seo')
-        .maybeSingle();
-      
-      if (data && data.value) {
-        const seo = data.value as any;
-        return {
-          title: seo.metaTitle || defaultTitle,
-          description: seo.metaDescription || defaultDesc,
-          keywords: seo.keywords || undefined,
-          icons: seo.favicon ? { icon: seo.favicon } : undefined,
-        };
-      }
+        .maybeSingle(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+    ]);
+
+    if (result && typeof result === 'object' && 'data' in result && result.data?.value) {
+      const seo = result.data.value as any;
+      return {
+        title: seo.metaTitle || defaultTitle,
+        description: seo.metaDescription || defaultDesc,
+        keywords: seo.keywords || undefined,
+        icons: seo.favicon ? { icon: seo.favicon } : undefined,
+      };
     }
-  } catch (e) {
+  } catch {
     // Graceful fallback — metadata fetch failed (expected in some edge/SSG contexts)
   }
-  
-  return {
-    title: defaultTitle,
-    description: defaultDesc,
-  };
+
+  return fallback;
 }
 
 export default function RootLayout({
