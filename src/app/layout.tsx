@@ -4,9 +4,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { SupabaseClientProvider } from "@/supabase";
 import { createClient } from '@supabase/supabase-js';
 
-export const runtime = 'edge';
-
 import { headers } from 'next/headers';
+
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   const appName = process.env.NEXT_PUBLIC_APP_NAME || 'iHut';
