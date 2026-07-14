@@ -31,7 +31,11 @@ export default function TransactionsPage() {
   const fetchTransactions = async () => {
     const { data } = await supabase
       .from("saas_transactions")
-      .select("*")
+      .select(`
+        *,
+        store:stores(name, subdomain),
+        plan:subscription_plans(name, billing_interval)
+      `)
       .order("created_at", { ascending: false });
     setTransactions(data ?? []);
     setLoading(false);
@@ -204,10 +208,10 @@ export default function TransactionsPage() {
                   </div>
                   <CardTitle className="text-xl font-black text-white flex items-center gap-2">
                     <Store className="w-5 h-5 text-indigo-400" />
-                    {tx.store_name || "Unknown Store"}
+                    {tx.store?.name || "Unknown Store"}
                   </CardTitle>
                   <CardDescription className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">
-                    {tx.subdomain}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}
+                    {tx.store?.subdomain}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'ihut.shop'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 pt-0 space-y-6">
@@ -216,7 +220,7 @@ export default function TransactionsPage() {
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Plan</p>
                       <p className="text-sm font-bold text-white flex items-center gap-2">
                         <CreditCard className="w-3 h-3 text-indigo-400" />
-                        {tx.plan_name || "Unknown Plan"}
+                        {tx.plan?.name || "Unknown Plan"}
                       </p>
                     </div>
                     <div className="p-4 bg-white/5 rounded-2xl">
@@ -225,7 +229,7 @@ export default function TransactionsPage() {
                     </div>
                   </div>
 
-                  {(tx.payment_method || tx.reference) && (
+                  {(tx.payment_method || tx.transaction_id || tx.screenshot_url) && (
                     <div className="p-4 bg-white/5 rounded-2xl">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Payment Verification</p>
                       <div className="flex flex-col gap-1.5">
@@ -235,11 +239,16 @@ export default function TransactionsPage() {
                             <p className="text-xs font-bold text-white uppercase tracking-tight">{tx.payment_method}</p>
                           </div>
                         )}
-                        {tx.reference && (
+                        {tx.transaction_id && (
                           <div className="p-2 bg-black/20 rounded-lg border border-white/5">
-                            <p className="text-[10px] text-slate-500 font-black uppercase mb-1">Ref ID</p>
-                            <p className="text-xs font-mono text-indigo-300 break-all select-all">{tx.reference}</p>
+                            <p className="text-[10px] text-slate-500 font-black uppercase mb-1">Transaction ID</p>
+                            <p className="text-xs font-mono text-indigo-300 break-all select-all">{tx.transaction_id}</p>
                           </div>
+                        )}
+                        {tx.screenshot_url && (
+                          <a href={tx.screenshot_url} target="_blank" rel="noopener noreferrer" className="block p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500/20 transition-colors">
+                            View Payment Screenshot →
+                          </a>
                         )}
                       </div>
                     </div>
