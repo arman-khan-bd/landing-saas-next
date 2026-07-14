@@ -27,10 +27,28 @@ ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS current_period_start TIMESTAM
 ALTER TABLE system_notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'info';
 
 -- ─────────────────────────────────────────────────────────────
--- 5. USERS — add display_name, avatar
+-- 5. USERS — add display_name, avatar, full_name, phone
 -- ─────────────────────────────────────────────────────────────
 ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+
+-- ─────────────────────────────────────────────────────────────
+-- 5.1 RLS policies for users table (to allow signup profile storage)
+-- ─────────────────────────────────────────────────────────────
+DROP POLICY IF EXISTS "Allow users to insert their own profile" ON users;
+CREATE POLICY "Allow users to insert their own profile" ON users
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Allow users to update their own profile" ON users;
+CREATE POLICY "Allow users to update their own profile" ON users
+  FOR UPDATE TO authenticated USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Allow public/anon users to insert profile during signup" ON users;
+CREATE POLICY "Allow public/anon users to insert profile during signup" ON users
+  FOR INSERT TO anon, authenticated WITH CHECK (true);
+
 
 -- ─────────────────────────────────────────────────────────────
 -- 6. Fix RLS: admins can read ALL users (needed for saas-admin overview)

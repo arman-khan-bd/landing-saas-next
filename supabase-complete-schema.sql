@@ -10,6 +10,10 @@
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT,
+    full_name TEXT,
+    phone TEXT,
+    display_name TEXT,
+    avatar_url TEXT,
     role TEXT NOT NULL DEFAULT 'user',  -- 'user' | 'admin'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
@@ -441,6 +445,15 @@ CREATE POLICY "Admins can read all users" ON users FOR SELECT TO authenticated
 DROP POLICY IF EXISTS "Admins can update user roles" ON users;
 CREATE POLICY "Admins can update user roles" ON users FOR UPDATE TO authenticated
     USING (EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role = 'admin'));
+
+DROP POLICY IF EXISTS "Allow users to insert their own profile" ON users;
+CREATE POLICY "Allow users to insert their own profile" ON users FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Allow users to update their own profile" ON users;
+CREATE POLICY "Allow users to update their own profile" ON users FOR UPDATE TO authenticated USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Allow public/anon users to insert profile during signup" ON users;
+CREATE POLICY "Allow public/anon users to insert profile during signup" ON users FOR INSERT TO anon, authenticated WITH CHECK (true);
 
 -- ─── STORES ───
 DROP POLICY IF EXISTS "Public can read all stores" ON stores;
