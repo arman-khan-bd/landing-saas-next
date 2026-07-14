@@ -1,18 +1,42 @@
 export const runtime = 'edge';
 
-import Link from 'next/link';
-
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 text-slate-100 p-6 text-center">
-      <h2 className="text-5xl font-headline font-black uppercase text-indigo-500 mb-2">404</h2>
-      <h1 className="text-xl font-bold mb-2">Page Not Found</h1>
-      <p className="text-slate-400 text-xs mb-6 max-w-xs leading-relaxed">
+    <div style={{
+      display: 'flex',
+      minHeight: '100vh',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#020617',
+      color: '#f8fafc',
+      padding: '24px',
+      textAlign: 'center',
+      fontFamily: 'sans-serif'
+    }}>
+      <h2 style={{ fontSize: '48px', fontWeight: '900', color: '#6366f1', margin: '0 0 8px 0' }}>404</h2>
+      <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0 0 8px 0' }}>Page Not Found</h1>
+      <p style={{ color: '#94a3b8', fontSize: '12px', margin: '0 0 24px 0', maxWidth: '320px', lineHeight: '1.6' }}>
         The store page or dashboard section you are trying to reach does not exist or has been moved.
       </p>
-      <Link href="/" className="rounded-xl h-10 px-5 font-black bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center text-[10px] uppercase tracking-wider shadow-lg shadow-indigo-600/15">
+      <a href="/" style={{
+        borderRadius: '12px',
+        height: '40px',
+        padding: '0 20px',
+        fontWeight: '900',
+        backgroundColor: '#4f46e5',
+        color: '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '10px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.1em',
+        textDecoration: 'none',
+        boxShadow: '0 10px 15px -3px rgba(79, 70, 229, 0.15)'
+      }}>
         Return Home
-      </Link>
+      </a>
     </div>
   );
 }
