@@ -77,14 +77,58 @@ export async function generateMetadata(): Promise<Metadata> {
   return fallback;
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let faviconUrl = "/favicon.ico";
+
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (supabaseUrl && supabaseKey && !supabaseUrl.includes('placeholder')) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const headersList = await headers();
+      const host = headersList.get("host") || "";
+      const tenant = headersList.get("x-subdomain-tenant") || "";
+      const customDomain = headersList.get("x-custom-domain") || "";
+
+      const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "ihut.shop";
+      const currentHost = host.toLowerCase().split(":")[0];
+      const isRoot = currentHost === rootDomain || currentHost === `www.${rootDomain}` || currentHost === "localhost" || currentHost === "127.0.0.1";
+
+      if (!isRoot && (tenant || customDomain)) {
+        const lookupVal = tenant || customDomain;
+        const { data: store } = await supabase
+          .from('stores')
+          .select('favicon')
+          .or(`subdomain.eq.${lookupVal},custom_domain.eq.${lookupVal}`)
+          .maybeSingle();
+
+        if (store?.favicon) {
+          faviconUrl = store.favicon;
+        }
+      } else {
+        const { data: settings } = await supabase
+          .from('platform_settings')
+          .select('key, value');
+
+        if (settings) {
+          const general = settings.find(s => s.key === 'general')?.value || {};
+          const seo = settings.find(s => s.key === 'seo')?.value || {};
+          faviconUrl = general.favicon || seo.favicon || "/favicon.ico";
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching favicon for layout:", error);
+  }
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="icon" href={faviconUrl} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@100..800&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
